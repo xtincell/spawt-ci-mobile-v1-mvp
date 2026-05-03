@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(python3:*)",
+      "Bash(/c/Users/x-tin/AppData/Local/Programs/Python/Python312/python.exe:*)",
+      "Bash(npm create:*)",
+      "Bash(npx --yes create-vite:*)",
+      "Bash(npm install:*)",
+      "Bash(test:*)",
+      "Bash(curl:*)",
+      "Bash(npx vite:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)"
+    ]
+  }
+}
