@@ -1,0 +1,152 @@
+{
+  "common": {
+    "continue": "Continuer",
+    "back": "Retour",
+    "skip": "Passer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "loading": "Un instant…",
+    "error_generic": "Quelque chose a couiné. Réessaie.",
+    "error_network": "Pas de réseau. Le Chat patiente."
+  },
+  "splash": {
+    "tagline": "Ne plus jamais regretter un restaurant.",
+    "cta_start": "Entrer dans la Meute"
+  },
+  "consent": {
+    "title": "Avant qu'on parte ensemble",
+    "intro": "SPAWT a besoin de ton accord sur deux choses. Tu peux dire non — l'app fonctionne, mais pas pareil.",
+    "geoloc_title": "Ta position",
+    "geoloc_body": "Pour valider tes spawts dans les lieux que tu visites. On l'active seulement quand tu es au resto. Désactivable à tout moment.",
+    "geoloc_accept": "OK pour la géoloc",
+    "geoloc_decline": "Plus tard",
+    "demographics_title": "Quelques infos sur toi",
+    "demographics_body": "Tranche d'âge, genre, pays. Ça nous aide à comprendre la Meute. Tu choisis ce que tu partages.",
+    "demographics_accept": "OK",
+    "demographics_decline": "Pas maintenant",
+    "policy_link": "Politique de confidentialité",
+    "terms_link": "Conditions d'utilisation"
+  },
+  "onboarding": {
+    "step": "Étape {{current}} / {{total}}",
+    "phone_title": "Ton numéro",
+    "phone_body": "On envoie un code par SMS. Pas de mot de passe.",
+    "phone_placeholder": "+225 ...",
+    "otp_title": "Le code reçu",
+    "otp_body": "Tape les 6 chiffres reçus par SMS.",
+    "name_title": "Comment on t'appelle ?",
+    "name_placeholder": "Prénom ou pseudo",
+    "neighborhood_title": "Tu es basé·e où ?",
+    "neighborhood_body": "Ton quartier de base. Ça délimite ta zone gratuite (~3 km autour).",
+    "demographics_country_title": "Pays de résidence",
+    "demographics_origin_title": "Pays d'origine",
+    "demographics_origin_body": "Optionnel. Aide à comprendre la Meute culturellement.",
+    "demographics_gender_title": "Tu te reconnais comment ?",
+    "demographics_age_title": "Ta tranche d'âge"
+  },
+  "calibration": {
+    "title": "5 questions pour démarrer ton Palais",
+    "subtitle": "Ton Palais est un profil de goût. Il bouge avec tes spawts.",
+    "q_racines_horizons": {
+      "question": "Quand tu as faim, tu penses à quoi en premier ?",
+      "option_neg": "Attieke poisson, alloco, garba — les classiques",
+      "option_pos": "Pizza, sushi, burger — le monde dans l'assiette",
+      "option_neutral": "Ça dépend du jour"
+    },
+    "q_taniere_nomade": {
+      "question": "Samedi soir, tu fais quoi ?",
+      "option_neg": "Mon spot habituel. Ils me connaissent.",
+      "option_pos": "Un endroit que je n'ai jamais testé",
+      "option_neutral": "Ça dépend de qui m'accompagne"
+    },
+    "q_exigeant_enthousiaste": {
+      "question": "Tu goûtes un plat moyen dans un nouveau lieu. Tu fais quoi ?",
+      "option_neg": "Je note mentalement. Je ne reviendrai pas.",
+      "option_pos": "C'est pas grave, l'ambiance compense",
+      "option_neutral": "Je goûte autre chose avant de juger"
+    },
+    "q_foule_secret": {
+      "question": "Le spot idéal c'est :",
+      "option_neg": "Plein de monde, ça prouve que c'est bon",
+      "option_pos": "Vide. Mon secret. Mon trésor.",
+      "option_neutral": "M'en fous, c'est le plat qui compte"
+    },
+    "q_maquis_table": {
+      "question": "Ton cadre idéal pour manger :",
+      "option_neg": "Plastique, ventilo, télé qui grésille — maquis life",
+      "option_pos": "Nappe, menu carte, serveur en tablier",
+      "option_neutral": "Les deux me vont"
+    }
+  },
+  "chat": {
+    "touriste": {
+      "welcome_first_open": "Bienvenue. Ton Palais est vierge. Chaque spawt le dessine un peu plus. On y va ?",
+      "welcome_back": "Re. T'as faim ?",
+      "post_calibration": "Premier coup d'œil sur ton Palais. Encore très flou — c'est normal. Va spawter, je précise au fur et à mesure.",
+      "first_spawt_invite": "Le premier spawt te débloque l'app. Choisis un lieu et lance-toi.",
+      "post_first_spawt": "Premier spawt validé. Ton Palais bouge. Continue.",
+      "stade_up_explorateur": "11 spots. Tu n'es plus Touriste — tu es Explorateur. Ton territoire commence à se dessiner.",
+      "geoloc_consent_request": "Pour valider tes spawts, j'ai besoin de ta position quand tu es sur place. Tu m'autorises ?",
+      "demographics_consent_request": "Quelques infos sur toi pour qu'on connaisse mieux la Meute. Toujours optionnel."
+    },
+    "explorateur": {
+      "welcome_back": "Re. Ton nez s'affine, je commence à te reconnaître.",
+      "stade_up_detective": "21 spots. Détective. Ton flair ne ment plus.",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "welcome_first_open": "",
+      "post_calibration": "",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": ""
+    },
+    "detective": {
+      "welcome_back": "Le Chat te salue. Ta zone t'écoute.",
+      "stade_up_djidji": "31 spots. Djidji. La colonie écoute.",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "welcome_first_open": "",
+      "post_calibration": "",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": ""
+    },
+    "djidji": {
+      "welcome_back": "Plus besoin de te guider. Tu ES le guide.",
+      "stade_up_guide": "51 spots. Guide. Le Chat marche derrière toi maintenant.",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "welcome_first_open": "",
+      "post_calibration": "",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": ""
+    },
+    "guide": {
+      "welcome_back": "",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "welcome_first_open": "",
+      "post_calibration": "",
+      "stade_up_guide": "",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": ""
+    }
+  },
+  "stade": {
+    "touriste": "Touriste",
+    "explorateur": "Explorateur",
+    "detective": "Détective",
+    "djidji": "Djidji",
+    "guide": "Guide"
+  },
+  "axis": {
+    "racines": "Racines",
+    "horizons": "Horizons",
+    "taniere": "Tanière",
+    "nomade": "Nomade",
+    "exigeant": "Exigeant",
+    "enthousiaste": "Enthousiaste",
+    "foule": "Foule",
+    "secret": "Secret",
+    "maquis": "Maquis",
+    "table": "Table"
+  }
+}

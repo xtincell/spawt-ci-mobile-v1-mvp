@@ -44,7 +44,7 @@ Chaque feature livrée passe les **3 portes** :
 | 2 | Onboarding léger (5 questions calibrage Palais → §20.2 PRD) | S | Palais initial -40/+40 |
 | 3 | Feed personnalisé de lieux (score composite §8.1) | L | Coeur valeur produit |
 | 4 | Fiche lieu (radar ADN si ≥5 avis, badges spéciaux, signaux sociaux) | M | Page de conversion |
-| 5 | Check-in « Le Spawt » (mécanisme VTC, 10m, 15min, snooze x3, fenêtre +30min) | M | **Brique data centrale** |
+| 5 | Le Spawt (mécanisme du Guet, 10m, 15min, snooze x3, fenêtre +30min) | M | **Brique data centrale** |
 | 6 | Avis structuré (note /5 + tags + texte 500c + 3 photos), pondéré par stade (1x → 3x) | M | Alimente ADN |
 | 7 | Profil utilisateur (radar 2 axes free / 5 axes premium, collection titres) | M | Vitrine identité |
 | 8 | 5 stades de maturité (Touriste → Guide, par spots uniques) | S | Inclus Sprint 1 |
@@ -238,7 +238,7 @@ Implémentés en triggers SQL + colonnes `flag_reason` sur `spawt_checkin`. Pas 
 
 ### 5.8 Alpha interne 5 spawters en fin de Sprint 1 `[pending]` 🎯
 
-**Levier (Stéphanie + Kidam)** : PRD prévoit la beta à 20-30 foodies en Phase 4 (semaine 14-18). C'est trop tard pour valider le mécanisme VTC qui est la brique la plus risquée. Si le geofencing 10m / timer 15min ne marche pas en conditions réelles, on l'apprend en mois 5 — désastre.
+**Levier (Stéphanie + Kidam)** : PRD prévoit la beta à 20-30 foodies en Phase 4 (semaine 14-18). C'est trop tard pour valider le mécanisme du Guet qui est la brique la plus risquée. Si le geofencing 10m / timer 15min ne marche pas en conditions réelles, on l'apprend en mois 5 — désastre.
 
 **Action** : alpha fermée à 5 personnes (Pioneer + Co-Pilots + 2 spawters externes de confiance) pendant 1 semaine en fin de Sprint 1. Focus exclusif : check-in fiabilité. Métriques :
 - % check-ins déclenchés correctement vs visites réelles annoncées

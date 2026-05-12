@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "SPAWT",
+    "slug": "spawt-mobile-ci",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "spawt",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.upgraders.spawt",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SPAWT a besoin de ta position pour valider tes spawts dans les lieux que tu visites. Tu actives la géoloc seulement quand tu es au resto. Plus de détails dans la politique de confidentialité.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pour détecter tes spawts en arrière-plan quand tu es proche d'un lieu. Optionnel — désactivable à tout moment.",
+        "NSCameraUsageDescription": "Pour ajouter une photo à ton avis sur un lieu. Toujours optionnel."
+      }
+    },
+    "android": {
+      "package": "com.upgraders.spawt",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Pour détecter tes spawts en arrière-plan."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
