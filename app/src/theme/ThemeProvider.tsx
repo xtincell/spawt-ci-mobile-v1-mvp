@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { tokens, typography, spacing, radius, elevation } from "./tokens";
+import { tokens, typography, spacing, radius, elevation, gradient } from "./tokens";
 
 const themeValue = {
   colors: tokens,
@@ -7,6 +7,7 @@ const themeValue = {
   spacing,
   radius,
   elevation,
+  gradient,
 } as const;
 
 export type Theme = typeof themeValue;

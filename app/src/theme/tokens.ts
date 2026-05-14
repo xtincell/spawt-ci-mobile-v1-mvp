@@ -1,98 +1,97 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SPAWT — Theme tokens (SOURCE UNIQUE)
-// PRD §15.1 (palette canonique) + §15.2 (système étendu)
+// SPAWT — Theme tokens (SOURCE UNIQUE côté code)
+// Canonique : documentation/ux/spawt-tokens.css (brandbook v1.0).
+// Réaligné le 2026-05-14 — voir _bmad-output/planning-artifacts/
+//   ux-design-specification.md § « Canonical Sources & Reconciliation ».
 // Aucune couleur ne doit jamais apparaître en dur ailleurs.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// ── Palette canonique (PRD §15.1) ─────────────────────
+// ── Palette canonique (spawt-tokens.css) ──────────────
 export const palette = {
+  // Primary
   black: "#0A0A0A",
-  goldSpawt: "#D4AF37",
-  greenChat: "#50C878",
-  cream: "#F8F6F0",
+  gold: "#C8A44E",
+  goldLight: "#E8D5A0",
+  // Secondary
+  greenChat: "#2D6B4F",
+  greenChatDeep: "#1F4D39",
+  blancCasse: "#FAFAF8",
+  // Accents
+  amberWarm: "#E89A39",
+  cremeSable: "#EFE8DC",
+  // Neutrals
+  pureWhite: "#FFFFFF",
+  graphite: "#333333",
+  grisMoyen: "#8A8A8A",
 } as const;
 
-// ── Palette étendue (nuances WCAG-compliant héritées du prototype) ──
-// Ces nuances sont des dérivés calibrés AA. Toute nouvelle nuance
-// passe par revue Alexandre (brand) + Stéphanie (contraste).
-export const tone = {
-  encre: {
-    100: "#0A0A0A", // canon — base
-    90: "#161616",
-    80: "#222222",
-    70: "#2E2E2E",
-    60: "#3A3A3A",
-    50: "#525252",
-    40: "#7A7A7A",
-    30: "#9C9C9C",
-  },
-  cream: {
-    100: "#F8F6F0", // canon — fond clair
-    90: "#F2EFE6",
-    80: "#EAE5D7",
-    70: "#DCD5C2",
-  },
-  gold: {
-    100: "#D4AF37", // canon — primary brand
-    90: "#C49E2A",
-    80: "#B48E1F",
-    soft: "#E5C75D",
-  },
-  green: {
-    100: "#50C878", // canon — CTA
-    90: "#3FB967",
-    80: "#2FA557",
-  },
-} as const;
+// ── Lignes / bordures (rgba canoniques) ───────────────
+const line = "rgba(10, 10, 10, 0.10)"; // --line
+const lineStrong = "rgba(10, 10, 10, 0.18)"; // --line-strong
 
 // ── Tokens sémantiques (par usage, pas par couleur) ───
 // Toujours référencer ces tokens dans le code, jamais
-// les couleurs brutes ci-dessus.
+// les couleurs brutes de `palette` ci-dessus.
 export const tokens = {
   brand: {
-    primary: palette.goldSpawt, // Or SPAWT
-    accent: palette.greenChat, // Vert Chat — CTAs
+    primary: palette.gold, // Or SPAWT #C8A44E
+    accent: palette.greenChat, // Vert Chat #2D6B4F — CTAs / success
   },
   surface: {
-    base: palette.cream, // fond principal clair
-    inverse: palette.black, // fond sombre / luxe
-    raised: tone.cream[90],
-    subtle: tone.cream[80],
+    base: palette.blancCasse, // --bg : fond principal de l'app
+    inverse: palette.black, // moments gr-night (luxe / identité)
+    raised: palette.pureWhite, // --bg-card : cartes, surfaces élevées
+    subtle: palette.cremeSable, // --bg-warm : encarts, cartes douces
   },
   text: {
-    primary: palette.black,
-    secondary: tone.encre[60],
-    tertiary: tone.encre[50],
-    inverse: palette.cream,
-    inverseSecondary: tone.cream[80],
-    onBrand: palette.black,
+    primary: palette.black, // --ink
+    secondary: palette.graphite, // --ink-soft
+    tertiary: palette.grisMoyen, // --ink-mute
+    inverse: palette.blancCasse, // texte sur fond sombre
+    inverseSecondary: palette.goldLight, // texte secondaire sur gr-night
+    onBrand: palette.black, // texte sur surface or
   },
   border: {
-    subtle: tone.cream[70],
-    strong: tone.encre[80],
+    subtle: line, // --line
+    strong: lineStrong, // --line-strong
   },
   state: {
     success: palette.greenChat,
-    danger: "#D4603A", // paprika — pour erreurs uniquement
-    warning: tone.gold[80],
+    // TODO(brand, 2026-05-21): le brandbook v1.0 ne définit pas d'--alert-red ;
+    // les mid-fi screens y réfèrent. Placeholder paprika — à valider Alexandre
+    // (brand) + Stéphanie (contraste). Cf. décision UX spec « gap token ».
+    danger: "#D4603A",
+    warning: palette.amberWarm, // --amber-warm
   },
-  // Voix du Chat — surface par stade (PRD §9.3)
+  // Voix du Chat — surface par stade (PRD §9.3).
+  // NB : le kit canonique rend la CatBubble en noir uniforme ; cette
+  // gradation par stade est un raffinement côté code, à confirmer en revue.
   chat: {
-    touriste: tone.gold.soft,
-    explorateur: tone.gold[100],
-    detective: tone.gold[80],
-    djidji: palette.greenChat,
-    guide: palette.cream,
+    touriste: palette.goldLight,
+    explorateur: palette.gold,
+    detective: palette.greenChat,
+    djidji: palette.greenChatDeep,
+    guide: palette.black,
   },
 } as const;
 
+// ── Gradients signature (spawt-tokens.css) ────────────
+// À consommer via expo-linear-gradient : <LinearGradient colors={gradient.night} ... />
+export const gradient = {
+  night: ["#0A0A0A", "#1A1A2E"] as const, // --gr-night (180deg)
+  gold: ["#C8A44E", "#E8D5A0", "#C8A44E"] as const, // --gr-gold (135deg)
+  sand: ["#EFE8DC", "#FAFAF8"] as const, // --gr-sand (135deg)
+} as const;
+
 // ── Typographie ────────────────────────────────────────
+// Canonique : Klinsman (display + voix du Chat) + Gotham (corps + data).
+// Polices fournies dans documentation/ux/fonts/ — à charger via expo-font.
 export const typography = {
   family: {
-    brand: "Nunito", // titres marque
-    voice: "DM Serif Text", // voix du Chat
-    body: "Manrope", // corps
-    mono: "JetBrains Mono", // chiffres / data
+    brand: "Klinsman", // titres, noms de lieux, wordmark
+    voice: "Klinsman", // voix du Chat (le Chat parle en Klinsman)
+    body: "Gotham", // corps, labels, UI
+    mono: "Gotham", // chiffres / data (scores, FCFA) — pas de mono dédié au kit
   },
   size: {
     xs: 12,
@@ -105,6 +104,8 @@ export const typography = {
     "4xl": 48,
   },
   weight: {
+    // Gotham : Book 400 / Medium 500 / Bold 700. `semibold` mappé 600
+    // (RN choisit la graisse la plus proche disponible).
     regular: "400" as const,
     medium: "500" as const,
     semibold: "600" as const,
@@ -129,41 +130,50 @@ export const spacing = {
   "3xl": 64,
 } as const;
 
-// ── Radius ─────────────────────────────────────────────
+// ── Radius (spawt-tokens.css : r-s/r-m/r-l/r-card) ────
 export const radius = {
-  sm: 4,
-  md: 8,
+  sm: 4, // --r-s
+  md: 8, // --r-m
   base: 12,
-  lg: 16,
+  lg: 16, // --r-l
+  card: 20, // --r-card : cartes principales (Une, fiche, carte spawter)
   xl: 24,
   full: 9999,
 } as const;
 
-// ── Ombres / élévations ───────────────────────────────
+// ── Ombres / élévations (spawt-tokens.css) ────────────
 export const elevation = {
   none: { shadowColor: "transparent", shadowOpacity: 0, elevation: 0 },
   sm: {
     shadowColor: palette.black,
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.12,
     shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
-  },
+  }, // --sh-s
   md: {
     shadowColor: palette.black,
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  lg: {
-    shadowColor: palette.black,
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.1,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  }, // --sh-m
+  lg: {
+    shadowColor: palette.black,
+    shadowOpacity: 0.18,
+    shadowRadius: 40,
+    shadowOffset: { width: 0, height: 12 },
     elevation: 8,
-  },
+  }, // --sh-l
+  glow: {
+    shadowColor: palette.gold,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+  }, // --sh-glow : halo or sur les CTA dorés
 } as const;
 
 export type Tokens = typeof tokens;
 export type Typography = typeof typography;
+export type Gradient = typeof gradient;

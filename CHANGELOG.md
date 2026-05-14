@@ -4,6 +4,29 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.1.3 — Réalignement des tokens sur le brandbook canonique (2026-05-14)
+
+**Le kit UX canonique (`SPAWT.zip` → `documentation/ux/`) a été découvert tardivement pendant le workflow `bmad-create-ux-design`. `tokens.ts` et le PRD §15 étaient en drift. Décision X-tin : `documentation/ux/spawt-tokens.css` (brandbook v1.0) est la source canonique UX/brand.**
+
+- `refactor(theme)` `app/src/theme/tokens.ts` réaligné sur `documentation/ux/spawt-tokens.css`. Couleurs corrigées : Or `#D4AF37` → **`#C8A44E`**, Vert Chat `#50C878` → **`#2D6B4F`** (vert forêt), Blanc cassé `#F8F6F0` → **`#FAFAF8`**. Ajout `goldLight`, `greenChatDeep`, `amberWarm`, `cremeSable`, `pureWhite`, `graphite`, `grisMoyen`. Polices `Nunito`/`DM Serif Text`/`Manrope`/`JetBrains Mono` → **`Klinsman` (display + voix du Chat) + `Gotham` (corps + data)**.
+- `feat(theme)` Ajout des gradients signature (`gradient.night` / `.gold` / `.sand` — `gr-night`/`gr-gold`/`gr-sand` du kit), du radius `card` (20px) et de l'élévation `glow` (halo or des CTA dorés). Exposés via `ThemeProvider`.
+- `chore(theme)` Structure des tokens sémantiques **préservée à l'identique** (`brand`/`surface`/`text`/`border`/`state`/`chat`) — les 4 composants existants (`PlaceCard`, `ChatBubble`, `AxisRadar`, `DataSourceBanner`) héritent de la palette canonique sans modification de leur code.
+- `docs(ux)` Kit canonique sécurisé dans `documentation/ux/` (brandbook v1.0, `spawt-tokens.css`, wireframes, mid-fi, polices, logos). Spec UX complète : `_bmad-output/planning-artifacts/ux-design-specification.md` (14 steps) + showcase `ux-design-directions.html`.
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+
+### Résidus / à suivre
+- **PRD §15.1/§15.3 à amender** pour refléter la palette + les polices canoniques (drift PRD, hors scope code).
+- **Polices Klinsman + Gotham** : `typography.family` pointe sur les bons noms, mais les fichiers `.otf`/`.ttf` (`documentation/ux/fonts/`) restent à charger via `expo-font` — story Sprint 1 Phase 0.
+- **Token `--alert-red`** absent du brandbook v1.0 alors que les mid-fi screens y réfèrent. `state.danger` garde un placeholder paprika `#D4603A` avec `TODO(brand)` — à valider Alexandre + Stéphanie.
+- **Composants à re-dériver structurellement** sur les primitives `midfi-kit.jsx` (forme `CatBubble`, `PalaisRadar`, etc.) — le réalignement tokens ne couvre que la palette/typo, pas la refonte des composants. Couvert par les epics/stories Sprint 1.
+- 11 décisions kit ↔ PRD ↔ Contrat (D1-D11) tranchées le 2026-05-14 — voir spec UX § « Canonical Sources & Reconciliation ». D2/D3 (« paws » / « reconnaissances ») à re-challenger en revue Contrat.
+
+---
+
 ## v1.1.2 — Bump Expo SDK 52 → 55 (2026-05-04)
 
 **Alignement avec le SDK shippé par Expo Go côté store. PRD §12.1 dit "SDK 52+" — 55 reste dans le contrat.**
