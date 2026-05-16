@@ -1,0 +1,54 @@
+# Supabase project config — SPAWT mobile CI
+# Doc : https://supabase.com/docs/reference/cli/config
+#
+# Story 1.5 — fondation : tables `spawters` + `spawt_staff` + RLS.
+# Le project_id ci-dessous est un placeholder local. Le projet Supabase live
+# (URL + ANON_KEY) sera lié hors story via `supabase link --project-ref <ref>`.
+
+project_id = "spawt-mobile-ci"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["spawt://"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+# Termii OTP SMS sera branché via Edge Function `otp-send` (Story 2.3).
+# Pas d'OTP natif Supabase pour SMS (provider Twilio par défaut, on utilise Termii pour CIV).
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[analytics]
+enabled = false
