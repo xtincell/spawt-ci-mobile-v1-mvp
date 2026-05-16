@@ -113,7 +113,7 @@ export default function ProfileScreen() {
       >
         <Text
           style={{
-            color: valid ? theme.colors.text.onBrand : theme.colors.text.tertiary,
+            color: valid ? theme.colors.text.inverse : theme.colors.text.tertiary,
             fontSize: theme.typography.size.lg,
             fontWeight: theme.typography.weight.semibold,
             textAlign: "center",

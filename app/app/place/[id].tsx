@@ -214,7 +214,7 @@ export default function PlaceDetailScreen() {
         >
           <Text
             style={{
-              color: theme.colors.text.onBrand,
+              color: theme.colors.text.inverse,
               fontSize: theme.typography.size.lg,
               fontWeight: theme.typography.weight.semibold,
               textAlign: "center",

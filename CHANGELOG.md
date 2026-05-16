@@ -4,6 +4,28 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.1.4 — Finalisation du token alert-red (2026-05-15)
+
+**Le token `--alert-red`, absent du brandbook v1.0 mais référencé par les mid-fi screens, est tranché et câblé — Story 1.1 close (confirmation Stéphanie sur matrice 4 devices pending, non bloquante).**
+
+- `feat(theme)` `tokens.state.danger` passe du placeholder `#D4603A` à **`#C0392B`** — rouge chaud cohérent avec la palette canonique, distinct de `--amber-warm` (`state.warning`), contraste **WCAG AA** (≈5,2:1 sur `--bg`, ≈5,5:1 sous texte blanc). Le placeholder précédent ne tenait que ≈3,8:1 — sous le seuil AA pour du texte normal.
+- `feat(theme)` Ajout du token `--alert-red: #C0392B` à `documentation/ux/spawt-tokens.css` pour que le kit canonique rattrape `tokens.ts` (UX-DR2 résolue).
+- `fix(theme)` Pairing `brand.accent` + `text.onBrand` (noir) sub-AA (≈3,3:1) corrigé sur 7 sites — les CTAs Splash, Place, Consent (×2), Phone, Profile et le Pill match-score `PlaceCard` passent maintenant `text.inverse` (blanc cassé, AA ≈6,3:1 sur Vert Chat). Sémantique de `text.onBrand` clarifiée dans `tokens.ts` (« sur `brand.primary` Or uniquement »).
+- `docs(theme)` `TODO(brand)` remplacé par un commentaire WHY traçant la décision (Alexandre, 2026-05-15). Commentaire `expo-linear-gradient` adouci (paquet non installé à ce jour).
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+- Audit hex `grep -rnE "#[0-9A-Fa-f]{3,6}" app/src/components app/app | grep -v tokens.ts` : vide ✓
+
+### Triple sign-off
+- **Alexandre** (brand) : valeur `#C0392B` tranchée 2026-05-15 ✓
+- **Stéphanie** (contraste WCAG) : confirmation on-device en QA matrice 4 devices — pending
+- **Kidam** : N/A (pas d'impact analytics)
+
+---
+
 ## v1.1.3 — Réalignement des tokens sur le brandbook canonique (2026-05-14)
 
 **Le kit UX canonique (`SPAWT.zip` → `documentation/ux/`) a été découvert tardivement pendant le workflow `bmad-create-ux-design`. `tokens.ts` et le PRD §15 étaient en drift. Décision X-tin : `documentation/ux/spawt-tokens.css` (brandbook v1.0) est la source canonique UX/brand.**

@@ -70,7 +70,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
             {place.location.neighborhood} · {place.cuisine.slice(0, 2).join(" · ")}
           </Text>
           <View style={{ flexDirection: "row", gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
-            <Pill label={`${matchScore}%`} bg={theme.colors.brand.accent} fg={theme.colors.text.onBrand} bold />
+            <Pill label={`${matchScore}%`} bg={theme.colors.brand.accent} fg={theme.colors.text.inverse} bold />
             <Pill label={`${distanceKm.toFixed(1)} km`} bg={theme.colors.surface.subtle} fg={theme.colors.text.primary} />
             <Pill label={`★ ${place.rating_display.toFixed(1)}`} bg={theme.colors.surface.subtle} fg={theme.colors.text.primary} />
             <Pill label={PRICE_TIER_LABELS[place.price.tier]} bg={theme.colors.surface.subtle} fg={theme.colors.text.primary} />

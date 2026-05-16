@@ -108,7 +108,7 @@ export default function ConsentScreen() {
       >
         <Text
           style={{
-            color: canContinue ? theme.colors.text.onBrand : theme.colors.text.tertiary,
+            color: canContinue ? theme.colors.text.inverse : theme.colors.text.tertiary,
             fontSize: theme.typography.size.lg,
             fontWeight: theme.typography.weight.semibold,
             textAlign: "center",
@@ -203,7 +203,7 @@ function ConsentButton({
         : "transparent";
   const fg =
     variant === "primary"
-      ? theme.colors.text.onBrand
+      ? theme.colors.text.inverse
       : variant === "muted"
         ? theme.colors.text.tertiary
         : theme.colors.text.primary;

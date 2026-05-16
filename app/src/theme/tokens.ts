@@ -49,7 +49,7 @@ export const tokens = {
     tertiary: palette.grisMoyen, // --ink-mute
     inverse: palette.blancCasse, // texte sur fond sombre
     inverseSecondary: palette.goldLight, // texte secondaire sur gr-night
-    onBrand: palette.black, // texte sur surface or
+    onBrand: palette.black, // texte sur brand.primary (Or) UNIQUEMENT — sur brand.accent (Vert Chat) utiliser text.inverse (AA ≈6,3:1)
   },
   border: {
     subtle: line, // --line
@@ -57,10 +57,10 @@ export const tokens = {
   },
   state: {
     success: palette.greenChat,
-    // TODO(brand, 2026-05-21): le brandbook v1.0 ne définit pas d'--alert-red ;
-    // les mid-fi screens y réfèrent. Placeholder paprika — à valider Alexandre
-    // (brand) + Stéphanie (contraste). Cf. décision UX spec « gap token ».
-    danger: "#D4603A",
+    // alert-red — absent du brandbook v1.0 ; les mid-fi screens y réfèrent
+    // (états erreur, badge trending). Valeur tranchée Alexandre 2026-05-15 :
+    // rouge chaud distinct de --amber-warm, contraste AA ≈5.2:1 sur --bg.
+    danger: "#C0392B",
     warning: palette.amberWarm, // --amber-warm
   },
   // Voix du Chat — surface par stade (PRD §9.3).
@@ -76,7 +76,7 @@ export const tokens = {
 } as const;
 
 // ── Gradients signature (spawt-tokens.css) ────────────
-// À consommer via expo-linear-gradient : <LinearGradient colors={gradient.night} ... />
+// À consommer via une lib gradient (ex: expo-linear-gradient — non installée à ce jour).
 export const gradient = {
   night: ["#0A0A0A", "#1A1A2E"] as const, // --gr-night (180deg)
   gold: ["#C8A44E", "#E8D5A0", "#C8A44E"] as const, // --gr-gold (135deg)
