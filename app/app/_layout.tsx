@@ -1,13 +1,21 @@
 import { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ThemeProvider } from "../src/theme/ThemeProvider";
 import { palette } from "../src/theme/tokens";
+import { useAppFonts } from "../src/theme/useAppFonts";
 import { useSpawterStore } from "../src/store/spawter-store";
 import "../src/i18n";
+
+// Garder le splash natif Expo jusqu'à ce que useAppFonts ait fini (loaded || error).
+// `.catch(() => {})` neutralise l'erreur "already hidden" en Fast Refresh.
+void SplashScreen.preventAutoHideAsync().catch(() => {
+  /* no-op */
+});
 
 function RouteGuard() {
   const router = useRouter();
@@ -33,11 +41,25 @@ function RouteGuard() {
 }
 
 export default function RootLayout() {
+  // Tous les hooks doivent rester au-dessus du early-return `null` (rules of
+  // hooks) — ne pas insérer d'effet side-effect ici sans déplacer le guard.
   const hydrate = useSpawterStore((s) => s.hydrate);
+  const { fontsLoaded, fontError } = useAppFonts();
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch((err: unknown) => {
+        if (__DEV__) console.warn("[splash] hideAsync failed", err);
+      });
+    }
+  }, [fontsLoaded, fontError]);
+
+  // Tant que les polices ne sont ni chargées ni en erreur, garder le splash natif.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

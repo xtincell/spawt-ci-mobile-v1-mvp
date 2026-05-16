@@ -4,6 +4,48 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.1.5 — Polices Klinsman/Gotham + échelle typographique (2026-05-16)
+
+**Klinsman (Light/Regular/Bold) et Gotham (Book/Medium/Bold) sont chargées au démarrage via `expo-font`, derrière un splash gate qui ne libère l'UI qu'une fois les polices prêtes — ou en erreur (fallback système, jamais d'écran bloquant). L'échelle typo canonique (`t-display`/`h1`/`h2`/`h3`/`body`/`small`/`caption`/`data`/`overline`) est exposée comme `theme.typography.preset.*`. Découverte tardive (review code) : les fichiers Klinsman embarquent un nom PostScript `KlinsmanTypeface{Light,Regular,Bold}` (PAS `Klinsman-{Light,Regular,Bold}` comme leur nom de fichier) — les clés `useFonts` ont été ré-alignées sur les noms PS embarqués pour court-circuiter la couche d'alias `expo-font` et garantir la résolution iOS. Deux items du `deferred-work.md` Story 1.1 se ferment ici (font wiring + redondance `family.voice`/`family.mono`).**
+
+- `feat(theme)` Hook `useAppFonts` (`app/src/theme/useAppFonts.ts`) — `useFonts` d'expo-font avec une clé par fichier alignée sur le **nom PostScript embarqué** (vérifié programmatiquement via lecture de la table `name` OpenType, nameID=6). Erreur de chargement loggée en `__DEV__` uniquement, jamais propagée à l'UI.
+- `feat(theme)` Splash gate dans `app/app/_layout.tsx` — `SplashScreen.preventAutoHideAsync()` au module-load, `hideAsync()` dès que `fontsLoaded || fontError`, avec dev-warn sur erreur de hide. Le `RootLayout` retourne `null` (splash natif persistant) tant que ni l'un ni l'autre n'est résolu.
+- `feat(theme)` `typography.preset` (9 entrées `TextStyle`) ajouté à `tokens.ts` — valeurs `lineHeight` et `letterSpacing` pré-calculées depuis `spawt-tokens.css` (conversion CSS em → RN px), `textTransform: 'uppercase'` sur `h3`/`caption`/`overline`, `fontVariant: ['tabular-nums']` sur `data`. Type-safe via `satisfies Record<PresetKey, TextStyle>` (TS 4.9+) — la narrowing contextuelle valide la shape et préserve les types littéraux pour les consumers downstream (Story 1.4).
+- `refactor(theme)` `typography.family` réaligné sur les noms PostScript embarqués : `family.brand` → `"KlinsmanTypefaceBold"`, `family.body` → `"Gotham-Book"`. **Suppressions** : `family.voice` (redondant — la voix du Chat passe par `preset.h*`) et `family.mono` (proportionnel — le tabulaire passe par `preset.data` + `fontVariant`). Aucun consumer ne référençait ces alias.
+- `chore(theme)` 6 fichiers de police copiés de `documentation/ux/fonts/` → `app/src/theme/fonts/` (Klinsman ~1,15 MB + Gotham ~160 KB ≈ 1,3 MB d'assets — sous le budget APK < 50 MB). `documentation/ux/fonts/` reste la source canonique amont.
+- `chore(theme)` `size`/`weight`/`lineHeight` numériques **préservés tels quels** — les 12 fichiers existants qui les consomment (`PlaceCard`, `ChatBubble`, `AxisRadar`, `DataSourceBanner`, 8 écrans `app/**`) ne subissent aucune régression. Leur migration vers `preset.*` est Story 1.4.
+- `chore(types)` Export d'un nouveau type `TypographyPreset = typeof typography.preset` à côté de `Typography`.
+
+### Code review patches (intégrés en amont du commit)
+- `useAppFonts.ts` : suppression du commentaire `// eslint-disable-next-line no-console` (aucun ESLint installé — dead weight).
+- `useAppFonts.ts` : suppression de l'export inutile `AppFontsState` (la shape est inlinée dans la signature de retour).
+- `tokens.ts` : passage du typage explicite `_preset: { display: TextStyle; ... }` à `_preset = { ... } satisfies Record<PresetKey, TextStyle>` — préserve la narrowing contextuelle des consumers downstream sans flatten.
+- `_layout.tsx` : `.catch(() => {})` sur `SplashScreen.hideAsync` remplacé par un dev-warn aligné sur le pattern d'`useAppFonts` — les erreurs réelles ne sont plus silenced.
+- `useAppFonts.ts` + `tokens.ts` : clés `useFonts` + `family.brand` + `preset.*.fontFamily` ré-alignées sur les noms PostScript embarqués (`KlinsmanTypefaceBold` etc.) au lieu des noms de fichiers (`Klinsman-Bold`) — découverte review.
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+- Audit hex `grep -rnE "#[0-9A-Fa-f]{3,6}" app/src/components app/app | grep -v tokens.ts` : vide ✓
+- **Smoke launch device (AC #10)** : pending — à valider manuellement via `cd app && npm start` puis Expo Go (vérifier que le splash reste affiché brièvement, l'app monte sans écran blanc bloquant, et qu'un `<Text style={theme.typography.preset.h1}>` rend en Klinsman et pas en fallback système — démo à retirer avant commit).
+
+### Triple sign-off
+- **Alexandre** (brand) : Klinsman + Gotham confirmés canoniques depuis Story 1.1 ; échelle typo conforme au brandbook v1.0 ✓
+- **Stéphanie** (lisibilité + font scaling) : confirmation on-device matrice 4 devices (Tecno / Infinix / Samsung / iPhone) — **pending**, non bloquant pour le merge sur `spawt/v1-bmad` ; bloquant pour le merge ultérieur sur `main`.
+- **Kidam** : N/A (pas d'impact analytics).
+
+### Deferred-work résolus (Story 1.1)
+- ✅ « Klinsman/Gotham font wiring still incomplete » — résolu par `useAppFonts` + splash gate.
+- ✅ « `family.voice == family.brand` redondant ; `family.mono == "Gotham"` proportionnel » — résolu par suppression des deux alias.
+
+### Résidus / à suivre
+- **Smoke device (AC #10)** : voir Verify ci-dessus.
+- **Migration des 12 consumers vers `preset.*`** : différée à Story 1.4 (re-dérivation des 4 composants RN existants).
+- **`expo-linear-gradient`** : toujours pas installé — la consommation de `gradient.gold` 3-tuple reste en attente d'un premier consumer.
+
+---
+
 ## v1.1.4 — Finalisation du token alert-red (2026-05-15)
 
 **Le token `--alert-red`, absent du brandbook v1.0 mais référencé par les mid-fi screens, est tranché et câblé — Story 1.1 close (confirmation Stéphanie sur matrice 4 devices pending, non bloquante).**

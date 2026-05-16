@@ -3,8 +3,13 @@
 // Canonique : documentation/ux/spawt-tokens.css (brandbook v1.0).
 // Réaligné le 2026-05-14 — voir _bmad-output/planning-artifacts/
 //   ux-design-specification.md § « Canonical Sources & Reconciliation ».
+// Polices Klinsman + Gotham chargées via expo-font (cf. ./useAppFonts.ts) —
+// référencées par leur nom PostScript EMBARQUÉ (Klinsman embarque
+// `KlinsmanTypeface{Light,Regular,Bold}`, Gotham embarque `Gotham-{Book,Medium,Bold}`).
 // Aucune couleur ne doit jamais apparaître en dur ailleurs.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import type { TextStyle } from "react-native";
 
 // ── Palette canonique (spawt-tokens.css) ──────────────
 export const palette = {
@@ -85,13 +90,69 @@ export const gradient = {
 
 // ── Typographie ────────────────────────────────────────
 // Canonique : Klinsman (display + voix du Chat) + Gotham (corps + data).
-// Polices fournies dans documentation/ux/fonts/ — à charger via expo-font.
+// Polices physiques : ./fonts/, chargées via ./useAppFonts.ts.
+// `family.*` et `preset.*.fontFamily` = nom PostScript EMBARQUÉ dans le fichier
+// (Klinsman embarque `KlinsmanTypeface{Light,Regular,Bold}`, Gotham embarque
+// `Gotham-{Book,Medium,Bold}` — vérifié via lecture de la table `name` OpenType).
+// iOS résout fontFamily par ce nom-là ; aligner les clés sur le PS name
+// court-circuite la couche d'alias expo-font et garantit la résolution iOS.
+// `preset.*` = échelle typo sémantique de spawt-tokens.css § Typography
+// (valeurs lineHeight et letterSpacing pré-calculées em → px).
+// `satisfies` (TS 4.9+) valide la shape contre TextStyle sans widen vers TextStyle :
+// la narrowing contextuelle de TS résout `fontVariant: ["tabular-nums"]` en
+// `FontVariant[]` et préserve les types littéraux pour les consumers downstream.
+type PresetKey =
+  | "display"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "body"
+  | "small"
+  | "caption"
+  | "data"
+  | "overline";
+
+const _preset = {
+  display: { fontFamily: "KlinsmanTypefaceBold", fontSize: 34, lineHeight: 35.7, letterSpacing: -0.34 },
+  h1: { fontFamily: "KlinsmanTypefaceBold", fontSize: 26, lineHeight: 28.6 },
+  h2: { fontFamily: "KlinsmanTypefaceBold", fontSize: 20, lineHeight: 23 },
+  h3: {
+    fontFamily: "KlinsmanTypefaceBold",
+    fontSize: 16,
+    lineHeight: 19.2,
+    letterSpacing: 0.32,
+    textTransform: "uppercase",
+  },
+  body: { fontFamily: "Gotham-Book", fontSize: 14, lineHeight: 21 },
+  small: { fontFamily: "Gotham-Book", fontSize: 12, lineHeight: 16.8 },
+  caption: {
+    fontFamily: "Gotham-Medium",
+    fontSize: 11,
+    lineHeight: 15.4,
+    letterSpacing: 0.44,
+    textTransform: "uppercase",
+  },
+  data: {
+    fontFamily: "Gotham-Medium",
+    fontSize: 12,
+    lineHeight: 16.8,
+    letterSpacing: 0.24,
+    fontVariant: ["tabular-nums"],
+  },
+  overline: {
+    fontFamily: "Gotham-Bold",
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
+} satisfies Record<PresetKey, TextStyle>;
+
 export const typography = {
   family: {
-    brand: "Klinsman", // titres, noms de lieux, wordmark
-    voice: "Klinsman", // voix du Chat (le Chat parle en Klinsman)
-    body: "Gotham", // corps, labels, UI
-    mono: "Gotham", // chiffres / data (scores, FCFA) — pas de mono dédié au kit
+    // Noms PostScript chargés par useAppFonts — iOS ne synthétise pas la graisse.
+    brand: "KlinsmanTypefaceBold", // titres, noms de lieux, voix du Chat, wordmark, chiffres héro
+    body: "Gotham-Book", // corps, labels, UI
   },
   size: {
     xs: 12,
@@ -116,6 +177,7 @@ export const typography = {
     normal: 1.4,
     relaxed: 1.6,
   },
+  preset: _preset,
 } as const;
 
 // ── Espacement ─────────────────────────────────────────
@@ -176,4 +238,5 @@ export const elevation = {
 
 export type Tokens = typeof tokens;
 export type Typography = typeof typography;
+export type TypographyPreset = typeof typography.preset;
 export type Gradient = typeof gradient;
