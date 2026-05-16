@@ -1,6 +1,13 @@
 // Carte d'un lieu dans le feed (PRD §3.1 Feature 3, §6.3 signaux).
+// Re-dérivée Story 1.4 : consomme les primitives canoniques (MatchScore,
+// Stars, Chip, Ico) — la signature publique reste stable pour les 3 callers
+// (app/(tabs)/index.tsx, app/place/[id].tsx, app/(tabs)/profile.tsx).
 
 import { Pressable, Text, View } from "react-native";
+import { Chip } from "./primitives/Chip";
+import { Ico } from "./primitives/Ico";
+import { MatchScore } from "./primitives/MatchScore";
+import { Stars } from "./primitives/Stars";
 import { useTheme } from "../theme/ThemeProvider";
 import type { PlaceWithAdn } from "../lib/data-source";
 
@@ -50,9 +57,8 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
         <View style={{ flex: 1, paddingRight: theme.spacing.sm }}>
           <Text
             style={{
+              ...theme.typography.preset.h2,
               color: theme.colors.text.primary,
-              fontSize: theme.typography.size.lg,
-              fontWeight: theme.typography.weight.semibold,
               marginBottom: 2,
             }}
             numberOfLines={1}
@@ -61,39 +67,47 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
           </Text>
           <Text
             style={{
+              ...theme.typography.preset.body,
               color: theme.colors.text.secondary,
-              fontSize: theme.typography.size.sm,
               marginBottom: theme.spacing.xs,
             }}
             numberOfLines={1}
           >
             {place.location.neighborhood} · {place.cuisine.slice(0, 2).join(" · ")}
           </Text>
-          <View style={{ flexDirection: "row", gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
-            <Pill label={`${matchScore}%`} bg={theme.colors.brand.accent} fg={theme.colors.text.inverse} bold />
-            <Pill label={`${distanceKm.toFixed(1)} km`} bg={theme.colors.surface.subtle} fg={theme.colors.text.primary} />
-            <Pill label={`★ ${place.rating_display.toFixed(1)}`} bg={theme.colors.surface.subtle} fg={theme.colors.text.primary} />
-            <Pill label={PRICE_TIER_LABELS[place.price.tier]} bg={theme.colors.surface.subtle} fg={theme.colors.text.primary} />
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: theme.spacing.sm,
+              marginTop: theme.spacing.xs,
+              alignItems: "center",
+            }}
+          >
+            <MatchScore value={matchScore} />
+            {adnReady ? <Stars value={Math.round(place.rating_display)} /> : null}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ico name="walk" size={14} color={theme.colors.text.tertiary} />
+              <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.tertiary }}>
+                {distanceKm.toFixed(1)} km
+              </Text>
+            </View>
+            <Chip label={PRICE_TIER_LABELS[place.price.tier]} variant="default" />
           </View>
         </View>
       </View>
 
       {place.signals.length > 0 && (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs, marginTop: theme.spacing.sm }}>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: theme.spacing.xs,
+            marginTop: theme.spacing.sm,
+          }}
+        >
           {place.signals.map((s) => (
-            <Text
-              key={s}
-              style={{
-                color: theme.colors.text.secondary,
-                fontSize: theme.typography.size.xs,
-                backgroundColor: theme.colors.surface.subtle,
-                paddingHorizontal: theme.spacing.sm,
-                paddingVertical: 2,
-                borderRadius: theme.radius.full,
-              }}
-            >
-              {SIGNAL_LABELS[s] ?? s}
-            </Text>
+            <Chip key={s} label={SIGNAL_LABELS[s] ?? s} variant="default" />
           ))}
         </View>
       )}
@@ -101,8 +115,8 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
       {!adnReady && (
         <Text
           style={{
+            ...theme.typography.preset.small,
             color: theme.colors.text.tertiary,
-            fontSize: theme.typography.size.xs,
             marginTop: theme.spacing.sm,
             fontStyle: "italic",
           }}
@@ -111,20 +125,5 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
         </Text>
       )}
     </Pressable>
-  );
-}
-
-function Pill({ label, bg, fg, bold }: { label: string; bg: string; fg: string; bold?: boolean }) {
-  return (
-    <View
-      style={{
-        backgroundColor: bg,
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 999,
-      }}
-    >
-      <Text style={{ color: fg, fontSize: 12, fontWeight: bold ? "700" : "500" }}>{label}</Text>
-    </View>
   );
 }

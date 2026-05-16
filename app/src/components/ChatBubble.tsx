@@ -1,8 +1,12 @@
-// Voix du Chat — bulle qui parle dans l'app (PRD §9.3)
-// Le ton change avec le stade : Touriste enjoué, Guide silencieux.
+// Voix du Chat — composite domain qui résout (Stade × ChatMoment) → string i18n
+// puis délègue le rendu visuel à la primitive canonique CatBubble (fond noir,
+// coin 16/16/16/4, CatIcon or). Cf. PRD §9.3 + ux-design-spec § "CatBubble".
+//
+// Wrapper-pattern : signature publique stable, callers (8 fichiers) inchangés.
 
-import { Text, View } from "react-native";
+import { Text } from "react-native";
 import { useTranslation } from "react-i18next";
+import { CatBubble } from "./primitives/CatBubble";
 import { useTheme } from "../theme/ThemeProvider";
 import type { Stade } from "../types/stade";
 import { chatKey, isChatSilent, type ChatMoment } from "../lib/chat-voice";
@@ -24,25 +28,15 @@ export function ChatBubble({ stade, moment, overrideText }: Props) {
   }
 
   return (
-    <View
-      style={{
-        backgroundColor: theme.colors.surface.subtle,
-        borderRadius: theme.radius.lg,
-        padding: theme.spacing.base,
-        borderLeftWidth: 3,
-        borderLeftColor: theme.colors.brand.primary,
-      }}
-    >
+    <CatBubble stage={stade}>
       <Text
         style={{
-          color: theme.colors.text.primary,
-          fontSize: theme.typography.size.base,
-          lineHeight: theme.typography.size.base * theme.typography.lineHeight.relaxed,
-          fontStyle: "italic",
+          ...theme.typography.preset.body,
+          color: theme.colors.text.inverse,
         }}
       >
         {text}
       </Text>
-    </View>
+    </CatBubble>
   );
 }

@@ -4,6 +4,36 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.1.7 — Re-dérivation des 4 composants RN existants (2026-05-16)
+
+**Les 4 composants `ChatBubble`, `AxisRadar`, `PlaceCard`, `DataSourceBanner` consomment désormais les primitives canoniques livrées par Story 1.3 — wrapper-pattern : APIs publiques inchangées, callers (`(tabs)/index.tsx`, `place/[id].tsx`, `(tabs)/profile.tsx`) non modifiés. Plus aucun composant SPAWT en drift visuel vs `midfi-kit.jsx`. Drift i18n corrigé : la string `DataSourceBanner` est migrée dans `fr.json`.**
+
+- `refactor(theme)` `ChatBubble` délègue le rendu visuel à la primitive `CatBubble` (fond noir, coin `16/16/16/4`, `CatIcon` or). La logique domain (résolution `chatKey × Stade × ChatMoment` + `isChatSilent` + `overrideText`) reste dans `ChatBubble.tsx` — primitive consumer-agnostic préservée.
+- `refactor(theme)` `AxisRadar` délègue à `PalaisRadar` avec mapping bipolaire `[-1, 1]` → unipolaire `[0, 1]` documenté : `values[i] = Math.abs(axis.value)`, `labels[i] = value >= 0 ? posLabel : negLabel`. **Drift visuel corrigé** : l'ancien lerp `((value + 1) / 2) * radius` rendait un vertex près du centre pour `value = -0.8` (strongly negative) tout en affichant `negLabel` — contradictoire. Le nouveau mapping est cohérent : `|value|` = distance vertex/centre, label = pôle dominant.
+- `refactor(theme)` `PlaceCard` consomme `MatchScore` (chip vert ≥85 + `●` doublon), `Stars` (max=5, drift D7), `Chip` (variant `default` pour distance/rating/prix), `Ico walk` (icône distance). Suppression du composant inline `Pill` (mort code). Typographie passée sur `preset.h2`/`preset.body`/`preset.small`.
+- `refactor(theme)` `DataSourceBanner` migré sur `preset.caption` (Gotham-Medium 11 uppercase, ls 0.44). String hardcodée FR détectée pendant l'audit → migrée dans `fr.json` sous `common.dataSourceBanner` (fix i18n drift incidental).
+- `fix(i18n)` `common.dataSourceBanner` ajouté à `fr.json`. Consommé par `DataSourceBanner` via `useTranslation()`.
+- `fix(theme)` `AxisRadar` respecte `exactOptionalPropertyTypes` (`fill` / `underConstructionLabel` passés via spread conditionnel quand définis, omis sinon).
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+- Audit hex `grep -rnE "#[0-9A-Fa-f]{3,6}" app/src/components app/app | grep -v tokens.ts` : vide ✓
+- Smoke web (`expo export --platform web`) : Metro bundle compile cleanly, 4 composants re-dérivés résolus ✓
+- **Smoke device matrice 4** (non-régression visuelle bloquante AC #6 epic Story 1.4) : pending — bloquant pour merge ultérieur sur `main`, non bloquant pour `spawt/v1-bmad`.
+
+### Triple sign-off
+- **Alexandre** (brand) : 4 composants consomment désormais les primitives canoniques, plus aucun drift vs `midfi-kit.jsx` ✓
+- **Stéphanie** (lisibilité + non-régression visuelle) : confirmation matrice 4 devices — **pending** (3 écrans à smoke : `(tabs)/index`, `place/[id]`, `(tabs)/profile`).
+- **Kidam** : N/A (aucun événement analytics introduit).
+
+### Résidus / à suivre
+- **Smoke device matrice 4** sur les 3 écrans consommateurs.
+- **Translucidités** : 4 sites des primitives (`MatchScore`, `PatternDots`, `Button` ghost, `PalaisRadar` axes radiaux) utilisent toujours des rgba inline — pas modifié par cette story, story design system distincte à formaliser si on veut un audit translucidité strict.
+
+---
+
 ## v1.1.6 — Portage des primitives midfi-kit en RN (2026-05-16)
 
 **Les 12 primitives canoniques du `documentation/ux/midfi-kit.jsx` sont portées en composants React Native dans `app/src/components/primitives/` — Ico (29 icônes), Wordmark, Pin, CatIcon, CatBubble, Stars (max=5 / D7), MatchScore (chip vert ≥85 + ● doublon), PalaisRadar (5 axes pentagonal), PatternDots (default/gold), TabBar (Feed/Carte/[FAB]/Meute/Palais), Chip (5 variants), Button (5 variants dont gold-grad via expo-linear-gradient). Toute primitive consomme `useTheme()` — `theme.colors.*` + `theme.typography.preset.*` (livré Story 1.2). Préfixe `Spawt` purgé : `SpawtPin` → `Pin`. Aucun composant existant touché (réservé Story 1.4).**
