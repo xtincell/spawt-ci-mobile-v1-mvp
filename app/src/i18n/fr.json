@@ -9,6 +9,13 @@
     "error_generic": "Quelque chose a couiné. Réessaie.",
     "error_network": "Pas de réseau. Le Chat patiente."
   },
+  "nav": {
+    "feed": "Feed",
+    "map": "Carte",
+    "fab": "Spawter",
+    "meute": "Meute",
+    "palais": "Palais"
+  },
   "splash": {
     "tagline": "Ne plus jamais regretter un restaurant.",
     "cta_start": "Entrer dans la Meute"

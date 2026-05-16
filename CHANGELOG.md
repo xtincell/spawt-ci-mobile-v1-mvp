@@ -4,6 +4,38 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.1.6 — Portage des primitives midfi-kit en RN (2026-05-16)
+
+**Les 12 primitives canoniques du `documentation/ux/midfi-kit.jsx` sont portées en composants React Native dans `app/src/components/primitives/` — Ico (29 icônes), Wordmark, Pin, CatIcon, CatBubble, Stars (max=5 / D7), MatchScore (chip vert ≥85 + ● doublon), PalaisRadar (5 axes pentagonal), PatternDots (default/gold), TabBar (Feed/Carte/[FAB]/Meute/Palais), Chip (5 variants), Button (5 variants dont gold-grad via expo-linear-gradient). Toute primitive consomme `useTheme()` — `theme.colors.*` + `theme.typography.preset.*` (livré Story 1.2). Préfixe `Spawt` purgé : `SpawtPin` → `Pin`. Aucun composant existant touché (réservé Story 1.4).**
+
+- `feat(theme)` 12 primitives portées : `Ico` (29 cases du switch SVG), `Wordmark` (Klinsman Bold + ls 2%), `Pin` (drop or + point noir), `CatIcon` (silhouette mascotte), `CatBubble` (fond noir + coin `16/16/16/4`), `Stars` (max=5 par défaut — drift D7 corrigé), `MatchScore` (chip vert ≥85 + `●` doublon de couleur), `PalaisRadar` (5 axes pentagonal + underConstruction overlay), `PatternDots` (variants default/gold via `<Pattern>` SVG), `TabBar` (5 onglets + FAB central débord -22), `Chip` (5 variants union typée), `Button` (5 variants — `gold-grad` via `expo-linear-gradient`).
+- `feat(theme)` Barrel `app/src/components/primitives/index.ts` — `import { Ico, Chip, Button } from "@/components/primitives"`.
+- `feat(i18n)` Bloc `nav` ajouté dans `fr.json` : `feed`, `map`, `fab`, `meute`, `palais`. Consommé par `TabBar` via `useTranslation()`. Toutes les autres strings primitives restent injectées par le caller (consumer-agnostic).
+- `chore(deps)` `expo-linear-gradient ~55.0.14` ajouté (résolveur Expo SDK 55, peer-clean). Consommé uniquement par `Button` variant `gold-grad`.
+- `chore(theme)` Préfixe `Spawt` purgé : `SpawtPin` du kit canonique JSX renommé `Pin` côté RN (project-context « Convention de naming » — préfixe Spawt interdit sur primitives techniques).
+- `docs(theme)` rgba inline documentés (`MatchScore`, `PatternDots`, `Button` ghost, `PalaisRadar` grille radiale) — la translucidité d'overlay n'a pas d'équivalent token canonique. Justifié dans chaque fichier ; si on veut ramener ces translucidités dans `tokens.ts` plus tard, c'est une story design system distincte.
+- Aucun composant existant touché : `ChatBubble`, `PlaceCard`, `AxisRadar`, `DataSourceBanner` restent intacts — re-dérivation = Story 1.4. Coexistence temporaire (`PalaisRadar` neuf à côté d'`AxisRadar` ancien) acceptée.
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+- Audit hex `grep -rnE "#[0-9A-Fa-f]{3,6}" app/src/components app/app | grep -v tokens.ts` : vide ✓
+- Smoke web (`expo export --platform web`) : Metro bundle compile, 13 nouveaux fichiers + `expo-linear-gradient` + `react-native-svg Pattern`/Defs résolus ✓
+- **Smoke device matrice 4 (rendu visuel SVG, FAB débord, gradient, font scaling)** : pending — à valider en alpha (Cahier §5.7), non bloquant pour merge `spawt/v1-bmad`.
+
+### Triple sign-off
+- **Alexandre** (brand) : primitives canoniques sans gamif, sans préfixe `Spawt`, Klinsman/Gotham consommés via `useTheme().typography.preset.*` ✓
+- **Stéphanie** (lisibilité + cible 44pt + a11y) : confirmation matrice 4 devices — **pending** (rendu visuel SVG + FAB débord + gradient à vérifier sur device).
+- **Kidam** : N/A (aucun événement analytics introduit par cette story).
+
+### Résidus / à suivre
+- **Smoke device matrice 4** : voir Verify.
+- **Story 1.4** : re-dériver les 4 composants existants sur les primitives canoniques ; supprimer `ChatBubble`/`AxisRadar` (remplacés par `CatBubble`/`PalaisRadar`), re-skin `PlaceCard` sur `MatchScore`/`Stars`, re-skin `DataSourceBanner`.
+- **Translucidités** : 4 sites utilisent des rgba inline (`MatchScore`, `PatternDots`, `Button` ghost, `PalaisRadar` axes) faute de tokens dédiés — à formaliser en story design system distincte si on veut un audit translucidité strict.
+
+---
+
 ## v1.1.5 — Polices Klinsman/Gotham + échelle typographique (2026-05-16)
 
 **Klinsman (Light/Regular/Bold) et Gotham (Book/Medium/Bold) sont chargées au démarrage via `expo-font`, derrière un splash gate qui ne libère l'UI qu'une fois les polices prêtes — ou en erreur (fallback système, jamais d'écran bloquant). L'échelle typo canonique (`t-display`/`h1`/`h2`/`h3`/`body`/`small`/`caption`/`data`/`overline`) est exposée comme `theme.typography.preset.*`. Découverte tardive (review code) : les fichiers Klinsman embarquent un nom PostScript `KlinsmanTypeface{Light,Regular,Bold}` (PAS `Klinsman-{Light,Regular,Bold}` comme leur nom de fichier) — les clés `useFonts` ont été ré-alignées sur les noms PS embarqués pour court-circuiter la couche d'alias `expo-font` et garantir la résolution iOS. Deux items du `deferred-work.md` Story 1.1 se ferment ici (font wiring + redondance `family.voice`/`family.mono`).**
