@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Platform } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -59,7 +60,10 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   // Tant que les polices ne sont ni chargées ni en erreur, garder le splash natif.
-  if (!fontsLoaded && !fontError) return null;
+  // Sur web, expo-splash-screen est no-op et expo-font charge via CSS @font-face
+  // (asynchrone, sans signal fiable côté useFonts) — gate désactivé pour éviter
+  // un null persistant qui rend l'app blanche dans le navigateur.
+  if (Platform.OS !== "web" && !fontsLoaded && !fontError) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

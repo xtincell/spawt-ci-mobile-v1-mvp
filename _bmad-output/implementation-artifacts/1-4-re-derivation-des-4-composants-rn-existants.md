@@ -1,6 +1,6 @@
 # Story 1.4: Re-dérivation des 4 composants RN existants
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -21,11 +21,11 @@ Les 4 composants existants ont des **APIs caller stables** (consommées par `app
 
 ## Acceptance Criteria
 
-1. **`ChatBubble.tsx` rend via `CatBubble`** : fond noir, coin `16/16/16/4`, `CatIcon` or à gauche, texte en `theme.typography.preset.h3` (Klinsman uppercase) ou `preset.body` selon le moment. Signature publique inchangée (`{ stade, moment, overrideText? }`).
+1. **`ChatBubble.tsx` rend via `CatBubble`** : fond noir, coin `16/16/16/4`, `CatIcon` or à gauche, texte en `theme.typography.preset.body` (Gotham-Book 14). Signature publique inchangée (`{ stade, moment, overrideText? }`). _(Décision review 2026-05-16 : `preset.body` uniforme V1 ; un mapping `(stade × moment) → typo` éventuel est reporté à Epic 5 — célébrations de stade.)_
 2. **`AxisRadar.tsx` rend via `PalaisRadar`** : 5 axes pentagonal, fill `theme.colors.brand.accent` 18%, labels = pôle dominant par axe (mapping bipolaire→unipolaire documenté dans le code). Signature publique inchangée (`{ axes, size?, color?, underConstruction? }`).
 3. **`PlaceCard.tsx` consomme `MatchScore` + `Stars` + `Chip` + `Ico`** : le `${matchScore}%` passe par `MatchScore` (chip vert ≥85), les étoiles via `Stars max={5}`, la distance via `Chip` + `Ico walk`, le prix via `Chip`. Signature publique inchangée.
 4. **`DataSourceBanner.tsx` re-skin** : `theme.typography.preset.caption` (Gotham-Medium 11 uppercase), string déplacée dans `fr.json` sous `common.dataSourceBanner`, contraste AA validé sur `state.warning`.
-5. **Aucun caller modifié** sauf si strictement nécessaire (théoriquement aucun, vu le wrapper-pattern).
+5. **Callers : modifications strictement minimales et non-breaking.** Le wrapper-pattern garde les signatures publiques stables. _(Patch review 2026-05-16 : `(tabs)/profile.tsx:122` et `place/[id].tsx:188` ajoutent une ligne `underConstructionLabel={t("palais.underConstruction")}` pour câbler l'overlay anti-mensonge PRD §8.2 — aucun changement de signature ni de comportement existant.)_
 6. **Triple gate** passe, **hex audit** vide, **smoke web** OK.
 
 ## Tasks / Subtasks
@@ -107,3 +107,55 @@ claude-opus-4-7[1m]
 - `CHANGELOG.md` (modified — v1.1.7)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — 1-4 → review)
 - `_bmad-output/implementation-artifacts/1-4-re-derivation-des-4-composants-rn-existants.md` (new — la story file)
+
+### Review Findings (lot 1.2/1.3/1.4 — 2026-05-16)
+
+> Review adversariale parallèle (Blind Hunter + Edge Case Hunter + Acceptance Auditor) sur le diff `cf4e1be..HEAD`.
+
+**Decision-needed (4)**
+- [ ] [Review][Decision] **`ChatBubble` modulation typo `preset.h3` vs `preset.body` selon `moment` (AC #1)** — Story 1.4 AC #1 dit explicitement « `preset.h3` (Klinsman uppercase) OU `preset.body` selon le moment » mais `ChatBubble.tsx:34` utilise toujours `preset.body`. Aucune logique de switch sur `ChatMoment`. **Décision** : (a) définir le mapping `(stade × moment) → typo` ; (b) accepter `preset.body` comme défaut V1 et clarifier AC ; (c) follow-up.
+- [ ] [Review][Decision] **Overlay « En construction » muet faute de `underConstructionLabel` côté callers (AC #2 + PRD §8.2 anti-mensonge)** — `profile.tsx:121` et `place/[id].tsx:187` passent `underConstruction={!adnReady}` mais aucun ne passe `underConstructionLabel`. Conséquence : `PalaisRadar` rend uniquement `opacity: 0.4` sans aucun texte. Les écrans affichent déjà un `<Text>` adjacent « ADN en construction » donc le user voit un signal — mais le radar lui-même est muet (intent PRD §8.2 dégradé). **Décision** : (a) ajouter `underConstructionLabel={t("palais.underConstruction")}` dans les 2 callers (rupture AC #5 « aucun caller modifié », mais minimale) ; (b) follow-up dédié ; (c) accepter le signal Text adjacent comme suffisant et marquer le label optionnel.
+- [ ] [Review][Decision] **`PlaceCard.Stars value={Math.round(place.rating_display)}` perd la précision** — `4.7` devient 5 étoiles pleines ; `4.2` devient 4 étoiles pleines. L'ancien rendu affichait `★ 4.7` en numérique (Blind, `app/src/components/PlaceCard.tsx:108`). **Décision produit** : (a) garder le round (lecture rapide, 5 étoiles canonique) ; (b) afficher la note numérique en plus des étoiles ; (c) introduire des demi-étoiles.
+- [ ] [Review][Decision] **`PlaceCard.Stars` rendu seulement si `adnReady`** — la note (`rating_display`, sourcée Google/seed) est cachée tant que l'ADN (`place_adn`, sourcée spawts) n'est pas prêt. Couple sémantique infondé : un lieu sans ADN garde sa note Google. (Blind, `app/src/components/PlaceCard.tsx:108`). **Décision produit** : (a) montrer toujours la note (sépare rating de l'ADN) ; (b) garder couplé (intent UX d'une "vraie" carte spawt-validée) ; (c) défaut à 0 étoile + chip texte « pas encore évalué ».
+
+**Should-fix**
+- [x] [Review][Patch] `AxisRadar.axis.value = NaN` propagé via `Math.abs(NaN) = NaN` à `PalaisRadar.values` → SVG points `"NaN,NaN ..."` (groupé avec patch PalaisRadar côté Story 1.3, mais ici la source est `AxisRadar`) (Edge, `app/src/components/AxisRadar.tsx:43-49`). Fix : garde `Number.isFinite(v) ? Math.abs(v) : 0` côté AxisRadar.
+- [x] [Review][Patch] `PlaceCard.distanceKm` négatif/NaN affiché tel quel à l'utilisateur (`"NaN km"`, `"-1.5 km"`) (Edge, `app/src/components/PlaceCard.tsx:112`). Fix : `Number.isFinite(distanceKm) && distanceKm >= 0 ? distanceKm.toFixed(1) : "—"`.
+
+**Nit**
+- [x] [Review][Patch] `PlaceCard.cuisine.length === 0` → affiche `"Treichville · "` avec point centré orphelin (Edge, `app/src/components/PlaceCard.tsx:96`). Fix : `cond ? \` · ${...}\` : ""`.
+
+**Defer**
+- [x] [Review][Defer] `PlaceCard.SIGNAL_LABELS[s] ?? s` fallback brut snake_case affiche `coup_de_coeur` brut si nouveau signal backend [`app/src/components/PlaceCard.tsx:130`] — deferred, humaniser via i18n quand set s'agrandit.
+- [x] [Review][Defer] AA contraste `state.warning` (`amberWarm #E89A39`) + `text.onBrand` (`black #0A0A0A`) non formellement validé — pairing introduit par re-skin `DataSourceBanner` [`app/src/components/DataSourceBanner.tsx`] — deferred, bookkeeping validation contrast à tracer dans `_bmad-output/planning-artifacts/ux-design-specification.md`.
+
+**Dismissed (faux positifs)**
+- ~~Blind Hunter `AxisRadar.underConstruction` perd l'effet quand `color` passé~~ — `PalaisRadar` applique `opacity: 0.4` indépendamment de `fill` ; l'effet visuel reste.
+- ~~PS name `KlinsmanTypefaceBold` vs `Klinsman-Bold`~~ — déviation justifiée par Review Findings Story 1.2 (lecture programmatique de la table `name` OpenType).
+- ~~AC #2 prop additionnel `underConstructionLabel` brisant « signature inchangée »~~ — additif non-breaking, signature étendue compat ascendante.
+- ~~`AxisRadar.value === 0` → `posLabel` par défaut~~ — cohérent ancien comportement, edge cosmetic non documenté ailleurs.
+
+#### Review Triage Summary (Story 1.4)
+
+- 4 decision-needed
+- 3 patch (2 should-fix + 1 nit)
+- 2 deferred
+- 4 dismissed (faux positifs)
+
+### Review Findings — post-review tweaks (2026-05-16)
+
+Annexe couvrant les tweaks non commités de `PlaceCard.tsx`, `seed/places.ts`.
+
+**Patch (4)**
+
+- [ ] [Review][Patch] **`PlaceCard` Image n'a pas de `onError` fallback** [`app/src/components/PlaceCard.tsx:53-58`] — un cover_photo_url cassé (404, offline, blocage proxy) rend un bloc `aspectRatio 16/9` vide. Le placeholder « — » ne se déclenche que pour `cover_photo_url` falsy, pas pour les erreurs réseau. Fix : `onError` handler qui swap vers un placeholder View, ou utiliser `expo-image` avec `placeholder` + cache disk.
+- [ ] [Review][Patch] **Seed `places.ts` switche `cover_photo_url: null` → `picsum.photos/seed/...` external URLs** [`app/src/data/seed/places.ts`] — viole l'invariant offline-first (alpha terrain Yamoussoukro). Tous les PlaceCards demandent un round-trip réseau au démo. Fix : (a) restaurer `null` avec placeholder local ; OU (b) bundler localement quelques placeholders dans `app/assets/seed/` et référencer en `require()`.
+- [ ] [Review][Patch] **`PlaceCard` ne défensive-gate pas sur `is_published`** [`app/src/components/PlaceCard.tsx:53-71`] — repose entièrement sur le filtre serveur. Un deep link vers un place non publié (ou bug d'adapter) affiche la carte. Fix : `if (!place.is_published) return null` en tête du composant. Project-context invariant : « ne pas se fier seul à la RLS serveur ».
+- [ ] [Review][Patch] **`PlaceCard` Pressable `overflow: "hidden"` clip le focus ring d'accessibilité** [`app/src/components/PlaceCard.tsx`] — les indicateurs de focus a11y (Web/TV/keyboard) sont coupés. Fix : retirer `overflow: hidden` du Pressable et le mettre sur un wrapper interne, OU `outlineOffset` négatif.
+
+**Defer (0)** / **Dismissed (0)**
+
+#### Review Triage Summary (Story 1.4 — post-review tweaks)
+
+- 0 decision-needed
+- 4 patch (offline-first + a11y + defensive gating)

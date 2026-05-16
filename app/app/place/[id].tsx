@@ -185,6 +185,7 @@ export default function PlaceDetailScreen() {
               { value: place.adn.axe_decontracte_habille, negLabel: "Décontracté", posLabel: "Habillé" },
             ]}
             underConstruction={!adnReady}
+            underConstructionLabel={t("palais.underConstruction")}
           />
         </View>
 

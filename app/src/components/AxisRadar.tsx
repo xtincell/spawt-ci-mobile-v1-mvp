@@ -40,12 +40,17 @@ export function AxisRadar({
   underConstruction = false,
   underConstructionLabel,
 }: Props) {
+  // Garde-fou : `axis.value` peut arriver NaN (calcul amont sur 0 avis).
+  // `Math.abs(NaN) = NaN` se propage à `PalaisRadar.values` puis aux points
+  // SVG (`"NaN,NaN ..."`) qui crashent le driver Android. PalaisRadar clampe
+  // aussi côté primitive — double garde, intentionnelle.
+  const safe = (v: number): number => (Number.isFinite(v) ? Math.abs(v) : 0);
   const values: readonly [number, number, number, number, number] = [
-    Math.abs(axes[0].value),
-    Math.abs(axes[1].value),
-    Math.abs(axes[2].value),
-    Math.abs(axes[3].value),
-    Math.abs(axes[4].value),
+    safe(axes[0].value),
+    safe(axes[1].value),
+    safe(axes[2].value),
+    safe(axes[3].value),
+    safe(axes[4].value),
   ];
   const labels: readonly [string, string, string, string, string] = [
     axes[0].value >= 0 ? axes[0].posLabel : axes[0].negLabel,

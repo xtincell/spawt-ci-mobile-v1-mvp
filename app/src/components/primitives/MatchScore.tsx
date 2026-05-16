@@ -3,6 +3,7 @@
 // Cf. midfi-kit.jsx ligne 69.
 
 import { Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider";
 
 interface Props {
@@ -17,9 +18,12 @@ interface Props {
 // ces rgba ne sont PAS des hex en dur (l'audit grep sur #[0-9A-Fa-f] ne matche pas).
 export function MatchScore({ value, accessibilityLabel }: Props) {
   const theme = useTheme();
-  const isHigh = value >= 85;
+  const { t } = useTranslation();
+  // Garde-fou : `value` peut arriver NaN (rating divisé par 0 avis amont) ou
+  // hors [0, 100] (data corrompue). Affichage déterministe et conservateur.
+  const safe = Number.isFinite(value) ? Math.min(Math.max(Math.round(value), 0), 100) : 0;
+  const isHigh = safe >= 85;
   const bg = isHigh ? "rgba(45,107,79,0.14)" : "rgba(10,10,10,0.06)";
-  const border = isHigh ? "rgba(45,107,79,0.3)" : "transparent";
   const fg = isHigh ? theme.colors.brand.accent : theme.colors.text.secondary;
   return (
     <View
@@ -31,10 +35,10 @@ export function MatchScore({ value, accessibilityLabel }: Props) {
         paddingVertical: 5,
         borderRadius: 100,
         backgroundColor: bg,
-        borderWidth: 1,
-        borderColor: border,
+        borderWidth: isHigh ? 1 : 0,
+        borderColor: isHigh ? "rgba(45,107,79,0.3)" : "transparent",
       }}
-      accessibilityLabel={accessibilityLabel ?? `Score ${value}%`}
+      accessibilityLabel={accessibilityLabel ?? t("a11y.matchScore", { score: safe })}
     >
       <Text style={{ fontSize: 9, color: fg }}>●</Text>
       <Text
@@ -44,7 +48,7 @@ export function MatchScore({ value, accessibilityLabel }: Props) {
           color: fg,
         }}
       >
-        {value}%
+        {safe}%
       </Text>
     </View>
   );

@@ -22,12 +22,18 @@ interface Props {
 
 export function CatBubble({ children, variant = "bubble", stage = "explorateur" }: Props) {
   const theme = useTheme();
-  // Stub : variant et stage n'altèrent pas le rendu V1.
-  void variant;
-  void stage;
+  // Stub V1 : `variant` et `stage` sont préparés pour les stories Epic 5
+  // (modulation visuelle par stade via theme.colors.chat.<stage>). Pour
+  // l'instant, dev-warn si un caller s'attend à un effet visible — évite
+  // de paraître silencieusement broken pendant l'intégration future.
+  if (__DEV__ && variant !== "bubble") {
+    console.warn(
+      `[CatBubble] variant="${variant}" est un stub V1 — rendu identique au variant "bubble" jusqu'aux stories Epic 5.`,
+    );
+  }
+  void stage; // accepté en signature, réservé pour Epic 5.
   return (
     <View
-      accessibilityRole="text"
       style={{
         backgroundColor: theme.colors.surface.inverse,
         borderTopLeftRadius: 16,

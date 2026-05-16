@@ -1,6 +1,6 @@
 # Story 1.2: Intégration des polices Klinsman & Gotham + échelle typographique
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -115,6 +115,24 @@ so that la voix visuelle SPAWT s'applique uniformément sur tous les écrans (ti
 
 #### Review items deferred — aucun
 Tous les findings de la review (5 should-fix + 1 question PostScript) sont addressés dans cette story. Aucun item reporté.
+
+### Review Findings (lot 1.2/1.3/1.4 — 2026-05-16)
+
+> Review adversariale parallèle (Blind Hunter + Edge Case Hunter + Acceptance Auditor) sur le diff `cf4e1be..HEAD`.
+
+- [x] [Review][Patch] `useAppFonts` n'a pas de timeout — police corrompue ou décompression lente sur Tecno Spark/Infinix bloque le splash gate indéfiniment (Edge Case Hunter, `app/src/theme/useAppFonts.ts:1-30`). Fix : `useEffect` qui force `fontsLoaded=true` après ~8s avec dev-warn. **Appliqué 2026-05-16.**
+- [x] [Review][Defer] `useAppFonts` log `console.warn` `__DEV__`-only — aucun signal en prod (Sentry pas installé) [`app/src/theme/useAppFonts.ts:21`] — deferred, dépend de l'install Sentry (déjà tracé).
+- [x] [Review][Defer] `tokens.ts.lineHeight` fractionnaires (35.7 / 28.6 / 19.2 / 16.8 / 15.4) — Android sub-pixel rounding pourrait diverger d'iOS [`app/src/theme/tokens.ts:115-149`] — deferred, à valider matrice 4 devices alpha.
+- [x] [Review][Defer] `tokens.ts.textTransform: "uppercase"` + emoji / caractères non-Latin — `toUpperCase()` JS peut produire artefacts sur signaux (`❤️ Coup de Cœur`) [`app/src/theme/tokens.ts:124, 133, 147`] — deferred, smoke test avec strings réelles signaux/cuisine.
+- [x] [Review][Defer] AC #10 smoke device manuel PENDING — tracé CHANGELOG v1.1.5, non bloquant pour merge `spawt/v1-bmad`, bloquant pour `main` — deferred, sign-off Stéphanie matrice 4 devices.
+- [x] [Review][Defer] `_layout.tsx` early-return `null` sur web — `expo-splash-screen` no-op, écran blanc bref toléré [`app/app/_layout.tsx:50`] — deferred, audit cible web Sprint 2.
+
+#### Review Triage Summary (Story 1.2)
+
+- 0 decision-needed
+- 1 patch (`useAppFonts` timeout)
+- 5 deferred
+- 0 dismissed pour cette story
 
 ## Dev Notes
 
@@ -326,3 +344,27 @@ claude-opus-4-7[1m]
 - `CHANGELOG.md` (modified — entrée `v1.1.5` ajoutée en tête, format Moka)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — `1-2-...` : `backlog` → `ready-for-dev` → `in-progress` → `review`, `last_updated` 2026-05-16)
 - `_bmad-output/implementation-artifacts/1-2-integration-des-polices-klinsman-gotham-echelle-typographique.md` (modified — tasks cochées, Status `ready-for-dev` → `review`, Dev Agent Record renseigné)
+
+### Review Findings — post-review tweaks (2026-05-16)
+
+Le code committed de Story 1.2 a été déjà reviewé (cf. cycle précédent). Cette annexe couvre **uniquement les tweaks non commités** de `useAppFonts.ts`, `babel.config.js`, `_layout.tsx` introduits depuis.
+
+**Patch (2)**
+
+- [ ] [Review][Patch] **`useAppFonts` 8s timeout jamais expiré — l'identité de `fontError` est instable entre les renders** [`app/src/theme/useAppFonts.ts:30-45`] — `useEffect` deps `[fontsLoaded, fontError]` re-run car `useFonts` peut retourner un nouvel object identity pour `fontError`. À chaque re-run, le `setTimeout(8s)` est créé, le cleanup tue l'ancien : le timer ne tient jamais 8s. Fix : `[fontsLoaded, !!fontError]` (boolean stable) OU ref qui démarre le timer une seule fois.
+- [ ] [Review][Patch] **`babel.config.js` `api.cache.using(() => platform)` — `api.caller(...)` retourne `undefined` pour jest/eslint** [`app/babel.config.js:3-5`] — fallback null + clé de cache `undefined` mélange transforms natif/web/jest dans une seule cache file. Fix : `const platform = api.caller(c => c?.platform) ?? "unknown";` et conditionner les plugins explicitement.
+
+**Defer (1)**
+
+- [x] [Review][Defer] **Web FOUT (flash of unstyled text) après le `_layout.tsx` gate disabled sur web** [`app/app/_layout.tsx:62-66`] — composants montent en fallback Roboto puis re-layout quand Klinsman/Gotham landent. Acceptable pour V1 mobile-first. → Audit cible web Sprint 2 si web devient un canal.
+
+**Dismissed**
+
+- ~~`useAppFonts` référence `__DEV__` non déclaré~~ — globals RN fonctionnent en TS strict.
+
+#### Review Triage Summary (Story 1.2 — post-review tweaks)
+
+- 0 decision-needed
+- 2 patch (should-fix infra)
+- 1 deferred
+- 1 dismissed

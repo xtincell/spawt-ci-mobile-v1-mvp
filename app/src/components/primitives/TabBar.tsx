@@ -23,12 +23,16 @@ interface TabSpec {
   icon: IconName;
 }
 
-const TABS: readonly TabSpec[] = [
-  { id: "home", labelKey: "feed", icon: "home" },
-  { id: "map", labelKey: "map", icon: "map" },
-  { id: "fab", labelKey: "fab", icon: "plus" },
-  { id: "tribu", labelKey: "meute", icon: "compass" },
-  { id: "profile", labelKey: "palais", icon: "user" },
+interface TabSpecWithFallback extends TabSpec {
+  fallback: string;
+}
+
+const TABS: readonly TabSpecWithFallback[] = [
+  { id: "home", labelKey: "feed", icon: "home", fallback: "Feed" },
+  { id: "map", labelKey: "map", icon: "map", fallback: "Carte" },
+  { id: "fab", labelKey: "fab", icon: "plus", fallback: "Spawter" },
+  { id: "tribu", labelKey: "meute", icon: "compass", fallback: "Meute" },
+  { id: "profile", labelKey: "palais", icon: "user", fallback: "Palais" },
 ];
 
 export function TabBar({ active, onTabPress }: Props) {
@@ -49,7 +53,10 @@ export function TabBar({ active, onTabPress }: Props) {
       }}
     >
       {TABS.map((tab) => {
-        const label = t(`nav.${tab.labelKey}`);
+        // defaultValue garantit que si la clé i18n manque (locale future EN,
+        // i18next ramène la clé brute par défaut), on rend un label humain
+        // au lieu de "nav.feed" affiché à l'utilisateur.
+        const label = t(`nav.${tab.labelKey}`, { defaultValue: tab.fallback });
         if (tab.id === "fab") {
           return (
             <Pressable

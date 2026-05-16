@@ -119,6 +119,7 @@ export default function ProfileScreen() {
               },
             ]}
             underConstruction={!adnReady}
+            underConstructionLabel={t("palais.underConstruction")}
           />
         </View>
 

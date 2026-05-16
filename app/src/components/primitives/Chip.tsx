@@ -11,6 +11,7 @@ interface Props {
   label: string;
   variant?: ChipVariant;
   onPress?: () => void;
+  /** `undefined` = chip non-toggleable (le state `selected` n'est pas exposé). */
   selected?: boolean;
   accessibilityLabel?: string;
 }
@@ -19,7 +20,7 @@ export function Chip({
   label,
   variant = "default",
   onPress,
-  selected = false,
+  selected,
   accessibilityLabel,
 }: Props) {
   const theme = useTheme();
@@ -80,13 +81,21 @@ export function Chip({
 
   if (!onPress) return content;
 
+  // `label || undefined` : un label vide ne doit pas devenir un accessibilityLabel
+  // vide (sinon le screen reader annonce un bouton anonyme). Le caller doit
+  // fournir `accessibilityLabel` ou un `label` non vide.
+  const a11yLabel = accessibilityLabel ?? (label || undefined);
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={selected ? { selected: true } : undefined}
-      hitSlop={{ top: 6, bottom: 6 }}
+      accessibilityLabel={a11yLabel}
+      // N'envoie `accessibilityState` que si le caller a explicitement passé
+      // `selected` — sinon TalkBack/VoiceOver annoncent « bouton bascule
+      // désactivé » sur des chips informatifs.
+      accessibilityState={selected !== undefined ? { selected } : undefined}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
     >
       {content}
     </Pressable>

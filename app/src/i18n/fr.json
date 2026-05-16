@@ -156,5 +156,16 @@
     "secret": "Secret",
     "maquis": "Maquis",
     "table": "Table"
+  },
+  "palais": {
+    "underConstruction": "En construction"
+  },
+  "place": {
+    "notRatedYet": "Pas encore noté"
+  },
+  "a11y": {
+    "matchScore": "Score {{score}}%",
+    "stars_one": "{{count}} étoile sur {{max}}",
+    "stars_other": "{{count}} étoiles sur {{max}}"
   }
 }
