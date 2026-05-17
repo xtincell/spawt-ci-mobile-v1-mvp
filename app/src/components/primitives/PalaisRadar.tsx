@@ -48,9 +48,14 @@ export function PalaisRadar({
   const cy = size / 2;
   const r = size * 0.36;
 
+  // Garde-fou : `values[i]` peut arriver NaN / Infinity (calcul amont sur 0 avis)
+  // ou hors [0, 1] (data corrompue). Sans clamp, react-native-svg rend
+  // `points="NaN,NaN ..."` qui crashe le driver SVG sur Android.
+  const safe = (v: number): number =>
+    Number.isFinite(v) ? Math.min(Math.max(v, 0), 1) : 0;
   const point = (i: Index, v: number): [number, number] => [
-    cx + Math.cos(angleRad(i)) * r * v,
-    cy + Math.sin(angleRad(i)) * r * v,
+    cx + Math.cos(angleRad(i)) * r * safe(v),
+    cy + Math.sin(angleRad(i)) * r * safe(v),
   ];
 
   const polyPts = INDICES.map((i) => point(i, values[i]).join(",")).join(" ");
@@ -117,7 +122,7 @@ export function PalaisRadar({
               // ls 0.08em × 9 ≈ 0.72 — plus tight que preset.overline (1.2),
               // adapté à l'usage dense des labels radar.
             >
-              {labels[i].toUpperCase()}
+              {(labels[i] || DEFAULT_LABELS[i]).toUpperCase()}
             </SvgText>
           );
         })}

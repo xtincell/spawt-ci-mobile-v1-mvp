@@ -47,6 +47,14 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# ━━━ Supabase ━━━
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# ━━━ Internal review workflow artifacts ━━━
+_bmad-output/implementation-artifacts/.review-*.patch
+
 # ━━━ Misc ━━━
 nul
 *.tmp

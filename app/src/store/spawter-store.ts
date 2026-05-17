@@ -17,10 +17,12 @@ import {
   appendSpawtLocal,
   setConsent as setConsentLocal,
 } from "../lib/storage";
-import { saveSpawter, savePalais } from "../lib/data-source";
+import { saveSpawter, savePalais, isSupabaseConfigured } from "../lib/data-source";
+import { supabase } from "../lib/supabase";
 import { dominantAxes, computeConfidence } from "../lib/palais-engine";
 import { getStade } from "../types/stade";
 import { EMPTY_PALAIS, SAMPLE_SPAWTER } from "../data/seed/sample-spawter";
+import { useOnboardingDraft } from "./onboarding-draft";
 
 interface SpawterStore {
   /** true tant que loadAll n'a pas terminé (boot de l'app) */
@@ -30,7 +32,7 @@ interface SpawterStore {
   spawts: SpawtCheckin[];
 
   hydrate: () => Promise<void>;
-  recordConsent: (kind: "geoloc" | "data", accepted: boolean) => Promise<void>;
+  recordConsent: (kind: "cgv" | "geoloc", accepted: boolean) => Promise<void>;
   finalizeOnboarding: (draft: OnboardingDraft) => Promise<void>;
   registerSpawt: (s: SpawtCheckin) => Promise<void>;
   reset: () => void;
@@ -55,7 +57,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     await setConsentLocal(kind, accepted);
     const current = get().spawter;
     if (current) {
-      const fieldName = kind === "geoloc" ? "geoloc_consent_at" : "data_consent_at";
+      const fieldName = kind === "geoloc" ? "geoloc_consent_at" : "cgv_accepted_at";
       const updated: Spawter = {
         ...current,
         [fieldName]: accepted ? new Date().toISOString() : null,
@@ -68,7 +70,22 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
 
   finalizeOnboarding: async (draft) => {
     const now = new Date().toISOString();
-    const id = SAMPLE_SPAWTER.id;
+
+    // 1. Récupérer l'auth user (mode live) ou fallback mock (mode démo Expo Go).
+    // Import statique de `supabase` : OK car le module ne crée le client qu'avec
+    // les env vars (`createClient(url, key)` accepte des strings vides). En mode
+    // démo le client existe mais n'est jamais appelé (le `if isSupabaseConfigured`
+    // ci-dessous gate l'appel `auth.getUser`).
+    let id: string;
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {
+        throw new Error("FINALIZE_NO_AUTH_USER");
+      }
+      id = data.user.id;
+    } else {
+      id = SAMPLE_SPAWTER.id;
+    }
 
     const spawter: Spawter = {
       ...SAMPLE_SPAWTER,
@@ -80,6 +97,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       origin_country_code: draft.origin_country_code,
       gender: draft.gender,
       age_range: draft.age_range,
+      cgv_accepted_at: draft.consent.cgv_accepted_at,
+      geoloc_consent_at: draft.consent.geoloc_consent_at,
       created_at: now,
       updated_at: now,
     };
@@ -105,10 +124,17 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       updated_at: now,
     };
 
+    // 2. Local-first (AsyncStorage commit avant tout sync réseau).
     await Promise.all([saveSpawterLocal(spawter), savePalaisLocal(palais)]);
+
+    // 3. Fire-and-forget Supabase — règle d'or project-context.
     void saveSpawter(spawter);
     void savePalais(palais);
+
     set({ spawter, palais });
+
+    // 4. Reset draft (libère mémoire + sécurise contre relance accidentelle).
+    useOnboardingDraft.getState().reset();
   },
 
   registerSpawt: async (s) => {

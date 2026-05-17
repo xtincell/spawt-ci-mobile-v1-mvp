@@ -1,6 +1,6 @@
 # Story 1.3: Portage des primitives du kit midfi-kit en RN
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -352,3 +352,76 @@ claude-opus-4-7[1m]
 - `CHANGELOG.md` (modified — entrée v1.1.6)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — 1-3 → review)
 - `_bmad-output/implementation-artifacts/1-3-portage-des-primitives-du-kit-midfi-kit-en-rn.md` (new — la story file elle-même)
+
+### Review Findings (lot 1.2/1.3/1.4 — 2026-05-16)
+
+> Review adversariale parallèle (Blind Hunter + Edge Case Hunter + Acceptance Auditor) sur le diff `cf4e1be..HEAD`.
+
+**Critical**
+- [x] [Review][Patch] `PalaisRadar.values[i]` non clampé NaN/Infinity/négatif/>1 — points SVG `"NaN,NaN ..."` peuvent crasher `react-native-svg` Android ; vertex hors grille si `>1` ; côté opposé si `<0` (Blind + Edge, `app/src/components/primitives/PalaisRadar.tsx:51-54, 56`). Fix : clamper `v` dans `point()` : `Number.isFinite(v) ? Math.min(Math.max(v, 0), 1) : 0`.
+
+**Should-fix**
+- [x] [Review][Patch] `Stars.value = NaN` rend 0 étoile silencieusement (Blind + Edge, `app/src/components/primitives/Stars.tsx:18-20`). Fix : garde `Number.isFinite(value) ? value : 0` + fallback `accessibilityLabel` par défaut.
+- [x] [Review][Patch] `MatchScore.value = NaN` ou hors `[0,100]` rend `"NaN%"` / `"247%"` (Blind + Edge, `app/src/components/primitives/MatchScore.tsx:15, 36`). Fix : garde finite + clamp `[0,100]` + `Math.round`.
+- [x] [Review][Patch] `Chip.label = ""` → bouton tactile silencieux pour screen reader (le fallback `accessibilityLabel ?? label` retourne `""` non nullish) (Edge, `app/src/components/primitives/Chip.tsx:17, 57`). Fix : `accessibilityLabel ?? label || undefined` + return `null` si label vide.
+- [x] [Review][Patch] `Chip.accessibilityState.selected` non déclaré quand `false` — screen reader ne sait pas qu'il s'agit d'un toggle dé-sélectionné (Blind, `app/src/components/primitives/Chip.tsx:764`). Fix : `accessibilityState={{ selected: !!selected }}` inconditionnel.
+- [x] [Review][Patch] `Chip.hitSlop` n'inclut pas `left`/`right` — chips à label court (`"₣"`) tombent sous 44pt, WCAG 2.5.5 fail (Edge, `app/src/components/primitives/Chip.tsx:62`). Fix : ajouter `left: 6, right: 6`.
+- [x] [Review][Patch] `Wordmark` aucun `accessibilityRole="header"` ni `accessibilityLabel="Spawt"` par défaut — screen reader lit `S-P-A-W-T` (Blind + Edge, `app/src/components/primitives/Wordmark.tsx:1463-1478`). Fix : défaut `accessibilityLabel ?? "Spawt"` + `accessibilityRole="header"`.
+- [x] [Review][Patch] `CatBubble` props `variant`/`stage` muettes via `void variant; void stage;` (Blind + Edge, `app/src/components/primitives/CatBubble.tsx:589-590`). Fix : au minimum dev-warn `__DEV__ && variant !== "bubble" && console.warn("CatBubble.variant stub, no effect in V1")`.
+- [x] [Review][Patch] `CatBubble` `accessibilityRole="text"` sur le View parent peut masquer la lecture du Text enfant (Edge, `app/src/components/primitives/CatBubble.tsx`). Fix : retirer le rôle ou utiliser `accessibilityRole="none"` ; laisser le Text natif accessible.
+- [x] [Review][Patch] `TabBar.t('nav.${key}')` clé manquante (EN future) retourne la clé brute affichée à l'écran et lue par screen reader (Edge, `app/src/components/primitives/TabBar.tsx:36`). Fix : `t('nav.feed', { defaultValue: 'Feed' })` pour chaque label.
+- [x] [Review][Patch] `Button.label = ""` accessibilityLabel fallback nullish vide — bouton tactile sans contenu a11y (Edge, `app/src/components/primitives/Button.tsx`). Fix : `accessibilityLabel ?? label || undefined` + return `null` ou throw dev.
+- [x] [Review][Patch] `Button` variant `gold-grad` pas de feedback press visuel — la `Pressable` extérieure ne change pas d'opacité (Edge, `app/src/components/primitives/Button.tsx:67-79`). Fix : `style={({pressed}) => [...{opacity: pressed && !disabled ? 0.85 : 1}]}`.
+- [x] [Review][Patch] `Button.label` ghost utilise `fontWeight: "700"` mais `Gotham-Book` ne synthétise pas (cf. iOS gotcha PostScript) — label rendu en regular sur iOS (Blind, `app/src/components/primitives/Button.tsx:507`). Fix : utiliser `Gotham-Bold` PS name au lieu de `Gotham-Book + fontWeight: 700`.
+
+**Nit**
+- [x] [Review][Patch] `Button` shadow s'applique même quand `disabled` — halo or doré reste visible derrière un bouton à opacité 0.4 (Blind, `app/src/components/primitives/Button.tsx:524`). Fix : `...(disabled ? {} : v.shadow)`.
+- [x] [Review][Patch] `MatchScore` `borderColor: "transparent"` + `borderWidth: 1` quand `!isHigh` — dessine un trait transparent inutile (Blind, `app/src/components/primitives/MatchScore.tsx:1049-1050`). Fix : `borderWidth: 0` quand pas de bordure visible.
+- [x] [Review][Patch] `PalaisRadar.labels[i]` chaîne vide rend SvgText invisible sans warning (Edge, `app/src/components/primitives/PalaisRadar.tsx:120`). Fix : fallback `labels[i] || DEFAULT_LABELS[i]`.
+
+**Defer**
+- [x] [Review][Defer] `PatternDots <Pattern>` bug Android `react-native-svg 15.x` connu [`app/src/components/primitives/PatternDots.tsx:11-19`] — deferred, fallback `<Circle>` répétés si reproduit en alpha.
+- [x] [Review][Defer] `Pin` dot central `theme.colors.surface.inverse` casse en dark mode futur [`app/src/components/primitives/Pin.tsx:1276`] — deferred, pas de dark mode V1.
+- [x] [Review][Defer] `PalaisRadar.fontSize=9` non tokenisé — dérogation à `preset.overline` documentée inline [`app/src/components/primitives/PalaisRadar.tsx:114`] — deferred, tokenisation design system pass futur.
+- [x] [Review][Defer] `Chip` borderWidth 2.5 magic number pour `dark` selected [`app/src/components/primitives/Chip.tsx:744`] — deferred, tokeniser `theme.border.width.toggle` futur.
+- [x] [Review][Defer] Casts type suspects `as unknown as readonly [string, string, ...string[]]` + `as ViewStyle` — déficit typage `tokens.ts` (`gradient.gold` non-empty tuple, `elevation.glow` shape) [`app/src/components/primitives/Button.tsx:485, 528`] — deferred, type cleanup pass dédié.
+- [x] [Review][Defer] `Ico` / `PalaisRadar` `size <= 0` ou non-finite — viewBox malformé possible si caller passe une Reanimated value en transition — deferred, garde `Math.max(size, 1)` si l'usage anime introduit.
+- [x] [Review][Defer] `PalaisRadar` labels à 1.18r — clipping risk sur petites tailles, pas d'`overflow="visible"` — deferred, à ajouter si reproduit visuellement.
+- [x] [Review][Defer] `Ico.pin` filled ignore `color` pour dot central — incohérence si caller surcharge couleur [`app/src/components/primitives/Ico.tsx`] — deferred, patch si usage filled+color custom apparaît.
+- [x] [Review][Defer] `PalaisRadar.stroke` variable mal nommée (sert de `fill` ET `stroke`) — confusion lecture pas un bug — deferred, renommer en cleanup pass.
+
+**Dismissed (faux positifs / déjà gérés)**
+- ~~Blind Hunter `AxisRadar.axes[0..4]` "critical"~~ — faux positif, `axes` typé `[AxisData × 5]` tuple côté `AxisRadar.tsx:26`.
+- ~~Blind Hunter `_layout.tsx.useEffect` multiple fires~~ — `.catch(() => {})` déjà présent ligne 47.
+- ~~Inconsistance AC #2 28 vs 29 icônes~~ — code conforme à la liste, le texte numérique « 28 » du spec est faux.
+- ~~`user` IconName toléré (vocab)~~ — cohérent kit canonique amont, hors scope `lint:vocab`.
+- ~~AC #2 prop additionnel `underConstructionLabel`~~ — additif non-breaking, signature étendue compatibilité ascendante.
+- ~~`nav.fab: "Spawter"`~~ — non affiché (a11y label seul derrière l'icône `plus`).
+- ~~`fontVariant` `as const` non appliqué~~ — `satisfies` valide contextuellement.
+
+#### Review Triage Summary (Story 1.3)
+
+- 0 decision-needed
+- 16 patch (1 critical + 12 should-fix + 3 nit)
+- 9 deferred
+- 7 dismissed (faux positifs ou handled)
+
+### Review Findings — post-review tweaks (2026-05-16)
+
+Annexe couvrant les tweaks non commités de `Stars.tsx`, `Chip.tsx`, `Wordmark.tsx`, `MatchScore.tsx`, etc.
+
+**Patch (5)**
+
+- [ ] [Review][Patch] **`Stars` SVG `ClipPath id` collide entre instances** [`app/src/components/primitives/Stars.tsx:36-50`] — `id="clip-${i}-${ratio}"` est document-global sur web (`react-native-web`). Deux `<Stars>` sur le même écran (feed de PlaceCards) émettent les mêmes ids ; SVG `url(#clip-…)` résout vers la première match dans l'ordre du document → masks erronés ou disparus. Fix : `const uid = React.useId()` + `id={\`clip-\${uid}-\${i}-\${ratio}\`}`.
+- [ ] [Review][Patch] **`Stars` règle FR de pluralisation cassée sur 0.5** [`app/src/components/primitives/Stars.tsx:32-33`] — `rounded === 1 ? "" : "s"` → 0.5 affiche `"0.5 étoiles sur 5"`. Fix : `rounded <= 1 ? "" : "s"` ou passer par i18next plural rules.
+- [ ] [Review][Patch] **`MatchScore` / `Stars` accessibilityLabel FR hardcodée (`"Score X%"`, `"X étoiles sur 5"`)** [`app/src/components/primitives/MatchScore.tsx`, `Stars.tsx:29`] — viole l'invariant i18n (toutes les strings FR dans `fr.json`). Fix : passer par `useTranslation()` + clés `a11y.matchScore`, `a11y.stars`.
+- [ ] [Review][Patch] **`Chip.accessibilityState={{ selected }}` envoyé même quand `selected` est `undefined`** [`app/src/components/primitives/Chip.tsx:88`] — TalkBack/VoiceOver annoncent « bouton bascule désactivé » pour des chips informatifs (label="₣"). Fix : `accessibilityState={selected !== undefined ? { selected } : undefined}`.
+- [ ] [Review][Patch] **`Wordmark` force `accessibilityRole="header"` sur toutes les instances** [`app/src/components/primitives/Wordmark.tsx:23-24`] — plusieurs `<Wordmark>` sur un même screen (header + footer) créent des H1 dupliqués. Fix : prop opt-in `asHeader?: boolean` (défaut `false` → role `"text"`).
+- [ ] [Review][Patch] **`Stars` `accessibilityRole="text"` + SVG children focusables → pollution focus Android** [`Stars.tsx:29`] — TalkBack peut annoncer le label deux fois ou rien. Fix : `importantForAccessibility="no-hide-descendants"` sur le `<Svg>` interne.
+
+**Defer (0)** / **Dismissed (0)**
+
+#### Review Triage Summary (Story 1.3 — post-review tweaks)
+
+- 0 decision-needed
+- 6 patch (5 a11y/i18n + 1 SVG id collision)

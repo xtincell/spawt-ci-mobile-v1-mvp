@@ -81,7 +81,7 @@ export const tokens = {
 } as const;
 
 // ── Gradients signature (spawt-tokens.css) ────────────
-// À consommer via une lib gradient (ex: expo-linear-gradient — non installée à ce jour).
+// À consommer via `expo-linear-gradient` (installé Story 2.2 — `~55.0.14`).
 export const gradient = {
   night: ["#0A0A0A", "#1A1A2E"] as const, // --gr-night (180deg)
   gold: ["#C8A44E", "#E8D5A0", "#C8A44E"] as const, // --gr-gold (135deg)

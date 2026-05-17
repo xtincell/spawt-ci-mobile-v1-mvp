@@ -1,5 +1,5 @@
 # generated: 2026-05-14
-# last_updated: 2026-05-14
+# last_updated: 2026-05-17T20:00:00Z
 # project: Spawt mobile CI
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-14
-last_updated: 2026-05-16T17:00:00Z
+last_updated: 2026-05-17T18:00:00Z
 project: Spawt mobile CI
 project_key: NOKEY
 tracking_system: file-system
@@ -43,25 +43,25 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: Fondation canonique & schéma de données
-  epic-1: in-progress
+  epic-1: done
   1-1-realignement-des-tokens-canoniques: done
-  1-2-integration-des-polices-klinsman-gotham-echelle-typographique: review
-  1-3-portage-des-primitives-du-kit-midfi-kit-en-rn: review
-  1-4-re-derivation-des-4-composants-rn-existants: review
-  1-5-schema-supabase-entites-spawter-staff-rls: backlog
-  1-6-schema-supabase-entites-commerciales-customers-plans-currencies: backlog
-  1-7-collecte-de-signaux-append-only-wrapper-analytics-type: backlog
-  1-8-systeme-de-feature-flags-runtime: backlog
-  epic-1-retrospective: optional
+  1-2-integration-des-polices-klinsman-gotham-echelle-typographique: done
+  1-3-portage-des-primitives-du-kit-midfi-kit-en-rn: done
+  1-4-re-derivation-des-4-composants-rn-existants: done
+  1-5-schema-supabase-entites-spawter-staff-rls: done
+  1-6-schema-supabase-entites-commerciales-customers-plans-currencies: done
+  1-7-collecte-de-signaux-append-only-wrapper-analytics-type: done
+  1-8-systeme-de-feature-flags-runtime: done
+  epic-1-retrospective: done
 
   # Epic 2: Entrée dans la Meute — auth, consent & calibrage du Palais
-  epic-2: backlog
-  2-1-voix-du-chat-evolutive: backlog
-  2-2-splash-ecran-de-consentement-artci-bloquant: backlog
-  2-3-authentification-par-otp-google-sign-in: backlog
-  2-4-saisie-du-profil-pii-demographiques: backlog
-  2-5-calibrage-du-palais-en-5-questions: backlog
-  2-6-presentation-du-palais-initial-premier-titre: backlog
+  epic-2: in-progress
+  2-1-voix-du-chat-evolutive: done
+  2-2-splash-ecran-de-consentement-artci-bloquant: review
+  2-3-authentification-par-otp-google-sign-in: review
+  2-4-saisie-du-profil-pii-demographiques: review
+  2-5-calibrage-du-palais-en-5-questions: review
+  2-6-presentation-du-palais-initial-premier-titre: review
   epic-2-retrospective: optional
 
   # Epic 3: Découverte — Home, feed, fiche lieu, recherche & favoris

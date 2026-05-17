@@ -12,6 +12,7 @@ import type { Place, PlaceAdn } from "../types/place";
 import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
+import type { FeatureFlag } from "../types/feature-flag";
 
 import { SEED_PLACES, type SeedPlace } from "../data/seed/places";
 
@@ -80,6 +81,19 @@ export async function savePalais(palais: UserPalais): Promise<void> {
     return;
   }
   // Fallback : géré côté store
+}
+
+/**
+ * Liste les feature flags pertinents pour un spawter.
+ * - Mode supabase : flags globaux (`spawter_id IS NULL`) + overrides du spawter.
+ * - Mode fallback : tableau vide (aucun flag en démo).
+ */
+export async function listFeatureFlags(spawter_id: string | null): Promise<FeatureFlag[]> {
+  if (isSupabaseConfigured) {
+    const { listFeatureFlagsFromSupabase } = await import("./data-source.supabase");
+    return listFeatureFlagsFromSupabase(spawter_id);
+  }
+  return [];
 }
 
 // ─── Helpers ─────────────────────────────────────────

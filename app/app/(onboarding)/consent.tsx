@@ -1,28 +1,59 @@
-// Écran de consentement — Claude amendment 5.2 (cahier des charges Sprint 1)
-// Conformité ARTCI / Loi 2013-450 (PRD §20.7) :
-// - consentement explicite géoloc avant Feature 5 (check-in)
-// - consentement collecte démographique (gender, age_range, origin_country)
-// - liens politique de confidentialité + CGU
+// Écran de consentement ARTCI bloquant — Story 2.2 (FR-040)
+// Conformité Loi 2013-450 (PRD §20.7 + DR-ARTCI-02/03/04 + DR-CGV-01).
+//
+// Pattern « bloquant non-punitif » :
+//   - 2 checkboxes non pré-cochées (CGU/CGV + données + géoloc).
+//   - Bouton « Continuer » désactivé tant que les deux ne sont pas cochées.
+//   - Pas de « plus tard », pas de « decline » individuel.
+//   - CatBubble intro en ton Touriste — « explique sans gronder ».
 //
 // Aucun appel à expo-location.requestForegroundPermissionsAsync ici —
-// le consentement applicatif précède la demande système iOS.
+// le consentement applicatif précède la demande système iOS (Story 4.1).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { useTheme } from "../../src/theme/ThemeProvider";
-
-type ConsentDecision = "pending" | "accepted" | "declined";
+import { ChatBubble } from "../../src/components/ChatBubble";
+import { Ico } from "../../src/components/primitives/Ico";
+import { track } from "../../src/lib/analytics";
+import { useOnboardingDraft } from "../../src/store/onboarding-draft";
+import { useSpawterStore } from "../../src/store/spawter-store";
 
 export default function ConsentScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
-  const [geoloc, setGeoloc] = useState<ConsentDecision>("pending");
-  const [demographics, setDemographics] = useState<ConsentDecision>("pending");
+  const [cgv, setCgv] = useState(false);
+  const [geoloc, setGeoloc] = useState(false);
 
-  const canContinue = geoloc !== "pending"; // demographics is optional
+  useEffect(() => {
+    track({ name: "consent_screen_viewed", properties: {} });
+  }, []);
+
+  const canContinue = cgv && geoloc;
+
+  const onContinue = async () => {
+    const now = new Date().toISOString();
+    track({ name: "consent_recorded", properties: { kind: "cgv", decision: "accepted" } });
+    track({ name: "consent_recorded", properties: { kind: "geoloc", decision: "accepted" } });
+    track({
+      name: "onboarding_step_completed",
+      properties: { step: "consent", step_index: 1 },
+    });
+
+    useOnboardingDraft.getState().setConsent("cgv", now);
+    useOnboardingDraft.getState().setConsent("geoloc", now);
+
+    const hasSpawter = useSpawterStore.getState().spawter !== null;
+    if (hasSpawter) {
+      await useSpawterStore.getState().recordConsent("cgv", true);
+      await useSpawterStore.getState().recordConsent("geoloc", true);
+    }
+
+    router.push("/(onboarding)/phone");
+  };
 
   return (
     <ScrollView
@@ -31,54 +62,56 @@ export default function ConsentScreen() {
     >
       <Text
         style={{
+          ...theme.typography.preset.h1,
           color: theme.colors.text.primary,
-          fontSize: theme.typography.size["2xl"],
-          fontWeight: theme.typography.weight.bold,
           marginTop: theme.spacing.lg,
           marginBottom: theme.spacing.sm,
         }}
       >
         {t("consent.title")}
       </Text>
-      <Text
+
+      <View style={{ marginBottom: theme.spacing.lg }}>
+        <ChatBubble stade="touriste" moment="geoloc_consent_request" />
+      </View>
+
+      <ConsentCheckbox
+        checked={cgv}
+        onToggle={() => setCgv((v) => !v)}
+        label={t("consent.cgv_label")}
+        body={t("consent.cgv_body")}
+        testID="consent-cgv"
+      />
+
+      <View style={{ height: theme.spacing.base }} />
+
+      <ConsentCheckbox
+        checked={geoloc}
+        onToggle={() => setGeoloc((v) => !v)}
+        label={t("consent.geoloc_label")}
+        body={t("consent.geoloc_body")}
+        testID="consent-geoloc"
+      />
+
+      <View
         style={{
-          color: theme.colors.text.secondary,
-          fontSize: theme.typography.size.base,
-          lineHeight: theme.typography.size.base * theme.typography.lineHeight.relaxed,
-          marginBottom: theme.spacing.xl,
+          flexDirection: "row",
+          marginTop: theme.spacing.xl,
+          gap: theme.spacing.base,
+          flexWrap: "wrap",
         }}
       >
-        {t("consent.intro")}
-      </Text>
-
-      <ConsentCard
-        title={t("consent.geoloc_title")}
-        body={t("consent.geoloc_body")}
-        acceptLabel={t("consent.geoloc_accept")}
-        declineLabel={t("consent.geoloc_decline")}
-        decision={geoloc}
-        onAccept={() => setGeoloc("accepted")}
-        onDecline={() => setGeoloc("declined")}
-      />
-
-      <View style={{ height: theme.spacing.lg }} />
-
-      <ConsentCard
-        title={t("consent.demographics_title")}
-        body={t("consent.demographics_body")}
-        acceptLabel={t("consent.demographics_accept")}
-        declineLabel={t("consent.demographics_decline")}
-        decision={demographics}
-        onAccept={() => setDemographics("accepted")}
-        onDecline={() => setDemographics("declined")}
-      />
-
-      <View style={{ flexDirection: "row", marginTop: theme.spacing.xl, gap: theme.spacing.base }}>
         <Pressable
           onPress={() => Linking.openURL("https://spawt.ci/privacy")}
           accessibilityRole="link"
         >
-          <Text style={{ color: theme.colors.brand.accent, textDecorationLine: "underline" }}>
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.brand.accent,
+              textDecorationLine: "underline",
+            }}
+          >
             {t("consent.policy_link")}
           </Text>
         </Pressable>
@@ -86,7 +119,13 @@ export default function ConsentScreen() {
           onPress={() => Linking.openURL("https://spawt.ci/terms")}
           accessibilityRole="link"
         >
-          <Text style={{ color: theme.colors.brand.accent, textDecorationLine: "underline" }}>
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.brand.accent,
+              textDecorationLine: "underline",
+            }}
+          >
             {t("consent.terms_link")}
           </Text>
         </Pressable>
@@ -94,8 +133,10 @@ export default function ConsentScreen() {
 
       <Pressable
         accessibilityRole="button"
+        accessibilityState={{ disabled: !canContinue }}
         disabled={!canContinue}
-        onPress={() => router.push("/(onboarding)/phone")}
+        onPress={() => void onContinue()}
+        testID="consent-continue"
         style={({ pressed }) => ({
           marginTop: theme.spacing.xl,
           backgroundColor: canContinue
@@ -103,7 +144,7 @@ export default function ConsentScreen() {
             : theme.colors.border.subtle,
           paddingVertical: theme.spacing.base,
           borderRadius: theme.radius.lg,
-          opacity: pressed ? 0.85 : 1,
+          opacity: canContinue && pressed ? 0.85 : 1,
         })}
       >
         <Text
@@ -121,117 +162,72 @@ export default function ConsentScreen() {
   );
 }
 
-function ConsentCard({
-  title,
-  body,
-  acceptLabel,
-  declineLabel,
-  decision,
-  onAccept,
-  onDecline,
-}: {
-  title: string;
-  body: string;
-  acceptLabel: string;
-  declineLabel: string;
-  decision: ConsentDecision;
-  onAccept: () => void;
-  onDecline: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        backgroundColor: theme.colors.surface.raised,
-        padding: theme.spacing.base,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.border.subtle,
-      }}
-    >
-      <Text
-        style={{
-          color: theme.colors.text.primary,
-          fontSize: theme.typography.size.lg,
-          fontWeight: theme.typography.weight.semibold,
-          marginBottom: theme.spacing.xs,
-        }}
-      >
-        {title}
-      </Text>
-      <Text
-        style={{
-          color: theme.colors.text.secondary,
-          fontSize: theme.typography.size.sm,
-          lineHeight: theme.typography.size.sm * theme.typography.lineHeight.relaxed,
-          marginBottom: theme.spacing.base,
-        }}
-      >
-        {body}
-      </Text>
-      <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-        <ConsentButton
-          label={acceptLabel}
-          variant={decision === "accepted" ? "primary" : "ghost"}
-          onPress={onAccept}
-        />
-        <ConsentButton
-          label={declineLabel}
-          variant={decision === "declined" ? "muted" : "ghost"}
-          onPress={onDecline}
-        />
-      </View>
-    </View>
-  );
-}
-
-function ConsentButton({
+function ConsentCheckbox({
+  checked,
+  onToggle,
   label,
-  variant,
-  onPress,
+  body,
+  testID,
 }: {
+  checked: boolean;
+  onToggle: () => void;
   label: string;
-  variant: "primary" | "muted" | "ghost";
-  onPress: () => void;
+  body: string;
+  testID?: string;
 }) {
   const theme = useTheme();
-  const bg =
-    variant === "primary"
-      ? theme.colors.brand.accent
-      : variant === "muted"
-        ? theme.colors.surface.subtle
-        : "transparent";
-  const fg =
-    variant === "primary"
-      ? theme.colors.text.inverse
-      : variant === "muted"
-        ? theme.colors.text.tertiary
-        : theme.colors.text.primary;
   return (
     <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flex: 1,
-        backgroundColor: bg,
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityLabel={label}
+      accessibilityHint={body}
+      onPress={onToggle}
+      hitSlop={8}
+      testID={testID}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: theme.spacing.base,
         paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.base,
-        borderRadius: theme.radius.md,
-        borderWidth: variant === "ghost" ? 1 : 0,
-        borderColor: theme.colors.border.subtle,
-        opacity: pressed ? 0.85 : 1,
-      })}
+      }}
     >
-      <Text
+      <View
         style={{
-          color: fg,
-          fontSize: theme.typography.size.sm,
-          fontWeight: theme.typography.weight.medium,
-          textAlign: "center",
+          width: 24,
+          height: 24,
+          borderRadius: theme.radius.sm,
+          backgroundColor: theme.colors.surface.raised,
+          borderWidth: 1,
+          borderColor: theme.colors.border.subtle,
+          alignItems: "center",
+          justifyContent: "center",
+          marginTop: 2,
         }}
       >
-        {label}
-      </Text>
+        {checked ? <Ico name="check" size={18} color={theme.colors.brand.accent} /> : null}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            ...theme.typography.preset.body,
+            color: theme.colors.text.primary,
+          }}
+        >
+          {label}
+        </Text>
+        <Text
+          style={{
+            ...theme.typography.preset.caption,
+            color: theme.colors.text.secondary,
+            marginTop: theme.spacing.xs,
+            textTransform: "none",
+            letterSpacing: 0,
+          }}
+        >
+          {body}
+        </Text>
+      </View>
     </Pressable>
   );
 }

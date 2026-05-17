@@ -19,7 +19,7 @@ export const SAMPLE_SPAWTER: Spawter = {
   unique_spots: 0,
   customer_id: null,
   geoloc_consent_at: null,
-  data_consent_at: null,
+  cgv_accepted_at: null,
   created_at: "2026-05-03T18:00:00Z",
   updated_at: "2026-05-03T18:00:00Z",
 };

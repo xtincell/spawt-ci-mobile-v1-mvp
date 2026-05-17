@@ -67,17 +67,22 @@ export function Button({
   };
 
   const v = visualFor(variant);
-  // Label en Klinsman uppercase (preset.h3) sauf ghost qui reste discret en body.
+  // Label en Klinsman uppercase (preset.h3) sauf ghost qui reste discret en
+  // Gotham-Bold (PostScript name explicite — RN ne synthétise pas le poids 700
+  // à partir de Gotham-Book sur iOS, cf. iOS gotcha Story 1.2 Dev Notes).
   const labelStyle =
     variant === "ghost"
-      ? { ...theme.typography.preset.body, color: v.fg, fontWeight: "700" as const }
+      ? { ...theme.typography.preset.body, fontFamily: "Gotham-Bold", color: v.fg }
       : { ...theme.typography.preset.h3, color: v.fg };
 
   const innerLabel = <Text style={labelStyle}>{label}</Text>;
 
+  // `label || undefined` : un label vide ne doit pas devenir un accessibilityLabel
+  // vide (sinon le screen reader annonce un bouton anonyme).
+  const a11yLabel = accessibilityLabel ?? (label || undefined);
   const a11yProps = {
     accessibilityRole: "button" as const,
-    accessibilityLabel: accessibilityLabel ?? label,
+    accessibilityLabel: a11yLabel,
     accessibilityHint,
     accessibilityState: { disabled },
   };
@@ -87,7 +92,13 @@ export function Button({
       <Pressable
         onPress={onPress}
         disabled={disabled}
-        style={{ borderRadius: theme.radius.md, opacity: disabled ? 0.4 : 1, ...v.shadow }}
+        style={({ pressed }) => [
+          { borderRadius: theme.radius.md },
+          // Shadow / halo or seulement quand actif — un bouton désactivé ne
+          // doit pas continuer de glow derrière son opacité 0.4.
+          disabled ? null : v.shadow,
+          { opacity: disabled ? 0.4 : pressed ? 0.85 : 1 },
+        ]}
         {...a11yProps}
       >
         <LinearGradient

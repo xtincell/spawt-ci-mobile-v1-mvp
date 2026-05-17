@@ -3,7 +3,9 @@
 // Stars, Chip, Ico) — la signature publique reste stable pour les 3 callers
 // (app/(tabs)/index.tsx, app/place/[id].tsx, app/(tabs)/profile.tsx).
 
-import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { Image, Pressable, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Chip } from "./primitives/Chip";
 import { Ico } from "./primitives/Ico";
 import { MatchScore } from "./primitives/MatchScore";
@@ -36,7 +38,19 @@ const PRICE_TIER_LABELS: Record<1 | 2 | 3, string> = {
 
 export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation();
+  // Defensive gate : un place non publié ne doit pas être rendu, même si
+  // l'adapter serveur a un bug ou un deep-link bypasse le filtre RLS
+  // (project-context : « ne pas se fier seul à la RLS serveur »).
+  if (!place.is_published) return null;
+
+  const [coverFailed, setCoverFailed] = useState(false);
   const adnReady = place.adn.confidence_score >= 0.3;
+  const hasRating = Number.isFinite(place.rating_display) && place.rating_display > 0;
+  const cuisineLabel = place.cuisine.length > 0 ? ` · ${place.cuisine.slice(0, 2).join(" · ")}` : "";
+  const safeDistance =
+    Number.isFinite(distanceKm) && distanceKm >= 0 ? `${distanceKm.toFixed(1)} km` : "—";
+  const showCover = Boolean(place.cover_photo_url) && !coverFailed;
 
   return (
     <Pressable
@@ -44,7 +58,6 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
       style={({ pressed }) => ({
         backgroundColor: theme.colors.surface.raised,
         borderRadius: theme.radius.lg,
-        padding: theme.spacing.base,
         borderWidth: 1,
         borderColor: theme.colors.border.subtle,
         opacity: pressed ? 0.85 : 1,
@@ -53,6 +66,34 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${place.name}, score ${matchScore}%`}
     >
+      {showCover ? (
+        <Image
+          source={{ uri: place.cover_photo_url ?? undefined }}
+          style={{
+            width: "100%",
+            aspectRatio: 16 / 9,
+            borderTopLeftRadius: theme.radius.lg,
+            borderTopRightRadius: theme.radius.lg,
+          }}
+          resizeMode="cover"
+          onError={() => setCoverFailed(true)}
+        />
+      ) : (
+        <View
+          style={{
+            width: "100%",
+            aspectRatio: 16 / 9,
+            backgroundColor: theme.colors.surface.subtle,
+            justifyContent: "center",
+            alignItems: "center",
+            borderTopLeftRadius: theme.radius.lg,
+            borderTopRightRadius: theme.radius.lg,
+          }}
+        >
+          <Text style={{ color: theme.colors.text.tertiary, fontSize: 14 }}>—</Text>
+        </View>
+      )}
+      <View style={{ padding: theme.spacing.base }}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
         <View style={{ flex: 1, paddingRight: theme.spacing.sm }}>
           <Text
@@ -73,7 +114,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
             }}
             numberOfLines={1}
           >
-            {place.location.neighborhood} · {place.cuisine.slice(0, 2).join(" · ")}
+            {place.location.neighborhood}{cuisineLabel}
           </Text>
           <View
             style={{
@@ -85,11 +126,15 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
             }}
           >
             <MatchScore value={matchScore} />
-            {adnReady ? <Stars value={Math.round(place.rating_display)} /> : null}
+            {hasRating ? (
+              <Stars value={place.rating_display} />
+            ) : (
+              <Chip label={t("place.notRatedYet")} variant="default" />
+            )}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Ico name="walk" size={14} color={theme.colors.text.tertiary} />
               <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.tertiary }}>
-                {distanceKm.toFixed(1)} km
+                {safeDistance}
               </Text>
             </View>
             <Chip label={PRICE_TIER_LABELS[place.price.tier]} variant="default" />
@@ -124,6 +169,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
           ADN en construction
         </Text>
       )}
+      </View>
     </Pressable>
   );
 }

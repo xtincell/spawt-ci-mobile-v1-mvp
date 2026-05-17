@@ -1,187 +1,184 @@
-// Étape 3 onboarding — 5 questions de calibrage du Palais (PRD §20.2)
-// Une question par axe. Réponse → delta {-0.4, 0, +0.4} sur l'axe correspondant.
+// Calibrage Palais — Story 2.5 (FR-002 + FR-025 + UX D10 OnbMidfi)
+// 5 questions visuelles multi-select. Au tap Suivant : direction résolue via
+// le moteur pur `calibration-mapping`, delta écrit dans `useOnboardingDraft`,
+// event analytics `calibration_answered` émis. La 5e question pushe vers
+// `palais-reveal` (Story 2.6) — la création row spawters reste Story 2.6.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import {
-  useOnboardingDraft,
-} from "../../src/store/onboarding-draft";
-import { useSpawterStore, calibrationDelta } from "../../src/store/spawter-store";
-import type { PalaisAxis } from "../../src/types/palais";
+  CALIBRATION_QUESTIONS,
+  resolveDirection,
+} from "../../src/lib/calibration-mapping";
+import { ChatBubble } from "../../src/components/ChatBubble";
+import { OnbCard } from "../../src/components/primitives/OnbCard";
+import { track } from "../../src/lib/analytics";
 
-interface QuestionDef {
-  axis: PalaisAxis;
-  i18nKey:
-    | "calibration.q_racines_horizons"
-    | "calibration.q_taniere_nomade"
-    | "calibration.q_exigeant_enthousiaste"
-    | "calibration.q_foule_secret"
-    | "calibration.q_maquis_table";
-}
-
-const QUESTIONS: QuestionDef[] = [
-  { axis: "racines_horizons", i18nKey: "calibration.q_racines_horizons" },
-  { axis: "taniere_nomade", i18nKey: "calibration.q_taniere_nomade" },
-  { axis: "exigeant_enthousiaste", i18nKey: "calibration.q_exigeant_enthousiaste" },
-  { axis: "foule_secret", i18nKey: "calibration.q_foule_secret" },
-  { axis: "maquis_table", i18nKey: "calibration.q_maquis_table" },
-];
+const TOTAL = CALIBRATION_QUESTIONS.length;
 
 export default function CalibrationScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const setCalibration = useOnboardingDraft((s) => s.setCalibration);
-  const draft = useOnboardingDraft((s) => s.draft);
-  const finalizeOnboarding = useSpawterStore((s) => s.finalizeOnboarding);
 
   const [step, setStep] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const total = QUESTIONS.length;
-  const q = QUESTIONS[step]!;
+  const [selectedByStep, setSelectedByStep] = useState<readonly (readonly number[])[]>(() =>
+    Array.from({ length: TOTAL }, () => [] as readonly number[]),
+  );
 
-  const choose = async (direction: "neg" | "pos" | "neutral") => {
-    const value = calibrationDelta(direction);
-    setCalibration(q.axis, value);
+  const question = CALIBRATION_QUESTIONS[step];
+  if (!question) return null;
 
-    if (step + 1 < total) {
+  const selected = selectedByStep[step] ?? [];
+  const canContinue = true; // multi-select autorise 0 → direction = "neutral"
+
+  const toggleCard = (idx: number) => {
+    setSelectedByStep((prev) => {
+      const next = prev.map((s, i) => (i === step ? toggleIndex(s, idx) : s));
+      return next;
+    });
+  };
+
+  const onNext = () => {
+    const direction = resolveDirection(selected, question.cards);
+    const value: -0.4 | 0 | 0.4 =
+      direction === "neg" ? -0.4 : direction === "pos" ? 0.4 : 0;
+
+    track({
+      name: "calibration_answered",
+      properties: {
+        axis: question.axis,
+        direction,
+        value,
+      },
+    });
+    setCalibration(question.axis, value);
+
+    if (step + 1 < TOTAL) {
       setStep(step + 1);
-      return;
-    }
-
-    // Dernière question → finalize
-    setSubmitting(true);
-    try {
-      await finalizeOnboarding({
-        ...draft,
-        calibration_answers: { ...draft.calibration_answers, [q.axis]: value },
+    } else {
+      track({
+        name: "onboarding_step_completed",
+        properties: { step: "calibration", step_index: 4 },
       });
-      router.replace("/(tabs)");
-    } finally {
-      setSubmitting(false);
+      router.push("/(onboarding)/palais-reveal");
     }
   };
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
-      contentContainerStyle={{ padding: theme.spacing.lg }}
+      contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing["2xl"] }}
+      keyboardShouldPersistTaps="handled"
     >
+      <ProgressSegments current={step} total={TOTAL} />
+
+      <View style={{ marginTop: theme.spacing.lg, marginBottom: theme.spacing.base }}>
+        <ChatBubble stade="touriste" moment="welcome_first_open" />
+      </View>
+
       <Text
         style={{
-          color: theme.colors.text.tertiary,
-          fontSize: theme.typography.size.sm,
-          marginTop: theme.spacing.lg,
-        }}
-      >
-        {t("onboarding.step", { current: step + 1, total })}
-      </Text>
-      <Text
-        style={{
+          ...theme.typography.preset.h2,
           color: theme.colors.text.primary,
-          fontSize: theme.typography.size["2xl"],
-          fontWeight: theme.typography.weight.bold,
-          marginTop: theme.spacing.sm,
-          marginBottom: theme.spacing.xs,
+          marginTop: theme.spacing.base,
         }}
       >
-        {t("calibration.title")}
-      </Text>
-      <Text
-        style={{
-          color: theme.colors.text.secondary,
-          fontSize: theme.typography.size.base,
-          marginBottom: theme.spacing.xl,
-        }}
-      >
-        {t("calibration.subtitle")}
+        {t(`calibration.q_${question.axis}.question` as const)}
       </Text>
 
       <View
+        testID="calibration-grid"
         style={{
-          padding: theme.spacing.lg,
-          backgroundColor: theme.colors.surface.raised,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: theme.colors.border.subtle,
+          marginTop: theme.spacing.lg,
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: theme.spacing.sm,
         }}
+      >
+        {question.cards.map((card, idx) => (
+          <View key={card.altKey} style={{ width: "47%" }}>
+            <OnbCard
+              label={t(card.labelKey)}
+              altKey={card.altKey}
+              selected={selected.includes(idx)}
+              onToggle={() => toggleCard(idx)}
+              testID={`calibration-card-${question.axis}-${card.altKey}`}
+            />
+          </View>
+        ))}
+      </View>
+
+      <Pressable
+        onPress={onNext}
+        disabled={!canContinue}
+        testID="calibration-next"
+        accessibilityRole="button"
+        style={({ pressed }) => ({
+          marginTop: theme.spacing.xl,
+          backgroundColor: theme.colors.brand.accent,
+          paddingVertical: theme.spacing.base,
+          borderRadius: theme.radius.lg,
+          opacity: pressed ? 0.85 : 1,
+        })}
       >
         <Text
           style={{
-            color: theme.colors.text.primary,
+            color: theme.colors.text.inverse,
             fontSize: theme.typography.size.lg,
             fontWeight: theme.typography.weight.semibold,
-            marginBottom: theme.spacing.lg,
-            lineHeight: theme.typography.size.lg * theme.typography.lineHeight.relaxed,
+            textAlign: "center",
           }}
         >
-          {t(`${q.i18nKey}.question` as const)}
+          {step + 1 < TOTAL ? t("common.continue") : t("calibration.cta_finish")}
         </Text>
-
-        <ChoiceButton
-          label={t(`${q.i18nKey}.option_neg` as const)}
-          onPress={() => void choose("neg")}
-          disabled={submitting}
-        />
-        <ChoiceButton
-          label={t(`${q.i18nKey}.option_pos` as const)}
-          onPress={() => void choose("pos")}
-          disabled={submitting}
-        />
-        <ChoiceButton
-          label={t(`${q.i18nKey}.option_neutral` as const)}
-          onPress={() => void choose("neutral")}
-          disabled={submitting}
-          variant="secondary"
-        />
-      </View>
+      </Pressable>
     </ScrollView>
   );
 }
 
-function ChoiceButton({
-  label,
-  onPress,
-  disabled,
-  variant = "primary",
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  variant?: "primary" | "secondary";
-}) {
+function toggleIndex(arr: readonly number[], idx: number): readonly number[] {
+  return arr.includes(idx) ? arr.filter((i) => i !== idx) : [...arr, idx];
+}
+
+function ProgressSegments({ current, total }: { current: number; total: number }) {
   const theme = useTheme();
-  const isPrimary = variant === "primary";
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => ({
-        backgroundColor: isPrimary
-          ? theme.colors.surface.base
-          : theme.colors.surface.subtle,
-        paddingVertical: theme.spacing.base,
-        paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.border.subtle,
-        marginBottom: theme.spacing.sm,
-        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
-      })}
+    <View
+      style={{
+        flexDirection: "row",
+        gap: theme.spacing.xs,
+        marginTop: theme.spacing.lg,
+      }}
     >
-      <Text
-        style={{
-          color: theme.colors.text.primary,
-          fontSize: theme.typography.size.base,
-          fontWeight: theme.typography.weight.medium,
-          lineHeight: theme.typography.size.base * theme.typography.lineHeight.relaxed,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
+      {Array.from({ length: total }).map((_, i) => {
+        const state: "past" | "current" | "future" =
+          i < current ? "past" : i === current ? "current" : "future";
+        const bg =
+          state === "current"
+            ? theme.colors.brand.primary
+            : state === "past"
+              ? theme.colors.brand.primary
+              : theme.colors.border.subtle;
+        const opacity = state === "past" ? 0.5 : 1;
+        return (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: bg,
+              opacity,
+            }}
+          />
+        );
+      })}
+    </View>
   );
 }

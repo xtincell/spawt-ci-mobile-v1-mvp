@@ -31,10 +31,10 @@ export interface Spawter {
   unique_spots: number;
   /** Statut Premium / Gold (lien vers customers.id si actif) */
   customer_id: string | null;
-  /** Consentement géoloc (Claude amendment 5.2) */
+  /** Consentement géoloc + collecte données (FR-040 — bloc 2 du gate ARTCI) */
   geoloc_consent_at: string | null;
-  /** Consentement traitement données démographiques */
-  data_consent_at: string | null;
+  /** Acceptation CGU/CGV (FR-040 — bloc 1 du gate ARTCI, DR-CGV-01) */
+  cgv_accepted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -48,6 +48,15 @@ export interface OnboardingDraft {
   origin_country_code: CountryCode | null;
   gender: Gender;
   age_range: AgeRange | null;
+  /** Timestamps des 2 consents ARTCI saisis pré-auth (Story 2.2 / FR-040).
+   *  Le finalize de l'onboarding les transfère sur le row spawters à l'insert. */
+  consent: {
+    cgv_accepted_at: string | null;
+    geoloc_consent_at: string | null;
+  };
   /** Réponses aux 5 questions de calibrage (PRD §20.2) */
   calibration_answers: Record<import("./palais").PalaisAxis, number>;
+  /** ms epoch posé au tap CTA Splash (Story 2.6). Sert au calcul
+   *  `time_to_complete_seconds` à l'émission `onboarding_completed`. */
+  started_at: number | null;
 }
