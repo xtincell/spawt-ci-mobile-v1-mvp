@@ -23,67 +23,143 @@
   },
   "consent": {
     "title": "Avant qu'on parte ensemble",
-    "intro": "SPAWT a besoin de ton accord sur deux choses. Tu peux dire non — l'app fonctionne, mais pas pareil.",
-    "geoloc_title": "Ta position",
-    "geoloc_body": "Pour valider tes spawts dans les lieux que tu visites. On l'active seulement quand tu es au resto. Désactivable à tout moment.",
-    "geoloc_accept": "OK pour la géoloc",
-    "geoloc_decline": "Plus tard",
-    "demographics_title": "Quelques infos sur toi",
-    "demographics_body": "Tranche d'âge, genre, pays. Ça nous aide à comprendre la Meute. Tu choisis ce que tu partages.",
-    "demographics_accept": "OK",
-    "demographics_decline": "Pas maintenant",
+    "intro": "Deux cases à cocher avant d'avancer. Tu es libre, mais c'est obligatoire pour qu'on continue.",
+    "cgv_label": "J'accepte les CGU/CGV",
+    "cgv_body": "Conditions d'utilisation et conditions générales de vente du service SPAWT. [pending juriste]",
+    "geoloc_label": "J'accepte la collecte de mes données et de ma géolocalisation",
+    "geoloc_body": "Pour valider tes spawts dans les lieux que tu visites, et comprendre la Meute. Usage spawt uniquement. [pending juriste]",
     "policy_link": "Politique de confidentialité",
     "terms_link": "Conditions d'utilisation"
   },
   "onboarding": {
     "step": "Étape {{current}} / {{total}}",
+    "profile_title": "Présente-toi",
+    "profile_body": "6 trucs rapides pour que je te reconnaisse. Tu choisis ce que tu partages.",
     "phone_title": "Ton numéro",
     "phone_body": "On envoie un code par SMS. Pas de mot de passe.",
     "phone_placeholder": "+225 ...",
     "otp_title": "Le code reçu",
     "otp_body": "Tape les 6 chiffres reçus par SMS.",
-    "name_title": "Comment on t'appelle ?",
-    "name_placeholder": "Prénom ou pseudo",
-    "neighborhood_title": "Tu es basé·e où ?",
-    "neighborhood_body": "Ton quartier de base. Ça délimite ta zone gratuite (~3 km autour).",
-    "demographics_country_title": "Pays de résidence",
-    "demographics_origin_title": "Pays d'origine",
-    "demographics_origin_body": "Optionnel. Aide à comprendre la Meute culturellement.",
-    "demographics_gender_title": "Tu te reconnais comment ?",
-    "demographics_age_title": "Ta tranche d'âge"
+    "name_title": "Comment tu t'appelles",
+    "name_placeholder": "Ton prénom",
+    "neighborhood_title": "Ton quartier",
+    "neighborhood_body": "Cocody, Yopougon, Marcory… On t'affichera des lieux proches.",
+    "neighborhood_placeholder": "Cocody, Yopougon, Marcory…",
+    "country_title": "Pays de résidence",
+    "country_body": "Pour t'afficher les lieux du bon pays.",
+    "origin_country_title": "Tes origines",
+    "origin_country_body": "D'où tu viens — utile pour comprendre les communautés culinaires. Tu peux dire non.",
+    "origin_country_skip": "Préfère ne pas dire",
+    "gender_title": "Comment tu t'identifies",
+    "gender_body": "Pour mieux représenter la Meute dans nos décisions. Aucune diffusion publique.",
+    "gender_femme": "Femme",
+    "gender_homme": "Homme",
+    "gender_autre": "Autre",
+    "gender_non_renseigne": "Préfère ne pas dire",
+    "age_title": "Ta tranche d'âge",
+    "age_body": "Tranche, pas date exacte — moins intrusif.",
+    "country": {
+      "CI": "Côte d'Ivoire",
+      "NG": "Nigeria",
+      "SN": "Sénégal",
+      "CM": "Cameroun",
+      "TG": "Togo",
+      "BJ": "Bénin",
+      "BF": "Burkina Faso",
+      "ML": "Mali",
+      "GN": "Guinée",
+      "GH": "Ghana"
+    }
+  },
+  "auth": {
+    "phone_title": "Ton numéro",
+    "phone_body": "On t'envoie un code par SMS — pas de mot de passe, c'est plus simple.",
+    "phone_placeholder": "+225 ...",
+    "send_otp": "Recevoir mon code",
+    "or_separator": "Ou continue avec",
+    "google": "Continuer avec Google",
+    "apple": "Continuer avec Apple",
+    "otp_title": "Ton code",
+    "otp_body": "On vient de t'envoyer un code à 6 chiffres.",
+    "otp_resend": "Renvoyer le code",
+    "otp_resend_cooldown": "Réessayer dans {{seconds}}s",
+    "otp_change_phone": "Changer de numéro",
+    "otp_demo_hint": "Mode démo : tape 123456 pour continuer",
+    "otp_friction_title": "Trop d'essais",
+    "otp_friction_body": "Renvoyer un code ou changer de numéro pour réessayer.",
+    "error_rate_limited": "Trop de codes envoyés. Réessaie dans quelques minutes.",
+    "error_invalid_otp": "Code invalide. Réessaie.",
+    "error_network": "Pas de réseau. Le Chat patiente.",
+    "error_google_unavailable": "Google indisponible pour l'instant.",
+    "error_apple_unavailable": "Apple indisponible pour l'instant.",
+    "demo_google_unavailable": "Google n'est pas branché en mode démo.",
+    "demo_apple_unavailable": "Apple n'est pas branché en mode démo."
   },
   "calibration": {
     "title": "5 questions pour démarrer ton Palais",
     "subtitle": "Ton Palais est un profil de goût. Il bouge avec tes spawts.",
+    "cta_finish": "Voir mon Palais",
     "q_racines_horizons": {
       "question": "Quand tu as faim, tu penses à quoi en premier ?",
       "option_neg": "Attieke poisson, alloco, garba — les classiques",
       "option_pos": "Pizza, sushi, burger — le monde dans l'assiette",
-      "option_neutral": "Ça dépend du jour"
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "garba": "Garba",
+        "attieke": "Attiéké poisson",
+        "alloco": "Alloco",
+        "pizza": "Pizza",
+        "sushi": "Sushi",
+        "ramen": "Ramen"
+      }
     },
     "q_taniere_nomade": {
       "question": "Samedi soir, tu fais quoi ?",
       "option_neg": "Mon spot habituel. Ils me connaissent.",
       "option_pos": "Un endroit que je n'ai jamais testé",
-      "option_neutral": "Ça dépend de qui m'accompagne"
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "spot_pref": "Mon spot préféré toutes les semaines",
+        "deux_trois": "Deux-trois spots qui tournent",
+        "nouvelle_adresse": "Une nouvelle adresse à chaque fois",
+        "teste_tout": "Je teste tout"
+      }
     },
     "q_exigeant_enthousiaste": {
       "question": "Tu goûtes un plat moyen dans un nouveau lieu. Tu fais quoi ?",
       "option_neg": "Je note mentalement. Je ne reviendrai pas.",
       "option_pos": "C'est pas grave, l'ambiance compense",
-      "option_neutral": "Je goûte autre chose avant de juger"
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "service_compte": "Le service compte autant que la cuisine",
+        "note_tout": "Je note tout en détail",
+        "bon_pardonne": "Si c'est bon je pardonne tout",
+        "ambiance_fait": "L'ambiance fait l'expérience"
+      }
     },
     "q_foule_secret": {
       "question": "Le spot idéal c'est :",
       "option_neg": "Plein de monde, ça prouve que c'est bon",
       "option_pos": "Vide. Mon secret. Mon trésor.",
-      "option_neutral": "M'en fous, c'est le plat qui compte"
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "maquis_bonde": "Le maquis bondé un samedi soir",
+        "spot_anime": "Un spot animé toute la semaine",
+        "spot_cache": "Un spot que personne ne connaît",
+        "table_intime": "Une table intime, peu connue"
+      }
     },
     "q_maquis_table": {
       "question": "Ton cadre idéal pour manger :",
       "option_neg": "Plastique, ventilo, télé qui grésille — maquis life",
       "option_pos": "Nappe, menu carte, serveur en tablier",
-      "option_neutral": "Les deux me vont"
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "maquis_garba": "Maquis garba",
+        "foodtruck": "Foodtruck Riviera",
+        "restaurant_chic": "Restaurant chic Plateau",
+        "brunch_cocody": "Brunch Cocody"
+      }
     }
   },
   "chat": {
@@ -94,46 +170,61 @@
       "first_spawt_invite": "Le premier spawt te débloque l'app. Choisis un lieu et lance-toi.",
       "post_first_spawt": "Premier spawt validé. Ton Palais bouge. Continue.",
       "stade_up_explorateur": "11 spots. Tu n'es plus Touriste — tu es Explorateur. Ton territoire commence à se dessiner.",
-      "geoloc_consent_request": "Pour valider tes spawts, j'ai besoin de ta position quand tu es sur place. Tu m'autorises ?",
+      "stade_up_detective": "",
+      "stade_up_djidji": "",
+      "stade_up_guide": "",
+      "geoloc_consent_request": "On va parler de deux trucs. Tes infos, ta position. Je t'explique sans gronder.",
       "demographics_consent_request": "Quelques infos sur toi pour qu'on connaisse mieux la Meute. Toujours optionnel."
     },
     "explorateur": {
+      "welcome_first_open": "",
       "welcome_back": "Re. Ton nez s'affine, je commence à te reconnaître.",
-      "stade_up_detective": "21 spots. Détective. Ton flair ne ment plus.",
+      "post_calibration": "",
       "first_spawt_invite": "",
       "post_first_spawt": "",
-      "welcome_first_open": "",
-      "post_calibration": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "21 spots. Détective. Ton flair ne ment plus.",
+      "stade_up_djidji": "",
+      "stade_up_guide": "",
       "geoloc_consent_request": "",
       "demographics_consent_request": ""
     },
     "detective": {
+      "welcome_first_open": "",
       "welcome_back": "Le Chat te salue. Ta zone t'écoute.",
-      "stade_up_djidji": "31 spots. Djidji. La colonie écoute.",
+      "post_calibration": "",
       "first_spawt_invite": "",
       "post_first_spawt": "",
-      "welcome_first_open": "",
-      "post_calibration": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "",
+      "stade_up_djidji": "31 spots. Djidji. La colonie écoute.",
+      "stade_up_guide": "",
       "geoloc_consent_request": "",
       "demographics_consent_request": ""
     },
     "djidji": {
+      "welcome_first_open": "",
       "welcome_back": "Plus besoin de te guider. Tu ES le guide.",
-      "stade_up_guide": "51 spots. Guide. Le Chat marche derrière toi maintenant.",
+      "post_calibration": "",
       "first_spawt_invite": "",
       "post_first_spawt": "",
-      "welcome_first_open": "",
-      "post_calibration": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "",
+      "stade_up_djidji": "",
+      "stade_up_guide": "51 spots. Guide. Le Chat marche derrière toi maintenant.",
       "geoloc_consent_request": "",
       "demographics_consent_request": ""
     },
     "guide": {
+      "welcome_first_open": "",
       "welcome_back": "",
+      "post_calibration": "",
       "first_spawt_invite": "",
       "post_first_spawt": "",
-      "welcome_first_open": "",
-      "post_calibration": "",
-      "stade_up_guide": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "",
+      "stade_up_djidji": "",
+      "stade_up_guide": "Tu es Guide. 51 spots, ton territoire. La Meute te suit.",
       "geoloc_consent_request": "",
       "demographics_consent_request": ""
     }
@@ -159,6 +250,12 @@
   },
   "palais": {
     "underConstruction": "En construction"
+  },
+  "palais_reveal": {
+    "first_title": "Touriste",
+    "first_title_subtitle": "Tes premiers pas dans la Meute",
+    "intro": "Voici ton Palais initial. Il va apprendre avec toi.",
+    "continue": "Entrer dans la Meute"
   },
   "place": {
     "notRatedYet": "Pas encore noté"

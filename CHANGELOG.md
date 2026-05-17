@@ -4,6 +4,93 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.2.2 — Epic 2 livré : funnel onboarding complet (Splash → Palais initial) (2026-05-17)
+
+**Batch des 5 stories d'Epic 2 (2.2 → 2.6) livré en review en une seule itération. Le funnel onboarding est complet de bout en bout : Splash `gr-night` → Consent ARTCI bloquant → Phone OTP → OTP 6 cases → Profile 6 champs (nom + quartier + 4 PII) → Calibration 5 questions `OnbMidfi` cartes visuelles → Palais Reveal `gr-night` + premier titre Touriste → `(tabs)`. Mode démo Expo Go traversable sans Supabase ni Termii (`123456` accepte OTP). Mode live consomme migrations 0006 (rename `data_consent_at` → `cgv_accepted_at`), 0007 (`otp_attempts` rate-limit + Termii pin_id), 0008 (`user_palais` 5 axes + RLS). Edge Functions Deno `otp-send` / `otp-verify` scaffoldées en `supabase/functions/` (non déployées, READMEs livrés). `finalizeOnboarding` réécrit : `auth.uid()` + persist `cgv_accepted_at`/`geoloc_consent_at` + reset draft. Triple gate verte + 90 tests passent + smoke web compile (bundle 2.6 MB).**
+
+- `feat(onboarding)` Story 2.2 — Splash `gr-night` (`LinearGradient gradient.night`) + CTA « Entrer dans la Meute » émettant `onboarding_started`. Consent ARTCI bloquant : 2 checkboxes (`ConsentCheckbox` interne, `accessibilityRole="checkbox"`, hit slop 8), CatBubble intro Touriste, bouton « Continuer » gated tant que `!cgv || !geoloc`. Émissions ordonnées `consent_recorded(cgv) → consent_recorded(geoloc) → onboarding_step_completed{step:"consent"}`.
+- `feat(onboarding)` Story 2.3 — `phone.tsx` réécrit (regex CIV stricte `+225(0[157]|2)\d{8}` + fallback étranger, `fetch /functions/v1/otp-send`, 429/500 toasts, démo bypass). `otp.tsx` créé (6 cases auto-advance, autoFocus cell-0, backspace retro, auto-submit, mode démo `123456`, panneau friction après 3 essais, cooldown 30s renvoi). Google/Apple buttons reportés Story 2.3a (deps natives non installées).
+- `feat(onboarding)` Story 2.4 — `profile.tsx` étendu de 4 à 6 champs (ajout `country_code` + `origin_country_code` avec « Préfère ne pas dire »). Validation 5 champs requis, `accessibilityRole="radio"` sur Choice, `minHeight: 44`. Émet `onboarding_step_completed{step:"profile"}`.
+- `feat(onboarding)` Story 2.5 — Migration `0008_create_user_palais.sql` (PK `spawter_id` overwrite, 5 axes `real CHECK BETWEEN -1 AND 1`, RLS, trigger updated_at). Primitive `OnbCard` (grille 2 colonnes selected gold). Moteur pur `calibration-mapping.ts` (`CALIBRATION_QUESTIONS` 5 axes × 24 cartes, `resolveDirection` 0→neutral, all-neg→neg, all-pos→pos, mix→neutral). `calibration.tsx` réécrit OnbMidfi multi-select + progress bar 5 segments. Émet `calibration_answered` par question puis `onboarding_step_completed{step:"calibration"}` puis push `palais-reveal`. **Critical path Epic 2 §5.2 #4 résolu**.
+- `feat(onboarding)` Story 2.6 — `palais-reveal.tsx` créé : `gr-night` plein écran + ChatBubble `post_calibration` variant `edito` + PalaisRadar `underConstruction` (confidence=0) + premier titre « Touriste » `palette.gold` + CTA. `OnboardingDraft.started_at: number | null` ajouté. Splash CTA écrit `started_at = Date.now()`. `finalizeOnboarding` réécrit : `auth.uid()` en mode live (fallback `SAMPLE_SPAWTER.id` démo), persist `cgv_accepted_at`/`geoloc_consent_at`, local-first + fire-and-forget Supabase, reset draft. Émet `onboarding_completed` avec `time_to_complete_seconds` + `palais_initial_dominant_axes`. **Clôt Epic 2**.
+- `feat(infra)` Migration `0006_rename_data_consent_to_cgv_accepted.sql` — rename `spawters.data_consent_at` → `cgv_accepted_at`, recréation du trigger set-once `assert_consent_set_once`. Down migration restaure version 0005. `supabase/README.md` table « État Sprint 1 » mise à jour : 0006 (2.2), 0007 (2.3 `otp_attempts`), 0008 (2.5 `user_palais`), 0009-0014 décalées d'1 cran.
+- `feat(infra)` Edge Functions Deno scaffoldées :
+  - `supabase/functions/otp-send/{index.ts, README.md}` — Termii bridge + rate-limit (5 envois/phone/h, 20/IP/h) + `MOCK_TERMII=true` mode CI.
+  - `supabase/functions/otp-verify/{index.ts, README.md}` — Termii verify + provisioning user via `auth.admin.createUser({phone, phone_confirm:true})`. Stub V1 : retourne `{user_id}`, l'émission session JWT direct est traçée Defer (Story 2.3 §7).
+- `feat(infra)` Naming `data_consent_at` → `cgv_accepted_at` propagé end-to-end : DB (0006), TS types (`Spawter`, `OnboardingDraft`), seed, storage (`setConsent` kind `cgv | geoloc`), store action `recordConsent`, analytics wrapper `ConsentRecorded.kind`, events.md ligne `consent_recorded`. Sign-off Kidam ASYNC documenté.
+- `feat(theme)` `OnbCard` primitive ajoutée au barrel `primitives/index.ts`. Icône `check` (24×24 stroke 1.6) ajoutée à `IconName`.
+- `feat(i18n)` `fr.json` : sections `consent.*` restructurée (cgv_label/body, geoloc_label/body), `auth.*` (19 clés OTP/Google/Apple), `onboarding.*` étendue (profile_title/body, country_*, gender_*, age_*, origin_country_*, `country.<code>` 10 entrées), `calibration.q_*.card.<altKey>` (24 cartes), `palais_reveal.*` (4 clés), `chat.touriste.geoloc_consent_request` reformulé.
+- `test(onboarding)` 12 nouveaux fichiers de tests (Stories 2.2 → 2.6) + 1 audit anti-fuite secrets — couvrent storage, store actions, draft, composants (Splash, Consent, Phone, OTP, Profile, OnbCard, Calibration, PalaisReveal), `finalizeOnboarding` (mode live + démo + throw), `calibration-mapping` (5 axes × 3 cas), `audits/no-secret-leak.test.ts`. Scaffold PGlite `__tests__/integration/migrations.test.ts` (skip si `@electric-sql/pglite` absent — pattern Epic 1 retro §4 #1).
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+- `npm test` : 90 tests passent / 17 suites + 3 skipped (PGlite dep manquante) ✓
+- `npx expo export --platform web` : bundle 2.6 MB généré sans erreur ✓
+- **Smoke device matrice 4** : pending pour merge `main` (cf. Epic 1 retro §3.6).
+
+### Triple sign-off
+- **Alexandre** (brand + voix du Chat + Test Tantie Rose) : pending — réviser wording `consent.*`, `auth.*`, `profile_*`, cartes `calibration.q_*.card.*` (24 cartes), `palais_reveal.*`.
+- **Stéphanie** (tech) : pending — review migration 0006/0007/0008 + Edge Functions scaffolds + `finalizeOnboarding` réécriture.
+- **Kidam** (analytics) : pending — sign-off events.md ligne `consent_recorded` (cgv | geoloc), props `auth_otp_sent.phone_masked`, `onboarding_completed.palais_initial_dominant_axes`.
+
+### Résidus / à suivre (deferred-work.md)
+- **Story 2.3a — Google/Apple Sign-In buttons** : deps natives `expo-auth-session`, `expo-apple-authentication`, `expo-crypto`, `expo-web-browser` à installer + 2 nouveaux composants `<GoogleButton/>` + `<AppleButton/>` + wiring `supabase.auth.signInWithIdToken`.
+- **Édition `otp-verify` Edge Function** : émission JWT session direct (Supabase v2.45 n'expose pas `auth.admin.createSession` direct ; pattern V1 = stub `{user_id}`). À durcir avant ouverture beta publique (`magiclink + verifyOtp` OU JWT signé serveur).
+- **Tests Deno Edge Functions** (`supabase/functions/*/index.test.ts`) : non livrés (runtime Deno non installé). CI Supabase functions dédiée requise.
+- **PGlite dep** : `@electric-sql/pglite` à ajouter en devDep pour activer 3 tests skipped (`migrations.test.ts` Stories 2.2 + 2.5).
+- **Smoke device matrice 4** : pending merge `main` — cohérent retro Epic 1 §3.6.
+- **Re-entry handling** : user qui kill l'app entre OTP success et finalize a un draft éphémère perdu. UX dégradé accepté V1, story Sprint 2 « onboarding resume after auth ».
+- **Persistance AsyncStorage du draft `onboarding-draft`** : pour resume mid-calibration. Defer Sprint 2 si data alpha montre dropoff.
+- **Migration `collection_titres` (FR-008)** : V1 titre = label stade, collection permanente arrive Sprint 2 / Epic 5.
+- **Edge Function `finalize-onboarding` atomique** : V1 = 2 INSERTs serial fire-and-forget. Risque spawter sans palais en cas de network blip — mitigé par AsyncStorage local-first. Defer Sprint 2 si fail rate > 0.5% alpha.
+
+---
+
+## v1.2.1 — Voix du Chat évolutive — fermeture du système (2026-05-17)
+
+**Story 2.1 ferme le système de voix du Chat avant que les Stories 2.2-2.6 et 3.x ne le consomment massivement. La matrice `chat.*` dans `fr.json` est complétée pour les 55 combinaisons (5 stades × 11 moments), avec décision « SILENT volontaire » documentée. Les 3 variants visuels de la primitive `CatBubble` (`bubble`/`lockscreen`/`edito`) ne sont plus des stubs — ils rendent réellement des styles distincts (corner, padding, layout) tous dérivés du `theme`. Le wrapper `ChatBubble` expose la prop `variant` en additif non-breaking ; les 2 callers existants (`(tabs)/index.tsx`, `(tabs)/profile.tsx`) n'ont aucune modification à subir.**
+
+- `feat(theme)` `CatBubble.tsx` — implémentation réelle des 3 variants : `bubble` (coin asymétrique 16/16/16/4 inchangé), `lockscreen` (coin uniforme 12px, padding `sm`, icône 14px, layout row align flex-start — destiné Story 4.2 `SpawtNotif`), `edito` (coin `theme.radius.lg`, padding `lg`, icône 22px en tête, layout column, marginVertical `base` — destiné Story 3.3c `UneCarousel`). Suppression du `console.warn` stub Story 1.3. `void stage` conservé — modulation visuelle par stade réservée Epic 5 (décision Alexandre 2026-05-16).
+- `feat(theme)` `ChatBubble.tsx` — prop `variant?: "bubble" | "lockscreen" | "edito"` ajoutée (défaut `bubble`), passe-plat vers `CatBubble`. En `lockscreen`, le `<Text>` interne reçoit `numberOfLines={2}` + `ellipsizeMode="tail"` pour respecter la contrainte notif système.
+- `feat(i18n)` `fr.json chat.*` — matrice complète pour les 55 combinaisons (5 stades × 11 moments). 11 entrées non-vides (8 Touriste gold standard validé Alexandre + 1 Explorateur + 1 Détective + 1 Djidji + 1 Guide `stade_up_guide` "Tu es Guide. 51 spots, ton territoire. La Meute te suit." — ton marketing/social proof, sans sacralisation, validé Alexandre 2026-05-17). Les 44 autres sont `""` explicite (silent volontaire, pas de trou structurel). Filet anti-régression : ajouter un `ChatMoment` à l'union TS sans entrée correspondante casse le test de coverage.
+- `feat(theme)` `chat-voice.ts` — export du tableau `CHAT_MOMENTS` (11 entrées `as const`) pour réutilisation dans les tests, évite le drift entre l'union TS et la matrice i18n. `ChatMoment` reste typé comme `(typeof CHAT_MOMENTS)[number]`.
+- `test(theme)` `__tests__/lib/chat-voice.test.ts` — couvre `chatKey` × 55 combinaisons + `isChatSilent` × 3 invariants (guide silent hors stade_up, stade_up jamais silent, autres stades jamais silent).
+- `test(i18n)` `__tests__/i18n/chat-voice-coverage.test.ts` — contract test sur `fr.json` : chaque `(stade, moment)` résout une string définie (peut être `""`, jamais `undefined`). Touriste ≥ 8 entrées non-vides, chaque stade non-Guide a ≥ 1 entrée non-vide, Guide silent partout sauf `stade_up_guide`.
+- `test(theme)` `__tests__/components/CatBubble.test.tsx` — smoke des 3 variants sans `console.warn`, vérification que les styles racines diffèrent réellement (coin asymétrique pour bubble, uniforme + row pour lockscreen, column + marginVertical pour edito).
+- `test(theme)` `__tests__/components/ChatBubble.test.tsx` — AC #3 réactivité stade-up : `react-test-renderer` + `jest.mock("react-i18next")` démontrent qu'un changement de prop `stade` (1) requête la nouvelle clé `chat.<stade>.<moment>` via `t()`, (2) propage le nouveau `stage` à la primitive `<CatBubble>` enfant. Ajouté post-review Alexandre 2026-05-17 (D2).
+- `chore(infra)` `app/package.json` jest config — `moduleDirectories` inclut `node_modules/expo/node_modules` (résolution de `expo-modules-core` qui n'est pas hoisté en racine `app/`) + `testPathIgnorePatterns` exclut `.test-d.ts` (tests de typage compile-time, non-runtime). Débloque l'exécution Jest dans le repo — sans cette config, aucune suite ne tournait.
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+- `npm test` : 20 tests passent / 4 suites ✓ (chat-voice, chat-voice-coverage, CatBubble, ChatBubble)
+- Audit hex `grep -rnE "#[0-9A-Fa-f]{3,6}" app/src/components/primitives/CatBubble.tsx` : vide ✓
+- Audit literal `grep -rnE 'CatBubble[^>]*>\s*<Text\s+[^>]*>["A-Za-z]' app/src app/app | grep -v ChatBubble.tsx` : vide ✓ (la seule consommation directe de `CatBubble` est `ChatBubble.tsx` lui-même)
+- Smoke web (`npx expo export --platform web`) : Metro bundle compile cleanly, 4 bundles JS générés ✓
+- **Smoke device matrice 4** : pending — non bloquant pour merge `spawt/v1-bmad`, bloquant pour merge ultérieur sur `main`.
+
+### Triple sign-off
+- **Alexandre** (brand + voix du Chat) : matrice « SILENT volontaire vs PARLE » conforme PRD §9.3, Guide silencieux hors stade_up, `stade_up_guide` reformulé post-review pour retirer la sacralisation et passer en ton marketing/social proof ("Tu es Guide. 51 spots, ton territoire. La Meute te suit.") ✓
+- **Stéphanie** (lisibilité + non-régression) : signature publique `ChatBubble` non-breaking, 2 callers existants intacts, smoke device matrix **pending** sur les variants `lockscreen`/`edito` (consommés seulement par Stories 4.2 / 3.3c à venir).
+- **Kidam** : N/A (aucun événement analytics introduit par cette story).
+
+### Résidus / à suivre
+- Smoke device matrice 4 (rendu visuel des 3 variants, font scaling) — pending, voir Verify.
+- Sélecteur non-granulaire `useSpawterStore((s) => s.spawter)` dans `(tabs)/index.tsx:27` et `(tabs)/profile.tsx:17` — pattern accepté V1, fonctionne pour la réactivité stade-up (rerend large mais correct). Defer follow-up dédié pour optim perf (anti-scope-creep, cf. Story 1.4 retro §5.5).
+
+### Code review (2026-05-17)
+- 3 reviewers parallèles (Blind Hunter / Edge Case Hunter / Acceptance Auditor) — 4/5 ACs PASS + 1 PARTIAL résolu en patch.
+- D1 résolu : `guide.stade_up_guide` reformulé en ton marketing/social proof (cf. ci-dessus).
+- D2 résolu : test de réactivité AC #3 ajouté (`__tests__/components/ChatBubble.test.tsx`).
+- P1 résolu : assertion `isChatSilent` resserrée à `toHaveLength(7)` + commentaire corrigé.
+- P2 résolu : `CatBubbleVariant` importé au lieu du literal dupliqué dans `CatBubble.test.tsx`.
+- 5 defers tracés dans `_bmad-output/implementation-artifacts/deferred-work.md` (paramètres inversés `isChatSilent`/`chatKey`, `overrideText` whitespace, mismatched `(stade, stade_up_X)`, `moduleDirectories` collision risk, sélecteur non-granulaire).
+
+---
+
 ## v1.1.7 — Re-dérivation des 4 composants RN existants (2026-05-16)
 
 **Les 4 composants `ChatBubble`, `AxisRadar`, `PlaceCard`, `DataSourceBanner` consomment désormais les primitives canoniques livrées par Story 1.3 — wrapper-pattern : APIs publiques inchangées, callers (`(tabs)/index.tsx`, `place/[id].tsx`, `(tabs)/profile.tsx`) non modifiés. Plus aucun composant SPAWT en drift visuel vs `midfi-kit.jsx`. Drift i18n corrigé : la string `DataSourceBanner` est migrée dans `fr.json`.**

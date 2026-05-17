@@ -1,23 +1,107 @@
-// Étape 1 onboarding — Numéro de téléphone (PRD §3.1 Feature 1)
-// MODE DÉMO : on n'envoie pas de SMS OTP réel (Twilio/Termii pas câblé).
-// Le numéro est stocké, le bouton "Continuer" simule la validation OTP.
+// Étape Phone — Story 2.3 (FR-001)
+// Envoie un OTP via Edge Function `otp-send` puis navigue vers /otp.
+// Mode démo : pas d'appel réseau, navigation directe avec params.demo="1".
+//
+// Boutons Google + Apple : décrits AC #3-#4 mais REPORTÉS — les deps natives
+// (`expo-apple-authentication`, `expo-auth-session`) ne sont pas encore
+// installées. Le scaffold est prévu côté UI (placeholder) mais le câblage
+// reviendra dans une story follow-up (voir deferred-work.md « Story 2.3 —
+// Google/Apple Sign-In »).
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
-import { Pressable, Text, TextInput, View, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
+import { track } from "../../src/lib/analytics";
+import { isSupabaseConfigured } from "../../src/lib/data-source";
+import Constants from "expo-constants";
+
+const CIV_MOBILE_RE = /^\+225(0[157]\d{8}|2\d{8})$/;
+const FALLBACK_RE = /^\+\d{10,15}$/;
+
+function maskPhone(p: string): string {
+  if (p.length < 6) return p;
+  const head = p.slice(0, 4);
+  const tail = p.slice(-2);
+  return `${head} ${"X".repeat(p.length - 6)} ${tail}`;
+}
 
 export default function PhoneScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
-  const setDraft = useOnboardingDraft((s) => s.setField);
+  const setDraftField = useOnboardingDraft((s) => s.setField);
   const initial = useOnboardingDraft((s) => s.draft.phone_e164);
-  const [phone, setPhone] = useState<string>(initial ?? "+225");
+  const [phone, setPhone] = useState<string>(initial && initial.length > 0 ? initial : "+225");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const valid = /^\+\d{8,15}$/.test(phone);
+  const valid = CIV_MOBILE_RE.test(phone) || FALLBACK_RE.test(phone);
+
+  const onSubmit = async () => {
+    if (!valid || sending) return;
+    setError(null);
+    setDraftField("phone_e164", phone);
+
+    if (!isSupabaseConfigured) {
+      track({
+        name: "auth_otp_sent",
+        properties: { phone_masked: maskPhone(phone), demo: true },
+      });
+      router.push({
+        pathname: "/(onboarding)/otp",
+        params: { phone, demo: "1" },
+      });
+      return;
+    }
+
+    setSending(true);
+    try {
+      const url =
+        Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const anonKey =
+        Constants.expoConfig?.extra?.supabaseAnonKey ??
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const resp = await fetch(`${url}/functions/v1/otp-send`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          apikey: anonKey ?? "",
+          authorization: `Bearer ${anonKey ?? ""}`,
+        },
+        body: JSON.stringify({ phone_e164: phone }),
+      });
+      if (resp.status === 429) {
+        setError(t("auth.error_rate_limited"));
+        return;
+      }
+      if (!resp.ok) {
+        setError(t("auth.error_network"));
+        return;
+      }
+      track({
+        name: "auth_otp_sent",
+        properties: { phone_masked: maskPhone(phone) },
+      });
+      router.push({
+        pathname: "/(onboarding)/otp",
+        params: { phone },
+      });
+    } catch (_err) {
+      setError(t("auth.error_network"));
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -27,22 +111,21 @@ export default function PhoneScreen() {
       <View style={{ flex: 1, padding: theme.spacing.lg, justifyContent: "center" }}>
         <Text
           style={{
+            ...theme.typography.preset.h1,
             color: theme.colors.text.primary,
-            fontSize: theme.typography.size["2xl"],
-            fontWeight: theme.typography.weight.bold,
             marginBottom: theme.spacing.sm,
           }}
         >
-          {t("onboarding.phone_title")}
+          {t("auth.phone_title")}
         </Text>
         <Text
           style={{
+            ...theme.typography.preset.body,
             color: theme.colors.text.secondary,
-            fontSize: theme.typography.size.base,
             marginBottom: theme.spacing.xl,
           }}
         >
-          {t("onboarding.phone_body")}
+          {t("auth.phone_body")}
         </Text>
 
         <TextInput
@@ -50,8 +133,9 @@ export default function PhoneScreen() {
           onChangeText={setPhone}
           keyboardType="phone-pad"
           autoFocus
-          placeholder={t("onboarding.phone_placeholder")}
+          placeholder={t("auth.phone_placeholder")}
           placeholderTextColor={theme.colors.text.tertiary}
+          testID="phone-input"
           style={{
             borderWidth: 1,
             borderColor: theme.colors.border.subtle,
@@ -63,29 +147,43 @@ export default function PhoneScreen() {
           }}
         />
 
+        {error ? (
+          <Text
+            style={{
+              marginTop: theme.spacing.sm,
+              color: theme.colors.state.danger,
+              fontSize: theme.typography.size.sm,
+            }}
+          >
+            {error}
+          </Text>
+        ) : null}
+
         <Pressable
-          disabled={!valid}
-          onPress={() => {
-            setDraft("phone_e164", phone);
-            router.push("/(onboarding)/profile");
-          }}
+          disabled={!valid || sending}
+          onPress={() => void onSubmit()}
+          testID="phone-send"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !valid || sending }}
           style={({ pressed }) => ({
             marginTop: theme.spacing.xl,
-            backgroundColor: valid ? theme.colors.brand.accent : theme.colors.border.subtle,
+            backgroundColor:
+              valid && !sending ? theme.colors.brand.accent : theme.colors.border.subtle,
             paddingVertical: theme.spacing.base,
             borderRadius: theme.radius.lg,
-            opacity: pressed ? 0.85 : 1,
+            opacity: valid && !sending && pressed ? 0.85 : 1,
           })}
         >
           <Text
             style={{
-              color: valid ? theme.colors.text.inverse : theme.colors.text.tertiary,
+              color:
+                valid && !sending ? theme.colors.text.inverse : theme.colors.text.tertiary,
               fontSize: theme.typography.size.lg,
               fontWeight: theme.typography.weight.semibold,
               textAlign: "center",
             }}
           >
-            {t("common.continue")}
+            {t("auth.send_otp")}
           </Text>
         </Pressable>
       </View>

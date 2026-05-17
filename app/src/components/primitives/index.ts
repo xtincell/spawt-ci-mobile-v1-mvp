@@ -13,3 +13,4 @@ export { PatternDots } from "./PatternDots";
 export { TabBar } from "./TabBar";
 export { Chip, type ChipVariant } from "./Chip";
 export { Button, type ButtonVariant } from "./Button";
+export { OnbCard } from "./OnbCard";

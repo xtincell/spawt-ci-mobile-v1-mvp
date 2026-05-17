@@ -4,34 +4,69 @@
 // CONTRAINTE CALLER : le children est une string déjà i18n via t() + chat-voice.ts
 // — la primitive ne dépend pas de i18n directement (consumer-agnostic).
 // La voix du Chat passe par chat-voice.ts → clé i18n, jamais littéral inline.
+//
+// Trois variants (Story 2.1) :
+// - `bubble`     : bulle de feed / profil (coin asymétrique, contexte conversationnel)
+// - `lockscreen` : notification système simulée (coin uniforme, compact, max 2 lignes)
+// - `edito`      : pavé baseline éditorial (UneCarousel, icône en tête)
 
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import type { ViewStyle } from "react-native";
 import { CatIcon } from "./CatIcon";
 import { useTheme } from "../../theme/ThemeProvider";
 
 type Stage = "touriste" | "explorateur" | "detective" | "djidji" | "guide";
+export type CatBubbleVariant = "bubble" | "lockscreen" | "edito";
 
 interface Props {
   children: ReactNode;
-  variant?: "bubble" | "lockscreen" | "edito";
+  variant?: CatBubbleVariant;
   // `stage` est un stub V1 — la modulation visuelle par stade n'est pas active
-  // dans cette story. Préparé pour les stories Epic 5 (theme.colors.chat.<stage>).
+  // dans cette story (décision Alexandre 2026-05-16). Préparé pour Epic 5
+  // (theme.colors.chat.<stage>).
   stage?: Stage;
 }
 
 export function CatBubble({ children, variant = "bubble", stage = "explorateur" }: Props) {
   const theme = useTheme();
-  // Stub V1 : `variant` et `stage` sont préparés pour les stories Epic 5
-  // (modulation visuelle par stade via theme.colors.chat.<stage>). Pour
-  // l'instant, dev-warn si un caller s'attend à un effet visible — évite
-  // de paraître silencieusement broken pendant l'intégration future.
-  if (__DEV__ && variant !== "bubble") {
-    console.warn(
-      `[CatBubble] variant="${variant}" est un stub V1 — rendu identique au variant "bubble" jusqu'aux stories Epic 5.`,
+  void stage; // accepté en signature, réservé pour Epic 5.
+
+  if (variant === "lockscreen") {
+    const containerStyle: ViewStyle = {
+      backgroundColor: theme.colors.surface.inverse,
+      borderRadius: 12,
+      padding: theme.spacing.sm,
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: theme.spacing.xs,
+    };
+    return (
+      <View style={containerStyle}>
+        <CatIcon size={14} color={theme.colors.brand.primary} />
+        <View style={{ flex: 1 }}>{children}</View>
+      </View>
     );
   }
-  void stage; // accepté en signature, réservé pour Epic 5.
+
+  if (variant === "edito") {
+    const containerStyle: ViewStyle = {
+      backgroundColor: theme.colors.surface.inverse,
+      borderRadius: theme.radius.lg,
+      padding: theme.spacing.lg,
+      marginVertical: theme.spacing.base,
+      flexDirection: "column",
+      gap: theme.spacing.sm,
+    };
+    return (
+      <View style={containerStyle}>
+        <CatIcon size={22} color={theme.colors.brand.primary} />
+        <View>{children}</View>
+      </View>
+    );
+  }
+
+  // Default: bubble — rendu conversationnel, coin asymétrique
   return (
     <View
       style={{

@@ -13,6 +13,10 @@ const initial: OnboardingDraft = {
   origin_country_code: null,
   gender: "non_renseigne",
   age_range: null,
+  consent: {
+    cgv_accepted_at: null,
+    geoloc_consent_at: null,
+  },
   calibration_answers: {
     racines_horizons: 0,
     taniere_nomade: 0,
@@ -20,12 +24,15 @@ const initial: OnboardingDraft = {
     foule_secret: 0,
     maquis_table: 0,
   },
+  started_at: null,
 };
 
 interface DraftStore {
   draft: OnboardingDraft;
   setField: <K extends keyof OnboardingDraft>(key: K, value: OnboardingDraft[K]) => void;
   setCalibration: (axis: PalaisAxis, value: number) => void;
+  /** Story 2.2 / FR-040 — historise un timestamp consent pré-auth dans le draft. */
+  setConsent: (kind: "cgv" | "geoloc", at: string | null) => void;
   reset: () => void;
 }
 
@@ -37,6 +44,16 @@ export const useOnboardingDraft = create<DraftStore>((set) => ({
       draft: {
         ...s.draft,
         calibration_answers: { ...s.draft.calibration_answers, [axis]: value },
+      },
+    })),
+  setConsent: (kind, at) =>
+    set((s) => ({
+      draft: {
+        ...s.draft,
+        consent: {
+          ...s.draft.consent,
+          [kind === "cgv" ? "cgv_accepted_at" : "geoloc_consent_at"]: at,
+        },
       },
     })),
   reset: () => set({ draft: initial }),

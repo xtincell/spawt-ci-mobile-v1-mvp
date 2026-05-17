@@ -11,7 +11,7 @@ const KEYS = {
   palais: "spawt:palais",
   spawts: "spawt:spawts",
   consent_geoloc: "spawt:consent:geoloc",
-  consent_data: "spawt:consent:data",
+  consent_cgv: "spawt:consent:cgv",
 } as const;
 
 export async function loadSpawter(): Promise<Spawter | null> {
@@ -37,12 +37,14 @@ export async function appendSpawtLocal(s: SpawtCheckin): Promise<void> {
   await writeJSON(KEYS.spawts, list);
 }
 
-export async function setConsent(kind: "geoloc" | "data", accepted: boolean): Promise<void> {
-  const key = kind === "geoloc" ? KEYS.consent_geoloc : KEYS.consent_data;
+export type ConsentKind = "cgv" | "geoloc";
+
+export async function setConsent(kind: ConsentKind, accepted: boolean): Promise<void> {
+  const key = kind === "geoloc" ? KEYS.consent_geoloc : KEYS.consent_cgv;
   await AsyncStorage.setItem(key, accepted ? new Date().toISOString() : "");
 }
-export async function getConsent(kind: "geoloc" | "data"): Promise<string | null> {
-  const key = kind === "geoloc" ? KEYS.consent_geoloc : KEYS.consent_data;
+export async function getConsent(kind: ConsentKind): Promise<string | null> {
+  const key = kind === "geoloc" ? KEYS.consent_geoloc : KEYS.consent_cgv;
   return AsyncStorage.getItem(key);
 }
 

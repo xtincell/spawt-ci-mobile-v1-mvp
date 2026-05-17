@@ -49,3 +49,36 @@ Tracks issues surfaced during reviews that were intentionally deferred (pre-exis
 - **`UNIQUE NULLS NOT DISTINCT` requiert PG 15 — pas de guard `DO $$ assert version $$`** — `config.toml` déclare `major_version = 15` donc OK en pratique, mais un projet Supabase legacy pinné PG 14 raise syntax error opaque. → Ajouter `DO` block défensif dans cleanup migration pass. [story 1.8]
 - **`useFlagsPolling()` hook absent** — spec AC #6 listait le hook mais autorisait le déferrement ; completion notes le confirment. → Câbler quand le premier consumer flag (paywall, ranking toggle) atterrit. [story 1.8]
 - **Web FOUT (flash of unstyled text) après `_layout.tsx` gate disabled sur web** — composants montent en fallback Roboto puis re-layout. Acceptable pour V1 mobile-first. → Audit cible web Sprint 2. [story 1.2 — post-review tweaks]
+
+---
+
+## Deferred from: code review of 2-1-voix-du-chat-evolutive (2026-05-17)
+
+- **`isChatSilent(stade, moment)` vs `chatKey(moment, stade)` — ordre paramètres inversé** [`app/src/lib/chat-voice.ts:35,40`] — API du moteur pur Story 1.3. Footgun pré-existant : `chatKey` prend `(moment, stade)`, `isChatSilent` prend `(stade, moment)`. → Réactiver si un 3ème caller émerge ou si un bug d'ordre paramètres apparaît en revue.
+- **`overrideText` whitespace-only rend une bulle vide visible** [`app/src/components/ChatBubble.tsx:33-37`] — edge case mineur. Le `??` ne trim pas et `if (!overrideText && ...)` est faussé par `"   "`. → Réactiver si un consumer passe du contenu dynamique non-trimmed (notif Story 4.2, pavé baseline Story 3.3c).
+- **Mismatched `(stade, stade_up_X)` callers — pas de dev-warn** [`app/src/components/ChatBubble.tsx:35`] — caller error swallowed (e.g. `(touriste, stade_up_djidji)` → `""` → null). Cohérent avec design matrice mais silencieux. → Ajouter assert dev-only si un consumer Sprint 2+ produit ce bug.
+- **`jest.moduleDirectories` collision risk avec nested expo node_modules** [`app/package.json:55-63`] — infra fix accepté pour débloquer Jest (jest-expo nested module non-hoisté). → Monitor : si dual-React ou hooks-mismatch error apparaît, migrer vers `jest.config.js` avec `moduleNameMapper` explicite.
+- **`(tabs)/index.tsx:27` `useSpawterStore((s) => s.spawter)` non-granulaire** [`app/app/(tabs)/index.tsx:27`] — déjà documenté en Defer dans Story 2.1 Task 5 + Dev Notes §3. Optim perf, hors scope (anti-scope-creep retro Epic 1 §3.5). → Réactiver via follow-up dédié si rerenders excessifs détectés au profilage Sprint 2.
+
+---
+
+## Deferred from: batch Epic 2 dev (Stories 2.2 → 2.6) (2026-05-17)
+
+- **Story 2.3a — Google/Apple Sign-In secondary buttons** — Stories 2.3 AC #3 + #4. Deps natives non installées (`expo-auth-session`, `expo-apple-authentication`, `expo-crypto`, `expo-web-browser`). UX Story 2.3 reste fonctionnelle OTP-only. → Spawner une story dédiée 2.3a quand on est prêt à installer les deps + tester sur device.
+- **Édition `otp-verify` Edge Function — émission session JWT direct** [`supabase/functions/otp-verify/index.ts`] — Supabase v2.45 n'expose pas `auth.admin.createSession`. V1 retourne `{user_id}`. Client mobile ne peut pas ouvrir la session Supabase live sans pattern complémentaire (`magiclink + verifyOtp` côté client OU JWT signé serveur). → Durcir avant ouverture beta publique. Pas un bloquant Sprint 1 alpha (mode démo Expo Go reste OK).
+- **Tests Deno Edge Functions** (`supabase/functions/otp-send/index.test.ts`, `otp-verify/index.test.ts`) — Story 2.3 AC #8-3, #8-4. Runtime Deno non installé localement, suite Jest mobile reste séparée. → CI Supabase functions dédiée requise (workflow `.github/workflows/supabase-functions.yml`).
+- **PGlite devDep `@electric-sql/pglite`** — Tests `__tests__/integration/migrations.test.ts` (Stories 2.2 + 2.5) sont skipped si dep absente. Pattern Epic 1 retro §4 #1 documenté mais artifacts non committés. → Ajouter `npm i -D @electric-sql/pglite` puis activer les suites en CI.
+- **Re-entry handling — onboarding interrompu post-OTP** — Story 2.3 Dev Notes §3 + Story 2.6 AC #2. Si user kill l'app entre OTP success et finalize Story 2.6 : session auth active mais `spawter === null` → RouteGuard redirige Splash → re-OTP forcé (re-utilise même auth.users row, finalize créera le spawter au prochain bouclage). UX dégradé accepté V1. → Story Sprint 2 « onboarding resume after auth » si data alpha montre dropoff.
+- **Persistance AsyncStorage du draft `onboarding-draft`** — Stories 2.2 §7, 2.5 §7. Permettrait resume mid-calibration. V1 = draft éphémère mémoire. → Sprint 2 si dropoff alpha mesurable entre consent et finalize.
+- **Migration `collection_titres` (FR-008 collection permanente)** — Story 2.6 Dev Notes §1. V1 = `premier titre = label stade` (« Touriste »). Pas de table `collection_titres`. → Epic 5 Sprint 2 — Story 5.2 « Collection de titres + titre affiché ».
+- **Edge Function `finalize-onboarding` (transaction atomique serveur)** — Story 2.6 Dev Notes §4. V1 = 2 INSERTs serial fire-and-forget (spawters + user_palais). Risque théorique : spawter sans palais en DB si network blip entre les 2. AsyncStorage local-first mitige. → Sprint 2 si fail rate > 0.5% alpha.
+- **Job de réconciliation spawter ↔ user_palais** (orphelins) — Story 2.6 Dev Notes §4. Cron côté backend qui recreate user_palais empty si manquant. → Sprint 2 conditionnel.
+- **`<GrNightScreen>` primitive wrapper** — Story 2.6 §7. V1 = pattern `LinearGradient gradient.night` inline dans 2 écrans (Splash + PalaisReveal). À promouvoir si 3+ consumers (StadeCelebration Story 5.4). → Sprint 2.
+- **Cartes calibration canoniques wording** — Story 2.5 §2. 24 cartes draft V1 (4-6 par axe × 5 axes), wording à valider Test Tantie Rose Alexandre + sign-off final. Itération i18n possible sans migration (pas de schema lock).
+- **Anti-régression test « splash CTA set started_at »** — Story 2.6 AC #8-3. Pas explicitement asserté dans `SplashScreen.test.tsx` (testable indirectement via `finalize-onboarding.test.ts`). → Étendre le test si Stéphanie en review identifie un risque de régression.
+- **Test PalaisRevealScreen — affichage erreur** — Story 2.6 test couvre `finalize throw → pas de navigation` mais ne vérifie pas que l'erreur i18n est visible dans le DOM. → Ajouter assertion `findByProps` sur le `<Text>` d'erreur si Stéphanie le demande.
+- **Légal placeholder `[pending juriste]` dans strings consent `cgv_body` + `geoloc_body`** — Story 2.2 §7. À remplacer par rédaction juriste DR-CGV-01 avant lancement public.
+- **`demographics_consent_request` ChatMoment** — Story 2.2 §7. Conservé dans `chat-voice.ts` matrice mais inutilisé après FR-040. → Supprimer si aucun caller n'émerge d'ici Sprint 2 (code mort à nettoyer).
+- **`tokens.ts` commentaire obsolète sur `expo-linear-gradient`** — corrigé Story 2.2 Task 7 (« non installée à ce jour » → « installé Story 2.2 `~55.0.14` »).
+- **Re-calibration depuis Profil** (FR-002 sous-jacent) — Story 2.5 §7. V1 = pas d'écran de re-cal ; le Palais apprend via les spawts. → Sprint 2 si data alpha montre besoin de reset.
+- **OnbStep primitive** — Story 2.5 §7. V1 = pattern inline `ProgressSegments` dans calibration.tsx. Promouvoir si autre flow multi-step émerge Sprint 2 (Premium upsell?).

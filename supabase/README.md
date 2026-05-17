@@ -44,13 +44,15 @@ supabase stop
 | `0003_create_user_signals_appendonly` | 1.7 | `user_signals` (append-only) | ✅ Story 1.7 |
 | `0004_create_feature_flags` | 1.8 | `feature_flags` | ✅ Story 1.8 |
 | `0005_spawters_invariant_triggers` | 1.5 (review fixup) | triggers `stade` anti-régression + `consent_*_at` set-once | ✅ Code review 2026-05-16 |
-| `0006_create_places_place_adn` | 3.3a | `places`, `place_adn` | ⏳ Epic 3 |
-| `0007_create_user_palais` | 2.6 / 4.6 | `user_palais` | ⏳ Epic 2 / 4 |
-| `0008_create_spawt_checkin` | 4.1 / 4.2 | `spawt_checkin` | ⏳ Story 4.1 / 4.2 |
-| `0009_antifraud_triggers` | 4.4 | triggers PL/pgSQL anti-fraude | ⏳ Story 4.4 |
-| `0010_create_progression_collection_titres` | 5.1 / 5.2 | `spawter_progression`, `collection_titres` | ⏳ Epic 5 |
-| `0011_create_subscriptions_invoices` | (Sprint 2) | `subscriptions`, `invoices` | ⏳ Sprint 2 |
-| `0012_storage_buckets_rls` | 4.5 | RLS storage `place-photos`, `avatars`, `place-covers` | ⏳ Story 4.5 |
+| `0006_rename_data_consent_to_cgv_accepted` | 2.2 | rename `spawters.data_consent_at` → `cgv_accepted_at` + trigger set-once aligné | ✅ Story 2.2 |
+| `0007_create_otp_attempts` | 2.3 | `otp_attempts` (rate-limit + Termii pin_id lookup) | ✅ Story 2.3 |
+| `0008_create_user_palais` | 2.5 | `user_palais` (5 axes + confidence + stade) | ✅ Story 2.5 |
+| `0009_create_places_place_adn` | 3.3a | `places`, `place_adn` | ⏳ Epic 3 |
+| `0010_create_spawt_checkin` | 4.1 / 4.2 | `spawt_checkin` | ⏳ Story 4.1 / 4.2 |
+| `0011_antifraud_triggers` | 4.4 | triggers PL/pgSQL anti-fraude | ⏳ Story 4.4 |
+| `0012_create_progression_collection_titres` | 5.1 / 5.2 | `spawter_progression`, `collection_titres` | ⏳ Epic 5 |
+| `0013_create_subscriptions_invoices` | (Sprint 2) | `subscriptions`, `invoices` | ⏳ Sprint 2 |
+| `0014_storage_buckets_rls` | 4.5 | RLS storage `place-photos`, `avatars`, `place-covers` | ⏳ Story 4.5 |
 
 ## Edge Functions
 

@@ -1,5 +1,5 @@
 # generated: 2026-05-14
-# last_updated: 2026-05-14
+# last_updated: 2026-05-17T20:00:00Z
 # project: Spawt mobile CI
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-14
-last_updated: 2026-05-16T23:30:00Z
+last_updated: 2026-05-17T18:00:00Z
 project: Spawt mobile CI
 project_key: NOKEY
 tracking_system: file-system
@@ -52,16 +52,16 @@ development_status:
   1-6-schema-supabase-entites-commerciales-customers-plans-currencies: done
   1-7-collecte-de-signaux-append-only-wrapper-analytics-type: done
   1-8-systeme-de-feature-flags-runtime: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # Epic 2: Entrée dans la Meute — auth, consent & calibrage du Palais
-  epic-2: backlog
-  2-1-voix-du-chat-evolutive: backlog
-  2-2-splash-ecran-de-consentement-artci-bloquant: backlog
-  2-3-authentification-par-otp-google-sign-in: backlog
-  2-4-saisie-du-profil-pii-demographiques: backlog
-  2-5-calibrage-du-palais-en-5-questions: backlog
-  2-6-presentation-du-palais-initial-premier-titre: backlog
+  epic-2: in-progress
+  2-1-voix-du-chat-evolutive: done
+  2-2-splash-ecran-de-consentement-artci-bloquant: review
+  2-3-authentification-par-otp-google-sign-in: review
+  2-4-saisie-du-profil-pii-demographiques: review
+  2-5-calibrage-du-palais-en-5-questions: review
+  2-6-presentation-du-palais-initial-premier-titre: review
   epic-2-retrospective: optional
 
   # Epic 3: Découverte — Home, feed, fiche lieu, recherche & favoris

@@ -13,6 +13,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="otp" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="calibration" />
+      <Stack.Screen name="palais-reveal" />
     </Stack>
   );
 }

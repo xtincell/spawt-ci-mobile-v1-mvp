@@ -73,7 +73,7 @@ type ConsentScreenViewed = {
 };
 type ConsentRecorded = {
   name: "consent_recorded";
-  properties: { kind: "geoloc" | "data"; decision: "accepted" | "declined" };
+  properties: { kind: "cgv" | "geoloc"; decision: "accepted" | "declined" };
 };
 type OnboardingStepCompleted = {
   name: "onboarding_step_completed";

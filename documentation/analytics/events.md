@@ -31,7 +31,7 @@ Provider cible (PRD §12.1) : **PostHog ou Mixpanel**. Sprint 1 instrumente la c
 |---|---|---|
 | `onboarding_started` | Vue splash → tap "Entrer dans la Meute" | — |
 | `consent_screen_viewed` | Affichage de l'écran consentement | — |
-| `consent_recorded` | Décision sur un bloc consent | `kind` (geoloc \| data), `decision` (accepted \| declined) |
+| `consent_recorded` | Décision sur un bloc consent (Story 2.2 / FR-040 — kind aligné CGU/CGV + géoloc, remplace l'ancien `data` legacy) | `kind` (cgv \| geoloc), `decision` (accepted \| declined) |
 | `onboarding_step_completed` | Fin de chaque étape | `step` (consent \| phone \| profile \| calibration), `step_index` (1-4) |
 | `calibration_answered` | Réponse à une question de calibrage | `axis` (racines_horizons \| ...), `direction` (neg \| pos \| neutral), `value` (-0.4 \| 0 \| +0.4) |
 | `onboarding_completed` | Calibration validée, spawter persisté | `country_code`, `age_range`, `gender`, `time_to_complete_seconds`, `palais_initial_dominant_axes` (array, 2 axes) |

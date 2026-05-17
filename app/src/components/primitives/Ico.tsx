@@ -35,7 +35,8 @@ export type IconName =
   | "clock"
   | "walk"
   | "sliders"
-  | "bell";
+  | "bell"
+  | "check";
 
 interface Props {
   name: IconName;
@@ -225,6 +226,8 @@ export function Ico({ name, size = 20, color, filled = false }: Props) {
           <Path {...common} d="M10 22 H14" />
         </>,
       );
+    case "check":
+      return svg(<Path {...common} d="M5 12 L10 17 L19 7" />);
     default:
       // Le default du kit JSX rend un cercle simple. Garde-fou si on étend
       // IconName mais oublie une case (TS attrape la plupart des oublis).

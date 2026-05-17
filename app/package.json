@@ -54,6 +54,14 @@
     "typescript": "~5.9.2"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "moduleDirectories": [
+      "node_modules",
+      "node_modules/expo/node_modules"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "\\.test-d\\.[jt]sx?$"
+    ]
   }
 }

@@ -15,7 +15,26 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(where:*)",
       "Bash(timeout:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python3 \"c:\\\\Claude COde\\\\Spawt mobile CI\\\\_bmad\\\\scripts\\\\resolve_customization.py\" --skill \"c:\\\\Claude COde\\\\Spawt mobile CI\\\\.claude\\\\skills\\\\bmad-agent-analyst\" --key agent)",
+      "Bash(PYTHONIOENCODING=utf-8 python3 -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 python3 \"c:\\\\Claude COde\\\\Spawt mobile CI\\\\_bmad\\\\scripts\\\\resolve_customization.py\" --skill \"c:\\\\Claude COde\\\\Spawt mobile CI\\\\.claude\\\\skills\\\\bmad-document-project\" --key workflow)",
+      "PowerShell($zip = \"C:\\\\Users\\\\x-tin\\\\Downloads\\\\SPAWT.zip\"; if \\(Test-Path $zip\\) { $dest = \"$env:TEMP\\\\spawt_canonical_ux\"; if \\(Test-Path $dest\\) { Remove-Item $dest -Recurse -Force }; Expand-Archive -Path $zip -DestinationPath $dest -Force; Get-ChildItem $dest -Recurse | Select-Object FullName, Length | Format-Table -AutoSize -Wrap } else { \"ZIP introuvable: $zip\" })",
+      "Bash(npx tsc *)",
+      "Bash(echo \"---tsc exit: $?---\")",
+      "Bash(npm run *)",
+      "Bash(echo \"---vocab exit: $?---\")",
+      "Bash(echo \"---i18n exit: $?---\")",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "WebSearch",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npm view *)",
+      "Bash(grep -rnE \"#[0-9A-Fa-f]{3,6}\" app/src/components app/app)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,1\\)\\)\")",
+      "Skill(bmad-dev-story)",
+      "Skill(bmad-dev-story:*)"
     ]
   }
 }
