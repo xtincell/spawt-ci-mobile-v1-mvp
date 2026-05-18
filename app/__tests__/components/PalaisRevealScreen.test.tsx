@@ -13,8 +13,17 @@ jest.mock("react-i18next", () => ({
 }));
 
 const mockReplace = jest.fn();
+// P-21 round 3 — Capture les `options` passées à `<Stack.Screen>` pour pouvoir
+// assert sur `gestureEnabled` (sans ça, le mock `() => null` rend impossible
+// la vérification de P-24 — régression silencieuse).
+const mockStackScreen: jest.Mock<null, [Record<string, unknown>]> = jest.fn(
+  (_props: Record<string, unknown>) => null,
+);
 jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: mockReplace }),
+  // P-24 — palais-reveal monte un <Stack.Screen options={{ gestureEnabled }} />
+  // pour désactiver le swipe-back iOS pendant finalize.
+  Stack: { Screen: (props: Record<string, unknown>) => mockStackScreen(props) },
 }));
 
 const mockTrack = jest.fn();
@@ -67,6 +76,7 @@ function freshDraft(over: Partial<OnboardingDraft> = {}): OnboardingDraft {
   return {
     phone_e164: "+22507000000",
     display_name: "Yann",
+    email: null,
     neighborhood: "Cocody",
     country_code: "CI",
     origin_country_code: "CI",
@@ -100,6 +110,7 @@ describe("<PalaisRevealScreen /> — Story 2.6", () => {
     mockReplace.mockClear();
     mockTrack.mockClear();
     mockFinalize.mockClear();
+    mockStackScreen.mockClear();
     mockDraft = freshDraft();
   });
 
@@ -139,7 +150,10 @@ describe("<PalaisRevealScreen /> — Story 2.6", () => {
     expect(mockReplace).toHaveBeenCalledWith("/(tabs)");
   });
 
-  it("started_at null → time_to_complete_seconds = 0", async () => {
+  it("started_at null → time_to_complete_seconds = -1 (sentinelle KPI)", async () => {
+    // Post-P17 (code review 2026-05-17) : sentinel `-1` au lieu de `0` quand
+    // started_at est null, pour ne pas polluer la funnel KPI Kidam avec un
+    // faux zéro.
     mockDraft = freshDraft({ started_at: null });
     const instance = render();
     const cta = instance.root.findByProps({ testID: "palais-reveal-continue" });
@@ -150,10 +164,14 @@ describe("<PalaisRevealScreen /> — Story 2.6", () => {
       ([e]) => (e as { name: string }).name === "onboarding_completed",
     );
     const props = (call?.[0] as { properties: { time_to_complete_seconds: number } }).properties;
-    expect(props.time_to_complete_seconds).toBe(0);
+    expect(props.time_to_complete_seconds).toBe(-1);
   });
 
-  it("finalize throw → error visible + pas de navigation", async () => {
+  it("finalize throw → error visible + pas de navigation + onboarding_completed NON émis", async () => {
+    // P-22 round 3 — Le track `onboarding_completed` doit être émis APRÈS le
+    // succès de `finalizeOnboarding`, jamais avant. Si finalize throw, le funnel
+    // KPI Kidam ne doit PAS s'incrémenter (sinon décorrélation taux finalize
+    // réel vs taux reporté).
     mockFinalize.mockRejectedValueOnce(new Error("BOOM"));
     const instance = render();
     const cta = instance.root.findByProps({ testID: "palais-reveal-continue" });
@@ -161,5 +179,20 @@ describe("<PalaisRevealScreen /> — Story 2.6", () => {
       await (cta.props.onPress as () => Promise<void>)();
     });
     expect(mockReplace).not.toHaveBeenCalled();
+    const completedCall = mockTrack.mock.calls.find(
+      ([e]) => (e as { name: string }).name === "onboarding_completed",
+    );
+    expect(completedCall).toBeUndefined();
+  });
+
+  it("P-24 — Stack.Screen reçoit gestureEnabled=true au mount (pas en submitting)", () => {
+    // P-21 round 3 — Sans ce test, P-24 régresse silencieusement (le mock
+    // précédent rendait null sans capturer `options`).
+    render();
+    expect(mockStackScreen).toHaveBeenCalled();
+    const lastCall = mockStackScreen.mock.calls.at(-1)?.[0] as
+      | { options?: { gestureEnabled?: boolean } }
+      | undefined;
+    expect(lastCall?.options?.gestureEnabled).toBe(true);
   });
 });

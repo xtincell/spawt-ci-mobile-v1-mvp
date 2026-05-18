@@ -5,6 +5,7 @@
 // Secrets attendus côté Supabase Edge env :
 //   TERMII_API_KEY       — clé Termii (jamais committée)
 //   TERMII_SENDER_ID     — sender ID Termii ("SPAWT" ou équivalent approuvé)
+//   ALLOWED_ORIGINS      — CSV des origins web autorisées (P-11)
 //   SUPABASE_URL         — injecté par défaut
 //   SUPABASE_SERVICE_ROLE_KEY — injecté par défaut
 //
@@ -19,83 +20,137 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 // @ts-expect-error — Deno global
-declare const Deno: { env: { get(name: string): string | undefined } };
+declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Promise<Response> | Response) => void };
 
 interface SendPayload {
   phone_e164: string;
 }
 
-const PHONE_RE = /^\+[1-9]\d{9,14}$/;
+// P8 — aligné avec migration 0009 (^\+[1-9]\d{8,14}$).
+const PHONE_RE = /^\+[1-9]\d{8,14}$/;
 const RATE_LIMIT_PHONE_PER_HOUR = 5;
 const RATE_LIMIT_IP_PER_HOUR = 20;
 
-function json(body: unknown, status = 200): Response {
+// P-11 — CORS restreint via `ALLOWED_ORIGINS` (CSV). Pas de wildcard `*` car
+// `authorization` est dans `allow-headers` et un browser tier pourrait alors
+// brûler le quota SMS d'une victime.
+function readAllowedOrigins(): string[] {
+  const raw = Deno.env.get("ALLOWED_ORIGINS");
+  if (!raw) return [];
+  return raw.split(",").map((o) => o.trim()).filter((o) => o.length > 0);
+}
+
+function corsHeaders(req: Request): Record<string, string> {
+  const allowed = readAllowedOrigins();
+  const origin = req.headers.get("origin");
+  // P-09 — Une origin inconnue (ou absente) ne doit JAMAIS être reflétée par
+  // `allowed[0]` : ça crée un header CORS contradictoire (le browser bloque,
+  // mais on a quand même répondu une whitelisted origin au mauvais demandeur).
+  // On retourne toujours `"null"` pour toute origin non-whitelistée.
+  const reflect = origin && allowed.includes(origin) ? origin : "null";
+  return {
+    "access-control-allow-origin": reflect,
+    "access-control-allow-headers": "authorization, apikey, content-type",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "vary": "origin",
+  };
+}
+
+function json(body: unknown, req: Request, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...corsHeaders(req) },
   });
 }
 
-// @ts-expect-error — Deno serve
-Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+export async function handleRequest(req: Request): Promise<Response> {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(req) });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+      status: 405,
+      headers: { "content-type": "application/json", allow: "POST, OPTIONS", ...corsHeaders(req) },
+    });
+  }
 
   let payload: SendPayload;
   try {
     payload = (await req.json()) as SendPayload;
   } catch {
-    return json({ error: "invalid_json" }, 400);
+    return json({ error: "invalid_json" }, req, 400);
   }
 
   if (!payload?.phone_e164 || !PHONE_RE.test(payload.phone_e164)) {
-    return json({ error: "invalid_phone" }, 400);
+    return json({ error: "invalid_phone" }, req, 400);
   }
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  // P5 — Prioriser les headers IP des proxies trusted (Cloudflare, reverse-proxy)
+  // avant le `x-forwarded-for` qui est trivialement spoofable côté client.
+  const ip =
+    req.headers.get("cf-connecting-ip") ??
+    req.headers.get("x-real-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    null;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceRole) {
-    return json({ error: "edge_misconfigured" }, 500);
+    return json({ error: "edge_misconfigured" }, req, 500);
   }
   const admin = createClient(supabaseUrl, serviceRole);
 
   // Rate-limit : count des envois de la dernière heure.
+  // P-07 — Si la query Supabase échoue (RLS bug, table absente, transient), on
+  // ne peut pas garantir le rate-limit → reject 500 plutôt que de laisser passer
+  // un bypass silencieux (le `?? 0` aurait accepté l'envoi).
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count: phoneCount } = await admin
+  const { count: phoneCount, error: phoneCountErr } = await admin
     .from("otp_attempts")
     .select("*", { count: "exact", head: true })
     .eq("phone_e164", payload.phone_e164)
     .gte("sent_at", oneHourAgo);
 
+  if (phoneCountErr) {
+    return json({ error: "rate_limit_check_failed", detail: phoneCountErr.message }, req, 500);
+  }
   if ((phoneCount ?? 0) >= RATE_LIMIT_PHONE_PER_HOUR) {
-    return json({ error: "rate_limited", scope: "phone", retry_after_seconds: 3600 }, 429);
+    return json({ error: "rate_limited", scope: "phone", retry_after_seconds: 3600 }, req, 429);
   }
 
   if (ip) {
-    const { count: ipCount } = await admin
+    const { count: ipCount, error: ipCountErr } = await admin
       .from("otp_attempts")
       .select("*", { count: "exact", head: true })
       .eq("ip", ip)
       .gte("sent_at", oneHourAgo);
+    if (ipCountErr) {
+      return json({ error: "rate_limit_check_failed", detail: ipCountErr.message }, req, 500);
+    }
     if ((ipCount ?? 0) >= RATE_LIMIT_IP_PER_HOUR) {
-      return json({ error: "rate_limited", scope: "ip", retry_after_seconds: 3600 }, 429);
+      return json({ error: "rate_limited", scope: "ip", retry_after_seconds: 3600 }, req, 429);
     }
   }
 
   // Mock mode pour CI/tests sans appeler Termii.
   if (Deno.env.get("MOCK_TERMII") === "true") {
     const mockId = `mock-${Date.now()}`;
-    await admin
+    // P-10 — check insertError, sinon SMS sent / DB row absent silencieusement.
+    const { error: insertError } = await admin
       .from("otp_attempts")
       .insert({ phone_e164: payload.phone_e164, ip, request_id: mockId });
-    return json({ success: true, request_id: mockId });
+    if (insertError) {
+      return json({ error: "audit_insert_failed", detail: insertError.message }, req, 500);
+    }
+    return json({ success: true, request_id: mockId }, req);
   }
 
   const termiiKey = Deno.env.get("TERMII_API_KEY");
   const termiiSender = Deno.env.get("TERMII_SENDER_ID") ?? "SPAWT";
-  if (!termiiKey) return json({ error: "edge_misconfigured" }, 500);
+  if (!termiiKey) return json({ error: "edge_misconfigured" }, req, 500);
 
+  // P-08 — Timeout 10s sur le fetch Termii : sans ça, l'Edge Function attend
+  // jusqu'au cap Supabase (60s) et le user voit un network error tardif tandis
+  // que le quota Termii peut être consommé partiellement.
+  const TERMII_TIMEOUT_MS = 10_000;
   let termiiResp: { pinId?: string; message?: string };
   try {
     const resp = await fetch("https://api.ng.termii.com/api/sms/otp/send", {
@@ -114,18 +169,30 @@ Deno.serve(async (req: Request) => {
         message_text: "Ton code SPAWT : < 1234 >",
         pin_type: "NUMERIC",
       }),
+      signal: AbortSignal.timeout(TERMII_TIMEOUT_MS),
     });
     termiiResp = (await resp.json()) as { pinId?: string; message?: string };
     if (!resp.ok || !termiiResp.pinId) {
-      return json({ error: "provider_error", detail: termiiResp.message }, 500);
+      return json({ error: "provider_error", detail: termiiResp.message }, req, 500);
     }
-  } catch (_err) {
-    return json({ error: "provider_error" }, 500);
+  } catch (err) {
+    const isTimeout = (err as { name?: string }).name === "TimeoutError" || (err as { name?: string }).name === "AbortError";
+    return json(
+      { error: isTimeout ? "provider_timeout" : "provider_error" },
+      req,
+      isTimeout ? 504 : 500,
+    );
   }
 
-  await admin
+  // P-10 — même garde pour le path Termii live.
+  const { error: insertError } = await admin
     .from("otp_attempts")
     .insert({ phone_e164: payload.phone_e164, ip, request_id: termiiResp.pinId });
+  if (insertError) {
+    return json({ error: "audit_insert_failed", detail: insertError.message }, req, 500);
+  }
 
-  return json({ success: true, request_id: termiiResp.pinId });
-});
+  return json({ success: true, request_id: termiiResp.pinId }, req);
+}
+
+Deno.serve(handleRequest);

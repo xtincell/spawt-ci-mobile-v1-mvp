@@ -8,8 +8,6 @@ import { useTheme } from "../../theme/ThemeProvider";
 interface Props {
   label: string;
   sub?: string;
-  /** ID stable pour key React — pas utilisé en styling. */
-  altKey: string;
   selected: boolean;
   onToggle: () => void;
   testID?: string;

@@ -42,6 +42,15 @@ const GENDERS: { id: Gender; labelKey: string }[] = [
 
 const AGE_RANGES: AgeRange[] = ["18-24", "25-34", "35-44", "45-54", "55+"];
 
+// P-24 round 3 — cap synchroniquement à 50 graphèmes pour qu'un user qui colle
+// un texte de 100 chars ne soit pas refusé silencieusement par la validation.
+const DISPLAY_FIELD_MAX_GRAPHEMES = 50;
+function capGraphemes(str: string, max: number): string {
+  const chars = Array.from(str);
+  if (chars.length <= max) return str;
+  return chars.slice(0, max).join("");
+}
+
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -52,12 +61,35 @@ export default function ProfileScreen() {
   const [name, setName] = useState(draft.display_name);
   const [neighborhood, setNeighborhood] = useState(draft.neighborhood);
 
+  // P25 — `country_code` et `gender` ne sont jamais null (types non-null,
+  // defaults CI / `non_renseigne`). Validation gardée sur les 3 vrais champs
+  // exigés (display_name + neighborhood ≥ 2 chars `[\p{L}\p{N}]` + age_range).
+  // P26 — exige au moins 1 lettre/chiffre dans le trim pour bloquer un nom
+  // composé uniquement d'emojis/symboles.
+  // P-29 — NAME_RE testé sur `.trim()` (et non la valeur brute) pour rester
+  // cohérent avec la longueur trimmed.
+  // P-30 — comptage en graphèmes (`Array.from(str)`) pour ne pas casser des
+  // emoji surrogate pairs UTF-16. Le maxLength TextInput est bumpé à 100
+  // (hard cap UTF-16) mais le `valid` borne à 50 graphèmes.
+  // P-23 round 3 — `NAME_RE.test(trimmed)` ne checke que la PRÉSENCE d'au moins
+  // une lettre/chiffre. Un nom `"a😀😀..."` (1 lettre + 49 emojis) passait. On
+  // exige désormais ≥ 2 graphèmes alphanumériques pour bloquer ce cas tout en
+  // restant tolérant aux apostrophes, traits d'union, espaces internationaux.
+  const NAME_RE = /[\p{L}\p{N}]/u;
+  const trimmedName = name.trim();
+  const trimmedNeighborhood = neighborhood.trim();
+  const nameLen = Array.from(trimmedName).length;
+  const neighborhoodLen = Array.from(trimmedNeighborhood).length;
+  const alphaCount = (s: string): number =>
+    Array.from(s).filter((c) => NAME_RE.test(c)).length;
   const valid =
-    name.trim().length >= 2 &&
-    neighborhood.trim().length >= 2 &&
-    draft.age_range !== null &&
-    draft.country_code !== null &&
-    draft.gender !== null;
+    nameLen >= 2 &&
+    nameLen <= 50 &&
+    alphaCount(trimmedName) >= 2 &&
+    neighborhoodLen >= 2 &&
+    neighborhoodLen <= 50 &&
+    alphaCount(trimmedNeighborhood) >= 2 &&
+    draft.age_range !== null;
 
   const onContinue = () => {
     if (!valid) return;
@@ -101,9 +133,13 @@ export default function ProfileScreen() {
           <TextInput
             value={name}
             onChangeText={(v) => {
-              setName(v);
-              setField("display_name", v);
+              // P-24 round 3 — cap à 50 graphèmes côté handler. Le maxLength
+              // TextInput=100 reste comme safety pour les emoji surrogate UTF-16.
+              const capped = capGraphemes(v, DISPLAY_FIELD_MAX_GRAPHEMES);
+              setName(capped);
+              setField("display_name", capped);
             }}
+            maxLength={100}
             placeholder={t("onboarding.name_placeholder")}
             placeholderTextColor={theme.colors.text.tertiary}
             testID="profile-name"
@@ -118,9 +154,12 @@ export default function ProfileScreen() {
           <TextInput
             value={neighborhood}
             onChangeText={(v) => {
-              setNeighborhood(v);
-              setField("neighborhood", v);
+              // P-24 round 3 — cap symmétrique au champ display_name.
+              const capped = capGraphemes(v, DISPLAY_FIELD_MAX_GRAPHEMES);
+              setNeighborhood(capped);
+              setField("neighborhood", capped);
             }}
+            maxLength={100}
             placeholder={t("onboarding.neighborhood_placeholder")}
             placeholderTextColor={theme.colors.text.tertiary}
             testID="profile-neighborhood"

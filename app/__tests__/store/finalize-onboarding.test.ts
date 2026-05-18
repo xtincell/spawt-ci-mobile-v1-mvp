@@ -51,6 +51,7 @@ function freshDraft(over: Partial<OnboardingDraft> = {}): OnboardingDraft {
   return {
     phone_e164: "+22507000000",
     display_name: "Yann",
+    email: null,
     neighborhood: "Cocody",
     country_code: "CI",
     origin_country_code: "CI",
@@ -121,5 +122,31 @@ describe("finalizeOnboarding — Story 2.6", () => {
     expect(draft.phone_e164).toBe("");
     expect(draft.started_at).toBeNull();
     expect(draft.consent.cgv_accepted_at).toBeNull();
+  });
+
+  // DN-5 round 3 — neutral résolu (value=0) compte comme une vraie réponse
+  // dans la confidence. Seul le skip explicite (sentinel null) est exclu.
+  it("DN-5 — value=0 (neutral résolu) compte dans answeredCount confidence", async () => {
+    // 5 réponses, dont une avec value=0 (cartes posa + néga équilibrées).
+    const fullyAnswered = freshDraft();
+    await useSpawterStore.getState().finalizeOnboarding(fullyAnswered);
+    const palaisFull = useSpawterStore.getState().palais;
+
+    // Reset puis run avec 1 skip explicite.
+    useSpawterStore.setState({ spawter: null, palais: null, spawts: [], hydrating: false });
+    const oneSkipped = freshDraft({
+      calibration_answers: {
+        racines_horizons: -0.4,
+        taniere_nomade: 0.4,
+        exigeant_enthousiaste: null, // skip
+        foule_secret: 0.4,
+        maquis_table: -0.4,
+      },
+    });
+    await useSpawterStore.getState().finalizeOnboarding(oneSkipped);
+    const palaisSkip = useSpawterStore.getState().palais;
+
+    // 5 réponses (dont 1 neutral résolu) > 4 réponses (1 skip) côté confidence.
+    expect(palaisFull?.confidence_score).toBeGreaterThan(palaisSkip?.confidence_score ?? 0);
   });
 });

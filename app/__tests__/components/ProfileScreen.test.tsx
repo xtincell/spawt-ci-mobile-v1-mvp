@@ -54,6 +54,7 @@ function freshDraft(overrides: Partial<OnboardingDraft> = {}): OnboardingDraft {
   return {
     phone_e164: "",
     display_name: "",
+    email: null,
     neighborhood: "",
     country_code: "CI",
     origin_country_code: null,

@@ -8,6 +8,7 @@ import type { PalaisAxis } from "../types/palais";
 const initial: OnboardingDraft = {
   phone_e164: "",
   display_name: "",
+  email: null,
   neighborhood: "",
   country_code: "CI",
   origin_country_code: null,
@@ -30,7 +31,8 @@ const initial: OnboardingDraft = {
 interface DraftStore {
   draft: OnboardingDraft;
   setField: <K extends keyof OnboardingDraft>(key: K, value: OnboardingDraft[K]) => void;
-  setCalibration: (axis: PalaisAxis, value: number) => void;
+  // P-33 — sentinel `null` autorisé pour skip explicite.
+  setCalibration: (axis: PalaisAxis, value: number | null) => void;
   /** Story 2.2 / FR-040 — historise un timestamp consent pré-auth dans le draft. */
   setConsent: (kind: "cgv" | "geoloc", at: string | null) => void;
   reset: () => void;

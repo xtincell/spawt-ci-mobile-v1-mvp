@@ -440,4 +440,18 @@ claude-opus-4-7[1m] (2026-05-17 — batch Epic 2 dev)
 | Date | Auteur | Changement |
 |---|---|---|
 | 2026-05-17 | claude-opus-4-7[1m] | Story 2.5 livrée : migration 0008 user_palais + OnbCard primitive + calibration-mapping moteur pur + UI OnbMidfi 5 questions multi-select. Critical path Epic 2 §5.2 #4 résolu. |
+| 2026-05-17 | code-review | Review Epic 2 — 7 findings sur cette story (1 décision UX + 1 patch + 5 defer). Détail : [code-review-2026-05-17-epic2.md](code-review-2026-05-17-epic2.md). |
+
+### Review Findings (2026-05-17)
+
+Source consolidée : [`code-review-2026-05-17-epic2.md`](code-review-2026-05-17-epic2.md).
+
+- [ ] [Review][Decision] **D4** — `canContinue = true` (toujours) contredit AC #1 spec "≥1 carte sélectionnée → Suivant actif". Imposer ≥1 OU ajouter "Pas d'avis" explicite OU accepter l'état actuel ? [app/app/(onboarding)/calibration.tsx:38]
+- [ ] [Review][Patch] **P23a** — `calibration.tsx` `useMemo` importé non utilisé [app/app/(onboarding)/calibration.tsx:5263]
+- [x] [Review][Defer] **ChatBubble re-render à chaque step calibration** — spec demande "rendu une seule fois au mount", micro-perf
+- [x] [Review][Defer] **PGlite tests scaffold-only `describe.skip`** — installer dep + livrer assertions concrètes Story 2.5a
+- [x] [Review][Defer] **`user_palais.axe_*` typés `real`** — risque drift EMA Epic 4, schema review différée
+- [x] [Review][Defer] **`user_palais.dominant_axes` CHECK ne valide pas domaine** — durcissement Epic 5
+- [x] [Review][Defer] **`user_palais.archetype_id` free-form sans FK** — créer table `archetypes` Epic 5
+- [x] [Review][Defer] **`user_palais.stade` CHECK dupliquait enum `spawters`** — extraire TYPE Postgres `stade_enum`
 

@@ -1,4 +1,4 @@
-// Story 2.3 — AC #8-1 : <PhoneScreen /> émet auth_otp_sent en démo + valide format CIV.
+// Story 2.3 + 2.3a — AC #8-1 : <PhoneScreen /> mode démo + Google/Apple buttons rendus.
 
 import { type ReactNode } from "react";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -35,11 +35,38 @@ jest.mock("../../src/lib/data-source", () => ({
   },
 }));
 
+// Story 2.3a — mock des composants Google/Apple pour éviter les deps natives
+// (expo-auth-session / expo-apple-authentication / expo-crypto) en environnement
+// Jest. On vérifie seulement leur **présence** dans l'arbre — les tests propres
+// vivent côté composants ou en E2E.
+jest.mock("../../src/components/auth/GoogleButton", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    GoogleButton: () => (
+      <Pressable testID="auth-google-button">
+        <Text>google-mock</Text>
+      </Pressable>
+    ),
+  };
+});
+jest.mock("../../src/components/auth/AppleButton", () => {
+  const { Pressable, Text, Platform } = jest.requireActual("react-native");
+  return {
+    AppleButton: () =>
+      Platform.OS === "ios" ? (
+        <Pressable testID="auth-apple-button">
+          <Text>apple-mock</Text>
+        </Pressable>
+      ) : null,
+  };
+});
+
 import PhoneScreen from "../../app/(onboarding)/phone";
 
 interface TestRendererInstanceLike {
   root: {
     findByProps: (props: Record<string, unknown>) => { props: Record<string, unknown> };
+    findAllByProps: (props: Record<string, unknown>) => Array<{ props: Record<string, unknown> }>;
   };
 }
 
@@ -52,7 +79,7 @@ function render(): TestRendererInstanceLike {
   return raw;
 }
 
-describe("<PhoneScreen /> — Story 2.3 (mode démo)", () => {
+describe("<PhoneScreen /> — Story 2.3 + 2.3a (mode démo)", () => {
   beforeEach(() => {
     mockTranslate.mockClear();
     mockPush.mockClear();
@@ -98,5 +125,21 @@ describe("<PhoneScreen /> — Story 2.3 (mode démo)", () => {
     });
     const cta = instance.root.findByProps({ testID: "phone-send" });
     expect(cta.props.disabled).toBe(false);
+  });
+
+  // Story 2.3a AC #1+#2 — méthodes secondaires Google/Apple rendues sous l'OTP.
+  it("Google button rendu sous le primary OTP", () => {
+    const instance = render();
+    const google = instance.root.findByProps({ testID: "auth-google-button" });
+    expect(google).toBeTruthy();
+  });
+
+  it("Apple button rendu sur iOS (via mock isAvailable)", () => {
+    // P-06 — assertion stricte (>0) au lieu de tautologie `>= 0`. Le mock
+    // AppleButton ne rend que sur Platform.OS === "ios" ; jest-expo configure
+    // Platform.OS = "ios" par défaut (preset).
+    const instance = render();
+    const matches = instance.root.findAllByProps({ testID: "auth-apple-button" });
+    expect(matches.length).toBeGreaterThan(0);
   });
 });

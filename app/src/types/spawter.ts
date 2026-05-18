@@ -43,6 +43,9 @@ export interface Spawter {
 export interface OnboardingDraft {
   phone_e164: string;
   display_name: string;
+  /** Email retourné par Apple Sign-In à la 1re auth (P-04, jamais re-renvoyé
+   *  par Apple après). Persiste dans le draft pour account recovery. */
+  email: string | null;
   neighborhood: string;
   country_code: CountryCode;
   origin_country_code: CountryCode | null;
@@ -54,8 +57,10 @@ export interface OnboardingDraft {
     cgv_accepted_at: string | null;
     geoloc_consent_at: string | null;
   };
-  /** Réponses aux 5 questions de calibrage (PRD §20.2) */
-  calibration_answers: Record<import("./palais").PalaisAxis, number>;
+  /** Réponses aux 5 questions de calibrage (PRD §20.2).
+   *  Sentinel `null` = skip explicite ("Pas d'avis") — distingué d'un `0`
+   *  (réponse neutre via cartes sélectionnées balanced). P-33 (review 2026-05-18). */
+  calibration_answers: Record<import("./palais").PalaisAxis, number | null>;
   /** ms epoch posé au tap CTA Splash (Story 2.6). Sert au calcul
    *  `time_to_complete_seconds` à l'émission `onboarding_completed`. */
   started_at: number | null;

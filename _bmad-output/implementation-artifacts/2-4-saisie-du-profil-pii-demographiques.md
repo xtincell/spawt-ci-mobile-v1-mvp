@@ -338,4 +338,15 @@ claude-opus-4-7[1m] (2026-05-17 — batch Epic 2 dev)
 | Date | Auteur | Changement |
 |---|---|---|
 | 2026-05-17 | claude-opus-4-7[1m] | Story 2.4 livrée : profile complet 6 champs + emit step_completed + tests. |
+| 2026-05-17 | code-review | Review Epic 2 — 3 findings sur cette story (3 patches mineurs, sinon clean). Détail : [code-review-2026-05-17-epic2.md](code-review-2026-05-17-epic2.md). |
+
+### Review Findings (2026-05-17)
+
+Source consolidée : [`code-review-2026-05-17-epic2.md`](code-review-2026-05-17-epic2.md). Story la plus propre d'Epic 2 — uniquement des patches mineurs.
+
+- [ ] [Review][Patch] **P24** — `OnbCard.tsx` prop `altKey` required mais jamais utilisée dans le body [app/src/components/primitives/OnbCard.tsx:7319-7329]
+- [ ] [Review][Patch] **P25** — `profile.tsx` validation `country_code !== null` + `gender !== null` sont dead (types non-null garantis) [app/app/(onboarding)/profile.tsx:55-60]
+- [ ] [Review][Patch] **P26** — `display_name` sans `maxLength` cap ni filtre emoji-only [app/app/(onboarding)/profile.tsx:6722]
+- [x] [Review][Defer] **hitSlop=4 au lieu de 8 spec** — minor a11y, polish ultérieur
+- [x] [Review][Defer] **`OnboardingDraft.gender` defaulted `non_renseigne`** — biaise KPI ; decision Kidam pendante
 

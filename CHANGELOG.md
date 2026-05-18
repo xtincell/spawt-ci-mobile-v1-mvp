@@ -4,6 +4,191 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.2.6 — Story 2.3a round 3 : 31 patches code review Epic 2 (2026-05-18)
+
+**Round 3 du code review Epic 2 (2026-05-18) : 31/31 patches appliqués (P-01 → P-31 round 3), 14 defers tracés (D-1 à D-14 round 3 dans [`deferred-work.md`](_bmad-output/implementation-artifacts/deferred-work.md)), 5 decisions en attente sign-off humain (DN-1 audit verbal Alexandre wording Tantie Rose CGV/géoloc, DN-2 doc drift Kidam `events.md`, DN-3 voix du Chat post-Google/Apple, DN-4 ARTCI `revokeConsent`, DN-5 sémantique filter `v !== 0` skip vs neutral résolu). Story 2.3a reste en `review` en attente sign-off triple Stéphanie / Kidam / Alexandre. Acceptance Auditor confirme **33/34 patches Round 2 corrects** (P-19 reclassé P-12 round 3 — refactor cosmétique). Triple gate verte (tsc 0 erreur, lint:vocab ✓, i18n:check ✓, **97 tests passed / 4 skipped / 0 failed**).**
+
+### OAuth / Crypto (P-01 → P-05)
+- `fix(auth)` P-01 — `GoogleButton.tsx` + `AppleButton.tsx` : `generateSecureNonce()` refactor sur `Crypto.getRandomBytes(16)` (expo-crypto) au lieu de `globalThis.crypto.getRandomValues`. RN Hermes n'expose pas `globalThis.crypto` nativement → le pattern précédent désactivait silencieusement les boutons sur device réel.
+- `fix(auth)` P-02 — `GoogleButton.tsx` : ajout `processedTokenRef` pour idempotency du useEffect réponse Google. Évite que `signInWithIdToken` soit appelé 2× si le parent recrée `onError` à chaque render.
+- `fix(auth)` P-03 — `GoogleButton.tsx` : `platformClientId` Platform-aware (`iOS → iosClientId`, `Android → androidClientId`, web → webClientId). Un `iosClientId` truthy sur Android ne configure plus rien silencieusement.
+- `fix(auth)` P-04 — `GoogleButton.tsx` : `response.type === "error"` propage désormais via `onError?.("auth.error_google_unavailable")`. Plus de bouton silencieux post-error.
+- `fix(auth)` P-05 — `GoogleButton.tsx` : `useAuthRequest` config mémoïsée via `useMemo([webClientId, iosClientId, androidClientId, hashedNonce])`. Plus de re-init à chaque render parent.
+
+### Edge Functions security (P-06 → P-11)
+- `fix(auth)` P-06 — `otp-verify/index.ts` : `updateUserById` error check + un-burn + return 500 `session_provisioning_failed`. Plus de continuation silencieuse avec un user sans email valide.
+- `fix(auth)` P-07 — `otp-send/index.ts` : `phoneCount` query error check explicite → 500 `rate_limit_check_failed`. Bypass rate-limit phone bloqué si Supabase query intermittent. Idem `ipCount`.
+- `fix(auth)` P-08 — `otp-send/index.ts` + `otp-verify/index.ts` : `AbortSignal.timeout(10_000)` sur les fetch Termii. Plus d'attente jusqu'au cap Supabase 60s + return 504 `provider_timeout` distinct.
+- `fix(auth)` P-09 — `otp-send/index.ts` + `otp-verify/index.ts` : CORS fallback `allowed[0]` retiré → toujours `"null"` pour origin non-whitelistée. Plus de comportement contradictoire (browser bloque + serveur a quand même répondu une whitelisted origin au mauvais demandeur).
+- `fix(auth)` P-10 — `otp-verify/index.ts` : `isTransient` détecte aussi les erreurs `createUser` sans `code` ni `status` via regex sur le message (`/timeout|network|fetch|ECONN|temporarily/i`). Plus de classification "duplicate" erronée pour les CrashedRPC.
+- `fix(auth)` P-11 — `otp-verify/index.ts` : `unburn()` log `console.warn` si l'update échoue. Diagnostic en cas de lock-out user.
+
+### OTP screen (P-12 → P-16)
+- `refactor(auth)` P-12 — `otp.tsx` : `setAttempts` simple read+set `const nextAttempts = attempts + 1; setAttempts(nextAttempts)` au lieu du functional setter alambiqué de Round 2. Le gate `submitting` empêche déjà le double-tap.
+- `fix(auth)` P-13 — `otp.tsx` : split `abortRef` en `submitAbortRef` + `resendAbortRef`. Un tap rapide submit→resend ne tue plus le fetch de l'autre flow.
+- `fix(auth)` P-14 — `otp.tsx` : `useEffect([ready, friction, submitting])` (au lieu de `[ready]` seul). Plus d'auto-submit malgré `friction = true` si attempts atteint 3 entre setDigits et l'effet.
+- `fix(auth)` P-15 — `otp.tsx` : `onResend` reset `error` au début. Plus d'erreur précédente affichée pendant le nouveau call.
+- `fix(auth)` P-16 — `otp.tsx` + `phone.tsx` : `maskPhone` retourne `"REDACTED"` au lieu du numéro en clair quand `length < 6`. Plus de fuite analytics sur deep-link malformé.
+
+### Phone screen (P-17 + P-18)
+- `fix(auth)` P-17 — `phone.tsx` : `timeoutRef` cleanup avant chaque nouveau `setTimeout` + dans cleanup unmount. Plus de timer orphelin qui aborterait un nouveau fetch.
+- `fix(auth)` P-18 — `phone.tsx` : `setSending(true)` guard dans la branche démo. Plus de double-push vers `/otp?demo=1` sur tap rapide.
+
+### Calibration / Palais-Reveal (P-19 → P-22)
+- `fix(onboarding)` P-19 — `palais-reveal.tsx` : `mountedRef` guard dans `onContinue` catch. Plus de setState-after-unmount React warning.
+- `fix(onboarding)` P-20 — `palais-reveal.tsx` : `finally { setSubmitting(false) }` ajouté. Le CTA ne reste pas en submitting visuel pendant la transition `router.replace`.
+- `test(onboarding)` P-21 — `PalaisRevealScreen.test.tsx` : `mockStackScreen` capture `options` passées à `<Stack.Screen>` + assertion `gestureEnabled=true` au mount. Régression P-24 désormais détectable.
+- `test(onboarding)` P-22 — `PalaisRevealScreen.test.tsx` : test "finalize throw" assert désormais que `onboarding_completed` n'est PAS émis. Couverture explicite du timing track APRÈS finalize success.
+
+### Profile (P-23 + P-24)
+- `fix(onboarding)` P-23 — `profile.tsx` : `alphaCount(trimmedName) >= 2` au lieu de `NAME_RE.test(trimmedName)` (présence d'1 lettre/chiffre). Bloque les noms `"a😀😀..."` (1 lettre + N emoji).
+- `fix(onboarding)` P-24 — `profile.tsx` : `capGraphemes(v, 50)` synchroniquement dans les onChangeText display_name + neighborhood. L'user ne peut plus dépasser la limite et se voir refuser silencieusement.
+
+### Storage / Store (P-25 + P-26)
+- `fix(infra)` P-25 — `storage.ts` : `migrationPromise` reset à null sur rejection. Plus de blocage permanent des writes consent si une migration crash.
+- `feat(infra)` P-26 — `spawter-store.ts` : `recordConsent` retourne `Promise<boolean>` (true = write effectif, false = no-op set-once). Les callers analytics peuvent différencier les replays idempotents des écritures réelles.
+
+### Apple-specific (P-27 + P-28)
+- `fix(auth)` P-27 — `AppleButton.tsx` : `if (!existingName) setDraftField("display_name", ...)`. N'écrase plus un nom déjà saisi par l'user avant Apple Sign-In.
+- `fix(auth)` P-28 — `AppleButton.tsx` : `capGraphemes(composed, 50)` sur le nom Apple. Plus de pousser un draft hors-borne ProfileScreen.
+
+### Consent (P-29 + P-30)
+- `fix(onboarding)` P-29 — `consent.tsx` : try/catch sur `recordConsent` + setError visible si throw. Plus de continuation silencieuse sur erreur store.
+- `fix(onboarding)` P-30 — `consent.tsx` : `mountedRef` guard + `setError` state. Plus de setState-after-unmount post `router.push`.
+
+### Tests (P-31)
+- `test(auth)` P-31 — `OtpScreen.test.tsx` : test live mode `setSession failure` scaffold `it.skip` car `isSupabaseConfigured` mocké statiquement au module-level rend le toggle live/demo non-trivial dans un test isolé. Defer D-14 round 3 : suite live dédiée Sprint 2 (`jest.resetModules` + ré-import).
+
+### Verify
+
+| Audit | Résultat |
+|---|---|
+| `cd app && npx tsc --noEmit` | ✓ 0 erreur |
+| `cd app && npm run lint:vocab` | ✓ vocab respecté |
+| `cd app && npm run i18n:check` | ✓ aucune string FR hardcodée |
+| `cd app && npm test` | ✓ **97 tests / 18 suites passent + 4 skipped + 0 failed** |
+
+### Decisions resolved (DN-1 → DN-5)
+
+- **DN-1 (Alexandre)** — Wording temporaire CGV/géoloc validé en self-audit brand contre les invariants `project-context.md` (voix Tantie Rose conforme). Sign-off Alexandre formel = étape process humaine avant merge `main`, pas de patch code requis.
+- **DN-2 (Kidam)** — `docs(analytics)` `documentation/analytics/events.md` : table `calibration_answered` mise à jour avec `value (-0.4 | 0 | +0.4 | null)` + `skipped?: boolean` + blockquote sémantique (skip vs neutral résolu vs directionnel). Filtrage downstream documenté.
+- **DN-3 (Alexandre)** — Voix du Chat post-Google/Apple : `chat(voice)` `chat-voice.ts:CHAT_MOMENTS` — commentaire de traçabilité ajouté actant la décision « réutiliser `post_calibration` » (aucun écran post-auth ne monte ChatBubble, le Chat parle uniquement à `palais-reveal` qui suit l'auth dans le funnel). Pas de nouvelles clés i18n.
+- **DN-4 (juriste/Stéphanie)** — ARTCI compliance set-once : `docs(infra)` `spawter-store.ts:recordConsent` JSDoc enrichi avec le contrat set-once + le path explicite de révocation via DELETE /me (Cahier §5.2, soft-delete + anonymisation J+30, à livrer avant beta publique). L'invariant set-once protège l'auditabilité ARTCI du timestamp ; un `revokeConsent` séparé casserait cette garantie.
+- **DN-5 (Stéphanie/Kidam)** — `fix(onboarding)` filter sémantique : `palais-reveal.tsx:45-49` + `spawter-store.ts:152-156` passent à `(v): v is number => v !== null` (drop le `&& v !== 0`). Le `value=0` issu d'un mix posa+néga délibéré est désormais compté comme une vraie réponse dans la confidence (cohérent avec sa nature de signal équilibré). Seul le skip explicite (sentinel `null`, P-33) est exclu. Test dédié `finalize-onboarding.test.ts:DN-5` lock le nouveau comportement.
+
+### Triple sign-off
+
+Toujours pending (process humain). **Statut story 2.3a : reste `review`** — l'intégralité des patches + décisions est techniquement résolue, attente sign-off formel Stéphanie/Kidam/Alexandre avant merge `main`.
+
+---
+
+## v1.2.5 — Story 2.3a round 2 : 34 patches code review Epic 2 (2026-05-18)
+
+**Round 2 du code review Epic 2 (2026-05-18) : 34/34 patches appliqués (P-01 → P-34), 16 defers tracés [`deferred-work.md`](_bmad-output/implementation-artifacts/deferred-work.md), 4 decisions résolues (D-A → P-32 wording temporaire, D-B → defer D-16 SMTP sandbox Stéphanie, D-C → P-33 sentinel null, D-D → P-34 variante b autoconfig). Story 2.3a repasse en `review` pour sign-off Stéphanie / Kidam / Alexandre. Sécurité OAuth durcie (nonce CSPRNG strict, anti-replay OIDC, CORS Edge Functions restreint via `ALLOWED_ORIGINS`, mismatch user/session bloqué, compensation un-burn OTP). UX OTP affinée (codes erreurs distincts `expired`/`already_used`/`invalid`, paste handler corrigé, AbortController actif, friction reset au resend). Calibration : sentinel `null` distingue skip explicite de neutral résolu. Profile : validation graphème pour emoji surrogate. Storage : migration race-safe via promesse mémoïsée. Triple gate verte (95 tests passed / 3 skipped / 0 failed) + smoke web bundle OK (2.6 MB).**
+
+### OAuth security (P-01 → P-06)
+- `fix(auth)` P-01 — `GoogleButton.tsx` + `AppleButton.tsx` : nonce CSPRNG strict (`globalThis.crypto.getRandomValues`), hard-fail `auth.error_crypto_unavailable` si indisponible. Plus de fallback `Math.random()` qui défait l'anti-replay OIDC d'un identityToken Apple/Google volé.
+- `fix(auth)` P-02 — `GoogleButton.tsx` : `WebBrowser.maybeCompleteAuthSession()` déplacé du top-level vers un `useEffect(() => {...}, [])`. Évite le side-effect à chaque import / hot-reload.
+- `fix(auth)` P-03 — `GoogleButton.tsx` : prop `disabled` du bouton gate sur `hashedNonce !== null` + `cryptoReady`. Évite la race entre tap user et résolution `Crypto.digestStringAsync` (Supabase rejetait le token en silence sans nonce).
+- `fix(auth)` P-04 — `AppleButton.tsx` : persiste `credential.email` dans `draft.email` (Apple ne le renvoie qu'à la 1re auth → account recovery). Ajout champ `OnboardingDraft.email: string | null`.
+- `fix(auth)` P-05 — `GoogleButton.tsx` + `AppleButton.tsx` : `auth_signed_in { method, demo: !isSupabaseConfigured }` émis aussi pour Google + Apple (aligné `events.md:128`).
+- `test(auth)` P-06 — `PhoneScreen.test.tsx` : tautologie `length >= 0` remplacée par assertion stricte `> 0` sur le bouton Apple.
+
+### Edge Functions (P-07 → P-11)
+- `fix(auth)` P-07 — `supabase/functions/otp-verify/index.ts` : si provisioning user (createUser/listUsers) ou émission session (generateLink/verifyOtp) échoue après le burn atomique du `pinId`, on UN-burn (`verified_at = null`) pour permettre une nouvelle tentative. Trade-off : on prend replay-risk (fenêtre minuscule, pinId Termii TTL 5 min) vs user-locked-out.
+- `fix(auth)` P-08 — `otp-verify/index.ts` : assertion `verifyData.session.user.id === userId` avant de renvoyer les tokens. Bloque le mismatch silencieux lié à une collision sur l'email synthétique (cf. defer D-16).
+- `fix(auth)` P-09 — `otp-verify/index.ts` : `createUser` distingue erreurs `user_already_exists` / `phone_exists` / `email_exists` (continue → listUsers OK) vs transients 5xx/429 (return 500 `provisioning_transient_error` + un-burn).
+- `fix(auth)` P-10 — `otp-send/index.ts` : check `insertError` après `.insert()` (mock + live) — return 500 `audit_insert_failed` au lieu de SMS sent / DB row absent silencieusement.
+- `fix(auth)` P-11 — `otp-send/index.ts` + `otp-verify/index.ts` : **CORS strict** via env `ALLOWED_ORIGINS` (CSV), origin reflétée jamais `*`. Empêche un site malveillant de POST avec l'anon key et brûler le quota SMS d'une victime. READMEs mis à jour.
+
+### OTP screen (P-12 → P-19)
+- `fix(auth)` P-12 — `otp.tsx` : distinction des codes d'erreur server (`no_pending_otp` → `auth.error_otp_expired`, `otp_already_used` → `auth.error_otp_already_used`, autres 400/401 → `auth.error_invalid_otp`). 2 nouvelles clés i18n.
+- `fix(auth)` P-13 + P-15 — `otp.tsx` : `abortRef` stocké via `useRef` et `.abort()` dans cleanup (onSubmit + onResend). AbortError swallowed silencieusement.
+- `fix(auth)` P-14 — `otp.tsx` : `setCooldown(RESEND_COOLDOWN_S)` déplacé APRÈS `resp.ok` dans `onResend`. Plus de blocage 30s si fetch échoue.
+- `fix(auth)` P-16 — `otp.tsx` : paste handler distribue désormais à partir de `cell[0]` quelle que soit la cellule du paste. Plus de clobber des premiers digits sur iOS auto-fill SMS dump arrivant cell[3].
+- `fix(auth)` P-17 — `otp.tsx` : `onResend` reset `attempts` en plus de `cooldown` au succès. La friction ne persiste plus post-resend.
+- `fix(auth)` P-19 — `otp.tsx` : `setAttempts` via functional setter `(a) => a + 1`. Plus de stale closure sur double-tap.
+
+### Phone screen (P-18 + P-20 + P-21)
+- `fix(auth)` P-18 — `phone.tsx` : `setOauthError(null)` au tap "Recevoir mon code". Plus d'erreur Google/Apple périmée pendant le flow OTP.
+- `fix(auth)` P-20 — `phone.tsx` : `AbortController` + `setTimeout(30_000)` sur le fetch `otp-send`. Affiche `auth.error_network` après timeout.
+- `fix(auth)` P-21 — `phone.tsx` : `mountedRef` guard + cleanup `.abort()` au unmount.
+
+### Calibration / Palais-Reveal (P-22 → P-28 + P-33)
+- `fix(onboarding)` P-22 — `palais-reveal.tsx` : `track("onboarding_completed")` déplacé APRÈS `await finalizeOnboarding()` réussi. Le funnel KPI Kidam ne gonfle plus vs taux de finalize réel.
+- `fix(onboarding)` P-23 — `palais-reveal.tsx` : `submittingRef = useRef(false)` + `useEffect([submitting])`. Plus de stale closure dans le BackHandler listener (race entre commit React et back press).
+- `fix(onboarding)` P-24 — `palais-reveal.tsx` : `<Stack.Screen options={{ gestureEnabled: !submitting }} />` ajouté pour bloquer aussi le swipe-back iOS pendant finalize.
+- `fix(onboarding)` P-25 — `calibration.tsx` : flag `skipped: true` dans `track("calibration_answered")` pour distinguer skip explicite vs neutral résolu via cartes. Type `CalibrationAnswered.skipped?: boolean` ajouté.
+- `test(onboarding)` P-26 — `CalibrationScreen.test.tsx` : test `Pas d'avis` → assert `value: null`, `skipped: true`, `setCalibration(axis, null)`.
+- `fix(onboarding)` P-27 — `palais-reveal.tsx` : `toRadar` clamp `[0, 1]` + null → 0.5. Garde contre drift store (NaN, valeur hors plage).
+- `fix(onboarding)` P-28 — `spawter-store.ts` : `recordConsent` log `__DEV__ console.warn` si caller tente un revoke (`accepted=false`) après timestamp set. Documente l'invariant set-once ARTCI (trigger SQL `assert_consent_set_once`).
+- `feat(onboarding)` **P-33** (ex-D-C) — sentinel `null` pour calibration skip explicite. `OnboardingDraft.calibration_answers: Record<axis, number | null>`, `setCalibration(axis, value: number | null)`, `CalibrationAnswered.value: -0.4 | 0 | 0.4 | null`. `palais-reveal.tsx` + `spawter-store.ts` filtrent `(v): v is number => v !== null && v !== 0`. `finalizeOnboarding` normalise `null → 0` à la frontière DB (axe_* `REAL NOT NULL`).
+
+### Profile (P-29 + P-30)
+- `fix(onboarding)` P-29 — `profile.tsx` : `NAME_RE.test(trimmedName)` au lieu de la valeur brute. Cohérence avec `trim().length >= 2`.
+- `fix(onboarding)` P-30 — `profile.tsx` : comptage en graphèmes via `Array.from(str).length`. Emoji surrogate pairs préservés. `maxLength` TextInput bumpé à 100 (hard cap UTF-16), validation borne à 50 graphèmes.
+
+### Storage (P-31)
+- `fix(infra)` P-31 — `storage.ts` : `_consentMigrationDone` boolean remplacé par une promesse mémoïsée (`migrationPromise: Promise<void> | null`). Tous les appelants concurrents `setConsent`/`getConsent` `await` la même promesse. Idempotent + race-safe.
+
+### Decisions résolues (P-32, P-34)
+- `feat(i18n)` **P-32** (ex-D-A) — `fr.json` : wording temporaire Tantie Rose pour `consent.cgv_body` + `consent.geoloc_body`. Remplace `[pending juriste]` qui aurait bloqué le merge `main`. Audit verbal Alexandre à coordonner. Juriste passe en review derrière (le wording final restera DR-CGV-01 avant lancement public).
+- `chore(infra)` **P-34** (ex-D-D) — **résolu en variante (b)** : `expo-auth-session` et `expo-crypto` n'ont pas de `app.plugin.js` dans `node_modules` → autoconfig SDK 55 confirmé. Tenter de les ajouter à `app.json:plugins` casse `expo export` avec `PluginError: Unable to resolve a valid config plugin for expo-auth-session`. Entries NON ajoutées (variante (a) initialement tentée puis annulée). Smoke `expo export --platform web` vert (bundle 2.6 MB).
+
+### Verify
+- `cd app && npx tsc --noEmit` : 0 erreur ✓
+- `cd app && npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `cd app && npm run i18n:check` : ✓ Aucune string FR hardcodée
+- `cd app && npm test` : **95 tests passent / 18 suites + 3 skipped (PGlite scaffold) / 0 failed** ✓
+- `cd app && npx expo export --platform web` : bundle 2.6 MB compile sans erreur ✓
+
+### Triple sign-off
+- **Stéphanie** (tech) : pending — review (a) compensation un-burn P-07 (trade-off replay-risk vs lockout), (b) CORS `ALLOWED_ORIGINS` à provisionner avant alpha live (sinon CORS = `"null"`, browsers bloquent), (c) défer D-16 SMTP désactivé côté projet Supabase alpha Termii sandbox.
+- **Kidam** (analytics) : pending — `calibration_answered.value: null | -0.4 | 0 | 0.4` + `skipped?: boolean` (P-25 + P-33) à documenter dans `events.md`. Funnel `onboarding_completed` désormais émis APRÈS finalize success (P-22) — dashboard à recalibrer.
+- **Alexandre** (brand) : pending — audit verbal Tantie Rose sur `consent.cgv_body` + `consent.geoloc_body` (P-32). Audit verbal aussi sur les 3 nouveaux messages d'erreur OTP (`error_otp_expired` / `error_otp_already_used` / `error_crypto_unavailable`).
+
+### Résidus / à suivre (deferred-work.md round 2)
+- **D-16** : `auth.admin.generateLink` SMTP send vers email synthétique. Sign-off Stéphanie alpha Termii sandbox avec SMTP désactivé côté projet Supabase. Pas de code à patcher V1.
+- 15 autres defers tracés dans [`deferred-work.md`](_bmad-output/implementation-artifacts/deferred-work.md) section round 2.
+
+---
+
+## v1.2.4 — Story 2.3a : Google + Apple Sign-In + session JWT serveur ouvrable (2026-05-17)
+
+**Résout D1+D2 de la review Epic 2 (2026-05-17). Google Sign-In + Apple Sign-In wirés sous le bouton OTP primaire de `phone.tsx`. La session Supabase Auth s'ouvre désormais bout-en-bout en mode live : `otp-verify` retourne `{access_token, refresh_token, user_id}` via le pattern `auth.admin.generateLink({type:'magiclink'})` + `verifyOtp` server-side (tokens GoTrue officiels, refresh natif côté SDK mobile), le client mobile appelle `supabase.auth.setSession()` avant de naviguer vers `/profile`. Conséquence : `finalizeOnboarding` Story 2.6 ne throw plus `FINALIZE_NO_AUTH_USER` en mode live. AC #6 review aussi résolu : Resend + Change phone rendus DANS le panneau friction quand `attempts >= 3`. Tests Deno otp-send/otp-verify scaffoldés (validation payload + CORS + env, success path = défer alpha).**
+
+- `feat(auth)` Story 2.3a AC #3 — `supabase/functions/otp-verify/index.ts` : remplace le stub `{user_id}` par un retour `{access_token, refresh_token, user_id}`. Pipeline interne : `admin.createUser({phone, email: <synth>, phone_confirm, email_confirm})` (ou `listUsers({perPage:1000})` fallback P6) → `admin.updateUserById` si email manquant (legacy) → `admin.generateLink({type:'magiclink', email})` → `anonClient.verifyOtp({type:'magiclink', token_hash})` → tokens retournés. Email synthétique format `phone-<userId>@phone.spawt.local`, non exposé UI.
+- `feat(auth)` Story 2.3a AC #3 — `app/app/(onboarding)/otp.tsx` : après `otp-verify` 200, lit `access_token` + `refresh_token` et appelle `supabase.auth.setSession({...})` avant les tracks + nav. Erreur setSession → toast `auth.error_network`, pas de nav.
+- `feat(auth)` Story 2.3a AC #1 — `app/src/components/auth/GoogleButton.tsx` créé. `expo-auth-session/providers/google` flow id_token implicit + nonce SHA256 via `expo-crypto`. Au retour idToken → `supabase.auth.signInWithIdToken({provider:'google', token, nonce})`. Lit `googleClientId` / `googleIosClientId` / `googleAndroidClientId` depuis `Constants.expoConfig.extra` ou env `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID`. Démo / config absente : toast graceful (`auth.demo_google_unavailable` / `auth.error_google_unavailable`).
+- `feat(auth)` Story 2.3a AC #2 — `app/src/components/auth/AppleButton.tsx` créé. iOS only (Platform.OS + `isAvailableAsync()`). Utilise le composant natif `AppleAuthentication.AppleAuthenticationButton` (style guide Apple §4.0). Nonce raw + hash SHA256 (Apple veut hash, Supabase veut raw). `AppleAuthentication.signInAsync({requestedScopes:[FULL_NAME, EMAIL], nonce})` → `signInWithIdToken({provider:'apple', token, nonce: rawNonce})`. Pre-fill `draft.display_name` depuis `credential.fullName` (Apple ne renvoie ces champs qu'à la 1re auth). `ERR_CANCELED` silencieux.
+- `feat(auth)` Story 2.3a AC #1+#2 — `app/app/(onboarding)/phone.tsx` : retire le commentaire « REPORTÉS » de la Story 2.3, ajoute séparateur « Or » + `<GoogleButton/>` + `<AppleButton/>` sous le bouton OTP primaire. État local `oauthError` rendu en `<Text testID="phone-oauth-error">`.
+- `fix(auth)` Story 2.3a AC #6 — `app/app/(onboarding)/otp.tsx` : Resend + Change phone rendus DANS le `<View testID="otp-friction">` quand `friction === true` (3+ essais ratés). Hors friction, conservés en bas du screen comme avant.
+- `feat(infra)` Story 2.3a AC #4 — `supabase/functions/otp-send/index.test.ts` + `supabase/functions/otp-verify/index.test.ts` créés (Deno). Couvrent : validation payload (E.164, OTP regex, JSON parsing), méthodes HTTP (OPTIONS preflight, POST, autres → 405), CORS headers, missing env vars → `edge_misconfigured`. Refactor `index.ts` des 2 functions : extraction d'un `handleRequest` exporté testable, `Deno.serve(handleRequest)` reste l'entry point. Success path complet = défer alpha (mock Supabase admin SDK non trivial sans projet live).
+- `feat(infra)` Story 2.3a AC #5 — `supabase/functions/otp-verify/README.md` réécrit : nouveau contrat `{access_token, refresh_token, user_id}`, pipeline interne documenté (createUser → updateUserById → generateLink → verifyOtp), pourquoi pas JWT signing direct (refresh_token fabriqué ≠ GoTrue → logout 1h), env vars `SUPABASE_ANON_KEY` requis explicitement. README otp-send : note Story 2.3a ajoutée.
+- `chore(infra)` Story 2.3a — `app.json` : ajout `ios.usesAppleSignIn: true` + plugins `expo-apple-authentication` + `expo-web-browser`. `package.json` : ajout deps `expo-apple-authentication@~55.0.13`, `expo-auth-session@~55.0.16`, `expo-crypto@~55.0.15`, `expo-web-browser@~55.0.16` (versions Expo SDK 55 strict).
+- `test(auth)` Story 2.3a — `__tests__/components/PhoneScreen.test.tsx` : mock `GoogleButton` + `AppleButton` (évite deps natives en Jest), 2 nouveaux tests « Google button rendu » + « Apple button rendu sur iOS ». `__tests__/components/OtpScreen.test.tsx` : mock `supabase.auth.setSession`, nouveau test « 3 essais → friction panel contient Resend + Change phone », nouveau test « démo : setSession jamais appelé ».
+
+### Verify
+- `npx tsc --noEmit` : 0 erreur ✓
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée
+- `npm test` : 94 tests passent / 18 suites + 3 skipped ✓
+- `npx expo export --platform web` : bundle compile sans erreur ✓
+- Tests Deno : à exécuter en CI (Deno non installé localement Windows).
+
+### Triple sign-off
+- **Stéphanie** (tech) : pending — review pattern `generateLink + verifyOtp` server-side (Edge Function), trade-off email synthétique, alpha Termii sandbox green à valider avec projet Supabase live.
+- **Kidam** (analytics) : pending — `auth_signed_in { method: "google" | "apple" }` déjà présent dans `events.md` ligne 128 (P10 appliqué).
+- **Alexandre** (brand) : pending — voix du Chat post-Google/post-Apple identique à post-OTP (pas de variant dédié — décision : réutiliser le pattern). Test Tantie Rose sur les 2 boutons « Continuer avec Google » / « Continuer avec Apple » (wording standard, conforme).
+
+### Résidus / à suivre (deferred-work.md)
+- **OAuth provider config** : `googleClientId` / `googleIosClientId` / `googleAndroidClientId` à provisionner côté Supabase Auth + Google Cloud Console + Apple Developer. Sans config, les boutons rendent toast graceful « Google indisponible » / « Apple indisponible » — pas de crash.
+- **Tests Deno success path** : nécessite mock Supabase admin SDK ou test contre projet Supabase de test. À câbler en CI dédiée Supabase functions.
+- **Email synthétique en DB** : `auth.users.email = phone-<userId>@phone.spawt.local` pollue la table. Trade-off accepté V1 (alternative = JWT signing direct → refresh KO après 1h). Si écran de récupération email ajouté Sprint 2+, prévoir `updateUserById` pour basculer.
+- **`listUsers({perPage:1000})` plafond** : au-delà de 1000 spawters auth, basculer sur query SQL directe `auth.users WHERE phone = $1`. Defer hardening pré-public.
+
+---
+
 ## v1.2.2 — Epic 2 livré : funnel onboarding complet (Splash → Palais initial) (2026-05-17)
 
 **Batch des 5 stories d'Epic 2 (2.2 → 2.6) livré en review en une seule itération. Le funnel onboarding est complet de bout en bout : Splash `gr-night` → Consent ARTCI bloquant → Phone OTP → OTP 6 cases → Profile 6 champs (nom + quartier + 4 PII) → Calibration 5 questions `OnbMidfi` cartes visuelles → Palais Reveal `gr-night` + premier titre Touriste → `(tabs)`. Mode démo Expo Go traversable sans Supabase ni Termii (`123456` accepte OTP). Mode live consomme migrations 0006 (rename `data_consent_at` → `cgv_accepted_at`), 0007 (`otp_attempts` rate-limit + Termii pin_id), 0008 (`user_palais` 5 axes + RLS). Edge Functions Deno `otp-send` / `otp-verify` scaffoldées en `supabase/functions/` (non déployées, READMEs livrés). `finalizeOnboarding` réécrit : `auth.uid()` + persist `cgv_accepted_at`/`geoloc_consent_at` + reset draft. Triple gate verte + 90 tests passent + smoke web compile (bundle 2.6 MB).**

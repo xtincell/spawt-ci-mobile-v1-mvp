@@ -10,7 +10,7 @@
 // Aucun appel à expo-location.requestForegroundPermissionsAsync ici —
 // le consentement applicatif précède la demande système iOS (Story 4.1).
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
@@ -27,32 +27,62 @@ export default function ConsentScreen() {
   const router = useRouter();
   const [cgv, setCgv] = useState(false);
   const [geoloc, setGeoloc] = useState(false);
+  // P20 — garde submitting pour bloquer le double-tap (analytics dupliqué).
+  const [submitting, setSubmitting] = useState(false);
+  // P-29 round 3 — error visible si `recordConsent` throw.
+  const [error, setError] = useState<string | null>(null);
+
+  // P-30 round 3 — mountedRef pour éviter setState après nav (`router.push`
+  // unmount le screen → finally peut firer après unmount).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     track({ name: "consent_screen_viewed", properties: {} });
   }, []);
 
-  const canContinue = cgv && geoloc;
+  const canContinue = cgv && geoloc && !submitting;
 
   const onContinue = async () => {
-    const now = new Date().toISOString();
-    track({ name: "consent_recorded", properties: { kind: "cgv", decision: "accepted" } });
-    track({ name: "consent_recorded", properties: { kind: "geoloc", decision: "accepted" } });
-    track({
-      name: "onboarding_step_completed",
-      properties: { step: "consent", step_index: 1 },
-    });
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const now = new Date().toISOString();
+      track({ name: "consent_recorded", properties: { kind: "cgv", decision: "accepted" } });
+      track({ name: "consent_recorded", properties: { kind: "geoloc", decision: "accepted" } });
+      track({
+        name: "onboarding_step_completed",
+        properties: { step: "consent", step_index: 1 },
+      });
 
-    useOnboardingDraft.getState().setConsent("cgv", now);
-    useOnboardingDraft.getState().setConsent("geoloc", now);
+      useOnboardingDraft.getState().setConsent("cgv", now);
+      useOnboardingDraft.getState().setConsent("geoloc", now);
 
-    const hasSpawter = useSpawterStore.getState().spawter !== null;
-    if (hasSpawter) {
-      await useSpawterStore.getState().recordConsent("cgv", true);
-      await useSpawterStore.getState().recordConsent("geoloc", true);
+      // P19 — `recordConsent` est idempotent côté store (skip si timestamp déjà
+      // posé) ; appel uniquement si un spawter existe déjà (cas re-entrée).
+      // P-29 round 3 — si recordConsent throw (Supabase down, etc.), on bloque
+      // la nav et on affiche une erreur générique au lieu de continuer comme si
+      // rien ne s'était passé.
+      const hasSpawter = useSpawterStore.getState().spawter !== null;
+      if (hasSpawter) {
+        await useSpawterStore.getState().recordConsent("cgv", true);
+        await useSpawterStore.getState().recordConsent("geoloc", true);
+      }
+
+      router.push("/(onboarding)/phone");
+    } catch (err) {
+      if (__DEV__) console.warn("[consent] onContinue failed", err);
+      if (mountedRef.current) setError(t("common.error_generic"));
+    } finally {
+      // P-30 round 3 — guard mountedRef pour éviter le setState-after-unmount.
+      if (mountedRef.current) setSubmitting(false);
     }
-
-    router.push("/(onboarding)/phone");
   };
 
   return (
@@ -130,6 +160,20 @@ export default function ConsentScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {error ? (
+        <Text
+          testID="consent-error"
+          style={{
+            marginTop: theme.spacing.lg,
+            textAlign: "center",
+            color: theme.colors.state.danger,
+            fontSize: theme.typography.size.sm,
+          }}
+        >
+          {error}
+        </Text>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"

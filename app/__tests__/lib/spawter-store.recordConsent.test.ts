@@ -67,9 +67,21 @@ describe("spawter-store.recordConsent — Story 2.2", () => {
     expect(updated?.cgv_accepted_at).toBeNull();
   });
 
-  it("recordConsent ne crash pas si spawter === null (no-op silencieux)", async () => {
+  it("recordConsent ne crash pas si spawter === null (local-only, retourne true)", async () => {
+    // P-26 round 3 — la signature retourne désormais boolean : `true` quand
+    // le consent est effectivement écrit (ici local-only via setConsentLocal,
+    // car pas encore de spawter persisté en DB).
     useSpawterStore.setState({ spawter: null });
-    await expect(useSpawterStore.getState().recordConsent("cgv", true)).resolves.toBeUndefined();
+    await expect(useSpawterStore.getState().recordConsent("cgv", true)).resolves.toBe(true);
     expect(useSpawterStore.getState().spawter).toBeNull();
+  });
+
+  it("recordConsent retourne false si déjà set (set-once invariant)", async () => {
+    // P-26 round 3 — set-once : la 2e tentative est un no-op silencieux, le
+    // caller analytics peut différencier les writes réels via la valeur retournée.
+    useSpawterStore.setState({
+      spawter: { ...SAMPLE_SPAWTER, cgv_accepted_at: "2026-05-01T00:00:00Z" },
+    });
+    await expect(useSpawterStore.getState().recordConsent("cgv", true)).resolves.toBe(false);
   });
 });

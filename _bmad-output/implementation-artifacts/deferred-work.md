@@ -4,6 +4,71 @@ Tracks issues surfaced during reviews that were intentionally deferred (pre-exis
 
 ---
 
+## Deferred from: code review round 3 Epic 2 (2026-05-18)
+
+Source consolidée : [`code-review-2026-05-18-epic2-round3.md`](code-review-2026-05-18-epic2-round3.md). 13 defers — vérification 33/34 patches Round 2 corrects + nouveau hunting Story 2.3a.
+
+- **`pinId` vs `pin_id` Termii API version risk** [`otp-send/index.ts:156`] — si Termii change la casse, retour 500 sans détail. → Ajouter parser fallback `pin_id ?? pinId` Sprint 2 si reproduit. [story 2.3a]
+- **Cumul `selected` entre questions calibration sur back-nav** [`calibration.tsx:38-43`] — `selectedByStep` ne reset pas si user revient via stack depuis palais-reveal. Bug visuel narrow. → Reset via `useEffect([params.step])` Sprint 2. [story 2.5]
+- **`migrateLegacyConsentDataKey` partial state si crash entre setItem et removeItem** [`storage.ts:74`] — état "double key" possible. Race window narrow. → Pattern fully-transactional Sprint 2. [story 2.2]
+- **Test Apple iOS button mock tautology** [`PhoneScreen.test.tsx:140-143`] — test repose sur mock conditionnel `Platform.OS === "ios" ? <Pressable/> : null` ; vérifie le mock plus que le composant. → Remplacer par smoke E2E Sprint 2 (Maestro/Detox decision pending). [story 2.3a]
+- **`saveSpawter` / `savePalais` swallow errors avec `__DEV__` warn sans retry queue** [`spawter-store.ts:82-84, 156-160`] — fire-and-forget by design, mais aucun retry. → Queue retry + reconciliation Sprint 2. [story 2.6]
+- **Confidence calc twice (palais-reveal + spawter-store finalize)** [`palais-reveal.tsx:39-44`, `spawter-store.ts:141-143`] — fenêtre narrow back-nav. Déjà tracé D-10 round 2 — confirmé toujours valide. [story 2.6]
+- **`dominantAxes(ax)` avec all-zero input — comportement non testé** [`palais-reveal.tsx:84-90`] — si tous les axes sont 0 (P-33 normalize `null → 0` + skip), `dominantAxes({all:0})` retourne `[]` ou `null` ? À tester. → Test lib pur Sprint 2. [story 2.5]
+- **`display_name` `setField` non graphème-bounded côté ProfileScreen** [`profile.tsx:124-128`] — `setField("display_name", v)` brut sans cap, schema DB peut rejeter à `finalizeOnboarding` si user paste > 100 chars web. → `capGraphemes` utility Sprint 2. [story 2.4]
+- **`(err as { name?: string })?.name` cast unsafe partout dans les catches** [`otp.tsx`, `phone.tsx`, button components] — pattern fragile mais fonctionnel. → Typed error narrowing utility Sprint 2. [story 2.3]
+- **`anonClient` créé à chaque request otp-verify** [`otp-verify/index.ts:218`] — pas de pooling, overhead minimal. → Module-level singleton Sprint 2 si latency mesurée. [story 2.3a]
+- **`setDraftField("phone_e164")` après setSession race vers ProfileScreen** [`otp.tsx`] — narrow race window, ProfileScreen peut lire un phone_e164 vide brièvement. → Reorder writes Sprint 2. [story 2.3]
+- **Tests Deno success path P-07 (un-burn) + P-08 (session_user_mismatch) absents** [`otp-verify/index.test.ts`] — déjà tracé D-12 round 2. CI Supabase dédiée. [story 2.3a]
+- **`useEffect([ready])` auto-submit micro race avec friction transition** [`otp.tsx:64-67`] — partielle si P-14 round 3 appliqué, defer du polish complet. → Migration vers state machine OTP Sprint 2. [story 2.3]
+- **Test live mode `setSession failure` skip-é (P-31 round 3)** [`OtpScreen.test.tsx`] — `isSupabaseConfigured` mocké statiquement au module-level via `jest.mock` factory rend impossible le toggle live/demo dans un test isolé sans `jest.resetModules` + ré-import dynamique. Pattern complexe pour le ROI à V1, code path live correct par lecture (`if (sessionErr) return` empêche `router.push`). → Suite live dédiée Sprint 2 (réorganisation des mocks + tests live séparés en sous-suite). [story 2.3a]
+
+---
+
+## Deferred from: code review of 2-3a-google-apple-sign-in-session-jwt (round 2 Epic 2, 2026-05-18)
+
+Source consolidée : [`code-review-2026-05-18-epic2.md`](code-review-2026-05-18-epic2.md). 15 defers — pre-existing hardening backlog ou scope explicite hors Epic 2 round 2.
+
+- **`time_to_complete_seconds: -1` sentinel non typé `number | -1`** [`analytics.ts:99`] — sentinel sémantique mais typing reste `number`. → Filtrage downstream à configurer PostHog/Mixpanel (decision Kidam) + typing strict pass futur. [story 2.6]
+- **`listUsers` cap 1000 dans `otp-verify`** [`otp-verify/index.ts:163-167`] — au-delà → user pas trouvé → createUser duplicat. → Migration vers SQL `select ... where phone = $1` Sprint 2 quand volume alpha > 1000. [story 2.3]
+- **`req.json()` sans limite de taille body** [`otp-send/index.ts`, `otp-verify/index.ts`] — DoS via megabytes payload. Supabase platform cap ~1MB par défaut, suffisant V1. → À renforcer si attaque mesurée. [story 2.3]
+- **`placeholderEmail` (digits-stripped phone) vs `synthEmailForUser` (UUID-no-dashes) — 2 patterns de normalisation** [`otp-verify/index.ts:147,191`] — risque collision théorique narrow. → Unifier en pre-alpha hardening. [story 2.3a]
+- **Migration 0009 sans `BEGIN/COMMIT` explicite** [`supabase/migrations/0009_align_otp_phone_check.sql`] — Supabase migration runner wrap par défaut. → Documenter dependency dans `supabase/README.md`. [story 2.3]
+- **Migration 0009 sans data verification step** — pas de `SELECT count(*) WHERE phone_e164 !~ '^\+[1-9]\d{8,14}$'` avant DROP CONSTRAINT. Alpha pas démarrée → 0 row → safe V1. → Pattern à enforcer pour migrations futures avec data prod. [story 2.3]
+- **PHONE_RE 10-digit min trop permissif vs E.164 réaliste** — délibérément loosened pour aligner client + Edge + migration 0009. CIV reste verrouillé par `CIV_MOBILE_RE` côté front. → À re-tighten Sprint 2 si onboarding multi-pays. [story 2.3]
+- **`x-forwarded-for` trust en non-Cloudflare deploy** [`otp-send/index.ts:67-73`] — `cf-connecting-ip` puis fallback. → Documenter dans `otp-send/README.md` + revoir Sprint 2 si déploiement multi-CDN. [story 2.3]
+- **`storage.setItem(key, "")` empty string ≠ null** [`storage.ts:1277`] — 3rd state ambigu dans l'API consent. → Refactor en typed `Consent = null | { acceptedAt: ISO }` Sprint 2. [story 2.2]
+- **`confidence_score` race entre store et palais-reveal sur back-nav edit** — fenêtre narrow, UX dégradé acceptable V1. → Lock recompute Sprint 2 si data alpha montre mismatch DB/analytics. [story 2.6]
+- **`recordConsent` ne détecte pas la divergence local vs server** — fire-and-forget by design, P16 round 1 a câblé le `__DEV__` warn. → Audit ARTCI compliance Sprint 2 si proof of server-side timestamp requise. [story 2.2]
+- **AC #4 (Deno success-path tests Edge Functions) scaffold-only** — runtime Deno absent local, success-path déféré à CI Supabase Functions dédiée. → Workflow `.github/workflows/supabase-functions.yml` Sprint 2. [story 2.3a]
+- **`router.back()` depuis OTP ne clear pas `phone_e164` dans draft** [`otp.tsx:709-723`] — analytics `auth_otp_sent` peut accumuler 2 masked phones successifs. Mineur. → Patch propre Sprint 2 si KPI funnel dérive. [story 2.3]
+- **iOS swipe-back gesture pendant finalize** — défer si P-24 (`Stack.Screen gestureEnabled`) ne couvre que Android. iOS native gesture nécessite layout-level options. → Raffiner Sprint 2 si dropoff finalize mesuré. [story 2.6]
+- **`auth_signed_in.is_first_login` retiré du contract** — décision documentée `events.md`, downstream KPI consumer Kidam à informer formellement. → Annoncer dans changelog analytics + dashboard. [story 2.3]
+- **`auth.admin.generateLink` déclenche SMTP send vers email synthétique** [`otp-verify/index.ts:178-181`] — ex-decision D-B round 2, résolu 2026-05-18 vers sign-off Stéphanie. Bounce vers `@phone.spawt.local` brûle quota SMTP côté projet Supabase. → Validation alpha Termii sandbox avec SMTP désactivé côté projet + sign-off Stéphanie avant merge `main`. Pas de code à patcher V1. [story 2.3a]
+
+---
+
+## Deferred from: code review of Epic 2 (2026-05-17)
+
+Source consolidée : [`code-review-2026-05-17-epic2.md`](code-review-2026-05-17-epic2.md). 14 defers — pre-existing hardening backlog ou scope explicite hors Epic 2.
+
+- **`otp_attempts` no TTL / GDPR retention** — `0007_create_otp_attempts.sql` croît unbounded ; PII (`phone_e164`, `ip`) restent indéfiniment. → Ajouter cron `delete from otp_attempts where sent_at < now() - interval '7 days'` en hardening pré-alpha. [story 2.3]
+- **`user_palais.axe_*` typés `real` (single-precision)** — risque drift EMA futur quand le moteur Palais tape ces colonnes en boucle Epic 4. → Migration `alter column type double precision` ou `numeric(5,4)` quand le moteur EMA tape. [story 2.5]
+- **`user_palais.dominant_axes text[]` CHECK ne valide pas le domaine** — accepte `['foo','bar']`. → Ajouter `CHECK (dominant_axes <@ ARRAY[…axe_*])` en Epic 5 quand archetype/stade durcissent. [story 2.5]
+- **`user_palais.archetype_id` free-form sans FK** — pas de table `archetypes` côté DB. → Créer table + FK Epic 5. [story 2.5]
+- **`user_palais.stade` CHECK dupliquait l'enum de `spawters`** — 2 sources de truth pour le stade. → Extraire un TYPE Postgres `stade_enum` dans migration future commune. [story 2.5]
+- **`OnboardingDraft.gender` defaulted à `non_renseigne`** — biaise les KPI Kidam (100% "non_renseigne" si user skippe). → Décision Kidam + UI affordance (chip pre-selected vs. forcé null). [story 2.4]
+- **Tests Deno `otp-send` / `otp-verify` non livrés** — runtime Deno absent en local. → Installer Deno + livrer tests dans Story 2.3a. [story 2.3]
+- **PGlite tests scaffold-only** — `describe.skip` silencieux si dep absente. → Installer `@electric-sql/pglite` + livrer assertions concrètes user_palais en Story 2.5a. [story 2.5]
+- **README Edge Functions `otp-send` / `otp-verify` absents** — AC #5 Story 2.3 demande README. → Rédiger pendant Story 2.3a. [story 2.3]
+- **Friction panel buttons non-rendered DANS le panneau** — Resend/Change phone visibles en bas de l'écran, mais la spec demande à l'intérieur du panneau friction. → Polish UX Story 2.3a. [story 2.3]
+- **ChatBubble re-render à chaque step calibration** — spec demande "rendu une seule fois au mount". → Isolation `<MemoizedBubble />` ou state hoisting. [story 2.5]
+- **OnboardingDraft non persisté AsyncStorage** — app killed mid-flow → PII perdues. → Décision produit (resume vs fresh-start) — passer en story de hardening avant alpha. [story 2.6]
+- **`auth_signed_in` émis en mode démo pollue le funnel KPI** — `demo: true` flag présent mais filtrage requis côté analytics. → Configurer filtre PostHog/Mixpanel (decision Kidam). [story 2.3]
+- **`gradient.night` typé `as const` casté à `LinearGradient`** — risque TS warning suppressed. → Type cleanup déjà tracé deferred-work Story 1.3 ("Casts type suspects"). [story 2.6]
+
+---
+
 ## Deferred from: code review of story-1-1 (2026-05-15)
 
 - **`border.subtle` opaque → translucent affects disabled-CTA backgrounds** — `border.subtle` went from `tone.cream[70]` (opaque `#DCD5C2`) to `rgba(10,10,10,0.10)` (translucent) in commit `979ee2d`. Affected disabled-CTA backgrounds in `app/app/(onboarding)/consent.tsx`, `phone.tsx`, `profile.tsx`. → Validate visually in **Story 1.4** (Re-dérivation des 4 composants) or in the relevant onboarding stories (Epic 2).

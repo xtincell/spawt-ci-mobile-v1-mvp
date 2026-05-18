@@ -87,7 +87,11 @@ type CalibrationAnswered = {
   properties: {
     axis: string;
     direction: "neg" | "pos" | "neutral";
-    value: -0.4 | 0 | 0.4;
+    // P-33 (review 2026-05-18) — `null` distingue le skip explicite d'une
+    // réponse neutre (cartes balanced via resolveDirection).
+    value: -0.4 | 0 | 0.4 | null;
+    // P-25 — flag pour distinguer skip ("Pas d'avis") d'une réponse neutre.
+    skipped?: boolean;
   };
 };
 type OnboardingCompleted = {

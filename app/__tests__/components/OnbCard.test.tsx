@@ -34,7 +34,7 @@ function findPressable(instance: TestRendererInstanceLike, testID: string): Foun
 describe("<OnbCard /> — Story 2.5", () => {
   it("non-selected expose accessibilityState.checked=false", () => {
     const instance = render(
-      <OnbCard label="Garba" altKey="garba" selected={false} onToggle={() => {}} testID="card" />,
+      <OnbCard label="Garba" selected={false} onToggle={() => {}} testID="card" />,
     );
     const card = findPressable(instance, "card");
     expect(card.props.accessibilityRole).toBe("checkbox");
@@ -43,7 +43,7 @@ describe("<OnbCard /> — Story 2.5", () => {
 
   it("selected expose accessibilityState.checked=true", () => {
     const instance = render(
-      <OnbCard label="Garba" altKey="garba" selected={true} onToggle={() => {}} testID="card" />,
+      <OnbCard label="Garba" selected={true} onToggle={() => {}} testID="card" />,
     );
     const card = findPressable(instance, "card");
     expect(card.props.accessibilityState).toMatchObject({ checked: true });
@@ -52,7 +52,7 @@ describe("<OnbCard /> — Story 2.5", () => {
   it("onToggle appelé au tap", () => {
     const onToggle = jest.fn();
     const instance = render(
-      <OnbCard label="Garba" altKey="garba" selected={false} onToggle={onToggle} testID="card" />,
+      <OnbCard label="Garba" selected={false} onToggle={onToggle} testID="card" />,
     );
     const card = findPressable(instance, "card");
     TestRenderer.act(() => {

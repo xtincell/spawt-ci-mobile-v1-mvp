@@ -32,7 +32,24 @@ interface SpawterStore {
   spawts: SpawtCheckin[];
 
   hydrate: () => Promise<void>;
-  recordConsent: (kind: "cgv" | "geoloc", accepted: boolean) => Promise<void>;
+  /**
+   * Enregistre un consent (CGV ou géoloc).
+   *
+   * P-26 round 3 — retourne `true` si le consent est nouveau (write effectif),
+   * `false` si déjà set (set-once, no-op silencieux). Permet aux callers
+   * analytics de différencier les écritures réelles des replays idempotents.
+   *
+   * **Contrat set-once / ARTCI compliance (DN-4 Round 3, 2026-05-18)** :
+   * Un consent posé ne peut pas être révoqué via cette API — le trigger SQL
+   * `assert_consent_set_once` rejetterait l'UPDATE. La révocation ARTCI (Loi
+   * 2013-450) est exposée via le path `DELETE /me` (soft-delete + anonymisation
+   * J+30) tracé Cahier §5.2, à livrer avant ouverture beta publique. Un appel
+   * `recordConsent(kind, false)` post-stamp log un `__DEV__` warn et retourne
+   * `false` — le caller doit rediriger vers le path DELETE pour un revoke réel.
+   * Ne PAS ajouter un `revokeConsent` séparé sans coordonner avec juriste +
+   * Stéphanie (l'invariant set-once protège l'auditabilité ARTCI du timestamp).
+   */
+  recordConsent: (kind: "cgv" | "geoloc", accepted: boolean) => Promise<boolean>;
   finalizeOnboarding: (draft: OnboardingDraft) => Promise<void>;
   registerSpawt: (s: SpawtCheckin) => Promise<void>;
   reset: () => void;
@@ -58,14 +75,37 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     const current = get().spawter;
     if (current) {
       const fieldName = kind === "geoloc" ? "geoloc_consent_at" : "cgv_accepted_at";
+      // P19 — set-once : si le timestamp est déjà posé en DB, ne pas
+      // re-stamper (le trigger SQL `assert_consent_set_once` rejetterait).
+      if (current[fieldName]) {
+        // P-28 — warn DEV explicite si un caller tente un revoke (accepted=false)
+        // après que le consent ait été enregistré. Le set-once est un invariant
+        // ARTCI (cf. trigger `assert_consent_set_once`) — un revoke client est
+        // silencieusement ignoré ici, le caller doit le savoir.
+        if (__DEV__ && accepted === false) {
+          console.warn(
+            `[spawter-store] recordConsent(${kind}, false) ignored — consent is ` +
+              `set-once (timestamp ${current[fieldName]}). Revoke not supported.`,
+          );
+        }
+        // P-26 round 3 — signaler le no-op explicite au caller.
+        return false;
+      }
       const updated: Spawter = {
         ...current,
         [fieldName]: accepted ? new Date().toISOString() : null,
       };
       await saveSpawterLocal(updated);
-      void saveSpawter(updated);
+      // P16 — capture unhandled rejection sur le fire-and-forget Supabase.
+      void saveSpawter(updated).catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] saveSpawter consent failed", err);
+      });
       set({ spawter: updated });
+      return true;
     }
+    // P-26 round 3 — pas de spawter encore créé → consent stocké local-only
+    // via setConsentLocal ci-dessus, considéré comme write effectif.
+    return true;
   },
 
   finalizeOnboarding: async (draft) => {
@@ -103,22 +143,32 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       updated_at: now,
     };
 
+    // P-33 — `null` = skip explicite, normalisé en `0` côté DB (axe_* est
+    // `real NOT NULL`).
+    // DN-5 round 3 — filter strict `v !== null` (skip exclu, neutral résolu
+    // value=0 compté comme une réponse délibérée). Cohérent avec le filter
+    // côté `palais-reveal.tsx` pour éviter une divergence entre la confidence
+    // affichée et la confidence persistée. Voir aussi `documentation/analytics/events.md`
+    // section `calibration_answered.value — sémantique`.
+    const ax = {
+      axe_racines_horizons: draft.calibration_answers.racines_horizons ?? 0,
+      axe_taniere_nomade: draft.calibration_answers.taniere_nomade ?? 0,
+      axe_exigeant_enthousiaste: draft.calibration_answers.exigeant_enthousiaste ?? 0,
+      axe_foule_secret: draft.calibration_answers.foule_secret ?? 0,
+      axe_maquis_table: draft.calibration_answers.maquis_table ?? 0,
+    };
+
     const palais: UserPalais = {
       ...EMPTY_PALAIS,
       spawter_id: id,
-      axe_racines_horizons: draft.calibration_answers.racines_horizons,
-      axe_taniere_nomade: draft.calibration_answers.taniere_nomade,
-      axe_exigeant_enthousiaste: draft.calibration_answers.exigeant_enthousiaste,
-      axe_foule_secret: draft.calibration_answers.foule_secret,
-      axe_maquis_table: draft.calibration_answers.maquis_table,
-      confidence_score: computeConfidence(0),
-      dominant_axes: dominantAxes({
-        axe_racines_horizons: draft.calibration_answers.racines_horizons,
-        axe_taniere_nomade: draft.calibration_answers.taniere_nomade,
-        axe_exigeant_enthousiaste: draft.calibration_answers.exigeant_enthousiaste,
-        axe_foule_secret: draft.calibration_answers.foule_secret,
-        axe_maquis_table: draft.calibration_answers.maquis_table,
-      }),
+      ...ax,
+      // P1 — count des axes répondus (skip exclu, neutral résolu compté).
+      confidence_score: computeConfidence(
+        Object.values(draft.calibration_answers).filter(
+          (v): v is number => v !== null,
+        ).length,
+      ),
+      dominant_axes: dominantAxes(ax),
       stade: "touriste",
       total_spawts: 0,
       updated_at: now,
@@ -128,8 +178,13 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     await Promise.all([saveSpawterLocal(spawter), savePalaisLocal(palais)]);
 
     // 3. Fire-and-forget Supabase — règle d'or project-context.
-    void saveSpawter(spawter);
-    void savePalais(palais);
+    // P16 — capture unhandled rejection en `__DEV__` log warn pour traçabilité.
+    void saveSpawter(spawter).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] saveSpawter finalize failed", err);
+    });
+    void savePalais(palais).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] savePalais finalize failed", err);
+    });
 
     set({ spawter, palais });
 
@@ -151,7 +206,10 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         updated_at: new Date().toISOString(),
       };
       await saveSpawterLocal(updated);
-      void saveSpawter(updated);
+      // P16 — capture unhandled rejection sur le fire-and-forget Supabase.
+      void saveSpawter(updated).catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] saveSpawter registerSpawt failed", err);
+      });
       set({ spawter: updated, spawts: list });
     } else {
       set({ spawts: list });

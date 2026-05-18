@@ -33,9 +33,17 @@ Provider cible (PRD §12.1) : **PostHog ou Mixpanel**. Sprint 1 instrumente la c
 | `consent_screen_viewed` | Affichage de l'écran consentement | — |
 | `consent_recorded` | Décision sur un bloc consent (Story 2.2 / FR-040 — kind aligné CGU/CGV + géoloc, remplace l'ancien `data` legacy) | `kind` (cgv \| geoloc), `decision` (accepted \| declined) |
 | `onboarding_step_completed` | Fin de chaque étape | `step` (consent \| phone \| profile \| calibration), `step_index` (1-4) |
-| `calibration_answered` | Réponse à une question de calibrage | `axis` (racines_horizons \| ...), `direction` (neg \| pos \| neutral), `value` (-0.4 \| 0 \| +0.4) |
+| `calibration_answered` | Réponse à une question de calibrage | `axis` (racines_horizons \| ...), `direction` (neg \| pos \| neutral), `value` (-0.4 \| 0 \| +0.4 \| `null`), `skipped?` (boolean) |
 | `onboarding_completed` | Calibration validée, spawter persisté | `country_code`, `age_range`, `gender`, `time_to_complete_seconds`, `palais_initial_dominant_axes` (array, 2 axes) |
 | `onboarding_abandoned` | App fermée ou reset avant `onboarding_completed` | `last_step` |
+
+> **`calibration_answered.value` — sémantique** (Story 2.3a Round 2 P-25 + P-33 + Round 3 DN-5)
+>
+> - `-0.4` / `+0.4` : carte « néga » / « posa » dominante sélectionnée par le spawter.
+> - `0` : « neutral résolu » — le spawter a sélectionné un mix posa + néga (signal délibéré, contribue au confidence Palais).
+> - `null` (sentinel) : skip explicite (« Pas d'avis ») — N'INCRÉMENTE PAS `answeredCount` côté confidence. `skipped: true` est émis dans la même payload pour le filtrage downstream.
+>
+> **Filtrage downstream Kidam** : pour mesurer la part de spawters qui skip vs répondent, filtrer sur `skipped === true`. Pour le funnel Palais, compter les events avec `value !== null` (skip exclus, neutral résolu inclus).
 
 **Funnel cible** (PRD §16.1) : DL → app open 85% → onboarding complete 70% → 1er clic lieu 50% → 1er spawt 40% → activation J+7 60%.
 
@@ -123,12 +131,14 @@ Provider cible (PRD §12.1) : **PostHog ou Mixpanel**. Sprint 1 instrumente la c
 
 | Event | Quand | Propriétés |
 |---|---|---|
-| `auth_otp_sent` | OTP envoyé via Twilio/Termii | `country_code`, `provider` |
-| `auth_otp_validated` | OTP correct | `attempt_count` |
-| `auth_signed_in` | Session active | `is_first_login` |
+| `auth_otp_sent` | OTP envoyé via Termii (Story 2.3) | `phone_masked` (`+225 XXXXXX 12`), `resend?` (bool), `demo?` (bool si mode démo) |
+| `auth_otp_validated` | OTP saisi (succès ou échec) | `method` (`"phone"`), `success` (bool), `attempts?` (number, sur échec), `demo?` (bool si mode démo) |
+| `auth_signed_in` | Session JWT Supabase ouverte | `method` (`"phone" \| "google" \| "apple"`), `demo?` (bool si mode démo) |
 | `auth_signed_out` | Logout | — |
 | `account_reset` | Reset démo (mode fallback) | — |
 | `account_deletion_requested` | Endpoint DELETE /me appelé (Claude amendment 5.2) | `reason` (optional) |
+
+> **Note Story 2.3 (2026-05-17)** — Les propriétés `country_code` / `provider` / `attempt_count` / `is_first_login` initialement spec ne sont **pas** émises côté mobile V1. Refactor analytics : alignement Kidam sign-off requis avant dashboard funnel.
 
 ## 12. Premium / Paiement (PRD §11)
 

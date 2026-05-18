@@ -13,7 +13,16 @@ export type ChatToneId = Stade;
 
 /** Liste exhaustive des moments où le Chat peut parler — exportée pour les
  *  tests de coverage (chat-voice-coverage.test.ts) afin d'éviter le drift
- *  entre l'union TS et la matrice i18n. */
+ *  entre l'union TS et la matrice i18n.
+ *
+ *  **Décision Story 2.3a DN-3 (Round 3, 2026-05-18)** — Pas de moment dédié
+ *  `post_google_signin` / `post_apple_signin` : aucun écran post-auth (phone,
+ *  otp, callbacks OAuth) ne monte `<ChatBubble />`. Le Chat parle uniquement à
+ *  l'arrivée sur `palais-reveal` via `post_calibration`, qui suit toujours
+ *  l'auth dans le funnel onboarding (peu importe la méthode : OTP, Google,
+ *  Apple). Ne pas ajouter de moments d'auth-callback sans confirmer le
+ *  changement de funnel avec Alexandre (brand) — voir story 2-3a Dev Agent
+ *  Record + Round 3 decisions. */
 export const CHAT_MOMENTS = [
   "welcome_first_open",
   "welcome_back",

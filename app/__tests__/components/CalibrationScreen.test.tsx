@@ -100,6 +100,32 @@ describe("<CalibrationScreen /> — Story 2.5", () => {
     );
   });
 
+  // P-26 — D-C path b : `Pas d'avis` (skip explicite) émet `skipped: true`
+  // ET sentinel `value: null` (P-33) pour distinguer un skip d'un neutral.
+  it("tap Pas d'avis (skip) → event skipped:true value:null + setCalibration(axis, null)", () => {
+    const instance = render();
+    const skipBtn = instance.root.findByProps({ testID: "calibration-skip" });
+    expect(skipBtn).toBeTruthy();
+    TestRenderer.act(() => {
+      (skipBtn.props.onPress as () => void)();
+    });
+    const answered = mockTrack.mock.calls.find(
+      ([e]) => (e as { name: string }).name === "calibration_answered",
+    );
+    expect(answered).toBeTruthy();
+    const props = (answered?.[0] as {
+      properties: { direction: string; value: number | null; skipped?: boolean };
+    }).properties;
+    expect(props.direction).toBe("neutral");
+    expect(props.value).toBeNull();
+    expect(props.skipped).toBe(true);
+    // setCalibration appelé avec null (sentinel skip).
+    expect(mockSetCalibration).toHaveBeenCalledWith(
+      CALIBRATION_QUESTIONS[0]!.axis,
+      null,
+    );
+  });
+
   it("sélection 2 cartes neg sur Q1 puis Next → event direction=neg value=-0.4", () => {
     const instance = render();
     const q1 = CALIBRATION_QUESTIONS[0]!;

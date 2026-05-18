@@ -4,7 +4,7 @@
 // event analytics `calibration_answered` émis. La 5e question pushe vers
 // `palais-reveal` (Story 2.6) — la création row spawters reste Story 2.6.
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -35,7 +35,9 @@ export default function CalibrationScreen() {
   if (!question) return null;
 
   const selected = selectedByStep[step] ?? [];
-  const canContinue = true; // multi-select autorise 0 → direction = "neutral"
+  // D4 — `Continuer` n'est actif que si ≥1 carte sélectionnée. Pour passer
+  // sans avis, le spawter tape le bouton dédié `Pas d'avis` (neutral).
+  const canContinue = selected.length > 0;
 
   const toggleCard = (idx: number) => {
     setSelectedByStep((prev) => {
@@ -44,18 +46,16 @@ export default function CalibrationScreen() {
     });
   };
 
-  const onNext = () => {
-    const direction = resolveDirection(selected, question.cards);
-    const value: -0.4 | 0 | 0.4 =
-      direction === "neg" ? -0.4 : direction === "pos" ? 0.4 : 0;
-
+  const advance = (
+    direction: "neg" | "pos" | "neutral",
+    value: -0.4 | 0 | 0.4 | null,
+    skipped: boolean = false,
+  ) => {
     track({
       name: "calibration_answered",
-      properties: {
-        axis: question.axis,
-        direction,
-        value,
-      },
+      // P-25 — flag `skipped` pour distinguer skip explicite vs neutral cards.
+      // P-33 — sentinel `null` pour skip ; `0` reste valide pour neutral résolu.
+      properties: { axis: question.axis, direction, value, skipped },
     });
     setCalibration(question.axis, value);
 
@@ -69,6 +69,18 @@ export default function CalibrationScreen() {
       router.push("/(onboarding)/palais-reveal");
     }
   };
+
+  const onNext = () => {
+    const direction = resolveDirection(selected, question.cards);
+    const value: -0.4 | 0 | 0.4 =
+      direction === "neg" ? -0.4 : direction === "pos" ? 0.4 : 0;
+    advance(direction, value);
+  };
+
+  // P-33 — `onSkip` écrit `null` (et non `0`) pour signaler un skip explicite.
+  // L'écran palais-reveal et le store filtrent `v !== null && v !== 0` pour
+  // compter les vrais signaux (cf. P-33 + palais-reveal.tsx + spawter-store.ts).
+  const onSkip = () => advance("neutral", null, true);
 
   return (
     <ScrollView
@@ -105,7 +117,6 @@ export default function CalibrationScreen() {
           <View key={card.altKey} style={{ width: "47%" }}>
             <OnbCard
               label={t(card.labelKey)}
-              altKey={card.altKey}
               selected={selected.includes(idx)}
               onToggle={() => toggleCard(idx)}
               testID={`calibration-card-${question.axis}-${card.altKey}`}
@@ -119,23 +130,48 @@ export default function CalibrationScreen() {
         disabled={!canContinue}
         testID="calibration-next"
         accessibilityRole="button"
+        accessibilityState={{ disabled: !canContinue }}
         style={({ pressed }) => ({
           marginTop: theme.spacing.xl,
-          backgroundColor: theme.colors.brand.accent,
+          backgroundColor: canContinue
+            ? theme.colors.brand.accent
+            : theme.colors.border.subtle,
           paddingVertical: theme.spacing.base,
           borderRadius: theme.radius.lg,
-          opacity: pressed ? 0.85 : 1,
+          opacity: canContinue && pressed ? 0.85 : 1,
         })}
       >
         <Text
           style={{
-            color: theme.colors.text.inverse,
+            color: canContinue ? theme.colors.text.inverse : theme.colors.text.tertiary,
             fontSize: theme.typography.size.lg,
             fontWeight: theme.typography.weight.semibold,
             textAlign: "center",
           }}
         >
           {step + 1 < TOTAL ? t("common.continue") : t("calibration.cta_finish")}
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={onSkip}
+        testID="calibration-skip"
+        accessibilityRole="button"
+        style={({ pressed }) => ({
+          marginTop: theme.spacing.base,
+          paddingVertical: theme.spacing.sm,
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Text
+          style={{
+            ...theme.typography.preset.body,
+            color: theme.colors.text.tertiary,
+            textAlign: "center",
+            textDecorationLine: "underline",
+          }}
+        >
+          {t("calibration.cta_skip")}
         </Text>
       </Pressable>
     </ScrollView>

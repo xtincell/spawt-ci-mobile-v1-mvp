@@ -23,11 +23,10 @@
   },
   "consent": {
     "title": "Avant qu'on parte ensemble",
-    "intro": "Deux cases à cocher avant d'avancer. Tu es libre, mais c'est obligatoire pour qu'on continue.",
     "cgv_label": "J'accepte les CGU/CGV",
-    "cgv_body": "Conditions d'utilisation et conditions générales de vente du service SPAWT. [pending juriste]",
+    "cgv_body": "En tapant Accepter, tu rentres dans la Meute. Tu utilises SPAWT pour découvrir des lieux, spawter quand tu y vas, et partager tes avis. SPAWT t'engage à respecter les autres, ne pas inventer d'avis, et garder un ton qui ne blesse pas. Aucun usage commercial sans accord. Le détail complet — version juriste — arrive bientôt.",
     "geoloc_label": "J'accepte la collecte de mes données et de ma géolocalisation",
-    "geoloc_body": "Pour valider tes spawts dans les lieux que tu visites, et comprendre la Meute. Usage spawt uniquement. [pending juriste]",
+    "geoloc_body": "Tes infos (nom, quartier, tranche d'âge) servent à mieux te recommander des lieux et à comprendre la Meute. Ta position sert UNIQUEMENT à valider un spawt quand tu es dans un lieu — jamais en arrière-plan pour te tracker. Tu peux tout couper plus tard. Wording final juriste à venir.",
     "policy_link": "Politique de confidentialité",
     "terms_link": "Conditions d'utilisation"
   },
@@ -89,9 +88,12 @@
     "otp_friction_body": "Renvoyer un code ou changer de numéro pour réessayer.",
     "error_rate_limited": "Trop de codes envoyés. Réessaie dans quelques minutes.",
     "error_invalid_otp": "Code invalide. Réessaie.",
+    "error_otp_expired": "Code expiré. Demande un nouveau code.",
+    "error_otp_already_used": "Code déjà utilisé. Demande un nouveau code.",
     "error_network": "Pas de réseau. Le Chat patiente.",
     "error_google_unavailable": "Google indisponible pour l'instant.",
     "error_apple_unavailable": "Apple indisponible pour l'instant.",
+    "error_crypto_unavailable": "Connexion sécurisée indisponible sur cet appareil. Utilise le code SMS.",
     "demo_google_unavailable": "Google n'est pas branché en mode démo.",
     "demo_apple_unavailable": "Apple n'est pas branché en mode démo."
   },
@@ -99,6 +101,7 @@
     "title": "5 questions pour démarrer ton Palais",
     "subtitle": "Ton Palais est un profil de goût. Il bouge avec tes spawts.",
     "cta_finish": "Voir mon Palais",
+    "cta_skip": "Pas d'avis",
     "q_racines_horizons": {
       "question": "Quand tu as faim, tu penses à quoi en premier ?",
       "option_neg": "Attieke poisson, alloco, garba — les classiques",
@@ -254,7 +257,6 @@
   "palais_reveal": {
     "first_title": "Touriste",
     "first_title_subtitle": "Tes premiers pas dans la Meute",
-    "intro": "Voici ton Palais initial. Il va apprendre avec toi.",
     "continue": "Entrer dans la Meute"
   },
   "place": {

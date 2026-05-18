@@ -532,4 +532,31 @@ claude-opus-4-7[1m] (2026-05-17 — batch Epic 2 dev)
 | Date | Auteur | Changement |
 |---|---|---|
 | 2026-05-17 | claude-opus-4-7[1m] | Story 2.3 livrée (chemin critique mobile + Edge scaffolds). Google/Apple buttons et émission session JWT live = defer documenté. |
+| 2026-05-17 | code-review | Review Epic 2 — 17 findings sur cette story (3 décisions blocantes + 13 patches + dette défer). Détail : [code-review-2026-05-17-epic2.md](code-review-2026-05-17-epic2.md). |
+
+### Review Findings (2026-05-17)
+
+Source consolidée : [`code-review-2026-05-17-epic2.md`](code-review-2026-05-17-epic2.md). **Story est la racine d'instabilité d'Epic 2** — D1+D2 cascadent vers Story 2.6.
+
+- [ ] [Review][Decision] **D1** — AC #3 (Google) + AC #4 (Apple) Sign-In livrés à 0%. Re-scoper en 2.3a ou bloquer ? [app/app/(onboarding)/phone.tsx:6-9, app.json plugins]
+- [ ] [Review][Decision] **D2** — `otp-verify` ne livre PAS de session Supabase ; live mode cassé bout-en-bout (`finalizeOnboarding` throw `FINALIZE_NO_AUTH_USER`) [supabase/functions/otp-verify/index.ts:139-143]
+- [ ] [Review][Decision] **D5** — `?demo=1` deep-link contourne la session en production [app/app/(onboarding)/otp.tsx:5972-5973]
+- [ ] [Review][Patch] **P3** — `otp-verify` aucune protection replay du `pin_id` après succès — ajouter `.is("verified_at", null)` + UPDATE atomique [supabase/functions/otp-verify/index.ts:8424-8432]
+- [ ] [Review][Patch] **P4** — Pas de handler CORS / OPTIONS sur otp-send et otp-verify [supabase/functions/otp-{send,verify}/index.ts]
+- [ ] [Review][Patch] **P5** — `x-forwarded-for` trust naïf → rate-limit IP contournable [supabase/functions/otp-send/index.ts:8217]
+- [ ] [Review][Patch] **P6** — `listUsers()` paginé à 50 par défaut → lookup fail silencieux passé 50 phones [supabase/functions/otp-verify/index.ts:8482-8485]
+- [ ] [Review][Patch] **P7** — `CIV_MOBILE_RE` ne matche AUCUN numéro CIV réel ; tous les fixtures passent via FALLBACK_RE [app/app/(onboarding)/phone.tsx:6486]
+- [ ] [Review][Patch] **P8** — PHONE_RE Edge function vs migration 0007 CHECK désalignés (10-15 vs 1-14 digits) [otp-send/index.ts:8191 + migration 0007]
+- [ ] [Review][Patch] **P10** — `events.md` drift sur 3 events auth (`auth_otp_sent`, `auth_otp_validated`, `auth_signed_in`) [documentation/analytics/events.md:126-128]
+- [ ] [Review][Patch] **P11** — Resend `track` leak le `phone` brut au lieu de `maskPhone(phone)` [app/app/(onboarding)/otp.tsx:6111]
+- [ ] [Review][Patch] **P12** — `onResend` ne call PAS `otp-send` (no-op silencieux en live, SMS jamais renvoyé) [app/app/(onboarding)/otp.tsx:6105-6114]
+- [ ] [Review][Patch] **P13** — Stale closure dans analytics `attempts: attempts + 1` → rapporte `1,1,1` au lieu de `1,2,3` [app/app/(onboarding)/otp.tsx:6037-6042]
+- [ ] [Review][Patch] **P14** — Pas d'`AbortController` / cancelled flag sur fetch → setState après unmount [app/app/(onboarding)/otp.tsx:6029-6101]
+- [ ] [Review][Patch] **P20** — Pas de garde "submitting" sur phone.tsx + otp.tsx → double-tap → double fetch [phone.tsx + otp.tsx]
+- [ ] [Review][Patch] **P21** — `slice(-1)` casse l'auto-fill iOS qui dump 6 digits dans cell[0] [app/app/(onboarding)/otp.tsx:6005-6013]
+- [x] [Review][Defer] **otp_attempts TTL/GDPR retention** — hardening pré-alpha, voir deferred-work.md
+- [x] [Review][Defer] **Tests Deno otp-send/verify non livrés** — installer Deno + livrer en Story 2.3a
+- [x] [Review][Defer] **README Edge Functions otp-send / otp-verify** — AC #5 demande README, à rédiger Story 2.3a
+- [x] [Review][Defer] **Friction panel buttons hors-panneau** — polish UX Story 2.3a
+- [x] [Review][Defer] **`auth_signed_in` émis en démo pollue funnel** — filtre PostHog/Mixpanel, decision Kidam
 

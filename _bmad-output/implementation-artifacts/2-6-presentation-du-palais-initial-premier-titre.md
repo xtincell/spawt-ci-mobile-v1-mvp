@@ -479,4 +479,20 @@ Splash → Consent ARTCI → Phone OTP → OTP (démo `123456`) → Profile 6 ch
 | Date | Auteur | Changement |
 |---|---|---|
 | 2026-05-17 | claude-opus-4-7[1m] | Story 2.6 livrée : palais-reveal gr-night + premier titre + finalizeOnboarding étendu (auth.uid + consent + reset draft) + emit `onboarding_completed`. **Clôt Epic 2**. |
+| 2026-05-17 | code-review | Review Epic 2 — 7 findings sur cette story (2 patches blocants visuels + 5 patches résilience). Détail : [code-review-2026-05-17-epic2.md](code-review-2026-05-17-epic2.md). |
+
+### Review Findings (2026-05-17)
+
+Source consolidée : [`code-review-2026-05-17-epic2.md`](code-review-2026-05-17-epic2.md). **2 bugs visuels rendent le moment-rituel "en construction" pour tous** — Test Tantie Rose impossible à passer en l'état.
+
+- [ ] [Review][Patch] **P1** — `computeConfidence(0)` hardcoded → `underConstruction = true` toujours ; passer le vrai count d'answers [app/app/(onboarding)/palais-reveal.tsx:6316-6318]
+- [ ] [Review][Patch] **P2** — `toRadar((v+1)/2)` incohérent avec range commenté `[-0.4, +0.4]` → radar values bunched dans [0.3, 0.7] → radar paraît plat [app/app/(onboarding)/palais-reveal.tsx:6302-6305]
+- [ ] [Review][Patch] **P15** — `BackHandler` non bloqué Android pendant `finalizeOnboarding` → exit mid-write [app/app/(onboarding)/palais-reveal.tsx]
+- [ ] [Review][Patch] **P16** — `void saveSpawter` / `void savePalais` sans `.catch` → unhandled rejection masquée [app/src/store/spawter-store.ts:7998-7999]
+- [ ] [Review][Patch] **P17** — `started_at === null` fallback `seconds = 0` pollue KPI ; émettre `-1` sentinelle [app/app/(onboarding)/palais-reveal.tsx:6342-6344]
+- [ ] [Review][Patch] **P22b** — `fr.json:257` `palais_reveal.intro` dead string [app/src/i18n/fr.json:257]
+- [ ] [Review][Patch] **P23b** — `useMemo` no-op dans palais-reveal (const arg) — soit vraies deps (cf. P1), soit retirer [app/app/(onboarding)/palais-reveal.tsx]
+- [x] [Review][Defer] **Cascade D2 Story 2.3** — `finalizeOnboarding` live mode dépend de la session JWT que Story 2.3 ne livre pas
+- [x] [Review][Defer] **`OnboardingDraft` non persisté AsyncStorage** — app killed mid-flow → PII perdues ; hardening avant alpha
+- [x] [Review][Defer] **`gradient.night as const` cast LinearGradient** — type cleanup déjà tracé deferred-work Story 1.3
 

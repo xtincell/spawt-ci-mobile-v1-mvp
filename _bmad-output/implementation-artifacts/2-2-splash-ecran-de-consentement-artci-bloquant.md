@@ -525,3 +525,15 @@ claude-opus-4-7[1m] (2026-05-17 — batch d'Epic 2 dev, stories 2.2-2.6)
 | Date | Auteur | Changement |
 |---|---|---|
 | 2026-05-17 | claude-opus-4-7[1m] | Story 2.2 livrée : Splash gr-night + consent ARTCI bloquant (FR-040) + migration 0006 rename `data_consent_at` → `cgv_accepted_at`. Sign-off Kidam requis sur `events.md` avant merge `main`. |
+| 2026-05-17 | code-review | Review Epic 2 — 6 findings sur cette story (1 décision + 5 patches). Détail consolidé : [code-review-2026-05-17-epic2.md](code-review-2026-05-17-epic2.md). |
+
+### Review Findings (2026-05-17)
+
+Source consolidée : [`code-review-2026-05-17-epic2.md`](code-review-2026-05-17-epic2.md).
+
+- [ ] [Review][Decision] **D3** — `[pending juriste]` shippé dans `consent.cgv_body` / `consent.geoloc_body` ([fr.json:7429](../../app/src/i18n/fr.json#L7429)). Bloquant pour merge `main`, à arbitrer pour `spawt/v1-bmad`.
+- [ ] [Review][Patch] **P9** — `lib/storage.ts` rename `consent_data` → `consent_cgv` sans migration AsyncStorage des clés existantes [app/src/lib/storage.ts]
+- [ ] [Review][Patch] **P18** — Splash CTA écrase `started_at` à chaque rentrée → KPI partiel ; rendre idempotent [app/app/index.tsx:7062-7066]
+- [ ] [Review][Patch] **P19** — `consent.tsx` re-déclenche `recordConsent` → set-once trigger DB throw en re-entrée [app/app/(onboarding)/consent.tsx:5633-5640]
+- [ ] [Review][Patch] **P20** — Pas de garde "submitting" sur le bouton Continuer (double-tap → analytics dupliqué) [app/app/(onboarding)/consent.tsx:5624]
+- [ ] [Review][Patch] **P22a** — `fr.json:26` `consent.intro` dead string (ajoutée mais jamais consommée par la UI) [app/src/i18n/fr.json:26]

@@ -17,7 +17,12 @@ export default function SplashScreen() {
   const router = useRouter();
 
   const onStart = () => {
-    useOnboardingDraft.getState().setField("started_at", Date.now());
+    // P18 — idempotent : ne pas écraser un started_at déjà posé si l'utilisateur
+    // re-tape le CTA (ex: back depuis consent puis re-Splash).
+    const draftState = useOnboardingDraft.getState();
+    if (draftState.draft.started_at === null) {
+      draftState.setField("started_at", Date.now());
+    }
     track({ name: "onboarding_started", properties: {} });
     router.push("/(onboarding)/consent");
   };
