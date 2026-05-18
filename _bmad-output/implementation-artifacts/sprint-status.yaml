@@ -38,7 +38,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-14
-last_updated: 2026-05-18T12:00:00Z
+last_updated: 2026-05-18T20:30:00Z
 project: Spawt mobile CI
 project_key: NOKEY
 tracking_system: file-system
@@ -60,12 +60,12 @@ development_status:
   # Epic 2: Entrée dans la Meute — auth, consent & calibrage du Palais
   epic-2: in-progress
   2-1-voix-du-chat-evolutive: done
-  2-2-splash-ecran-de-consentement-artci-bloquant: in-progress  # patches code review 2026-05-17 appliqués
-  2-3-authentification-par-otp-google-sign-in: review  # bloqué tant que 2-3a n'a pas livré session JWT + Google/Apple
-  2-3a-google-apple-sign-in-session-jwt: review  # 2026-05-18 round 3 : 31/31 patches + 5/5 decisions résolues + triple gate verte (98 passed/4 skipped/0 failed). 14 defers tracés. Attente sign-off process Stéphanie/Kidam/Alexandre avant merge main.
-  2-4-saisie-du-profil-pii-demographiques: in-progress  # patches mineurs appliqués 2026-05-17
-  2-5-calibrage-du-palais-en-5-questions: in-progress  # D4 + P23a appliqués 2026-05-17
-  2-6-presentation-du-palais-initial-premier-titre: in-progress  # P1 P2 P15 P16 P17 appliqués 2026-05-17
+  2-2-splash-ecran-de-consentement-artci-bloquant: review  # 2026-05-18 round 3 commit bdb32d7 : patches appliqués (P18-P22a Round 2) + Round 3 confirme via Auditor. Attente DoD externe Stéphanie/Kidam/Alexandre (matrice 4 devices + dashboard + audit verbal).
+  2-3-authentification-par-otp-google-sign-in: review  # bloqué tant que 2-3a n'a pas livré session JWT + Google/Apple — résolu par 2-3a (commit bdb32d7). Attente DoD externe.
+  2-3a-google-apple-sign-in-session-jwt: review  # 2026-05-18 round 3 commit bdb32d7 : 65 patches + 9 decisions résolues sans dette technique + triple gate verte (98 passed/4 skipped/0 failed). 14 defers tracés. Attente DoD externe (matrice 4 devices + alpha Sentry + dashboard Kidam + audit verbal Alexandre).
+  2-4-saisie-du-profil-pii-demographiques: review  # 2026-05-18 round 3 commit bdb32d7 : patches P25 + P26 Round 1 + P-29 P-30 P-23 P-24 Round 3 appliqués. Attente DoD externe.
+  2-5-calibrage-du-palais-en-5-questions: review  # 2026-05-18 round 3 commit bdb32d7 : D4 + P23a Round 1 + P-25 P-33 Round 2 + P-26 Round 2 appliqués. Attente DoD externe.
+  2-6-presentation-du-palais-initial-premier-titre: review  # 2026-05-18 round 3 commit bdb32d7 : P1 P2 P15 P16 P17 Round 1 + P-22 P-23 P-24 P-27 P-33 Round 2 + P-19 P-20 P-21 P-22 Round 3 appliqués. Attente DoD externe.
   epic-2-retrospective: optional
 
   # Epic 3: Découverte — Home, feed, fiche lieu, recherche & favoris
