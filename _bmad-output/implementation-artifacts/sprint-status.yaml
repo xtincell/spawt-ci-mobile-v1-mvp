@@ -1,5 +1,6 @@
 # generated: 2026-05-14
-# last_updated: 2026-05-18T20:00:00Z  # Round 3 complet : 31/31 patches + 5/5 decisions résolues sans dette technique + triple gate verte (98 passed/4 skipped/0 failed). Attente sign-off process humain Stéphanie/Kidam/Alexandre.
+# last_updated: 2026-05-18T21:00:00Z  # Retrospective Epic 2 livrée — epic-2-retro-2026-05-18.md. 17 action items tracés + suivi follow-through Epic 1. epic-2-retrospective: optional → done.
+# previous_update_round3_complete: 2026-05-18T20:00:00Z  # Round 3 complet : 31/31 patches + 5/5 decisions résolues sans dette technique + triple gate verte (98 passed/4 skipped/0 failed).
 # previous_update_round3: 2026-05-18T18:00:00Z  # Round 3 patches appliqués (decisions encore pending)
 # previous_update: 2026-05-18T16:00:00Z  # Round 3 code review livrée
 # previous_update_2: 2026-05-18T12:00:00Z  # Round 2 patches Story 2.3a appliqués
@@ -38,7 +39,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-14
-last_updated: 2026-05-18T20:30:00Z
+last_updated: 2026-05-18T21:00:00Z
 project: Spawt mobile CI
 project_key: NOKEY
 tracking_system: file-system
@@ -66,7 +67,7 @@ development_status:
   2-4-saisie-du-profil-pii-demographiques: review  # 2026-05-18 round 3 commit bdb32d7 : patches P25 + P26 Round 1 + P-29 P-30 P-23 P-24 Round 3 appliqués. Attente DoD externe.
   2-5-calibrage-du-palais-en-5-questions: review  # 2026-05-18 round 3 commit bdb32d7 : D4 + P23a Round 1 + P-25 P-33 Round 2 + P-26 Round 2 appliqués. Attente DoD externe.
   2-6-presentation-du-palais-initial-premier-titre: review  # 2026-05-18 round 3 commit bdb32d7 : P1 P2 P15 P16 P17 Round 1 + P-22 P-23 P-24 P-27 P-33 Round 2 + P-19 P-20 P-21 P-22 Round 3 appliqués. Attente DoD externe.
-  epic-2-retrospective: optional
+  epic-2-retrospective: done  # 2026-05-18 epic-2-retro-2026-05-18.md livrée. Lessons captured + 17 action items tracés + suivi follow-through Epic 1.
 
   # Epic 3: Découverte — Home, feed, fiche lieu, recherche & favoris
   epic-3: backlog
