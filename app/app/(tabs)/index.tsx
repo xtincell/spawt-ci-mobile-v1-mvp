@@ -1,40 +1,88 @@
-// Feed personnalisé — PRD §3.1 Feature 3
-// Mode démo : utilise SEED_PLACES + position fixe Cocody Riviera.
-// Les scores sont calculés avec computeRawScore (PRD §8.1).
+// Story 3.3c — HomeD canonique (UX spec §1119-1156).
+// Refonte du feed : Masthead + ModeStories + UneCarousel + édito ChatBubble + FeuilletonRow.
+// Consomme rankPlaces (Story 3.3b) + listPlaces durci Zod (Story 3.3a) + saved_place_ids (Story 3.6).
+// Events analytics : feed_viewed, feed_card_impressed, feed_card_clicked, feed_refreshed, feed_first_view.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, FlatList, Text, View, RefreshControl } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { ChatBubble } from "../../src/components/ChatBubble";
-import { PlaceCard } from "../../src/components/PlaceCard";
 import { DataSourceBanner } from "../../src/components/DataSourceBanner";
+import { EmptyState } from "../../src/components/EmptyState";
+import { Masthead } from "../../src/components/Masthead";
+import { ModeStories, type ModeKey } from "../../src/components/ModeStories";
+import { UneCarousel } from "../../src/components/UneCarousel";
+import { FeuilletonRow } from "../../src/components/FeuilletonRow";
+import { Ico } from "../../src/components/primitives/Ico";
 import { listPlaces, type PlaceWithAdn } from "../../src/lib/data-source";
-import { computeRawScore, displayedScore } from "../../src/lib/matching";
+import { rankPlaces, type PlaceWithScore } from "../../src/lib/matching";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
+import { track } from "../../src/lib/analytics";
+import { DEMO_LAT, DEMO_LNG } from "../../src/lib/demo-constants";
 
-// Position de référence en mode démo — Cocody Riviera
-const DEMO_LAT = 5.358;
-const DEMO_LNG = -3.97;
+const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 
-export default function FeedScreen() {
+// Mapping mode → filtre heuristique (Dev Notes §1 Story 3.3c — à ajuster en alpha).
+// Le `default:` est un filet anti-régression : si `ModeKey` gagne une valeur
+// future ou si un mode invalide se persiste (rehydrate corruption), on
+// retourne la liste complète plutôt que `undefined`.
+export function applyModeFilter(
+  places: readonly PlaceWithAdn[],
+  mode: ModeKey | null,
+): PlaceWithAdn[] {
+  if (mode === null) return [...places];
+  switch (mode) {
+    case "traine":
+      return places.filter(
+        (p) => p.price.tier <= 2 && p.adn.axe_decontracte_habille < 0,
+      );
+    case "decouvre":
+      return places.filter(
+        (p) =>
+          p.adn.axe_populaire_prive > 0 || p.signals.includes("decouverte"),
+      );
+    case "tribu":
+      return places.filter((p) => p.adn.axe_decontracte_habille < 0.2);
+    case "chic":
+      return places.filter(
+        (p) => p.price.tier === 3 || p.adn.axe_decontracte_habille > 0.3,
+      );
+    case "vite":
+      return places.filter((p) => p.adn.axe_informel_etabli < 0);
+    default:
+      return [...places];
+  }
+}
+
+export default function HomeD() {
   const theme = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
+
   const palais = useSpawterStore((s) => s.palais ?? EMPTY_PALAIS);
   const spawter = useSpawterStore((s) => s.spawter);
   const spawts = useSpawterStore((s) => s.spawts);
+  const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
 
   const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<ModeKey | null>(null);
 
-  const visited = useMemo(
-    () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
-    [spawts],
-  );
+  const feedViewedRef = useRef(false);
+  const firstViewRef = useRef(false);
 
   const fetchPlaces = async () => {
     const data = await listPlaces();
@@ -47,109 +95,239 @@ export default function FeedScreen() {
     void fetchPlaces();
   }, []);
 
+  const visited = useMemo(
+    () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
+    [spawts],
+  );
+
+  const ctx = useMemo(
+    () => ({
+      spawter_palais: palais,
+      spawter_lat: DEMO_LAT,
+      spawter_lng: DEMO_LNG,
+      visited_place_ids: visited,
+      saved_place_ids: savedPlaceIds,
+      now: new Date(),
+    }),
+    [palais, visited, savedPlaceIds],
+  );
+
   const ranked = useMemo(() => {
-    const now = new Date();
-    return places
-      .map((p) => {
-        const score = computeRawScore(
-          {
-            spawter_palais: palais,
-            spawter_lat: DEMO_LAT,
-            spawter_lng: DEMO_LNG,
-            visited_place_ids: visited,
-            now,
-          },
-          {
-            place: p,
-            adn: p.adn,
-            last_spawt_at: null,
-          },
-        );
-        const distanceKm = haversine(
-          DEMO_LAT,
-          DEMO_LNG,
-          p.location.lat,
-          p.location.lng,
-        );
-        return { place: p, score: displayedScore(score), distanceKm };
-      })
-      .sort((a, b) => b.score - a.score);
-  }, [places, palais, visited]);
+    const candidates = applyModeFilter(places, selectedMode);
+    return rankPlaces(
+      ctx,
+      candidates.map((p) => ({ place: p, adn: p.adn, last_spawt_at: null })),
+    );
+  }, [places, selectedMode, ctx]);
+
+  const top3 = useMemo(() => ranked.slice(0, 3), [ranked]);
+  const feuilleton = useMemo(() => ranked.slice(3), [ranked]);
 
   const stade = spawter?.stade ?? "touriste";
 
-  return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
-      <DataSourceBanner />
-      {loading ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+  // feed_viewed — 1× par mount (dedup via ref).
+  useEffect(() => {
+    if (loading || feedViewedRef.current) return;
+    feedViewedRef.current = true;
+    // `top_score` est borné [50, 99] (PRD §8.3). Quand `ranked` est vide on
+    // remonte `null` pour que la funnel Kidam ne confonde pas "feed vide"
+    // avec "feed avec top_score=0" (impossible vu la borne).
+    const topScore = ranked[0]?.match_score ?? null;
+    track({
+      name: "feed_viewed",
+      properties: {
+        places_shown: ranked.length,
+        top_score: topScore,
+        palais_confidence: palais.confidence_score,
+      },
+    });
+  }, [loading, ranked, palais]);
+
+  // feed_first_view — si spawter post-onboarding pre-1er spawt.
+  // Gate strict : spawter must exist AND total_spawts === 0. L'ancienne
+  // version `spawter?.total_spawts !== 0` était `true` pour spawter undefined
+  // (hydrate en cours), ce qui faisait fail-open : l'event se posait sans
+  // user identifié. On wait que le store soit hydraté.
+  useEffect(() => {
+    if (loading || firstViewRef.current) return;
+    if (spawter === null) return;
+    if (spawter.total_spawts !== 0) return;
+    void AsyncStorage.getItem(FIRST_FEED_KEY)
+      .then((seen) => {
+        if (seen) return;
+        // Marque le ref + persist DISK avant de track, pour que deux mounts
+        // simultanés (Fast Refresh, double tab switch) ne double-firent pas.
+        firstViewRef.current = true;
+        return AsyncStorage.setItem(FIRST_FEED_KEY, "1").then(() => {
+          track({
+            name: "feed_first_view",
+            properties: { places_count: ranked.length },
+          });
+        });
+      })
+      .catch((err) => {
+        if (__DEV__) console.warn("[home] feed_first_view storage failed", err);
+      });
+  }, [loading, spawter, ranked]);
+
+  const onUnePress = (item: PlaceWithScore) => {
+    track({
+      name: "feed_card_clicked",
+      properties: {
+        place_id: item.place.id,
+        position: ranked.findIndex((r) => r.place.id === item.place.id),
+        match_score: item.match_score,
+        distance_km: item.distance_km,
+      },
+    });
+    router.push({
+      pathname: "/place/[id]",
+      params: { id: item.place.id, ref: "feed" },
+    });
+  };
+
+  const onImpression = (item: PlaceWithScore, position: number) => {
+    track({
+      name: "feed_card_impressed",
+      properties: {
+        place_id: item.place.id,
+        position,
+        match_score: item.match_score,
+      },
+    });
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    track({
+      name: "feed_refreshed",
+      properties: { places_count: places.length },
+    });
+    void fetchPlaces();
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView
+        edges={["top"]}
+        style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
+      >
+        <DataSourceBanner />
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ActivityIndicator color={theme.colors.brand.primary} />
         </View>
-      ) : (
-        <FlatList
-          data={ranked}
-          keyExtractor={(item) => item.place.id}
-          contentContainerStyle={{ padding: theme.spacing.base, paddingBottom: theme.spacing["2xl"] }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void fetchPlaces();
-              }}
-              tintColor={theme.colors.brand.primary}
-            />
-          }
-          ListHeaderComponent={
-            <View style={{ marginBottom: theme.spacing.lg }}>
-              <Text
-                style={{
-                  color: theme.colors.text.primary,
-                  fontSize: theme.typography.size["2xl"],
-                  fontWeight: theme.typography.weight.bold,
-                  marginBottom: theme.spacing.sm,
-                }}
-              >
-                Salut {spawter?.display_name ?? "Touriste"}
-              </Text>
-              <Text
-                style={{
-                  color: theme.colors.text.secondary,
-                  fontSize: theme.typography.size.sm,
-                  marginBottom: theme.spacing.base,
-                }}
-              >
-                {spawts.length === 0
-                  ? "Aucun spawt encore. Choisis un lieu et lance-toi."
-                  : `${spawts.length} spawt${spawts.length > 1 ? "s" : ""} · ${spawter?.unique_spots ?? 0} spot${(spawter?.unique_spots ?? 0) > 1 ? "s" : ""} unique${(spawter?.unique_spots ?? 0) > 1 ? "s" : ""}`}
-              </Text>
-              <ChatBubble
-                stade={stade}
-                moment={spawts.length === 0 ? "first_spawt_invite" : "welcome_back"}
-              />
-            </View>
-          }
-          renderItem={({ item }) => (
-            <PlaceCard
-              place={item.place}
-              matchScore={item.score}
-              distanceKm={item.distanceKm}
-              onPress={() => router.push(`/place/${item.place.id}`)}
-            />
-          )}
+      </SafeAreaView>
+    );
+  }
+
+  if (ranked.length === 0 && selectedMode !== null) {
+    return (
+      <SafeAreaView
+        edges={["top"]}
+        style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
+      >
+        <DataSourceBanner />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.base,
+          }}
+        >
+          <Masthead kicker={t("home.masthead_kicker")} />
+        </View>
+        <ModeStories
+          selectedMode={selectedMode}
+          onModePress={setSelectedMode}
         />
-      )}
+        <EmptyState
+          icon="search"
+          title={t("search.results_empty_title")}
+          body={t("search.results_empty_body")}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
+    >
+      <DataSourceBanner />
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.brand.primary}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: theme.spacing["3xl"] }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingRight: theme.spacing.base,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Masthead kicker={t("home.masthead_kicker")} />
+          </View>
+          <Pressable
+            // typedRoutes regenerate les types au prochain build — V1 cast.
+            onPress={() => router.push("/search" as never)}
+            accessibilityRole="button"
+            accessibilityLabel={t("search.title")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}
+          >
+            <Ico name="search" size={22} />
+          </Pressable>
+        </View>
+
+        <View style={{ marginTop: theme.spacing.sm }}>
+          <ModeStories
+            selectedMode={selectedMode}
+            onModePress={setSelectedMode}
+          />
+        </View>
+
+        {top3.length > 0 ? (
+          <View style={{ marginTop: theme.spacing.lg }}>
+            <UneCarousel
+              unes={top3}
+              onUnePress={onUnePress}
+              onImpression={onImpression}
+              // Invariant project-context — Palais "En construction" ne
+              // produit qu'un score cosine pseudo-aléatoire qu'il ne faut pas
+              // exposer en kicker éditorial.
+              showMatchScore={palais.confidence_score >= 0.3}
+            />
+          </View>
+        ) : null}
+
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.lg,
+            marginTop: theme.spacing.lg,
+          }}
+        >
+          <ChatBubble stade={stade} moment="home_edito" variant="edito" />
+        </View>
+
+        {feuilleton.length > 0 ? (
+          <View style={{ marginTop: theme.spacing.lg }}>
+            <FeuilletonRow places={feuilleton} onPlacePress={onUnePress} />
+          </View>
+        ) : null}
+      </ScrollView>
     </SafeAreaView>
   );
-}
-
-function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
 }

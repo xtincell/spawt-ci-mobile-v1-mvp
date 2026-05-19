@@ -5,6 +5,7 @@
     "skip": "Passer",
     "cancel": "Annuler",
     "save": "Enregistrer",
+    "clear": "Effacer",
     "loading": "Un instant…",
     "error_generic": "Quelque chose a couiné. Réessaie.",
     "error_network": "Pas de réseau. Le Chat patiente.",
@@ -16,6 +17,115 @@
     "fab": "Spawter",
     "meute": "Meute",
     "palais": "Palais"
+  },
+  "fab": {
+    "stub_title": "Je spawt ici",
+    "stub_body": "Le Guet n'est pas encore armé sur ton téléphone. Va sur la fiche d'un lieu et tape « Je spawt ici (mode démo) » pour valider la mécanique.",
+    "action_label": "Spawter depuis le centre"
+  },
+  "guet": {
+    "indicator_label": "Le Chat fait le guet chez {{place_name}}…",
+    "cta_manual_demo": "Je spawt ici (aperçu du geste)",
+    "cta_manual_demo_alert_title": "Aperçu du geste",
+    "cta_manual_demo_alert_body": "En live, Le Chat aurait sonné l'arrivée ici. La vraie confirmation arrive bientôt.",
+    "cta_manual_demo_success": "Spawt enregistré (aperçu). En live, ton Palais s'enrichirait après ton avis.",
+    "stub_blocked_geoloc": "La géoloc n'est pas activée — Le Chat ne peut pas faire le guet. Active-la dans tes paramètres."
+  },
+  "notif": {
+    "guet": {
+      "prompt_title": "Le Guet a sonné",
+      "prompt_body": "Comment c'était chez {{place_name}} ? Le Chat attend ton avis.",
+      "action_confirm": "Confirmer",
+      "action_snooze": "Snooze 15min"
+    }
+  },
+  "badge": {
+    "premier_spawt_title": "Premier Spawt",
+    "premier_spawt_body": "Le Chat sait que tu es passé chez {{place_name}}. La Meute s'enrichit d'un palais.",
+    "premier_spawt_cta": "Continuer"
+  },
+  "review": {
+    "title": "Ton avis sur {{place_name}}",
+    "subtitle": "Le Chat écoute.",
+    "stars_hint": "De 1 (jamais retour) à 5 (à refaire vite)",
+    "text_placeholder": "En 1 phrase, ce que tu retiens ?",
+    "cta_save": "Enregistrer mon avis",
+    "cta_later": "Plus tard",
+    "photo_add": "Ajouter une photo",
+    "submit_success_toast": "Ton avis a renforcé l'ADN de {{place_name}}."
+  },
+  "offline_queue": {
+    "title": "En attente de synchronisation",
+    "empty": "Tout est synchronisé. Le Chat dort tranquille.",
+    "sync_now": "Synchroniser maintenant",
+    "purge": "Vider la file",
+    "purge_confirm": "Tu vas effacer {{count}} spawts non synchronisés, ils ne seront jamais envoyés.",
+    "row_insert": "Spawt chez {{place_id}}",
+    "row_update": "Mise à jour {{row_id}}",
+    "open_button": "Synchronisation des spawts"
+  },
+  "empty_state": {
+    "map_title": "Le Chat regarde la carte…",
+    "map_body": "Mais pas encore. Reviens bientôt — la carte s'allume au sprint d'après.",
+    "meute_title": "La Meute se rassemble…",
+    "meute_body": "Pour l'instant, retrouve les autres spawters via les avis et les Coups de Cœur sur les fiches lieu."
+  },
+  "home": {
+    "masthead_kicker": "ÉDITION DU JOUR",
+    "modes_title": "Je sors pour…"
+  },
+  "modes": {
+    "traine": { "label": "Je traîne", "sub": "Détente" },
+    "decouvre": { "label": "Je découvre", "sub": "Atypique" },
+    "tribu": { "label": "Avec la tribu", "sub": "Groupe" },
+    "chic": { "label": "C'est chic", "sub": "Soir spécial" },
+    "vite": { "label": "Vite fait", "sub": "Rapide" }
+  },
+  "search": {
+    "placeholder": "Cherche un spot, un plat, une zone…",
+    "title": "Chercher",
+    "empty_recents_title": "Tes dernières recherches",
+    "empty_recents_clear": "Effacer",
+    "empty_suggestions_title": "Le Chat te propose",
+    "empty_cuisines_title": "Cuisines populaires",
+    "filters_button": "Filtres",
+    "filters_open": "Affiner",
+    "filters_section_cuisine": "Cuisine",
+    "filters_section_budget": "Budget",
+    "filters_section_distance": "Distance",
+    "filters_section_rating": "Note minimale",
+    "filters_clear_all": "Effacer tout",
+    "filters_cta_see": "Voir {{count}} spots",
+    "filters_cta_see_one": "Voir 1 spot",
+    "filters_cta_see_zero": "Aucun spot — élargis tes filtres",
+    "budget_low": "₣ Économique",
+    "budget_mid": "₣₣ Moyen",
+    "budget_high": "₣₣₣ Premium",
+    "distance_unit": "≤ {{km}} km",
+    "distance_off": "Toutes distances",
+    "rating_min": "Note ≥ {{value}}",
+    "results_empty_title": "Aucun spot ne correspond",
+    "results_empty_body": "Élargis tes filtres ou demande au Chat des suggestions."
+  },
+  "saved": {
+    "title": "Mes spots",
+    "empty_title": "Tu n'as pas encore sauvegardé de spot",
+    "empty_body": "Tape le cœur sur une fiche pour le retrouver ici.",
+    "count_zero": "0 spot sauvegardé",
+    "count_one": "1 spot sauvegardé",
+    "count_many": "{{count}} spots sauvegardés",
+    "save_aria": "Sauvegarder ce spot",
+    "unsave_aria": "Retirer ce spot des favoris"
+  },
+  "profile_links": {
+    "saved_quick_link": "Mes spots ({{count}})"
+  },
+  "share": {
+    "button_label": "Partager",
+    "dialog_title": "Partager via",
+    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\n{{url}}\n\nvia SPAWT — la Meute du goût à Abidjan.",
+    "fallback_no_phone": "WhatsApp n'a pas pu s'ouvrir. Copie le lien manuellement.",
+    "copy_link": "Copier le lien"
   },
   "splash": {
     "tagline": "Ne plus jamais regretter un restaurant.",
@@ -177,7 +287,10 @@
       "stade_up_djidji": "",
       "stade_up_guide": "",
       "geoloc_consent_request": "On va parler de deux trucs. Tes infos, ta position. Je t'explique sans gronder.",
-      "demographics_consent_request": "Quelques infos sur toi pour qu'on connaisse mieux la Meute. Toujours optionnel."
+      "demographics_consent_request": "Quelques infos sur toi pour qu'on connaisse mieux la Meute. Toujours optionnel.",
+      "home_edito": "Aujourd'hui je te propose 3 spots à ton goût. Trie ton choix.",
+      "search_suggestions": "Essaie : maquis, café, à 2 km",
+      "guet_prompt": ""
     },
     "explorateur": {
       "welcome_first_open": "",
@@ -190,7 +303,10 @@
       "stade_up_djidji": "",
       "stade_up_guide": "",
       "geoloc_consent_request": "",
-      "demographics_consent_request": ""
+      "demographics_consent_request": "",
+      "home_edito": "Pas mal de nouveaux endroits cette semaine. J'en mets 3 pour toi.",
+      "search_suggestions": "Tente : libanaise, Yopougon, soirée",
+      "guet_prompt": ""
     },
     "detective": {
       "welcome_first_open": "",
@@ -203,7 +319,10 @@
       "stade_up_djidji": "31 spots. Djidji. La colonie écoute.",
       "stade_up_guide": "",
       "geoloc_consent_request": "",
-      "demographics_consent_request": ""
+      "demographics_consent_request": "",
+      "home_edito": "Les bons spots sont là. Toi, choisis.",
+      "search_suggestions": "Cherche : ouest-africaine, premium, pépite vérifiée",
+      "guet_prompt": ""
     },
     "djidji": {
       "welcome_first_open": "",
@@ -216,7 +335,10 @@
       "stade_up_djidji": "",
       "stade_up_guide": "51 spots. Guide. Le Chat marche derrière toi maintenant.",
       "geoloc_consent_request": "",
-      "demographics_consent_request": ""
+      "demographics_consent_request": "",
+      "home_edito": "La sélection est fine aujourd'hui. Prends ton temps.",
+      "search_suggestions": "Aujourd'hui : tu sais ce que tu veux",
+      "guet_prompt": ""
     },
     "guide": {
       "welcome_first_open": "",
@@ -229,7 +351,10 @@
       "stade_up_djidji": "",
       "stade_up_guide": "Tu es Guide. 51 spots, ton territoire. La Meute te suit.",
       "geoloc_consent_request": "",
-      "demographics_consent_request": ""
+      "demographics_consent_request": "",
+      "home_edito": "",
+      "search_suggestions": "",
+      "guet_prompt": ""
     }
   },
   "stade": {
@@ -260,7 +385,37 @@
     "continue": "Entrer dans la Meute"
   },
   "place": {
-    "notRatedYet": "Pas encore noté"
+    "notRatedYet": "Pas encore noté",
+    "spawt_cta_demo": "Je spawt ici (mode démo)",
+    "spawt_cta_demo_hint": "En live, Le Guet détecterait ta présence automatiquement.",
+    "info_address": "Adresse",
+    "info_hours": "Horaires",
+    "info_hours_closed": "Fermé",
+    "info_phone": "Téléphone",
+    "info_whatsapp": "WhatsApp",
+    "adn_section_title": "ADN du lieu",
+    "adn_in_construction": "ADN en construction",
+    "adn_in_construction_hint": "{{reviews}} avis publics — il en faut au moins 5 pour révéler les axes.",
+    "match_with_palais": "{{score}}% pour ton Palais",
+    "card_aria_label": "{{name}}, {{score}}% pour ton Palais",
+    "call": "Appeler",
+    "whatsapp": "WhatsApp",
+    "back": "Retour",
+    "not_found": "Lieu introuvable",
+    "spawter_required_title": "Tu n'es pas encore dans la Meute",
+    "spawter_required_body": "Finis l'entrée dans la Meute pour pouvoir spawter.",
+    "spawter_required_cta": "Entrer dans la Meute"
+  },
+  "list": {
+    "remove_from_saved_aria": "Retirer ce spot des favoris",
+    "selection_badge": "★ Sélection",
+    "selection_signal_coup_de_coeur": "Coup de Cœur",
+    "selection_signal_pepite_verifiee": "Pépite vérifiée",
+    "selection_signal_institution": "Institution",
+    "selection_signal_fidelite": "Fidélité",
+    "selection_signal_decouverte": "Découverte",
+    "selection_signal_table_diverse": "Table diverse",
+    "selection_signal_noctambule_verifie": "Noctambule"
   },
   "a11y": {
     "matchScore": "Score {{score}}%",

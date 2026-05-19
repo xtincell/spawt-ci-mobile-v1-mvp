@@ -1,5 +1,10 @@
 # generated: 2026-05-14
-# last_updated: 2026-05-18T21:00:00Z  # Retrospective Epic 2 livrée — epic-2-retro-2026-05-18.md. 17 action items tracés + suivi follow-through Epic 1. epic-2-retrospective: optional → done.
+# last_updated: 2026-05-19T12:00:00Z  # Epic 4 dev-story PASS 1 démarrée — 4.1 in-progress (ready-for-dev → in-progress). Toutes les stories suivantes 4.2-4.7 enchaînées en une seule passe dev (feedback_adversarial_timing : adversarial review reportée à la fin de tous les epics, pas par story). Round 1 code review Epic 3 reporté APRÈS passe dev Epic 4 complète.
+# previous_update_epic4_create: 2026-05-19T00:00:00Z  # Epic 4 stories 4.1 → 4.7 créées via bmad-create-story — backlog → ready-for-dev. epic-4: backlog → in-progress. Toutes les 7 stories Epic 4 prêtes pour dev-story.
+# previous_update_retro_epic3: 2026-05-18T23:55:00Z  # Retrospective Epic 3 livrée — epic-3-retro-2026-05-18.md. Bilan : 9 stories review, 0 done, 0 round review lancé (risque massif). 153 tests passants. Follow-through Epic 2 dégradé à 15/17 non addressed. 23 action items tracés (AP8-10/AT7-13/AS5-9/AB4-8/AV1-3). Critical path : Round 1 code review Epic 3 avant Epic 4. epic-3-retrospective: optional → done.
+# previous_update_epic3_dev: 2026-05-18T23:30:00Z  # Epic 3 dev-story PASS 1 livrée : Stories 3.1, 3.2, 3.3a/b/c, 3.4, 3.5, 3.6, 3.7 → review. Triple gate verte (153 tests passed/4 skipped/0 failed). Code livré sans dette technique critique. Attente DoD externe (matrice 4 devices + dashboard Kidam + audit Tantie Rose Alexandre).
+# previous_update: 2026-05-18T22:30:00Z  # Toutes les stories Epic 3 (3.1 → 3.7) créées via bmad-create-story — backlog → ready-for-dev. epic-3: backlog → in-progress.
+# previous_update_retro_epic2: 2026-05-18T21:00:00Z  # Retrospective Epic 2 livrée — epic-2-retro-2026-05-18.md. 17 action items tracés + suivi follow-through Epic 1. epic-2-retrospective: optional → done.
 # previous_update_round3_complete: 2026-05-18T20:00:00Z  # Round 3 complet : 31/31 patches + 5/5 decisions résolues sans dette technique + triple gate verte (98 passed/4 skipped/0 failed).
 # previous_update_round3: 2026-05-18T18:00:00Z  # Round 3 patches appliqués (decisions encore pending)
 # previous_update: 2026-05-18T16:00:00Z  # Round 3 code review livrée
@@ -39,7 +44,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-14
-last_updated: 2026-05-18T21:00:00Z
+last_updated: 2026-05-19T00:00:00Z
 project: Spawt mobile CI
 project_key: NOKEY
 tracking_system: file-system
@@ -70,27 +75,27 @@ development_status:
   epic-2-retrospective: done  # 2026-05-18 epic-2-retro-2026-05-18.md livrée. Lessons captured + 17 action items tracés + suivi follow-through Epic 1.
 
   # Epic 3: Découverte — Home, feed, fiche lieu, recherche & favoris
-  epic-3: backlog
-  3-1-navigation-5-onglets-fab-spawter: backlog
-  3-2-note-communautaire-ponderee-par-stade: backlog
-  3-3a-schema-places-place-adn-adapter-data-source: backlog
-  3-3b-moteur-de-score-composite-matching-ts: backlog
-  3-3c-home-homed-feed-personnalise: backlog
-  3-4-fiche-lieu-detaillee: backlog
-  3-5-recherche-filtres: backlog
-  3-6-sauvegarde-de-lieux-favoris: backlog
-  3-7-partage-whatsapp: backlog
-  epic-3-retrospective: optional
+  epic-3: in-progress  # 2026-05-18 toutes les 9 stories Epic 3 livrées en une passe dev — review pending DoD externe
+  3-1-navigation-5-onglets-fab-spawter: review  # 2026-05-18 TabBar canonique branchée sur (tabs) + EmptyState + écrans stub Carte/Meute + FAB stub Alert
+  3-2-note-communautaire-ponderee-par-stade: review  # 2026-05-18 moteur pur weighted-rating.ts (computeWeightedRating + incrementalWeightedRating) + STADE_WEIGHTS figés + 15 tests passants
+  3-3a-schema-places-place-adn-adapter-data-source: review  # 2026-05-18 migration 0010 + .down + seed 12 lieux + Zod parse fail-safe adapter + UUIDs SEED_PLACES migrés (slug → UUID séquentiel)
+  3-3b-moteur-de-score-composite-matching-ts: review  # 2026-05-18 rankPlaces helper + WEIGHTS/haversineKm/PlaceWithScore exposés + 23 tests passants couvrant PRD §8.1/§8.2/§8.3
+  3-3c-home-homed-feed-personnalise: review  # 2026-05-18 HomeD canonique : Masthead + ModeStories + UneCarousel + édito ChatBubble + FeuilletonRow + 5 events analytics
+  3-4-fiche-lieu-detaillee: review  # 2026-05-18 refonte place/[id] : photo hero + AdnTags + sticky CTA + CTAs Appel/WhatsApp + 5 events analytics
+  3-5-recherche-filtres: review  # 2026-05-18 écran search modal root + SearchBar + FilterChips + FilterSheet + moteur search.ts (accent-insensitive, AND filters) + récents AsyncStorage
+  3-6-sauvegarde-de-lieux-favoris: review  # 2026-05-18 toggle favori dans fiche + écran /saved + ListeCard + signal matching +0.05 dans MatchingContext + local-first AsyncStorage (Option A V1)
+  3-7-partage-whatsapp: review  # 2026-05-18 bouton share dans header fiche + API native Share + payload template i18n + 2 events analytics
+  epic-3-retrospective: done  # 2026-05-18 epic-3-retro-2026-05-18.md livrée. Bilan : 9 stories review, 0 done, 0 round review lancé (risque massif). 153 tests passants. Follow-through Epic 2 dégradé à 15/17 non addressed. 23 action items tracés. Critical path : Round 1 code review Epic 3 avant Epic 4.
 
   # Epic 4: Le Spawt — Le Guet, avis structuré & apprentissage du Palais
-  epic-4: backlog
-  4-1-le-guet-armement-geofence-guetindicator: backlog
-  4-2-notification-le-guet-confirmation-du-spawt-badge-premier-spawt: backlog
-  4-3-offline-queue-des-spawts-resilience-reseau: backlog
-  4-4-anti-fraude-technique-6-triggers-sql: backlog
-  4-5-avis-structure-post-spawt: backlog
-  4-6-apprentissage-du-palais-par-decroissance-exponentielle: backlog
-  4-7-mise-a-jour-de-l-adn-du-lieu: backlog
+  epic-4: in-progress  # 2026-05-19 passe dev PASS 1 en cours — toutes les 7 stories enchaînées
+  4-1-le-guet-armement-geofence-guetindicator: review  # 2026-05-19 PASS 1 dev : migration 0011 + lib/guet/ (geofence/task/notifications) + store guet-active + GuetIndicator + i18n + mount tabs layout + tests geofence/guet-active/GuetIndicator. CTA fiche lieu : message stub_blocked en i18n, vrai refactor handler par Story 4.2 (registerSpawtManual).
+  4-2-notification-le-guet-confirmation-du-spawt-badge-premier-spawt: review  # 2026-05-19 PASS 1 dev : guet-permissions + guet-spawt-actions (computeConfirmPatch/Snooze/Passive + buildManualSpawt) + scheduleGuetPrompt/cancelGuetPrompt + setupGuetCategories + registerNotificationResponseHandler + BadgePremierSpawt + spawter-store pendingBadge + détection 1er spawt verified + anti-replay AsyncStorage + place/[id].tsx refactor buildManualSpawt + tests. Wire end-to-end timer 15min reporté PASS 2 — primitives exposées.
+  4-3-offline-queue-des-spawts-resilience-reseau: review  # 2026-05-19 PASS 1 dev : lib/offline-queue.ts (enqueue/inspect/purge/flush/init + backoff exponentiel + cap 200 FIFO) + lib/offline-queue-init.ts (NetInfo wire, tolérant absence native) + data-source upsertSpawt/updateSpawt + OfflineQueueInspector + bouton conditionnel profile.tsx + i18n + tests offline-queue. Coupling câblé root layout (bootOfflineQueue / shutdownOfflineQueue).
+  4-4-anti-fraude-technique-6-triggers-sql: review  # 2026-05-19 PASS 1 dev : migration 0012 (helper haversine_km + 6 triggers : frequence_meme_lieu REJET + frequence_globale/vitesse/pattern/incoherence/sans_geoloc FLAG) + .down.sql + tests SQL supabase/tests/antifraud_triggers.sql (6 scenarios BEGIN/ROLLBACK) + émission antifraud_flag_raised côté listSpawtsFromSupabase (anti-replay in-memory) + snapshot ANTIFRAUD_RULES inline.
+  4-5-avis-structure-post-spawt: review  # 2026-05-19 PASS 1 dev : migration 0013 bucket place-photos + RLS sub-folder + storage-photos.ts (photoPath/compressPhoto/uploadReviewPhoto/getReviewPhotoUrl) + écran modal review/[spawt_id].tsx + attachReviewToSpawt action store (câblée Palais 4.6 + ADN 4.7) + i18n + Stack.Screen modal au root.
+  4-6-apprentissage-du-palais-par-decroissance-exponentielle: review  # 2026-05-19 PASS 1 dev : lib/palais-signals.ts (TAG_TO_SIGNALS + PLACE_SIGNAL_TO_SIGNALS + noteToSignals + applyReviewToPalais pure) + event palais_updated + câblage attachReviewToSpawt store + tests snapshot + edge cases.
+  4-7-mise-a-jour-de-l-adn-du-lieu: review  # 2026-05-19 PASS 1 dev : lib/place-adn-signals.ts (5 axes ADN, différent du Palais) + lib/place-adn-update.ts (applyReviewToAdn pure + recomputeAndPersistPlaceAdn local-only V1) + seed bypass total_reviews + confidence approximée + tests. Edge Function `recompute-place-adn` server-authoritative reportée Sprint 2 (RLS UPDATE place_adn non câblée V1).
   epic-4-retrospective: optional
 
   # Epic 5: Identité du spawter — profil, Palais radar & stades

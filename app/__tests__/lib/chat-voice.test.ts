@@ -1,12 +1,13 @@
-// Story 2.1 — AC #4
+// Story 2.1 — AC #4 (étendu Story 3.3c : ajout moment `home_edito`).
+// Story 3.5 — ajout moment `search_suggestions` (chat-voice élargi à l'écran search).
 // Moteur pur `lib/chat-voice.ts` : cible #1 des tests unit per project-context.md
-// §Testing Rules. Zéro I/O, 5 × 11 = 55 combinaisons.
+// §Testing Rules. Zéro I/O, 5 × 13 = 65 combinaisons.
 
 import { CHAT_MOMENTS, chatKey, isChatSilent, type ChatMoment } from "../../src/lib/chat-voice";
 import { STADES, type Stade } from "../../src/types/stade";
 
 describe("chatKey", () => {
-  it("retourne `chat.<stade>.<moment>` pour les 5 × 11 = 55 combinaisons", () => {
+  it("retourne `chat.<stade>.<moment>` pour les 5 × 13 = 65 combinaisons", () => {
     for (const stade of STADES) {
       for (const moment of CHAT_MOMENTS) {
         expect(chatKey(moment, stade)).toBe(`chat.${stade}.${moment}`);
@@ -28,12 +29,16 @@ describe("isChatSilent", () => {
     for (const moment of nonStadeUpMoments) {
       expect(isChatSilent("guide", moment)).toBe(true);
     }
-    // 7 moments non-stade_up : welcome_first_open, welcome_back,
+    // 10 moments non-stade_up : welcome_first_open, welcome_back,
     // post_calibration, first_spawt_invite, post_first_spawt,
-    // geoloc_consent_request, demographics_consent_request.
+    // geoloc_consent_request, demographics_consent_request, home_edito,
+    // search_suggestions, guet_prompt.
+    // Story 3.3c — `home_edito` ajouté pour le HomeD édito Chat.
+    // Story 3.5 — `search_suggestions` ajouté pour l'écran de recherche vide.
+    // Story 4.2 — `guet_prompt` ajouté pour la notif post-spawt (V1 body neutre).
     // Assertion stricte : la suppression accidentelle d'un moment doit faire
     // échouer ce test (review finding P1 — 2026-05-17).
-    expect(nonStadeUpMoments).toHaveLength(7);
+    expect(nonStadeUpMoments).toHaveLength(10);
   });
 
   it("retourne false pour tous les moments stade_up_*, quel que soit le stade", () => {
@@ -58,7 +63,7 @@ describe("isChatSilent", () => {
 });
 
 describe("CHAT_MOMENTS", () => {
-  it("expose 11 moments (filet anti-régression — ajouter un moment doit casser ici + les tests i18n)", () => {
-    expect(CHAT_MOMENTS).toHaveLength(11);
+  it("expose 14 moments (filet anti-régression — ajouter un moment doit casser ici + les tests i18n)", () => {
+    expect(CHAT_MOMENTS).toHaveLength(14);
   });
 });

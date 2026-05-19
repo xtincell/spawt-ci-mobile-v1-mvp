@@ -78,6 +78,11 @@ export const tokens = {
     djidji: palette.greenChatDeep,
     guide: palette.black,
   },
+  // Overlays — scrims pour lisibilité texte sur photo / fond mixte.
+  overlay: {
+    scrim: "rgba(10, 10, 10, 0.55)", // overlay sombre standard pour kicker UneCard
+    modal: "rgba(10, 10, 10, 0.50)", // backdrop modal bottom-sheet
+  },
 } as const;
 
 // ── Gradients signature (spawt-tokens.css) ────────────

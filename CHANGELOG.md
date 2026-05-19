@@ -4,6 +4,118 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.4.0 — Epic 4 dev-story PASS 1 : 7 stories livrées en review (2026-05-19)
+
+**Epic 4 « Le Spawt » livré en une seule passe dev-story (feedback `adversarial_timing` : adversarial review reportée à la fin de tous les epics). Stories 4.1 → 4.7 toutes passées de `ready-for-dev` à `review`. Code livré sans dette technique critique. Triple gate verte (`tsc --noEmit` 0 erreur, `lint:vocab` ✓, `i18n:check` ✓, **211 tests passed / 4 skipped / 0 failed** — +58 vs Epic 3). Attente DoD externe.**
+
+### Le Guet — fondation backgound (Story 4.1)
+- `feat(infra)` migration `0011_create_spawt_checkin.sql` + `.down.sql` : table `spawt_checkin` (24 colonnes : cycle Guet + géoloc + anti-fraude + avis + seed), 3 index (spawter, place, active partiel `WHERE left_at IS NULL`), trigger `updated_at`, 3 RLS policies (`spawter_id = auth.uid()` + `is_seed = false`).
+- `feat(infra)` seed `feature_flags_guet.sql` : `guet-geofence` activé `internal`/`alpha`, désactivé `beta`/`prod`.
+- `feat(spawt)` `lib/guet/` créé : `geofence.ts` (armGuet/disarmGuet/isGuetArmed + helper pur `selectClosestPlaces` cap 20 via `haversineKm`), `guet-task.ts` (`TaskManager.defineTask` top-level + lookup + callback), `guet-notifications.ts` (channel Android + cleanup).
+- `feat(spawt)` `store/guet-active.ts` micro-store Zustand éphémère + composant `GuetIndicator` (pastille verte Reanimated + `accessibilityLiveRegion="polite"`).
+- `chore(deps)` `expo-task-manager@~14.0.7`.
+
+### Notif + Premier Spawt + helpers confirm (Story 4.2)
+- `feat(spawt)` `guet-permissions.ts` (`ensureNotifPermissionPostOTP` gated geoloc consent ARTCI).
+- `feat(spawt)` `guet-spawt-actions.ts` helpers purs : `computeConfirmPatch` (NFR-GEO-02 accuracy > 30m → manual, NFR-GEO-04 battery < 10% → passive), `computeSnoozePatch` (cap 3), `computePassivePatch` (fenêtre +30min), `buildManualSpawt` (mode démo).
+- `feat(spawt)` `guet-notifications.ts` étendu : `setupGuetCategories` (Confirmer/Snooze) + `scheduleGuetPrompt` Option C (OS scheduler + re-vérif handler) + `registerNotificationResponseHandler`.
+- `feat(spawt)` composant `BadgePremierSpawt` (Modal fade-in 300ms, pas de confettis, pas de son — PRD §9.3 anti-Duolingo) + `spawter-store` détection 1er spawt verified + `pendingBadge` state + anti-replay AsyncStorage `spawt:badge:premier_spawt_celebrated`.
+- `feat(spawt)` event `spawt_first_completed` émis (PRD §16.1 funnel cold start) + refactor `place/[id].tsx:handleSpawt` → `buildManualSpawt`.
+- `feat(spawt)` moment `guet_prompt` ajouté à `CHAT_MOMENTS` (V1 body neutre, mapping stade-aware D-408 Sprint 2).
+- **PASS 2 differred** : wire end-to-end timer 15min `onPresenceThresholdReached` côté `guet-task.ts` (primitives exposées).
+
+### Offline queue résilience (Story 4.3)
+- `feat(infra)` `lib/offline-queue.ts` créé : `enqueue` / `inspect` / `purge` / `flush` / `saveSpawtToSupabaseOrEnqueue` + cap 200 FIFO + retries MAX 5 + backoff progressif 0/5s/15s/30s/60s via `last_attempt_at`.
+- `feat(infra)` `lib/offline-queue-init.ts` : wire NetInfo découplé via import dynamique tolérant (web/test).
+- `feat(spawt)` `data-source` étendu : `upsertSpawtToSupabase` + `updateSpawtInSupabase` + wrappers no-op mode fallback.
+- `feat(spawt)` composant `OfflineQueueInspector` Modal + bouton conditionnel `(tabs)/profile.tsx` (polling 5s) + 7 strings i18n.
+- `chore(deps)` `@react-native-community/netinfo@^11.4.1`.
+
+### Anti-fraude 6 triggers SQL (Story 4.4)
+- `feat(infra)` migration `0012_antifraud_triggers.sql` + `.down.sql` : helper `antifraud_haversine_km` IMMUTABLE + 6 triggers PL/pgSQL :
+  - **NFR-FRAUD-01** `trg_antifraud_frequence_meme_lieu` (REJET < 4h).
+  - **NFR-FRAUD-02** `trg_antifraud_frequence_globale` (FLAG > 5/24h).
+  - **NFR-FRAUD-03** `trg_antifraud_vitesse_anormale` (FLAG > 100 km/h).
+  - **NFR-FRAUD-05** `trg_antifraud_pattern_repetitif` (FLAG 10+ identiques 7j).
+  - **NFR-FRAUD-06** `trg_antifraud_incoherence_duree` (FLAG active < 5min).
+  - **`sans_geoloc`** `trg_antifraud_sans_geoloc` (FLAG !verified active/manual).
+- Tous les triggers bypass `is_seed = true`. Priorité d'écrasement : `IF NEW.flag_reason IS NULL` (1er match alphabétique gagne).
+- `supabase/tests/antifraud_triggers.sql` : 6 scénarios BEGIN/ROLLBACK reproductibles (Stéphanie alpha).
+- `feat(spawt)` `data-source.supabase.ts` émission `antifraud_flag_raised` post-fetch avec set in-memory anti-replay session.
+- `test(spawt)` snapshot inline `ANTIFRAUD_RULES` (verrou TS ↔ SQL).
+
+### Avis structuré post-spawt (Story 4.5)
+- `feat(infra)` migration `0013_storage_buckets_place_photos.sql` + `.down.sql` : bucket `place-photos` privé + 3 RLS policies sub-folder `<auth.uid()>/<spawt_id>/`. Pas de DELETE policy (modération Story 6.4).
+- `feat(review)` `lib/storage-photos.ts` : `photoPath` / `compressPhoto` (expo-image-manipulator resize 1920 + quality 0.8) / `uploadReviewPhoto` (silencieux échec) / `getReviewPhotoUrl` (signed TTL 7j).
+- `feat(review)` écran modal `app/review/[spawt_id].tsx` : Note (Stars 1-5) + 5 chips REVIEW_TAGS multi-select + TextInput 500c + 0-3 photos (long press → remove). Sticky CTA disabled tant que note === null. 4 events analytics.
+- `feat(review)` action store `attachReviewToSpawt(spawt_id, patch)` : local-first AsyncStorage + fire-and-forget Supabase via `saveSpawtToSupabaseOrEnqueue` (Story 4.3). Chaîne couplage : data → Palais 4.6 → ADN 4.7.
+- `chore(deps)` `expo-image-picker@~17.0.8` + `expo-image-manipulator@~14.0.7`.
+
+### Apprentissage Palais (Story 4.6)
+- `feat(palais)` `lib/palais-signals.ts` créé : `TAG_TO_SIGNALS` (5 tags × 1-2 axes, 10 entries) + `PLACE_SIGNAL_TO_SIGNALS` (3 signaux × 1-2 axes, 5 entries) + `noteToSignals` (note 3 = no-op, 5/1 poids 0.04, 4/2 poids 0.02). **`TOTAL_SIGNAL_MAPPINGS = 15`** (vs 13 PRD §20.5 — delta documenté, à valider Alexandre).
+- `feat(palais)` `applyReviewToPalais({ current, unique_spots, note, tags, place_signals })` pure helper : reuse `palais-engine.updateAxis` (learningFactor + clamp [-1, 1]) + recompute `dominant_axes` + `confidence_score` + emit `palais_updated` analytics.
+- Couplage `attachReviewToSpawt` Story 4.5 → fire-and-forget via savePalaisLocal + `void savePalais` Supabase.
+
+### Mise à jour ADN du Lieu (Story 4.7)
+- `feat(place)` `lib/place-adn-signals.ts` créé : mapping ReviewTag → 5 axes ADN (**différent** du Palais 4.6) + `noteToAdnSignals`.
+- `feat(place)` `lib/place-adn-update.ts` : `applyReviewToAdn(current, review)` pure helper avec `is_seed` bypass `total_reviews` (compteur public). `weighted_rating` approximé via moyenne pondérée (limite numérique < 0.1 sur 100 reviews/place, exact incremental Sprint 2 via migration `0014` accumulators).
+- `recomputeAndPersistPlaceAdn` orchestrateur local-only V1 (RLS UPDATE `place_adn` non câblée + Edge Function `recompute-place-adn` reportée Sprint 2 server-authoritative).
+
+### Feedback / Retro Epic 4 (à venir)
+- Retro Epic 4 (`epic-4-retrospective: optional`) reste à lancer après round 1 code review.
+- Critical path : tous les epics dev-story livrés → adversarial code review en passe finale (feedback `adversarial_timing`).
+
+### Defers groupés (vers Sprint 2 sauf indication)
+D-401/402/404/405/406/407 (Le Guet) — D-408/409/410/411/412/413 (Notif/Badge) — D-414/415/416/417/418 (Offline queue) — D-419/420/421/422/423/424 (Anti-fraude) — D-425/426/427/428/429/430 (Avis structuré) — D-431/432/433/434/435 (Palais learning) — D-436/437/438/439/440 (ADN update). Traces complètes dans `_bmad-output/implementation-artifacts/4-X-*.md` Dev Agent Record.
+
+---
+
+## v1.3.0 — Epic 3 dev-story pass 1 : 9 stories livrées en review (2026-05-18)
+
+**Epic 3 « Découverte » livré en une passe dev-story : Stories 3.1 → 3.7 (incluant 3.3a/b/c) toutes passées de `ready-for-dev` à `review`. Code livré sans dette technique critique. Triple gate verte (`tsc --noEmit` 0 erreur, `lint:vocab` ✓, `i18n:check` ✓, **153 tests passed / 4 skipped / 0 failed**). Attente DoD externe : matrice 4 devices + dashboard Kidam + audit verbal Tantie Rose Alexandre.**
+
+### Moteurs purs (cible #1 PRD §Testing Rules)
+- `feat(review)` Story 3.2 — `lib/weighted-rating.ts` créé : `computeWeightedRating(reviews)` + `incrementalWeightedRating(state, newReview)` totaux, sans I/O. Constante figée `STADE_WEIGHTS = { touriste:1, explorateur:1.5, detective:2, djidji:2.5, guide:3 }` exportée depuis `types/stade.ts`. 15 tests passants couvrant cas nominal, propriétés mathématiques (bornes, symétrie, stabilité, robustesse), incrémental cohérent avec from-scratch. Cohérent PRD §3.1 Feature 6 + §20.6.
+- `feat(feed)` Story 3.3b — `lib/matching.ts` étendu : exports publics `WEIGHTS`, `FAVORITE_BONUS`, `rankPlaces(ctx, candidates)`, `PlaceWithScore`, `haversineKm`. `MatchingContext` étend avec `saved_place_ids: Set<string>` (Story 3.6 — breaking change documenté). `computeRawScore` ajoute `+0.05` capped si favori (FR-004). 23 tests couvrant gel WEIGHTS (PRD §8.1), composantes individuelles (cosine, distance, note, recency, novelty), displayedScore borné [50, 99] (PRD §8.3), rankPlaces tri stable + tiebreaker `place.id.localeCompare` + non-mutation + déterminisme.
+
+### Data & fondation (Story 3.3a)
+- `feat(infra)` migration `0010_create_places_place_adn.sql` + `.down.sql` : tables `places` + `place_adn` 1:1, RLS SELECT public sur lieux publiés, index partiels neighborhood/cuisine GIN/signals GIN/location, triggers updated_at.
+- `feat(place)` seed `supabase/seed/places.sql` : 12 INSERT idempotent avec UUIDs séquentiels 1-12 matchant `SEED_PLACES` TS.
+- `feat(place)` schémas Zod `place.schema.ts` : `PlaceSchema`/`PlaceAdnSchema`/`PlaceWithAdnSchema`. **Décision Zod UUID** : regex permissive au lieu de `.uuid()` strict (Zod 4 valide RFC 4122 v4 nibbles, incompatible avec UUIDs séquentiels dev). `data-source.supabase.ts` durci avec parseRows pivot DB flat → TS nested + `safeParse` fail-safe.
+- `refactor(place)` `data/seed/places.ts` : 12 IDs slug (`place_bo_zinc`) → UUID séquentiel (`00000000-0000-0000-0000-000000000001`). Side-effect bonus : `analytics.ts` `UUID_RE` matche désormais, `place_id` n'est plus stripé à `null` dans les events.
+- `chore(deps)` `zod@4.4.3` ajouté.
+
+### Navigation & shell (Story 3.1)
+- `feat(infra)` `(tabs)/_layout.tsx` réécrit avec TabBar canonique 5 onglets (Story 1.3). FAB stub V1 = `Alert.alert` (vraie SpawtSheet livrée Story 4.2). Écrans stub `carte.tsx` + `meute.tsx` avec EmptyState. Composant `EmptyState.tsx` créé (UX spec §1329/§1411).
+
+### Home & feed personnalisé (Story 3.3c)
+- `feat(feed)` `(tabs)/index.tsx` refondu en HomeD canonique : `Masthead` daté → `ModeStories` chips → `UneCarousel` top 3 → `ChatBubble edito` → `FeuilletonRow`. 5 nouveaux composants. 5 events analytics. Moment `home_edito` ajouté à `CHAT_MOMENTS` + 5 strings i18n (Guide volontairement vide).
+
+### Fiche lieu (Story 3.4 + 3.6 + 3.7 intégrés)
+- `feat(place)` `app/place/[id].tsx` refondu (UX spec §1127) : header overlay (back / heart / share) → photo hero → titre Klinsman → CTAs Appel/WhatsApp → MatchScore + Stars + distance → signaux → section ADN (AdnTags ou « ADN en construction ») → InfoLines → sticky CTA bas. Composant `AdnTags.tsx` créé (chips polarité, radar préservé pour fiche spawter). 5 events analytics : `place_viewed` (referrer `?ref=`), `place_first_view`, `adn_under_construction_seen`, `place_call_tapped`, `place_whatsapp_tapped`.
+
+### Recherche & filtres (Story 3.5)
+- `feat(search)` écran `app/search.tsx` modal au root + moteur pur `lib/search.ts` (accent-insensitive NFD, filtres AND, pondération nom×3 + cuisine×2 + neighborhood×1). 3 composants : `SearchBar`, `FilterChips`, `FilterSheet` (Modal RN natif). 2 events analytics : `search_submitted` (debounce 800ms + dedup), `filter_applied`. `storage.ts` étendu avec `getRecentSearches`/`addRecentSearch`/`clearRecentSearches` (cap 10 FIFO).
+
+### Favoris (Story 3.6)
+- `feat(favorites)` `spawter-store.ts` étendu : `savedPlaceIds: Set<string>` + `toggleSaved` + `isSaved`. Local-first immédiat. Option A V1 (pas de sync Supabase). Écran `app/saved.tsx` + composant `ListeCard.tsx`. 2 events analytics : `place_saved` / `place_unsaved`. Signal matching `FAVORITE_BONUS=0.05` capped dans `computeRawScore`.
+
+### Partage (Story 3.7)
+- `feat(share)` bouton share header fiche lieu — API native `Share.share` RN. Payload via i18n `share.message_template`. 2 events analytics : `share_initiated` / `share_completed`. URL `https://spawt.ci/place/<uuid>` — universal links Sprint 2.
+
+### Verify
+- `tsc --noEmit` : 0 erreur
+- `npm run lint:vocab` : ✓ Vocabulaire SPAWT respecté
+- `npm run i18n:check` : ✓ Aucune string FR hardcodée hors fr.json
+- `npm test` : **153 passed / 4 skipped / 0 failed** (23 suites passées)
+
+### Triple sign-off
+- ⏳ **Stéphanie** — review tech pending (matrice 4 devices Tecno/Infinix/Samsung A + iPhone, TTI 3G < 3s feed / < 2s fiche)
+- ⏳ **Kidam** — analytics events conformes events.md, dashboard funnel cohorte Epic 3 à monter
+- ⏳ **Alexandre** — Test Tantie Rose sur HomeD édito Chat + Masthead premium feeling + AdnTags wording + sticky CTA fiche
+
+---
+
 ## v1.2.6 — Story 2.3a round 3 : 31 patches code review Epic 2 (2026-05-18)
 
 **Round 3 du code review Epic 2 (2026-05-18) : 31/31 patches appliqués (P-01 → P-31 round 3), 14 defers tracés (D-1 à D-14 round 3 dans [`deferred-work.md`](_bmad-output/implementation-artifacts/deferred-work.md)), 5 decisions en attente sign-off humain (DN-1 audit verbal Alexandre wording Tantie Rose CGV/géoloc, DN-2 doc drift Kidam `events.md`, DN-3 voix du Chat post-Google/Apple, DN-4 ARTCI `revokeConsent`, DN-5 sémantique filter `v !== 0` skip vs neutral résolu). Story 2.3a reste en `review` en attente sign-off triple Stéphanie / Kidam / Alexandre. Acceptance Auditor confirme **33/34 patches Round 2 corrects** (P-19 reclassé P-12 round 3 — refactor cosmétique). Triple gate verte (tsc 0 erreur, lint:vocab ✓, i18n:check ✓, **97 tests passed / 4 skipped / 0 failed**).**

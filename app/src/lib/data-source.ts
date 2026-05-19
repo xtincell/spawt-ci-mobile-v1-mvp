@@ -84,6 +84,26 @@ export async function savePalais(palais: UserPalais): Promise<void> {
 }
 
 /**
+ * Story 4.3 — Upsert idempotent `spawt_checkin`. En mode fallback (démo), le
+ * store gère le local-only via AsyncStorage et on retourne `true` silencieusement.
+ */
+export async function upsertSpawt(row: SpawtCheckin): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+  const mod = await import("./data-source.supabase");
+  return mod.upsertSpawtToSupabase(row);
+}
+
+/** Story 4.3 — Update partial `spawt_checkin` par id. */
+export async function updateSpawt(
+  row_id: string,
+  patch: Partial<SpawtCheckin>,
+): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+  const mod = await import("./data-source.supabase");
+  return mod.updateSpawtInSupabase(row_id, patch);
+}
+
+/**
  * Liste les feature flags pertinents pour un spawter.
  * - Mode supabase : flags globaux (`spawter_id IS NULL`) + overrides du spawter.
  * - Mode fallback : tableau vide (aucun flag en démo).

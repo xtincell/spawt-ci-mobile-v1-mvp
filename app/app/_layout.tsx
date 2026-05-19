@@ -12,6 +12,16 @@ import { useAppFonts } from "../src/theme/useAppFonts";
 import { useSpawterStore } from "../src/store/spawter-store";
 import { flushPendingSignals } from "../src/lib/analytics";
 import { isSupabaseConfigured } from "../src/lib/data-source";
+// Story 4.1 — import side-effect : enregistre `TaskManager.defineTask` au
+// niveau module (invariant OS-kill Tecno/Infinix). Doit être importé une
+// seule fois au Root, avant tout mount des écrans.
+import "../src/lib/guet";
+import { ensureGuetChannel, setupGuetCategories } from "../src/lib/guet";
+import { BadgePremierSpawt } from "../src/components/BadgePremierSpawt";
+import {
+  bootOfflineQueue,
+  shutdownOfflineQueue,
+} from "../src/lib/offline-queue-init";
 import "../src/i18n";
 
 // Garder le splash natif Expo jusqu'à ce que useAppFonts ait fini (loaded || error).
@@ -30,12 +40,16 @@ function RouteGuard() {
     if (hydrating) return;
     const first = segments[0] as string | undefined;
     const inTabs = first === "(tabs)";
+    // Les écrans modaux au root (search, saved) sont accessibles uniquement
+    // pour un spawter onboardé — sinon on rebascule vers le splash, sinon
+    // un utilisateur deep-linké atteindrait un écran qui dépend du store.
+    const inGuardedRoot = first === "search" || first === "saved";
     const inOnboarding = first === "(onboarding)";
     const onSplash = !first;
 
     if (spawter && (onSplash || inOnboarding)) {
       router.replace("/(tabs)");
-    } else if (!spawter && inTabs) {
+    } else if (!spawter && (inTabs || inGuardedRoot)) {
       router.replace("/");
     }
   }, [hydrating, spawter, segments, router]);
@@ -52,6 +66,26 @@ export default function RootLayout() {
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  // Story 4.1 + 4.2 — channel Android + catégories d'actions notif (Confirmer/Snooze).
+  // Idempotent — pose les fondations pour scheduleGuetPrompt côté guet-task.
+  useEffect(() => {
+    void ensureGuetChannel();
+    void setupGuetCategories();
+  }, []);
+
+  // Story 4.3 — branche NetInfo → flush des mutations spawt_checkin queue offline.
+  // No-op en mode démo (pas de Supabase) et tolérant à l'absence de NetInfo (web).
+  useEffect(() => {
+    void bootOfflineQueue();
+    return () => {
+      shutdownOfflineQueue();
+    };
+  }, []);
+
+  // Story 4.2 — Premier Spawt : overlay rendu si pendingBadge non-null.
+  const pendingBadge = useSpawterStore((s) => s.pendingBadge);
+  const consumePendingBadge = useSpawterStore((s) => s.consumePendingBadge);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -106,7 +140,20 @@ export default function RootLayout() {
             <Stack.Screen name="(onboarding)" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="place/[id]" options={{ presentation: "card" }} />
+            <Stack.Screen name="search" options={{ presentation: "modal" }} />
+            <Stack.Screen name="saved" options={{ presentation: "card" }} />
+            <Stack.Screen
+              name="review/[spawt_id]"
+              options={{ presentation: "modal" }}
+            />
           </Stack>
+          <BadgePremierSpawt
+            visible={pendingBadge !== null}
+            place_name={pendingBadge?.place_name}
+            onDismiss={() => {
+              void consumePendingBadge();
+            }}
+          />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

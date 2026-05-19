@@ -19,7 +19,7 @@ const todayISO = "2026-05-03T18:00:00Z";
 
 export const SEED_PLACES: SeedPlace[] = [
   {
-    id: "place_bo_zinc",
+    id: "00000000-0000-0000-0000-000000000001",
     name: "Bô Zinc",
     cuisine: ["francaise", "fusion"],
     location: {
@@ -39,12 +39,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_bo_zinc", { local_international: 0.6, informel_etabli: 0.85, budget_premium: 0.7, populaire_prive: -0.3, decontracte_habille: 0.6 }, 4.6, 87),
+    adn: adn("00000000-0000-0000-0000-000000000001", { local_international: 0.6, informel_etabli: 0.85, budget_premium: 0.7, populaire_prive: -0.3, decontracte_habille: 0.6 }, 4.6, 87),
     rating_display: 4.6,
     total_spawts: 87,
   },
   {
-    id: "place_bushman",
+    id: "00000000-0000-0000-0000-000000000002",
     name: "Bushman Café",
     cuisine: ["fusion", "ouest_africaine"],
     location: {
@@ -64,12 +64,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_bushman", { local_international: 0.3, informel_etabli: 0.4, budget_premium: 0.3, populaire_prive: 0.2, decontracte_habille: 0.1 }, 4.4, 64),
+    adn: adn("00000000-0000-0000-0000-000000000002", { local_international: 0.3, informel_etabli: 0.4, budget_premium: 0.3, populaire_prive: 0.2, decontracte_habille: 0.1 }, 4.4, 64),
     rating_display: 4.4,
     total_spawts: 64,
   },
   {
-    id: "place_petit_paris",
+    id: "00000000-0000-0000-0000-000000000003",
     name: "Le Petit Paris",
     cuisine: ["francaise"],
     location: {
@@ -89,12 +89,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_petit_paris", { local_international: 0.7, informel_etabli: 0.7, budget_premium: 0.55, populaire_prive: -0.1, decontracte_habille: 0.5 }, 4.3, 52),
+    adn: adn("00000000-0000-0000-0000-000000000003", { local_international: 0.7, informel_etabli: 0.7, budget_premium: 0.55, populaire_prive: -0.1, decontracte_habille: 0.5 }, 4.3, 52),
     rating_display: 4.3,
     total_spawts: 52,
   },
   {
-    id: "place_tantie_rose",
+    id: "00000000-0000-0000-0000-000000000004",
     name: "Maquis Chez Tantie Rose",
     cuisine: ["ivoirienne"],
     location: {
@@ -114,12 +114,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_tantie_rose", { local_international: -0.95, informel_etabli: -0.85, budget_premium: -0.85, populaire_prive: 0.4, decontracte_habille: -0.8 }, 4.8, 134),
+    adn: adn("00000000-0000-0000-0000-000000000004", { local_international: -0.95, informel_etabli: -0.85, budget_premium: -0.85, populaire_prive: 0.4, decontracte_habille: -0.8 }, 4.8, 134),
     rating_display: 4.8,
     total_spawts: 134,
   },
   {
-    id: "place_chez_ambroise",
+    id: "00000000-0000-0000-0000-000000000005",
     name: "Chez Ambroise",
     cuisine: ["ivoirienne"],
     location: {
@@ -139,12 +139,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_chez_ambroise", { local_international: -0.9, informel_etabli: -0.7, budget_premium: -0.7, populaire_prive: -0.5, decontracte_habille: -0.7 }, 4.5, 98),
+    adn: adn("00000000-0000-0000-0000-000000000005", { local_international: -0.9, informel_etabli: -0.7, budget_premium: -0.7, populaire_prive: -0.5, decontracte_habille: -0.7 }, 4.5, 98),
     rating_display: 4.5,
     total_spawts: 98,
   },
   {
-    id: "place_garba_palace",
+    id: "00000000-0000-0000-0000-000000000006",
     name: "Garba Palace",
     cuisine: ["ivoirienne"],
     location: {
@@ -164,12 +164,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_garba_palace", { local_international: -1.0, informel_etabli: -0.95, budget_premium: -0.95, populaire_prive: -0.6, decontracte_habille: -0.9 }, 4.4, 76),
+    adn: adn("00000000-0000-0000-0000-000000000006", { local_international: -1.0, informel_etabli: -0.95, budget_premium: -0.95, populaire_prive: -0.6, decontracte_habille: -0.9 }, 4.4, 76),
     rating_display: 4.4,
     total_spawts: 76,
   },
   {
-    id: "place_norias",
+    id: "00000000-0000-0000-0000-000000000007",
     name: "Norias",
     cuisine: ["libanaise"],
     location: {
@@ -189,12 +189,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_norias", { local_international: 0.5, informel_etabli: 0.2, budget_premium: 0.0, populaire_prive: -0.1, decontracte_habille: 0.0 }, 4.2, 89),
+    adn: adn("00000000-0000-0000-0000-000000000007", { local_international: 0.5, informel_etabli: 0.2, budget_premium: 0.0, populaire_prive: -0.1, decontracte_habille: 0.0 }, 4.2, 89),
     rating_display: 4.2,
     total_spawts: 89,
   },
   {
-    id: "place_sushi_lounge",
+    id: "00000000-0000-0000-0000-000000000008",
     name: "Sushi Lounge",
     cuisine: ["asiatique"],
     location: {
@@ -214,12 +214,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_sushi_lounge", { local_international: 0.95, informel_etabli: 0.7, budget_premium: 0.7, populaire_prive: 0.0, decontracte_habille: 0.5 }, 4.0, 45),
+    adn: adn("00000000-0000-0000-0000-000000000008", { local_international: 0.95, informel_etabli: 0.7, budget_premium: 0.7, populaire_prive: 0.0, decontracte_habille: 0.5 }, 4.0, 45),
     rating_display: 4.0,
     total_spawts: 45,
   },
   {
-    id: "place_pizza_caprice",
+    id: "00000000-0000-0000-0000-000000000009",
     name: "Pizza Caprice",
     cuisine: ["italienne", "burger_pizza"],
     location: {
@@ -239,12 +239,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_pizza_caprice", { local_international: 0.6, informel_etabli: 0.3, budget_premium: 0.1, populaire_prive: -0.4, decontracte_habille: -0.3 }, 4.1, 112),
+    adn: adn("00000000-0000-0000-0000-000000000009", { local_international: 0.6, informel_etabli: 0.3, budget_premium: 0.1, populaire_prive: -0.4, decontracte_habille: -0.3 }, 4.1, 112),
     rating_display: 4.1,
     total_spawts: 112,
   },
   {
-    id: "place_attieke_paradise",
+    id: "00000000-0000-0000-0000-000000000010",
     name: "Attieke Paradise",
     cuisine: ["ivoirienne"],
     location: {
@@ -264,12 +264,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_attieke_paradise", { local_international: -0.95, informel_etabli: -0.6, budget_premium: -0.8, populaire_prive: -0.3, decontracte_habille: -0.6 }, 4.3, 28),
+    adn: adn("00000000-0000-0000-0000-000000000010", { local_international: -0.95, informel_etabli: -0.6, budget_premium: -0.8, populaire_prive: -0.3, decontracte_habille: -0.6 }, 4.3, 28),
     rating_display: 4.3,
     total_spawts: 28,
   },
   {
-    id: "place_cafe_des_arts",
+    id: "00000000-0000-0000-0000-000000000011",
     name: "Café des Arts",
     cuisine: ["cafe", "patisserie"],
     location: {
@@ -289,12 +289,12 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_cafe_des_arts", { local_international: 0.4, informel_etabli: 0.4, budget_premium: -0.1, populaire_prive: 0.3, decontracte_habille: 0.0 }, 4.2, 41),
+    adn: adn("00000000-0000-0000-0000-000000000011", { local_international: 0.4, informel_etabli: 0.4, budget_premium: -0.1, populaire_prive: 0.3, decontracte_habille: 0.0 }, 4.2, 41),
     rating_display: 4.2,
     total_spawts: 41,
   },
   {
-    id: "place_assinie_beach",
+    id: "00000000-0000-0000-0000-000000000012",
     name: "Assinie Beach Club",
     cuisine: ["fusion", "ouest_africaine"],
     location: {
@@ -314,7 +314,7 @@ export const SEED_PLACES: SeedPlace[] = [
     is_published: true,
     created_at: todayISO,
     updated_at: todayISO,
-    adn: adn("place_assinie_beach", { local_international: 0.4, informel_etabli: 0.6, budget_premium: 0.85, populaire_prive: 0.5, decontracte_habille: -0.2 }, 4.5, 156),
+    adn: adn("00000000-0000-0000-0000-000000000012", { local_international: 0.4, informel_etabli: 0.6, budget_premium: 0.85, populaire_prive: 0.5, decontracte_habille: -0.2 }, 4.5, 156),
     rating_display: 4.5,
     total_spawts: 156,
   },

@@ -1,0 +1,3650 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SPAWT Premium</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --vert-chat: #00C896;
+            --vert-chat-light: rgba(0, 200, 150, 0.1);
+            --or: #D4AF37;
+            --or-light: rgba(212, 175, 55, 0.15);
+            --noir: #000000;
+            --blanc: #F8F6F0;
+            --gris-1: #F5F5F5;
+            --gris-2: #E8E8E8;
+            --gris-3: #CCCCCC;
+            --gris-4: #888888;
+            --gris-5: #555555;
+            --rouge: #E53935;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--blanc);
+            color: var(--noir);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--blanc);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            min-height: 100vh;
+            padding-bottom: 80px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(100%); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes markerPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(0, 200, 150, 0); }
+        }
+
+        /* Typography */
+        .display-lg {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .display-md {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .display-sm {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .body {
+            font-size: 15px;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .caption {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--gris-4);
+        }
+
+        .label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .italic {
+            font-family: 'Crimson Text', serif;
+            font-style: italic;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--blanc);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-back {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--gris-1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-back:active {
+            transform: scale(0.95);
+            background: var(--gris-2);
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-action {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--gris-1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-action:active {
+            transform: scale(0.95);
+        }
+
+        .header-action.active {
+            background: var(--noir);
+            color: white;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 12px 20px 24px;
+            background: var(--blanc);
+            border-top: 1px solid var(--gris-2);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            opacity: 1;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--vert-chat);
+        }
+
+        .nav-item.active .nav-label {
+            color: var(--vert-chat);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .nav-fab {
+            width: 56px;
+            height: 56px;
+            background: var(--noir);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: -28px;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-fab:active {
+            transform: scale(0.95);
+        }
+
+        .nav-fab svg {
+            color: white;
+        }
+
+        /* Content */
+        .content {
+            flex: 1;
+            padding: 0 20px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+        }
+
+        .card-flat {
+            background: var(--gris-1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            width: 100%;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--noir);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gris-1);
+            color: var(--noir);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--noir);
+            color: var(--noir);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--gris-4);
+        }
+
+        .btn-premium {
+            background: linear-gradient(135deg, var(--or) 0%, #C9A227 100%);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 14px;
+            border-radius: 8px;
+        }
+
+        /* Choice Cards */
+        .choice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .choice-card {
+            background: white;
+            border: 2px solid var(--gris-2);
+            border-radius: 16px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .choice-card:active {
+            transform: scale(0.98);
+        }
+
+        .choice-card.selected {
+            border-color: var(--vert-chat);
+            background: var(--vert-chat-light);
+        }
+
+        .choice-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .choice-label {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .choice-sublabel {
+            font-size: 13px;
+            color: var(--gris-4);
+            margin-top: 4px;
+        }
+
+        /* Option Cards */
+        .option-card {
+            background: white;
+            border: 2px solid var(--gris-2);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-card:active {
+            transform: scale(0.99);
+        }
+
+        .option-card.selected {
+            border-color: var(--vert-chat);
+            background: var(--vert-chat-light);
+        }
+
+        .option-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .option-icon {
+            font-size: 24px;
+        }
+
+        .option-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .option-desc {
+            font-size: 14px;
+            color: var(--gris-4);
+        }
+
+        .option-price {
+            font-size: 13px;
+            color: var(--gris-5);
+            margin-top: 4px;
+        }
+
+        /* Spot Cards */
+        .spot-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .spot-card:active {
+            transform: scale(0.99);
+        }
+
+        .spot-card-image {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, var(--gris-2) 0%, var(--gris-3) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .spot-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .spot-card-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: var(--or);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .spot-card-content {
+            padding: 16px;
+        }
+
+        .spot-card-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .spot-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gris-4);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .spot-card-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--noir);
+            font-weight: 600;
+        }
+
+        .spot-card-reason {
+            background: var(--vert-chat-light);
+            color: var(--vert-chat);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-style: italic;
+            font-family: 'Crimson Text', serif;
+        }
+
+        .spot-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .spot-card-actions .btn {
+            flex: 1;
+        }
+
+        /* Mini Spot Card */
+        .spot-mini {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .spot-mini:active {
+            background: var(--gris-1);
+        }
+
+        .spot-mini-image {
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+            background: var(--gris-2);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .spot-mini-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .spot-mini-content {
+            flex: 1;
+        }
+
+        .spot-mini-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .spot-mini-meta {
+            font-size: 13px;
+            color: var(--gris-4);
+        }
+
+        .spot-mini-reason {
+            font-size: 13px;
+            color: var(--vert-chat);
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        /* Tags */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            padding: 8px 14px;
+            background: var(--gris-1);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag:active {
+            transform: scale(0.95);
+        }
+
+        .tag.selected {
+            background: var(--noir);
+            color: white;
+        }
+
+        .tag-premium {
+            background: var(--or-light);
+            color: var(--or);
+        }
+
+        /* Mood Selector */
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .mood-item {
+            background: white;
+            border: 2px solid var(--gris-2);
+            border-radius: 12px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mood-item:active {
+            transform: scale(0.95);
+        }
+
+        .mood-item.selected {
+            border-color: var(--vert-chat);
+            background: var(--vert-chat-light);
+        }
+
+        .mood-emoji {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .mood-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Stats Bars */
+        .stat-bar {
+            margin-bottom: 12px;
+        }
+
+        .stat-bar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .stat-bar-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stat-bar-value {
+            font-size: 14px;
+            color: var(--gris-4);
+        }
+
+        .stat-bar-track {
+            height: 8px;
+            background: var(--gris-2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            background: var(--vert-chat);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Progress Indicator */
+        .progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gris-3);
+            transition: all 0.3s;
+        }
+
+        .progress-dot.active {
+            background: var(--vert-chat);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--blanc);
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-width: 430px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            border-bottom: 1px solid var(--gris-2);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--gris-1);
+            cursor: pointer;
+        }
+
+        .modal-content {
+            padding: 20px;
+        }
+
+        /* Home Screen Specific */
+        .home-greeting {
+            padding: 20px;
+        }
+
+        .home-time {
+            font-size: 14px;
+            color: var(--gris-4);
+            margin-bottom: 4px;
+        }
+
+        .home-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .home-question-card {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 24px;
+            margin: 0 20px 24px;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        .home-question {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 16px;
+        }
+
+        .home-stat {
+            font-size: 14px;
+            color: var(--gris-4);
+        }
+
+        .home-stat span {
+            color: var(--vert-chat);
+            font-weight: 600;
+        }
+
+        .home-section {
+            padding: 0 20px 20px;
+        }
+
+        .home-section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gris-5);
+            margin-bottom: 12px;
+        }
+
+        /* Map Styles */
+        .map-container {
+            width: 100%;
+            height: 300px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .map-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 80px;
+            height: auto;
+            border-radius: 0;
+            z-index: 50;
+            margin: 0;
+        }
+
+        #map, #map-results, #map-detail {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-overlay-top {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 1000;
+            display: flex;
+            gap: 8px;
+        }
+
+        .map-search {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 15px;
+            border: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        .map-btn {
+            width: 48px;
+            height: 48px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+        }
+
+        .map-card-carousel {
+            position: absolute;
+            bottom: 16px;
+            left: 0;
+            right: 0;
+            padding: 0 16px;
+            z-index: 1000;
+            overflow-x: auto;
+            display: flex;
+            gap: 12px;
+            scrollbar-width: none;
+        }
+
+        .map-card-carousel::-webkit-scrollbar {
+            display: none;
+        }
+
+        .map-spot-card {
+            flex-shrink: 0;
+            width: 280px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .map-spot-image {
+            width: 100%;
+            height: 100px;
+            background: var(--gris-2);
+            overflow: hidden;
+        }
+
+        .map-spot-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .map-spot-content {
+            padding: 12px;
+        }
+
+        .map-spot-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .map-spot-meta {
+            font-size: 13px;
+            color: var(--gris-4);
+        }
+
+        /* Custom Map Marker */
+        .custom-marker {
+            width: 40px;
+            height: 40px;
+            background: var(--vert-chat);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            animation: markerPulse 2s infinite;
+        }
+
+        .custom-marker-inner {
+            transform: rotate(45deg);
+            font-size: 16px;
+        }
+
+        .custom-marker.selected {
+            background: var(--or);
+            width: 48px;
+            height: 48px;
+        }
+
+        .user-marker {
+            width: 20px;
+            height: 20px;
+            background: var(--vert-chat);
+            border: 4px solid white;
+            border-radius: 50%;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            background: var(--gris-1);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 16px;
+        }
+
+        .view-toggle-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-toggle-btn.active {
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Avatar Chat */
+        .chat-avatar {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px;
+            position: relative;
+        }
+
+        .chat-avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--gris-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .chat-avatar-badge {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            background: var(--or);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid var(--blanc);
+        }
+
+        /* Profile */
+        .profile-header {
+            text-align: center;
+            padding: 24px 20px;
+        }
+
+        .profile-name {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .profile-handle {
+            font-size: 14px;
+            color: var(--gris-4);
+            margin-bottom: 8px;
+        }
+
+        .profile-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--or-light);
+            color: var(--or);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 16px;
+        }
+
+        .profile-stat {
+            text-align: center;
+        }
+
+        .profile-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .profile-stat-label {
+            font-size: 12px;
+            color: var(--gris-4);
+        }
+
+        /* Palais */
+        .palais-section {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 0 20px 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .palais-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        /* Voting */
+        .vote-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .vote-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .vote-progress {
+            height: 8px;
+            background: var(--gris-2);
+            border-radius: 4px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .vote-progress-fill {
+            height: 100%;
+            background: var(--vert-chat);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .vote-count {
+            font-size: 14px;
+            color: var(--gris-4);
+            margin-top: 8px;
+        }
+
+        /* Emoji Rating */
+        .emoji-rating {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 10px;
+        }
+
+        .emoji-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+
+        .emoji-item:active {
+            transform: scale(0.9);
+        }
+
+        .emoji-item.selected {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .emoji-icon {
+            font-size: 40px;
+        }
+
+        .emoji-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Success Animation */
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 200, 150, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            color: white;
+        }
+
+        .success-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+            animation: pulse 0.5s ease;
+        }
+
+        .success-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .success-subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* Rewards Popup */
+        .rewards-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin: 0 20px;
+            text-align: center;
+            color: var(--noir);
+        }
+
+        .rewards-paws {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--vert-chat);
+            margin-bottom: 16px;
+        }
+
+        .rewards-updates {
+            background: var(--gris-1);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            text-align: left;
+        }
+
+        .rewards-update-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .rewards-update-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Streak */
+        .streak-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--or-light);
+            color: var(--or);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Image Gallery */
+        .image-gallery {
+            position: relative;
+            height: 280px;
+            background: var(--gris-2);
+        }
+
+        .image-gallery img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-gallery-nav {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+        }
+
+        .image-gallery-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .image-gallery-dot.active {
+            background: white;
+        }
+
+        .image-gallery-back {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .image-gallery-actions {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .image-gallery-action {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        /* Spot Detail */
+        .spot-detail-header {
+            padding: 20px;
+        }
+
+        .spot-detail-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .spot-detail-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--gris-4);
+            font-size: 15px;
+        }
+
+        .spot-detail-tags {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .spot-detail-section {
+            padding: 20px;
+            border-top: 1px solid var(--gris-2);
+        }
+
+        .spot-detail-section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        /* Budget Table */
+        .budget-table {
+            width: 100%;
+        }
+
+        .budget-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gris-2);
+        }
+
+        .budget-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Trace Card */
+        .trace-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .trace-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .trace-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--gris-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .trace-info {
+            flex: 1;
+        }
+
+        .trace-name {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .trace-meta {
+            font-size: 13px;
+            color: var(--gris-4);
+        }
+
+        .trace-level {
+            background: var(--or-light);
+            color: var(--or);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .trace-rating {
+            color: var(--or);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .trace-text {
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .trace-image {
+            width: 100%;
+            height: 180px;
+            border-radius: 12px;
+            background: var(--gris-2);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .trace-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .trace-footer {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--gris-4);
+            font-size: 14px;
+        }
+
+        .trace-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        /* Reservation */
+        .date-picker {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+
+        .date-item {
+            flex-shrink: 0;
+            width: 64px;
+            padding: 12px 8px;
+            background: var(--gris-1);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-item.selected {
+            border-color: var(--vert-chat);
+            background: var(--vert-chat-light);
+        }
+
+        .date-day {
+            font-size: 12px;
+            color: var(--gris-4);
+            margin-bottom: 4px;
+        }
+
+        .date-num {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .time-item {
+            padding: 14px;
+            background: var(--gris-1);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-item.selected {
+            border-color: var(--vert-chat);
+            background: var(--vert-chat-light);
+        }
+
+        .guest-counter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin: 20px 0;
+        }
+
+        .guest-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--gris-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .guest-btn:active {
+            transform: scale(0.95);
+            background: var(--gris-2);
+        }
+
+        .guest-count {
+            font-size: 20px;
+            font-weight: 600;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        /* Discovery */
+        .trending-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 20px;
+        }
+
+        .trending-image {
+            height: 140px;
+            background: linear-gradient(135deg, var(--vert-chat) 0%, #00A87D 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            overflow: hidden;
+        }
+
+        .trending-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .trending-content {
+            padding: 16px;
+        }
+
+        .trending-badge {
+            display: inline-block;
+            background: var(--rouge);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .zone-item {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 12px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .zone-item:active {
+            transform: scale(0.98);
+        }
+
+        .zone-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .zone-count {
+            font-size: 12px;
+            color: var(--gris-4);
+        }
+
+        .surprise-card {
+            background: linear-gradient(135deg, var(--noir) 0%, #333 100%);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            text-align: center;
+        }
+
+        .surprise-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .surprise-text {
+            font-family: 'Crimson Text', serif;
+            font-style: italic;
+            font-size: 16px;
+            margin-bottom: 16px;
+            opacity: 0.9;
+        }
+
+        /* Squad List */
+        .squad-header {
+            background: var(--noir);
+            color: white;
+            padding: 24px 20px;
+            border-radius: 0 0 24px 24px;
+        }
+
+        .squad-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .squad-meta {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .squad-share {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin: -20px 20px 20px;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        .squad-link {
+            background: var(--gris-1);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: monospace;
+            margin: 12px 0;
+        }
+
+        .squad-tagline {
+            font-size: 14px;
+            color: var(--gris-4);
+            font-style: italic;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--gris-2);
+            margin: 20px 0;
+        }
+
+        /* Feedback footer */
+        .feedback-footer {
+            background: var(--gris-1);
+            padding: 16px 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .feedback-text {
+            font-size: 14px;
+            color: var(--gris-5);
+        }
+
+        .feedback-text span {
+            color: var(--vert-chat);
+            font-weight: 600;
+        }
+
+        /* Jalon Grid */
+        .jalon-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .jalon-item {
+            background: var(--gris-1);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .jalon-item.completed {
+            background: var(--vert-chat-light);
+        }
+
+        .jalon-item.locked {
+            opacity: 0.5;
+        }
+
+        .jalon-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .jalon-info {
+            flex: 1;
+        }
+
+        .jalon-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .jalon-status {
+            font-size: 11px;
+            color: var(--gris-4);
+        }
+
+        /* List Items */
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .list-item:active {
+            background: var(--gris-1);
+        }
+
+        .list-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--gris-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .list-content {
+            flex: 1;
+        }
+
+        .list-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .list-subtitle {
+            font-size: 14px;
+            color: var(--gris-4);
+        }
+
+        .list-arrow {
+            color: var(--gris-3);
+        }
+
+        /* Fixed Bottom Action */
+        .fixed-bottom {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
+            padding: 16px 20px;
+            background: linear-gradient(transparent, var(--blanc) 20%);
+            z-index: 100;
+        }
+
+        /* Photo Upload */
+        .photo-upload {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .photo-add {
+            width: 80px;
+            height: 80px;
+            border: 2px dashed var(--gris-3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: var(--gris-3);
+            cursor: pointer;
+        }
+
+        .photo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            background: var(--gris-2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-remove {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: var(--rouge);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Quick Tags */
+        .quick-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .quick-tag {
+            padding: 8px 14px;
+            background: var(--gris-1);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-tag.selected {
+            background: var(--vert-chat);
+            color: white;
+        }
+
+        /* Textarea */
+        .textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--gris-2);
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            resize: none;
+            min-height: 100px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: var(--vert-chat);
+        }
+
+        /* Input */
+        .input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--gris-2);
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--vert-chat);
+        }
+
+        /* Scrollable */
+        .scrollable-x {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .scrollable-x::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Utils */
+        .text-center { text-align: center; }
+        .text-green { color: var(--vert-chat); }
+        .text-gold { color: var(--or); }
+        .text-grey { color: var(--gris-4); }
+        .mt-8 { margin-top: 8px; }
+        .mt-16 { margin-top: 16px; }
+        .mt-24 { margin-top: 24px; }
+        .mb-8 { margin-bottom: 8px; }
+        .mb-16 { margin-bottom: 16px; }
+        .mb-24 { margin-bottom: 24px; }
+        .p-20 { padding: 20px; }
+
+        /* Leaflet overrides */
+        .leaflet-control-attribution {
+            font-size: 10px !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px !important;
+            box-shadow: var(--shadow-md) !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px !important;
+        }
+		
+		/* =========================================
+   FIX MOBILE UX & TOUCH TARGETS
+   Ajoute ceci à la fin de ton CSS
+   ========================================= */
+
+/* 1. Gestion de l'encoche iPhone (Safe Area) */
+/* On s'assure que la nav ne colle pas à la barre de swipe */
+.bottom-nav {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* iOS 11+ */
+    height: calc(70px + env(safe-area-inset-bottom));
+}
+
+.app {
+    /* Évite que le clavier ne casse la mise en page */
+    min-height: 100dvh; /* dynamic viewport height */
+}
+
+/* 2. Agrandissement des zones de touche (Hit Area) */
+/* Boutons header : on passe de 40px à 48px min */
+.header-back, .header-action, .map-btn {
+    width: 44px !important;
+    height: 44px !important;
+}
+
+/* 3. Navigation du bas : Zone cliquable étendue */
+.nav-item {
+    flex: 1; /* Chaque item prend toute la largeur disponible */
+    height: 100%; /* Prend toute la hauteur */
+    justify-content: center; /* Centre le contenu */
+    /* On enlève les marges qui réduisent la zone de clic */
+    margin: 0 !important; 
+    padding: 8px 0;
+}
+
+/* 4. Boutons textuels (ex: "Voir tout") */
+/* On ajoute une marge négative pour agrandir la zone de clic sans bouger le texte */
+.caption span[onclick], 
+.text-green[onclick] {
+    display: inline-block;
+    padding: 10px;
+    margin: -10px;
+    position: relative;
+    z-index: 10;
+}
+
+/* 5. Listes cliquables : Feedback instantané */
+/* Supprime le délai de 300ms sur mobile pour le tap */
+* {
+    touch-action: manipulation; 
+}
+
+/* Amélioration du feedback visuel au toucher */
+.list-item:active, 
+.spot-card:active, 
+.choice-card:active {
+    background-color: var(--gris-2) !important;
+    transform: scale(0.98);
+    transition: transform 0.1s, background-color 0.1s;
+}
+
+/* 6. Inputs plus faciles à sélectionner */
+.input, .textarea {
+    font-size: 16px !important; /* Empêche le zoom auto sur iPhone */
+    padding: 16px !important; /* Plus d'espace pour le doigt */
+}
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- ========== HOME SCREEN ========== -->
+        <div class="screen active" id="screen-home">
+            <div class="home-greeting">
+                <div class="home-time">☀️ Mardi 12:47</div>
+                <div class="home-name">Salut Betsy,</div>
+            </div>
+
+            <div class="home-question-card">
+                <div class="home-question">C'est l'heure.<br>Où tu manges ?</div>
+                <div class="home-stat">⏱️ En moyenne, tu trouves en <span>1min 23sec</span></div>
+            </div>
+
+            <div class="content">
+                <div class="choice-grid">
+                    <div class="choice-card" onclick="navigateTo('screen-solo')">
+                        <div class="choice-icon">🍽️</div>
+                        <div class="choice-label">Solo rapide</div>
+                    </div>
+                    <div class="choice-card" onclick="navigateTo('screen-avec')">
+                        <div class="choice-icon">👥</div>
+                        <div class="choice-label">Avec quelqu'un</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="home-section-title">📍 Autour de toi maintenant</div>
+
+                <!-- Mini Map -->
+                <div class="map-container" style="height: 180px; margin-bottom: 16px;">
+                    <div id="map-home"></div>
+                </div>
+
+                <div class="spot-mini" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-mini-image">
+                        <img src="https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=128&h=128&fit=crop" alt="Restaurant">
+                    </div>
+                    <div class="spot-mini-content">
+                        <div class="spot-mini-name">Chez Maman Africa</div>
+                        <div class="spot-mini-meta">⭐ 4.7 · Ivoirien · 800m</div>
+                        <div class="spot-mini-reason">"Ton style: roots authentique"</div>
+                    </div>
+                </div>
+
+                <div class="spot-mini" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-mini-image">
+                        <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=128&h=128&fit=crop" alt="Restaurant">
+                    </div>
+                    <div class="spot-mini-content">
+                        <div class="spot-mini-name">Le Nomade</div>
+                        <div class="spot-mini-meta">⭐ 4.5 · Fusion · 1.2km</div>
+                        <div class="spot-mini-reason">"Nouveau, tu testes?"</div>
+                    </div>
+                </div>
+
+                <div class="spot-mini" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-mini-image">
+                        <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=128&h=128&fit=crop" alt="Restaurant">
+                    </div>
+                    <div class="spot-mini-content">
+                        <div class="spot-mini-name">Juice Factory</div>
+                        <div class="spot-mini-meta">⭐ 4.6 · Healthy · 400m</div>
+                        <div class="spot-mini-reason">"Tu y vas 2x/mois déjà"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== AVEC QUELQU'UN ========== -->
+        <div class="screen" id="screen-avec">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-home')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Avec quelqu'un</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <p class="subtitle mb-24">C'est pour quoi ?</p>
+
+                <div class="choice-grid">
+                    <div class="choice-card" onclick="navigateTo('screen-impress')">
+                        <div class="choice-icon">💕</div>
+                        <div class="choice-label">Date</div>
+                    </div>
+                    <div class="choice-card" onclick="navigateTo('screen-impress')">
+                        <div class="choice-icon">💼</div>
+                        <div class="choice-label">Business</div>
+                    </div>
+                    <div class="choice-card" onclick="navigateTo('screen-squad')">
+                        <div class="choice-icon">👥</div>
+                        <div class="choice-label">Squad</div>
+                    </div>
+                    <div class="choice-card" onclick="navigateTo('screen-impress')">
+                        <div class="choice-icon">👨‍👩‍👧‍👦</div>
+                        <div class="choice-label">Famille</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== J'IMPRESSIONNE (Date) ========== -->
+        <div class="screen" id="screen-impress">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-avec')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Date</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <p class="subtitle mb-24">Quel niveau ?</p>
+
+                <div class="option-card" onclick="navigateTo('screen-results-date')">
+                    <div class="option-header">
+                        <div class="option-icon">🌟</div>
+                        <div class="option-title">Wow Factor</div>
+                    </div>
+                    <div class="option-desc">Rooftop, vue, expérience mémorable</div>
+                    <div class="option-price">15-25K FCFA/pers</div>
+                </div>
+
+                <div class="option-card" onclick="navigateTo('screen-results-date')">
+                    <div class="option-header">
+                        <div class="option-icon">✨</div>
+                        <div class="option-title">Classe mais cool</div>
+                    </div>
+                    <div class="option-desc">Ambiance intime, qualité garantie</div>
+                    <div class="option-price">8-15K FCFA/pers</div>
+                </div>
+
+                <div class="option-card" onclick="navigateTo('screen-results-date')">
+                    <div class="option-header">
+                        <div class="option-icon">🍷</div>
+                        <div class="option-title">Authentique</div>
+                    </div>
+                    <div class="option-desc">Roots mais propre, cuisine vraie</div>
+                    <div class="option-price">4-8K FCFA/pers</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== RESULTS DATE ========== -->
+        <div class="screen" id="screen-results-date">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-impress')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Date · Wow Factor</div>
+                <div class="header-actions">
+                    <div class="header-action" id="toggle-list" onclick="toggleView('list')">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg>
+                    </div>
+                    <div class="header-action active" id="toggle-map" onclick="toggleView('map')">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map View -->
+            <div class="map-container fullscreen" id="map-view-results">
+                <div id="map-results"></div>
+                <div class="map-overlay-top">
+                    <input type="text" class="map-search" placeholder="🔎 Rechercher...">
+                    <div class="map-btn">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    </div>
+                </div>
+                <div class="map-card-carousel">
+                    <div class="map-spot-card" onclick="navigateTo('screen-spot-detail')">
+                        <div class="map-spot-image">
+                            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop" alt="Sky Lounge">
+                        </div>
+                        <div class="map-spot-content">
+                            <div class="map-spot-name">🏆 Sky Lounge Ivoire</div>
+                            <div class="map-spot-meta">⭐ 4.8 · Rooftop · 2.3km</div>
+                        </div>
+                    </div>
+                    <div class="map-spot-card" onclick="navigateTo('screen-spot-detail')">
+                        <div class="map-spot-image">
+                            <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop" alt="La Table de Marie">
+                        </div>
+                        <div class="map-spot-content">
+                            <div class="map-spot-name">La Table de Marie</div>
+                            <div class="map-spot-meta">⭐ 4.7 · Gastro · 1.8km</div>
+                        </div>
+                    </div>
+                    <div class="map-spot-card" onclick="navigateTo('screen-spot-detail')">
+                        <div class="map-spot-image">
+                            <img src="https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=400&h=200&fit=crop" alt="Chez Laurent">
+                        </div>
+                        <div class="map-spot-content">
+                            <div class="map-spot-name">Chez Laurent</div>
+                            <div class="map-spot-meta">⭐ 4.6 · Français · 3.1km</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List View (hidden by default) -->
+            <div class="content" id="list-view-results" style="display: none;">
+                <div class="spot-card" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-card-image">
+                        <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=400&fit=crop" alt="Sky Lounge">
+                        <div class="spot-card-badge">🏆 TOP PICK</div>
+                    </div>
+                    <div class="spot-card-content">
+                        <div class="spot-card-name">Sky Lounge Ivoire</div>
+                        <div class="spot-card-meta">
+                            <span class="spot-card-rating">⭐ 4.8</span>
+                            <span>·</span>
+                            <span>Rooftop</span>
+                            <span>·</span>
+                            <span>Cocody</span>
+                        </div>
+                        <div class="spot-card-reason">💬 "92% des dates réussies ici"</div>
+                        <div class="spot-card-actions">
+                            <button class="btn btn-primary btn-small">Réserver</button>
+                            <button class="btn btn-secondary btn-small">📤</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spot-card" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-card-image">
+                        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=400&fit=crop" alt="La Table de Marie">
+                    </div>
+                    <div class="spot-card-content">
+                        <div class="spot-card-name">La Table de Marie</div>
+                        <div class="spot-card-meta">
+                            <span class="spot-card-rating">⭐ 4.7</span>
+                            <span>·</span>
+                            <span>Gastro</span>
+                            <span>·</span>
+                            <span>Plateau</span>
+                        </div>
+                        <div class="spot-card-reason">💬 "Ils ont le vin que tu aimes"</div>
+                    </div>
+                </div>
+
+                <div class="spot-card" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-card-image">
+                        <img src="https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=800&h=400&fit=crop" alt="Chez Laurent">
+                    </div>
+                    <div class="spot-card-content">
+                        <div class="spot-card-name">Chez Laurent</div>
+                        <div class="spot-card-meta">
+                            <span class="spot-card-rating">⭐ 4.6</span>
+                            <span>·</span>
+                            <span>Français</span>
+                            <span>·</span>
+                            <span>Marcory</span>
+                        </div>
+                        <div class="spot-card-reason">💬 "Nouveau chef, buzz en cours"</div>
+                    </div>
+                </div>
+
+                <div class="feedback-footer">
+                    <div class="feedback-text">🎯 <span>3 spots</span> sur 847 à Abidjan</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SOLO RAPIDE ========== -->
+        <div class="screen" id="screen-solo">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-home')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Solo rapide</div>
+                <div class="header-action">
+                    <span style="font-size: 14px; font-weight: 500;">📍 500m</span>
+                </div>
+            </div>
+
+            <div class="content">
+                <p class="subtitle mb-16">Mood du moment ?</p>
+
+                <div class="mood-grid">
+                    <div class="mood-item" onclick="selectMood(this); navigateTo('screen-results-solo')">
+                        <div class="mood-emoji">🍗</div>
+                        <div class="mood-label">Lourd</div>
+                    </div>
+                    <div class="mood-item" onclick="selectMood(this); navigateTo('screen-results-solo')">
+                        <div class="mood-emoji">🥗</div>
+                        <div class="mood-label">Léger</div>
+                    </div>
+                    <div class="mood-item" onclick="selectMood(this); navigateTo('screen-results-solo')">
+                        <div class="mood-emoji">🍜</div>
+                        <div class="mood-label">Chaud</div>
+                    </div>
+                    <div class="mood-item" onclick="selectMood(this); navigateTo('screen-results-solo')">
+                        <div class="mood-emoji">🌍</div>
+                        <div class="mood-label">Local</div>
+                    </div>
+                    <div class="mood-item" onclick="selectMood(this); navigateTo('screen-results-solo')">
+                        <div class="mood-emoji">💰</div>
+                        <div class="mood-label">Budget</div>
+                    </div>
+                    <div class="mood-item" onclick="selectMood(this); navigateTo('screen-results-solo')">
+                        <div class="mood-emoji">⚡</div>
+                        <div class="mood-label">Rapide</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== RESULTS SOLO ========== -->
+        <div class="screen" id="screen-results-solo">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-solo')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Léger · < 500m</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <div class="spot-card" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-card-image">
+                        <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=400&fit=crop" alt="Juice Factory">
+                        <div class="spot-card-badge">1️⃣ TOP</div>
+                    </div>
+                    <div class="spot-card-content">
+                        <div class="spot-card-name">Juice Factory</div>
+                        <div class="spot-card-meta">
+                            <span class="spot-card-rating">⭐ 4.7</span>
+                            <span>·</span>
+                            <span>Salades/Jus</span>
+                            <span>·</span>
+                            <span>180m</span>
+                        </div>
+                        <div class="spot-card-meta">💰 3-5K · ⏱️ 15min service</div>
+                        <div class="spot-card-reason">💬 "Tu y vas 2x/mois déjà"</div>
+                        <div class="spot-card-actions">
+                            <button class="btn btn-primary">C'est là 👆</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spot-mini" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-mini-image">
+                        <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=128&h=128&fit=crop" alt="Café">
+                    </div>
+                    <div class="spot-mini-content">
+                        <div class="spot-mini-name">2️⃣ Café Nomade</div>
+                        <div class="spot-mini-meta">⭐ 4.5 · 320m</div>
+                        <div class="spot-mini-reason">"Nouveau pour toi"</div>
+                    </div>
+                </div>
+
+                <div class="spot-mini" onclick="navigateTo('screen-spot-detail')">
+                    <div class="spot-mini-image">
+                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=128&h=128&fit=crop" alt="Bowl">
+                    </div>
+                    <div class="spot-mini-content">
+                        <div class="spot-mini-name">3️⃣ Green Bowl</div>
+                        <div class="spot-mini-meta">⭐ 4.4 · 480m</div>
+                        <div class="spot-mini-reason">"Le moins cher"</div>
+                    </div>
+                </div>
+
+                <div class="feedback-footer">
+                    <div class="feedback-text">🎯 <span>3 sur 847</span>. Google t'en aurait montré 847.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SQUAD FLOW ========== -->
+        <div class="screen" id="screen-squad">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-avec')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Squad</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <p class="subtitle mb-16">Vous êtes combien ?</p>
+
+                <div class="tags mb-24">
+                    <div class="tag" onclick="selectTag(this)">2-4</div>
+                    <div class="tag selected" onclick="selectTag(this)">5-8</div>
+                    <div class="tag" onclick="selectTag(this)">9-15</div>
+                    <div class="tag" onclick="selectTag(this)">15+</div>
+                </div>
+
+                <p class="subtitle mb-16">C'est quoi l'ambiance ?</p>
+
+                <div class="choice-grid">
+                    <div class="choice-card" onclick="navigateTo('screen-squad-results')">
+                        <div class="choice-icon">🍖</div>
+                        <div class="choice-label">Bouffe d'abord</div>
+                    </div>
+                    <div class="choice-card" onclick="navigateTo('screen-squad-results')">
+                        <div class="choice-icon">🍻</div>
+                        <div class="choice-label">Drinks + Grignoter</div>
+                    </div>
+                    <div class="choice-card" onclick="navigateTo('screen-squad-results')">
+                        <div class="choice-icon">🎉</div>
+                        <div class="choice-label">Ambiance chaude</div>
+                    </div>
+                    <div class="choice-card" onclick="navigateTo('screen-squad-results')">
+                        <div class="choice-icon">🌴</div>
+                        <div class="choice-label">Chill tranquille</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SQUAD RESULTS ========== -->
+        <div class="screen" id="screen-squad-results">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-squad')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Squad · 5-8 · Bouffe</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <div class="card" style="background: var(--noir); color: white; text-align: center;">
+                    <div style="font-size: 24px; margin-bottom: 8px;">📋</div>
+                    <div class="subtitle mb-8">Créer une liste vote</div>
+                    <div class="caption" style="color: rgba(255,255,255,0.7); margin-bottom: 16px;">"Samedi avec le squad"</div>
+                    <button class="btn btn-primary" style="background: white; color: var(--noir);" onclick="navigateTo('screen-squad-list')">Créer et partager</button>
+                </div>
+
+                <p class="subtitle mb-16 mt-24">Mes suggestions pour vous:</p>
+
+                <div class="spot-card">
+                    <div class="spot-card-image">
+                        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=800&h=400&fit=crop" alt="BBQ">
+                    </div>
+                    <div class="spot-card-content">
+                        <div class="spot-card-name">Le Ranch d'Abidjan</div>
+                        <div class="spot-card-meta">
+                            <span class="spot-card-rating">⭐ 4.6</span>
+                            <span>·</span>
+                            <span>BBQ/Grillades</span>
+                        </div>
+                        <div class="spot-card-meta">💰 ~6K/pers · 📍 Cocody</div>
+                        <div class="mt-8">
+                            <div class="caption text-green">✅ Tables 8 pers dispo</div>
+                            <div class="caption text-green">✅ Parking OK</div>
+                            <div class="caption text-green">✅ Bruit OK (vous êtes 8)</div>
+                        </div>
+                        <button class="btn btn-secondary btn-small mt-16" onclick="addToList(this)">+ Ajouter à la liste</button>
+                    </div>
+                </div>
+
+                <div class="spot-card">
+                    <div class="spot-card-image">
+                        <img src="https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=800&h=400&fit=crop" alt="Maquis">
+                    </div>
+                    <div class="spot-card-content">
+                        <div class="spot-card-name">Chez Tantie Rose</div>
+                        <div class="spot-card-meta">
+                            <span class="spot-card-rating">⭐ 4.8</span>
+                            <span>·</span>
+                            <span>Maquis</span>
+                            <span>·</span>
+                            <span>Abobo</span>
+                        </div>
+                        <div class="spot-card-meta">💰 ~4K/pers · 🚗 25min</div>
+                        <div class="mt-8">
+                            <div class="caption" style="color: var(--or);">⚠️ Pas de résa, premier arrivé</div>
+                        </div>
+                        <button class="btn btn-secondary btn-small mt-16" onclick="addToList(this)">+ Ajouter à la liste</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SQUAD LIST ========== -->
+        <div class="screen" id="screen-squad-list">
+            <div class="squad-header">
+                <div class="header-back" onclick="navigateTo('screen-squad-results')" style="position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.2);">
+                    <svg width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div style="padding-top: 40px;">
+                    <div class="squad-title">Samedi avec le squad</div>
+                    <div class="squad-meta">Créée par toi · 3 spots · 0 votes</div>
+                </div>
+            </div>
+
+            <div class="squad-share">
+                <div class="subtitle">🔗 Partager sur WhatsApp</div>
+                <div class="squad-link">spawt.ci/vote/xK7mP</div>
+                <div class="squad-tagline">"Le squad vote, SPAWT décide."</div>
+                <button class="btn btn-primary mt-16">📤 Partager le lien</button>
+            </div>
+
+            <div class="content">
+                <div class="vote-card">
+                    <div class="vote-header">
+                        <div>
+                            <div class="subtitle">1. Le Ranch d'Abidjan</div>
+                            <div class="caption">⭐ 4.6 · BBQ · ~6K/pers</div>
+                        </div>
+                    </div>
+                    <div class="vote-progress">
+                        <div class="vote-progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="vote-count">0 votes</div>
+                </div>
+
+                <div class="vote-card">
+                    <div class="vote-header">
+                        <div>
+                            <div class="subtitle">2. Chez Tantie Rose</div>
+                            <div class="caption">⭐ 4.8 · Maquis · ~4K/pers</div>
+                        </div>
+                    </div>
+                    <div class="vote-progress">
+                        <div class="vote-progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="vote-count">0 votes</div>
+                </div>
+
+                <div class="vote-card">
+                    <div class="vote-header">
+                        <div>
+                            <div class="subtitle">3. Saveurs du Lac</div>
+                            <div class="caption">⭐ 4.5 · Poisson · ~5K/pers</div>
+                        </div>
+                    </div>
+                    <div class="vote-progress">
+                        <div class="vote-progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="vote-count">0 votes</div>
+                </div>
+
+                <div class="card-flat text-center">
+                    <div class="caption">⏰ Vote ouvert jusqu'à Vendredi 18h</div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button class="btn btn-secondary" style="flex: 1;">+ Ajouter un spot</button>
+                    <button class="btn btn-outline" style="flex: 1;">Fermer le vote</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SPOT DETAIL ========== -->
+        <div class="screen" id="screen-spot-detail">
+            <div class="image-gallery">
+                <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop" alt="Sky Lounge">
+                <div class="image-gallery-back" onclick="goBack()">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="image-gallery-actions">
+                    <div class="image-gallery-action" onclick="toggleLike(this)">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </div>
+                    <div class="image-gallery-action">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                    </div>
+                </div>
+                <div class="image-gallery-nav">
+                    <div class="image-gallery-dot active"></div>
+                    <div class="image-gallery-dot"></div>
+                    <div class="image-gallery-dot"></div>
+                    <div class="image-gallery-dot"></div>
+                    <div class="image-gallery-dot"></div>
+                </div>
+            </div>
+
+            <div class="spot-detail-header">
+                <div class="spot-detail-name">Sky Lounge Ivoire</div>
+                <div class="spot-detail-meta">
+                    <span style="font-weight: 600;">⭐ 4.8</span>
+                    <span>·</span>
+                    <span>127 spawtes</span>
+                    <span>·</span>
+                    <span>Rooftop</span>
+                </div>
+                <div class="spot-detail-tags">
+                    <span class="tag tag-premium">🏆 Top Date</span>
+                    <span class="tag">📸 Photogénique</span>
+                    <span class="tag">🌙 Date Night</span>
+                </div>
+            </div>
+
+            <div class="spot-detail-section">
+                <div class="spot-detail-section-title">📍 Localisation</div>
+                <div class="map-container" style="height: 200px;">
+                    <div id="map-detail"></div>
+                </div>
+                <div class="caption mt-8">Cocody · 2.3km · <span class="text-green" style="cursor: pointer;">Ouvrir dans Maps</span></div>
+            </div>
+
+            <div class="spot-detail-section">
+                <div class="spot-detail-section-title">💬 Pourquoi ce spot pour toi</div>
+                <div class="card-flat">
+                    <div style="margin-bottom: 8px;">• 92% de dates réussies</div>
+                    <div style="margin-bottom: 8px;">• Tu aimes les rooftops</div>
+                    <div style="margin-bottom: 8px;">• Vue sur la lagune (ton truc)</div>
+                    <div>• Carte vins extensive</div>
+                </div>
+            </div>
+
+            <div class="spot-detail-section">
+                <div class="spot-detail-section-title">📊 Stats qui comptent</div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Ambiance</span>
+                        <span class="stat-bar-value">Intime</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 85%;"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Volume sonore</span>
+                        <span class="stat-bar-value">Calme</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 30%;"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Service</span>
+                        <span class="stat-bar-value">Top</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 92%;"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Rapport Q/P</span>
+                        <span class="stat-bar-value">Premium</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 60%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spot-detail-section">
+                <div class="spot-detail-section-title">💰 Budget estimé</div>
+                <div class="budget-table">
+                    <div class="budget-row">
+                        <span>Solo</span>
+                        <span style="font-weight: 600;">15-20K FCFA</span>
+                    </div>
+                    <div class="budget-row">
+                        <span>En duo</span>
+                        <span style="font-weight: 600;">35-45K FCFA</span>
+                    </div>
+                    <div class="budget-row">
+                        <span>Groupe 4</span>
+                        <span style="font-weight: 600;">70-90K FCFA</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spot-detail-section">
+                <div class="spot-detail-section-title">📝 Traces récentes</div>
+                
+                <div class="trace-card">
+                    <div class="trace-header">
+                        <div class="trace-avatar">👩🏾</div>
+                        <div class="trace-info">
+                            <div class="trace-name">Aminata K.</div>
+                            <div class="trace-meta">Il y a 3 jours</div>
+                        </div>
+                        <div class="trace-level">Djidji 🏆</div>
+                    </div>
+                    <div class="trace-rating">⭐⭐⭐⭐⭐</div>
+                    <div class="trace-text">"Date parfaite. La vue au coucher de soleil, le service discret, le tartare était incroyable..."</div>
+                    <div class="trace-image">
+                        <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=400&fit=crop" alt="Food photo">
+                    </div>
+                    <div class="trace-footer">
+                        <div class="trace-action">🐾 23 reconnaissances</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-ghost">Voir les 127 traces</button>
+            </div>
+
+            <div style="height: 100px;"></div>
+
+            <div class="fixed-bottom">
+                <button class="btn btn-premium" onclick="navigateTo('screen-reservation')">🗓️ Réserver · Premium</button>
+            </div>
+        </div>
+
+        <!-- ========== RESERVATION ========== -->
+        <div class="screen" id="screen-reservation">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-spot-detail')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Réserver · Sky Lounge</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <p class="subtitle mb-16">📅 Quand ?</p>
+                <div class="date-picker scrollable-x">
+                    <div class="date-item" onclick="selectDate(this)">
+                        <div class="date-day">Auj.</div>
+                        <div class="date-num">24</div>
+                    </div>
+                    <div class="date-item selected" onclick="selectDate(this)">
+                        <div class="date-day">Dem.</div>
+                        <div class="date-num">25</div>
+                    </div>
+                    <div class="date-item" onclick="selectDate(this)">
+                        <div class="date-day">Sam</div>
+                        <div class="date-num">26</div>
+                    </div>
+                    <div class="date-item" onclick="selectDate(this)">
+                        <div class="date-day">Dim</div>
+                        <div class="date-num">27</div>
+                    </div>
+                    <div class="date-item" onclick="selectDate(this)">
+                        <div class="date-day">Lun</div>
+                        <div class="date-num">28</div>
+                    </div>
+                    <div class="date-item" onclick="selectDate(this)">
+                        <div class="date-day">+</div>
+                        <div class="date-num">...</div>
+                    </div>
+                </div>
+
+                <p class="subtitle mb-16">⏰ À quelle heure ?</p>
+                <div class="time-grid">
+                    <div class="time-item" onclick="selectTime(this)">19:00</div>
+                    <div class="time-item selected" onclick="selectTime(this)">19:30</div>
+                    <div class="time-item" onclick="selectTime(this)">20:00</div>
+                    <div class="time-item" onclick="selectTime(this)">20:30</div>
+                    <div class="time-item" onclick="selectTime(this)">21:00</div>
+                    <div class="time-item" onclick="selectTime(this)">21:30</div>
+                </div>
+
+                <p class="subtitle mb-8">👥 Combien ?</p>
+                <div class="guest-counter">
+                    <div class="guest-btn" onclick="updateGuests(-1)">−</div>
+                    <div class="guest-count" id="guest-count">2 personnes</div>
+                    <div class="guest-btn" onclick="updateGuests(1)">+</div>
+                </div>
+
+                <p class="subtitle mb-8">💬 Note pour le resto (optionnel)</p>
+                <input type="text" class="input" placeholder="Table avec vue si possible">
+
+                <div class="card-flat text-center mt-24">
+                    <div class="caption">📞 Sky Lounge confirme sous 2h</div>
+                    <div class="caption">Tu recevras une notif.</div>
+                </div>
+
+                <button class="btn btn-primary mt-24" onclick="showSuccess()">Confirmer la demande</button>
+            </div>
+        </div>
+
+        <!-- ========== DISCOVERY ========== -->
+        <div class="screen" id="screen-discovery">
+            <div class="header">
+                <div style="width: 40px;"></div>
+                <div class="header-title">🔍 Découvrir</div>
+                <div class="header-action" onclick="navigateTo('screen-map-full')">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/></svg>
+                </div>
+            </div>
+
+            <div class="content">
+                <input type="text" class="input mb-24" placeholder="🔎 Rechercher un spot, cuisine...">
+
+                <div class="trending-card" onclick="navigateTo('screen-spot-detail')">
+                    <div class="trending-image">
+                        <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&h=300&fit=crop" alt="Trending">
+                    </div>
+                    <div class="trending-content">
+                        <div class="trending-badge">🔥 TRENDING</div>
+                        <div class="subtitle">Le Petit Jardin</div>
+                        <div class="caption">⭐ Nouveau · +47 spawtes cette semaine</div>
+                        <div class="caption italic">"Le buzz du moment à Cocody"</div>
+                    </div>
+                </div>
+
+                <p class="subtitle mb-16">🗺️ Explore par zone</p>
+                <div class="zone-grid">
+                    <div class="zone-item" onclick="navigateTo('screen-results-date')">
+                        <div class="zone-name">Cocody</div>
+                        <div class="zone-count">47 spots</div>
+                    </div>
+                    <div class="zone-item" onclick="navigateTo('screen-results-date')">
+                        <div class="zone-name">Plateau</div>
+                        <div class="zone-count">32 spots</div>
+                    </div>
+                    <div class="zone-item" onclick="navigateTo('screen-results-date')">
+                        <div class="zone-name">Marcory</div>
+                        <div class="zone-count">28 spots</div>
+                    </div>
+                    <div class="zone-item" onclick="navigateTo('screen-results-date')">
+                        <div class="zone-name">Yopougon</div>
+                        <div class="zone-count">19 spots</div>
+                    </div>
+                    <div class="zone-item" onclick="navigateTo('screen-results-date')">
+                        <div class="zone-name">Zone 4</div>
+                        <div class="zone-count">23 spots</div>
+                    </div>
+                    <div class="zone-item" onclick="navigateTo('screen-results-date')">
+                        <div class="zone-name">Assinie</div>
+                        <div class="zone-count">12 spots</div>
+                    </div>
+                </div>
+
+                <p class="subtitle mb-16">🍽️ Par envie</p>
+                <div class="tags mb-24">
+                    <div class="tag">Ivoirien</div>
+                    <div class="tag">Grillades</div>
+                    <div class="tag">Poisson</div>
+                    <div class="tag">Brunch</div>
+                    <div class="tag">Street Food</div>
+                    <div class="tag">Fine Dining</div>
+                </div>
+
+                <div class="surprise-card" onclick="navigateTo('screen-spot-detail')">
+                    <div class="surprise-icon">🎲</div>
+                    <div class="surprise-text">"Ton chat a flairé un spot que tu n'as jamais testé"</div>
+                    <button class="btn btn-secondary" style="background: white;">Voir le spot</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== FULL MAP SCREEN ========== -->
+        <div class="screen" id="screen-map-full">
+            <div class="map-container fullscreen">
+                <div id="map-full"></div>
+                <div class="map-overlay-top">
+                    <div class="header-back" onclick="goBack()" style="background: white; box-shadow: var(--shadow-md);">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </div>
+                    <input type="text" class="map-search" placeholder="🔎 Rechercher un spot...">
+                    <div class="map-btn">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+                    </div>
+                </div>
+                <div class="map-card-carousel">
+                    <div class="map-spot-card" onclick="navigateTo('screen-spot-detail')">
+                        <div class="map-spot-image">
+                            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop" alt="Sky Lounge">
+                        </div>
+                        <div class="map-spot-content">
+                            <div class="map-spot-name">Sky Lounge Ivoire</div>
+                            <div class="map-spot-meta">⭐ 4.8 · Rooftop · 2.3km</div>
+                        </div>
+                    </div>
+                    <div class="map-spot-card" onclick="navigateTo('screen-spot-detail')">
+                        <div class="map-spot-image">
+                            <img src="https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=200&fit=crop" alt="Maman Africa">
+                        </div>
+                        <div class="map-spot-content">
+                            <div class="map-spot-name">Chez Maman Africa</div>
+                            <div class="map-spot-meta">⭐ 4.7 · Ivoirien · 800m</div>
+                        </div>
+                    </div>
+                    <div class="map-spot-card" onclick="navigateTo('screen-spot-detail')">
+                        <div class="map-spot-image">
+                            <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=200&fit=crop" alt="BBQ">
+                        </div>
+                        <div class="map-spot-content">
+                            <div class="map-spot-name">Le Ranch d'Abidjan</div>
+                            <div class="map-spot-meta">⭐ 4.6 · BBQ · 3.5km</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SPAWTE FLOW ========== -->
+        <div class="screen" id="screen-spawte-prompt">
+            <div class="content" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding-bottom: 0;">
+                <div class="card" style="max-width: 300px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">🐱</div>
+                    <div class="display-sm mb-8">T'étais chez<br>Sky Lounge ?</div>
+                    <div class="body text-grey mb-24">Dis-nous tout.</div>
+                    <button class="btn btn-primary mb-8" onclick="navigateTo('screen-spawte-1')">Spawter 🐾</button>
+                    <button class="btn btn-ghost" onclick="navigateTo('screen-home')">Plus tard</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-spawte-1">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-spawte-prompt')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Spawte · Sky Lounge</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <div class="progress-dots">
+                    <div class="progress-dot active"></div>
+                    <div class="progress-dot"></div>
+                    <div class="progress-dot"></div>
+                </div>
+
+                <p class="display-sm text-center mb-24">C'était comment ?</p>
+
+                <div class="emoji-rating">
+                    <div class="emoji-item" onclick="selectEmoji(this); setTimeout(() => navigateTo('screen-spawte-2'), 300)">
+                        <div class="emoji-icon">😍</div>
+                        <div class="emoji-label">Top</div>
+                    </div>
+                    <div class="emoji-item" onclick="selectEmoji(this); setTimeout(() => navigateTo('screen-spawte-2'), 300)">
+                        <div class="emoji-icon">😊</div>
+                        <div class="emoji-label">Bien</div>
+                    </div>
+                    <div class="emoji-item" onclick="selectEmoji(this); setTimeout(() => navigateTo('screen-spawte-2'), 300)">
+                        <div class="emoji-icon">😐</div>
+                        <div class="emoji-label">Bof</div>
+                    </div>
+                    <div class="emoji-item" onclick="selectEmoji(this); setTimeout(() => navigateTo('screen-spawte-2'), 300)">
+                        <div class="emoji-icon">😕</div>
+                        <div class="emoji-label">Meh</div>
+                    </div>
+                    <div class="emoji-item" onclick="selectEmoji(this); setTimeout(() => navigateTo('screen-spawte-2'), 300)">
+                        <div class="emoji-icon">😤</div>
+                        <div class="emoji-label">Nul</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-spawte-2">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-spawte-1')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Spawte · Sky Lounge</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <div class="progress-dots">
+                    <div class="progress-dot"></div>
+                    <div class="progress-dot active"></div>
+                    <div class="progress-dot"></div>
+                </div>
+
+                <p class="display-sm text-center mb-24">Une photo ?</p>
+
+                <div class="photo-upload">
+                    <div class="photo-add">+</div>
+                    <div class="photo-preview">
+                        <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=160&h=160&fit=crop" alt="Photo">
+                        <div class="photo-remove">×</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary mt-24" onclick="navigateTo('screen-spawte-3')">Continuer</button>
+                <button class="btn btn-ghost mt-8" onclick="navigateTo('screen-spawte-3')">Passer →</button>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-spawte-3">
+            <div class="header">
+                <div class="header-back" onclick="navigateTo('screen-spawte-2')">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">Spawte · Sky Lounge</div>
+                <div style="width: 40px;"></div>
+            </div>
+
+            <div class="content">
+                <div class="progress-dots">
+                    <div class="progress-dot"></div>
+                    <div class="progress-dot"></div>
+                    <div class="progress-dot active"></div>
+                </div>
+
+                <p class="display-sm text-center mb-24">Un mot ? (optionnel)</p>
+
+                <textarea class="textarea" placeholder="Le tartare était parfait..."></textarea>
+
+                <div class="quick-tags">
+                    <div class="quick-tag" onclick="toggleQuickTag(this)">Date réussie</div>
+                    <div class="quick-tag" onclick="toggleQuickTag(this)">Service top</div>
+                    <div class="quick-tag" onclick="toggleQuickTag(this)">Vue incroyable</div>
+                    <div class="quick-tag" onclick="toggleQuickTag(this)">Bruyant</div>
+                    <div class="quick-tag" onclick="toggleQuickTag(this)">Attente longue</div>
+                </div>
+
+                <button class="btn btn-primary mt-24" onclick="showSpawteSuccess()">Publier le spawte</button>
+            </div>
+        </div>
+
+        <!-- ========== PROFILE ========== -->
+        <div class="screen" id="screen-profile">
+            <div class="header">
+                <div style="width: 40px;"></div>
+                <div class="header-title">Territoire</div>
+                <div class="header-action">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+            </div>
+
+            <div class="profile-header">
+                <div class="chat-avatar">
+                    <div class="chat-avatar-img">🐱</div>
+                    <div class="chat-avatar-badge">✨</div>
+                </div>
+                <div class="caption text-green mb-8">Explorateur</div>
+                <div class="profile-name">Betsy Diomandé</div>
+                <div class="profile-handle">@betsy</div>
+                <div class="profile-badge">🏆 Badge Doré</div>
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">847</div>
+                        <div class="profile-stat-label">🐾 paws</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">23</div>
+                        <div class="profile-stat-label">spots</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">5</div>
+                        <div class="profile-stat-label">zones</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="palais-section">
+                <div class="palais-title">📊 Ton Palais</div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Curiosité</span>
+                        <span class="stat-bar-value">82%</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 82%;"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Discernement</span>
+                        <span class="stat-bar-value">64%</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 64%;"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Générosité</span>
+                        <span class="stat-bar-value">91%</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 91%;"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Raffinement</span>
+                        <span class="stat-bar-value">73%</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 73%;"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-header">
+                        <span class="stat-bar-label">Ancrage</span>
+                        <span class="stat-bar-value">45%</span>
+                    </div>
+                    <div class="stat-bar-track">
+                        <div class="stat-bar-fill" style="width: 45%;"></div>
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-small mt-8">Voir détails</button>
+            </div>
+
+            <div class="content">
+                <div class="card">
+                    <div class="palais-title">🗺️ Tes zones explorées</div>
+                    <div class="map-container" style="height: 180px;">
+                        <div id="map-profile"></div>
+                    </div>
+                    <div class="caption mt-8">5/12 zones · <span class="text-green">Voir tout</span></div>
+                </div>
+
+                <div class="card">
+                    <div class="palais-title">📈 Tes stats Premium</div>
+                    <div class="card-flat">
+                        <div class="subtitle">⏱️ Temps économisé ce mois</div>
+                        <div class="display-sm text-green">3h 24min</div>
+                        <div class="caption">(vs recherche Google)</div>
+                    </div>
+                    <div class="card-flat">
+                        <div class="subtitle">🎯 Taux de satisfaction</div>
+                        <div class="display-sm text-green">94%</div>
+                        <div class="caption">(spawtes 4+ paws / total)</div>
+                    </div>
+                    <div class="card-flat">
+                        <div class="subtitle">👥 Impact communauté</div>
+                        <div class="display-sm">127 personnes</div>
+                        <div class="caption">ont suivi tes recommandations</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="palais-title">🏆 Jalons</div>
+                    <div class="jalon-grid">
+                        <div class="jalon-item completed">
+                            <div class="jalon-icon">✅</div>
+                            <div class="jalon-info">
+                                <div class="jalon-name">Premier spawte</div>
+                                <div class="jalon-status">Complété</div>
+                            </div>
+                        </div>
+                        <div class="jalon-item completed">
+                            <div class="jalon-icon">✅</div>
+                            <div class="jalon-info">
+                                <div class="jalon-name">10 spots</div>
+                                <div class="jalon-status">Complété</div>
+                            </div>
+                        </div>
+                        <div class="jalon-item completed">
+                            <div class="jalon-icon">✅</div>
+                            <div class="jalon-info">
+                                <div class="jalon-name">Premier quartier</div>
+                                <div class="jalon-status">Complété</div>
+                            </div>
+                        </div>
+                        <div class="jalon-item">
+                            <div class="jalon-icon">🏠</div>
+                            <div class="jalon-info">
+                                <div class="jalon-name">La Tanière</div>
+                                <div class="jalon-status">En cours</div>
+                            </div>
+                        </div>
+                        <div class="jalon-item locked">
+                            <div class="jalon-icon">🔒</div>
+                            <div class="jalon-info">
+                                <div class="jalon-name">Le Cercle</div>
+                                <div class="jalon-status">5 amis invités</div>
+                            </div>
+                        </div>
+                        <div class="jalon-item locked">
+                            <div class="jalon-icon">🔒</div>
+                            <div class="jalon-info">
+                                <div class="jalon-name">Le Guide</div>
+                                <div class="jalon-status">50 spots</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="palais-title">📋 Mes listes</div>
+                    <div class="list-item" onclick="navigateTo('screen-squad-list')">
+                        <div class="list-icon">♡</div>
+                        <div class="list-content">
+                            <div class="list-title">Favoris</div>
+                            <div class="list-subtitle">12 spots</div>
+                        </div>
+                        <div class="list-arrow">→</div>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-icon">📍</div>
+                        <div class="list-content">
+                            <div class="list-title">À tester</div>
+                            <div class="list-subtitle">8 spots</div>
+                        </div>
+                        <div class="list-arrow">→</div>
+                    </div>
+                    <div class="list-item" onclick="navigateTo('screen-squad-list')">
+                        <div class="list-icon">👥</div>
+                        <div class="list-content">
+                            <div class="list-title">Samedi squad</div>
+                            <div class="list-subtitle">3 spots</div>
+                        </div>
+                        <div class="list-arrow">→</div>
+                    </div>
+                    <button class="btn btn-secondary btn-small mt-8">+ Nouvelle liste</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== LISTS SCREEN ========== -->
+        <div class="screen" id="screen-lists">
+            <div class="header">
+                <div style="width: 40px;"></div>
+                <div class="header-title">📋 Listes</div>
+                <div class="header-action">+</div>
+            </div>
+
+            <div class="content">
+                <div class="list-item" onclick="navigateTo('screen-squad-list')">
+                    <div class="list-icon">♡</div>
+                    <div class="list-content">
+                        <div class="list-title">Favoris</div>
+                        <div class="list-subtitle">12 spots · Mis à jour il y a 2j</div>
+                    </div>
+                    <div class="list-arrow">→</div>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon">📍</div>
+                    <div class="list-content">
+                        <div class="list-title">À tester</div>
+                        <div class="list-subtitle">8 spots · Mis à jour il y a 5j</div>
+                    </div>
+                    <div class="list-arrow">→</div>
+                </div>
+                <div class="list-item" onclick="navigateTo('screen-squad-list')">
+                    <div class="list-icon">👥</div>
+                    <div class="list-content">
+                        <div class="list-title">Samedi squad</div>
+                        <div class="list-subtitle">3 spots · Vote en cours</div>
+                    </div>
+                    <div class="list-arrow">→</div>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon">💕</div>
+                    <div class="list-content">
+                        <div class="list-title">Spots date</div>
+                        <div class="list-subtitle">6 spots · Mis à jour il y a 1sem</div>
+                    </div>
+                    <div class="list-arrow">→</div>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon">🍖</div>
+                    <div class="list-content">
+                        <div class="list-title">Grillades</div>
+                        <div class="list-subtitle">4 spots · Mis à jour il y a 2sem</div>
+                    </div>
+                    <div class="list-arrow">→</div>
+                </div>
+
+                <button class="btn btn-primary mt-24">+ Créer une liste</button>
+            </div>
+        </div>
+
+        <!-- ========== BOTTOM NAV ========== -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="switchTab('screen-home', this)">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Home</div>
+            </div>
+            <div class="nav-item" onclick="switchTab('screen-discovery', this)">
+                <div class="nav-icon">🔍</div>
+                <div class="nav-label">Découvrir</div>
+            </div>
+            <div class="nav-fab" onclick="navigateTo('screen-spawte-prompt')">
+                <svg width="24" height="24" fill="white" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+            <div class="nav-item" onclick="switchTab('screen-lists', this)">
+                <div class="nav-icon">📋</div>
+                <div class="nav-label">Listes</div>
+            </div>
+            <div class="nav-item" onclick="switchTab('screen-profile', this)">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Profil</div>
+            </div>
+        </nav>
+
+        <!-- ========== SUCCESS OVERLAY ========== -->
+        <div class="success-overlay" id="success-overlay">
+            <div class="success-icon">✨</div>
+            <div class="success-title">Réservation envoyée!</div>
+            <div class="success-subtitle">Sky Lounge te confirmera sous 2h</div>
+            <button class="btn" style="background: white; color: var(--vert-chat); margin-top: 32px; width: auto; padding: 16px 48px;" onclick="hideSuccess()">OK</button>
+        </div>
+
+        <!-- ========== SPAWTE SUCCESS ========== -->
+        <div class="success-overlay" id="spawte-success" style="background: var(--blanc);">
+            <div class="rewards-card">
+                <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
+                <div class="display-md mb-8" style="color: var(--noir);">SPAWTÉ!</div>
+                
+                <div class="rewards-paws">+15 🐾 paws</div>
+
+                <div class="rewards-updates">
+                    <div class="subtitle mb-8">PALAIS MIS À JOUR</div>
+                    <div class="rewards-update-item">
+                        <span>Raffinement</span>
+                        <span class="text-green">+2 █████▓</span>
+                    </div>
+                    <div class="rewards-update-item">
+                        <span>Curiosité</span>
+                        <span class="text-green">+1 ████▓░</span>
+                    </div>
+                </div>
+
+                <div class="streak-badge mb-16">🔥 Streak: 3 spawtes/semaine → +5 paws bonus</div>
+
+                <div class="card-flat" style="text-align: left;">
+                    <div class="subtitle mb-8">📊 Cette semaine tu as:</div>
+                    <div class="body">• Évité 2 spots <3.5 paws</div>
+                    <div class="body">• Économisé ~45min de recherche</div>
+                    <div class="body">• Découvert 1 nouveau quartier</div>
+                </div>
+
+                <button class="btn btn-primary mt-24" onclick="hideSpawteSuccess()">Continuer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Navigation history
+        let history = ['screen-home'];
+        let guestCount = 2;
+        let maps = {};
+
+        // Abidjan coordinates
+        const ABIDJAN_CENTER = [5.3600, -4.0083];
+        const COCODY = [5.3489, -3.9889];
+        const PLATEAU = [5.3200, -4.0200];
+        const MARCORY = [5.3000, -3.9800];
+
+        // Restaurant locations in Abidjan
+        const SPOTS = [
+            { name: "Sky Lounge Ivoire", lat: 5.3550, lng: -3.9850, rating: 4.8, type: "Rooftop" },
+            { name: "Chez Maman Africa", lat: 5.3450, lng: -4.0000, rating: 4.7, type: "Ivoirien" },
+            { name: "Le Ranch d'Abidjan", lat: 5.3600, lng: -3.9750, rating: 4.6, type: "BBQ" },
+            { name: "La Table de Marie", lat: 5.3300, lng: -4.0100, rating: 4.7, type: "Gastro" },
+            { name: "Juice Factory", lat: 5.3520, lng: -4.0050, rating: 4.7, type: "Healthy" },
+            { name: "Chez Tantie Rose", lat: 5.4200, lng: -4.0600, rating: 4.8, type: "Maquis" },
+        ];
+
+        // User location (simulated)
+        const USER_LOCATION = [5.3510, -4.0020];
+
+        function initMap(containerId, center, zoom, addSpots = true) {
+            if (maps[containerId]) {
+                maps[containerId].remove();
+            }
+
+            const map = L.map(containerId, {
+                zoomControl: false,
+                attributionControl: true
+            }).setView(center, zoom);
+
+            // OpenStreetMap tiles with custom style
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Add user marker
+            const userIcon = L.divIcon({
+                className: 'user-marker-container',
+                html: '<div class="user-marker"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            L.marker(USER_LOCATION, { icon: userIcon }).addTo(map);
+
+            // Add spot markers
+            if (addSpots) {
+                SPOTS.forEach((spot, index) => {
+                    const markerIcon = L.divIcon({
+                        className: 'custom-marker-container',
+                        html: `<div class="custom-marker ${index === 0 ? 'selected' : ''}"><span class="custom-marker-inner">🍽️</span></div>`,
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40]
+                    });
+
+                    const marker = L.marker([spot.lat, spot.lng], { icon: markerIcon }).addTo(map);
+                    marker.bindPopup(`<strong>${spot.name}</strong><br>⭐ ${spot.rating} · ${spot.type}`);
+                });
+            }
+
+            maps[containerId] = map;
+            return map;
+        }
+
+        function initAllMaps() {
+            // Small delay to ensure containers are visible
+            setTimeout(() => {
+                if (document.getElementById('map-home')) {
+                    initMap('map-home', USER_LOCATION, 14, true);
+                }
+            }, 100);
+        }
+
+        function navigateTo(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            history.push(screenId);
+            
+            // Initialize maps for specific screens
+            setTimeout(() => {
+                if (screenId === 'screen-results-date' && document.getElementById('map-results')) {
+                    initMap('map-results', COCODY, 13, true);
+                }
+                if (screenId === 'screen-spot-detail' && document.getElementById('map-detail')) {
+                    initMap('map-detail', [5.3550, -3.9850], 15, false);
+                    // Add single marker for this spot
+                    const markerIcon = L.divIcon({
+                        className: 'custom-marker-container',
+                        html: '<div class="custom-marker selected"><span class="custom-marker-inner">🍽️</span></div>',
+                        iconSize: [48, 48],
+                        iconAnchor: [24, 48]
+                    });
+                    L.marker([5.3550, -3.9850], { icon: markerIcon }).addTo(maps['map-detail']);
+                }
+                if (screenId === 'screen-map-full' && document.getElementById('map-full')) {
+                    initMap('map-full', ABIDJAN_CENTER, 12, true);
+                }
+                if (screenId === 'screen-profile' && document.getElementById('map-profile')) {
+                    const profileMap = initMap('map-profile', ABIDJAN_CENTER, 11, false);
+                    // Add explored zones
+                    L.circle(COCODY, { radius: 2000, color: '#00C896', fillOpacity: 0.2 }).addTo(profileMap);
+                    L.circle(PLATEAU, { radius: 1500, color: '#00C896', fillOpacity: 0.2 }).addTo(profileMap);
+                    L.circle(MARCORY, { radius: 1800, color: '#00C896', fillOpacity: 0.2 }).addTo(profileMap);
+                }
+            }, 100);
+            
+            const mainScreens = ['screen-home', 'screen-discovery', 'screen-lists', 'screen-profile'];
+            if (mainScreens.includes(screenId)) {
+                updateNavActive(screenId);
+            }
+        }
+
+        function goBack() {
+            if (history.length > 1) {
+                history.pop();
+                const previousScreen = history[history.length - 1];
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(previousScreen).classList.add('active');
+            }
+        }
+
+        function switchTab(screenId, element) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            history = [screenId];
+            updateNavActive(screenId);
+            
+            // Initialize maps
+            setTimeout(() => {
+                if (screenId === 'screen-home' && document.getElementById('map-home')) {
+                    initMap('map-home', USER_LOCATION, 14, true);
+                }
+                if (screenId === 'screen-profile' && document.getElementById('map-profile')) {
+                    const profileMap = initMap('map-profile', ABIDJAN_CENTER, 11, false);
+                    L.circle(COCODY, { radius: 2000, color: '#00C896', fillOpacity: 0.2 }).addTo(profileMap);
+                    L.circle(PLATEAU, { radius: 1500, color: '#00C896', fillOpacity: 0.2 }).addTo(profileMap);
+                    L.circle(MARCORY, { radius: 1800, color: '#00C896', fillOpacity: 0.2 }).addTo(profileMap);
+                }
+            }, 100);
+        }
+
+        function updateNavActive(screenId) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            const navMap = {
+                'screen-home': 0,
+                'screen-discovery': 1,
+                'screen-lists': 3,
+                'screen-profile': 4
+            };
+            if (navMap[screenId] !== undefined) {
+                document.querySelectorAll('.nav-item')[navMap[screenId]].classList.add('active');
+            }
+        }
+
+        function toggleView(view) {
+            const mapView = document.getElementById('map-view-results');
+            const listView = document.getElementById('list-view-results');
+            const mapBtn = document.getElementById('toggle-map');
+            const listBtn = document.getElementById('toggle-list');
+
+            if (view === 'map') {
+                mapView.style.display = 'block';
+                listView.style.display = 'none';
+                mapBtn.classList.add('active');
+                listBtn.classList.remove('active');
+                setTimeout(() => {
+                    if (maps['map-results']) {
+                        maps['map-results'].invalidateSize();
+                    }
+                }, 100);
+            } else {
+                mapView.style.display = 'none';
+                listView.style.display = 'block';
+                listBtn.classList.add('active');
+                mapBtn.classList.remove('active');
+            }
+        }
+
+        function selectMood(element) {
+            document.querySelectorAll('.mood-item').forEach(m => m.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function selectTag(element) {
+            element.parentElement.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function selectDate(element) {
+            document.querySelectorAll('.date-item').forEach(d => d.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function selectTime(element) {
+            document.querySelectorAll('.time-item').forEach(t => t.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function selectEmoji(element) {
+            document.querySelectorAll('.emoji-item').forEach(e => e.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function toggleQuickTag(element) {
+            element.classList.toggle('selected');
+        }
+
+        function updateGuests(delta) {
+            guestCount = Math.max(1, Math.min(20, guestCount + delta));
+            document.getElementById('guest-count').textContent = guestCount + ' personne' + (guestCount > 1 ? 's' : '');
+        }
+
+        function toggleLike(element) {
+            element.classList.toggle('liked');
+            const svg = element.querySelector('svg');
+            if (element.classList.contains('liked')) {
+                svg.setAttribute('fill', '#E53935');
+                svg.setAttribute('stroke', '#E53935');
+            } else {
+                svg.setAttribute('fill', 'none');
+                svg.setAttribute('stroke', 'currentColor');
+            }
+        }
+
+        function addToList(button) {
+            button.textContent = '✓ Ajouté';
+            button.style.background = 'var(--vert-chat-light)';
+            button.style.color = 'var(--vert-chat)';
+        }
+
+        function showSuccess() {
+            document.getElementById('success-overlay').classList.add('active');
+        }
+
+        function hideSuccess() {
+            document.getElementById('success-overlay').classList.remove('active');
+            navigateTo('screen-home');
+        }
+
+        function showSpawteSuccess() {
+            document.getElementById('spawte-success').classList.add('active');
+        }
+
+        function hideSpawteSuccess() {
+            document.getElementById('spawte-success').classList.remove('active');
+            navigateTo('screen-home');
+        }
+
+        // Update time display
+        function updateTime() {
+            const now = new Date();
+            const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+            const day = days[now.getDay()];
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const timeEl = document.querySelector('.home-time');
+            if (timeEl) {
+                const icon = now.getHours() >= 6 && now.getHours() < 18 ? '☀️' : '🌙';
+                timeEl.textContent = `${icon} ${day} ${hours}:${minutes}`;
+            }
+        }
+
+        // Context-aware home question
+        function updateHomeQuestion() {
+            const now = new Date();
+            const hour = now.getHours();
+            const day = now.getDay();
+            
+            const questionEl = document.querySelector('.home-question');
+            if (!questionEl) return;
+
+            if (day >= 1 && day <= 4 && hour >= 11 && hour <= 14) {
+                questionEl.innerHTML = "C'est l'heure.<br>Où tu manges ?";
+            } else if (day === 5 && hour >= 17 && hour <= 20) {
+                questionEl.innerHTML = "Le weekend commence.<br>C'est quoi le plan ?";
+            } else if (day === 6 && hour >= 12 && hour <= 15) {
+                questionEl.innerHTML = "Brunch mode ?";
+            } else if (day === 6 && hour >= 19 && hour <= 23) {
+                questionEl.innerHTML = "Ce soir,<br>on fait quoi ?";
+            } else if (day === 0) {
+                questionEl.innerHTML = "Repos.<br>Envie de quoi ?";
+            } else {
+                questionEl.innerHTML = "C'est l'heure.<br>Où tu manges ?";
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            updateHomeQuestion();
+            initAllMaps();
+            setInterval(updateTime, 60000);
+        });
+    </script>
+</body>
+</html>

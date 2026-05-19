@@ -88,6 +88,27 @@ export function getStade(uniqueSpots: number): Stade {
   return "guide";
 }
 
+// PRD §5.2 — invariant : la maturité ne recule jamais. Si un SpawtCheckin
+// passe `is_verified` de true à false (rejet antifraude serveur), uniqueSpots
+// peut chuter et `getStade(uniqueSpots)` redescendre. Cet helper protège le
+// stade persisté en prenant systématiquement le max entre l'ancien et le
+// nouveau via l'ordre canonique STADES.
+export function maxStade(current: Stade, candidate: Stade): Stade {
+  const currentIdx = STADES.indexOf(current);
+  const candidateIdx = STADES.indexOf(candidate);
+  return currentIdx >= candidateIdx ? current : candidate;
+}
+
 export function getStadeDescriptor(stade: Stade): StadeDescriptor {
   return STADE_DESCRIPTORS[stade];
 }
+
+/** Poids du stade dans le calcul de la note communautaire pondérée (PRD §3.1 Feature 6 + §20.6).
+ *  Invariant — ne pas modifier sans review tech lead + Stéphanie + Kidam + Alexandre. */
+export const STADE_WEIGHTS = {
+  touriste: 1,
+  explorateur: 1.5,
+  detective: 2,
+  djidji: 2.5,
+  guide: 3,
+} as const satisfies Record<Stade, number>;

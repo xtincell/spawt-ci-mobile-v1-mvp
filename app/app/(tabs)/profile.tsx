@@ -1,15 +1,19 @@
 // Profil spawter — PRD §3.1 Feature 7
 // Affiche : nom, stade, total spawts, radar Palais (5 axes en démo).
+// Story 4.3 — Bouton conditionnel d'accès à OfflineQueueInspector.
 
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { ChatBubble } from "../../src/components/ChatBubble";
 import { AxisRadar } from "../../src/components/AxisRadar";
+import { OfflineQueueInspector } from "../../src/components/OfflineQueueInspector";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { STADE_DESCRIPTORS } from "../../src/types/stade";
 import { resetAll } from "../../src/lib/storage";
+import { inspect } from "../../src/lib/offline-queue";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -17,6 +21,21 @@ export default function ProfileScreen() {
   const spawter = useSpawterStore((s) => s.spawter);
   const palais = useSpawterStore((s) => s.palais);
   const reset = useSpawterStore((s) => s.reset);
+
+  // Story 4.3 — poll offline queue size (5s) pour décider l'affichage du bouton.
+  const [queueSize, setQueueSize] = useState(0);
+  const [inspectorVisible, setInspectorVisible] = useState(false);
+  const refreshQueueSize = useCallback(async () => {
+    const list = await inspect();
+    setQueueSize(list.length);
+  }, []);
+  useEffect(() => {
+    void refreshQueueSize();
+    const id = setInterval(() => {
+      void refreshQueueSize();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [refreshQueueSize]);
 
   if (!spawter || !palais) {
     return (
@@ -143,6 +162,30 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
+        {queueSize > 0 ? (
+          <Pressable
+            onPress={() => setInspectorVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t("offline_queue.open_button")}
+            style={({ pressed }) => ({
+              marginTop: theme.spacing.lg,
+              padding: theme.spacing.base,
+              backgroundColor: theme.colors.surface.subtle,
+              borderRadius: theme.radius.lg,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text
+              style={{
+                ...theme.typography.preset.body,
+                color: theme.colors.text.primary,
+              }}
+            >
+              {t("offline_queue.open_button")} · {queueSize}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <Pressable
           onPress={async () => {
             await resetAll();
@@ -165,6 +208,13 @@ export default function ProfileScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+      <OfflineQueueInspector
+        visible={inspectorVisible}
+        onClose={() => {
+          setInspectorVisible(false);
+          void refreshQueueSize();
+        }}
+      />
     </SafeAreaView>
   );
 }

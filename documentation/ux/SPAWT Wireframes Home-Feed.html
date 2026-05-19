@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SPAWT · Home + Feed · 3 options wireframe</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Kalam', cursive; }
+  body { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="wireframe-kit.jsx"></script>
+<script type="text/babel" src="wireframe-home-feed.jsx"></script>
+
+<script type="text/babel" data-screen-label="00 Canvas">
+function App() {
+  return (
+    <DesignCanvas
+      title="SPAWT — Home + Feed · 3 options wireframe"
+      subtitle="Un seul écran scrollable · Style éditorial · Mode contextuel + bouton Spawter présents partout"
+    >
+      <DCSection
+        id="brief"
+        title="Le brief"
+        subtitle="Divergence sur 3 axes : hiérarchie · logique de feed · placement Mode + CTA Spawter"
+      >
+        <DCArtboard id="brief-card" label="Note de cadrage" width={420} height={620}>
+          <div className="wf" style={{ padding: 22, height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="wf-title" style={{ fontSize: 24, lineHeight: 1.05 }}>Home + Feed · 3 options</div>
+            <div className="wf-label" style={{ fontSize: 13 }}>wireframe sketchy · style éditorial · accents or & vert chat</div>
+            <div className="wf-line"/>
+
+            <div className="wf-hand" style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>Le cadre</div>
+            <ul className="wf-text" style={{ fontSize: 13, margin: 0, paddingLeft: 18, lineHeight: 1.4 }}>
+              <li>Le Home <b>EST</b> le Feed (un seul écran scrollable).</li>
+              <li>Trois éléments obligatoires : <b>style éditorial</b>, <b>Mode contextuel</b>, <b>bouton Spawter</b>.</li>
+              <li>Persona : Betsy · Cocody · Superfan · 3-4 sorties/mois.</li>
+            </ul>
+
+            <div className="wf-hand" style={{ fontSize: 15, fontWeight: 700, marginTop: 8 }}>Les 3 options en un coup d'œil</div>
+
+            <div className="wf-box-rough" style={{ padding: 10 }}>
+              <div className="wf-title" style={{ fontSize: 15 }}>A · Magazine éditorial</div>
+              <div className="wf-text" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 2 }}>
+                « La Une » occupe l'écran à l'ouverture · feuilleton de cards · <b>Mode</b> sticky bas · <b>FAB Spawter</b>.
+                <br/><i>Pour qui veut être ému avant d'agir.</i>
+              </div>
+            </div>
+
+            <div className="wf-box-rough" style={{ padding: 10 }}>
+              <div className="wf-title" style={{ fontSize: 15 }}>B · Mode-first stories</div>
+              <div className="wf-text" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 2 }}>
+                <b>Mode</b> = stories en haut, l'utilisateur règle son intention d'abord · feed cartes alternées calé sur le mode · <b>CTA Spawter</b> centre tab bar.
+                <br/><i>Pour qui veut filtrer son envie immédiatement.</i>
+              </div>
+            </div>
+
+            <div className="wf-box-rough" style={{ padding: 10 }}>
+              <div className="wf-title" style={{ fontSize: 15 }}>C · Question + slow scroll</div>
+              <div className="wf-text" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 2 }}>
+                Hero <i>« C'est l'heure. Où tu manges ? »</i> avec <b>Spawter intégré</b> · sections nommées (Aujourd'hui · Le pavé · Trois adresses).
+                <br/><i>Pour qui veut être pris par la main.</i>
+              </div>
+            </div>
+
+            <div className="wf-box-soft" style={{ padding: 10, marginTop: 'auto', background: '#fff7d6' }}>
+              <div className="wf-hand" style={{ fontSize: 13, fontWeight: 700 }}>↗ Lecture</div>
+              <div className="wf-text" style={{ fontSize: 12, lineHeight: 1.3 }}>
+                Compare en faisant défiler chaque téléphone, ou clique sur la flèche d'un artboard pour le mettre en plein écran.
+              </div>
+            </div>
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="comparison" label="Tableau de divergence" width={520} height={620}>
+          <div className="wf" style={{ padding: 22, height: '100%', display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }}>
+            <div className="wf-title" style={{ fontSize: 18 }}>Sur quels axes ces 3 options divergent</div>
+            <div className="wf-line-soft" style={{ marginBottom: 4 }}/>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 1fr 1fr', gap: 6, fontFamily: 'Kalam', fontSize: 12, alignItems: 'start' }}>
+              {/* header */}
+              <div/>
+              <div className="wf-title" style={{ fontSize: 14 }}>A · Magazine</div>
+              <div className="wf-title" style={{ fontSize: 14 }}>B · Mode-first</div>
+              <div className="wf-title" style={{ fontSize: 14 }}>C · Question</div>
+
+              {/* row 1 */}
+              <div className="wf-hand" style={{ fontWeight: 700 }}>1<sup>er</sup> écran</div>
+              <div>Une grande photo + titre serif</div>
+              <div>Stories de modes + 1<sup>re</sup> card</div>
+              <div>Salutation + question cathédrale</div>
+
+              {/* row 2 */}
+              <div className="wf-hand" style={{ fontWeight: 700 }}>Logique du feed</div>
+              <div>Édito chronologique : Une → Et aussi → Pavé → Sélection</div>
+              <div>Filtré par mode actif (l'envie pilote la liste)</div>
+              <div>Sections nommées : Aujourd'hui · Le pavé · Trois adresses</div>
+
+              {/* row 3 */}
+              <div className="wf-hand" style={{ fontWeight: 700 }}>Mode contextuel</div>
+              <div>Sticky bas, toujours à portée de pouce</div>
+              <div>Stories en haut, sélection avant scroll</div>
+              <div>Onglets discrets dans le bloc question</div>
+
+              {/* row 4 */}
+              <div className="wf-hand" style={{ fontWeight: 700 }}>Bouton Spawter</div>
+              <div>FAB rond, vert, coin droit</div>
+              <div>Tab bar centrale (rond surélevé)</div>
+              <div>Pleine largeur dans la question</div>
+
+              {/* row 5 */}
+              <div className="wf-hand" style={{ fontWeight: 700 }}>Densité</div>
+              <div>Aérée · 1 hero + 3 cards visibles</div>
+              <div>Mixte · 1 grand + 2 petits + édito</div>
+              <div>Très aérée · 1 question + 1 card + édito</div>
+
+              {/* row 6 */}
+              <div className="wf-hand" style={{ fontWeight: 700 }}>Promesse</div>
+              <div>« Le journal des sorties d'Abidjan »</div>
+              <div>« Dis-moi ton humeur, je trie. »</div>
+              <div>« Je te pose UNE question, j'ai la réponse. »</div>
+
+              {/* row 7 */}
+              <div className="wf-hand" style={{ fontWeight: 700 }}>Risque</div>
+              <div>Le Mode peut passer inaperçu si on scrolle vite</div>
+              <div>Sans choix de mode, le feed peut sembler vide</div>
+              <div>Très directif — moins propice à la flânerie</div>
+            </div>
+
+            <div style={{ marginTop: 'auto', padding: '10px 12px', background: 'var(--paper-2)', border: '1.5px solid var(--ink)', borderRadius: 6 }}>
+              <div className="wf-hand" style={{ fontSize: 13, fontWeight: 700 }}>Mon intuition</div>
+              <div className="wf-text" style={{ fontSize: 12, lineHeight: 1.35, marginTop: 2 }}>
+                <b>A</b> sert le ton (le chat qui chuchote), <b>B</b> sert l'intention (mode = identité), <b>C</b> sert la rapidité (1'23). Un croisement A+C est tentant pour un MVP : la Une comme pavé éditorial, suivie des trois adresses.
+              </div>
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="options"
+        title="Les 3 options"
+        subtitle="Cliquer la flèche pour passer un écran en plein cadre"
+      >
+        <DCArtboard id="option-a" label="A · Magazine éditorial" width={300} height={620}>
+          <HomeFeedA/>
+        </DCArtboard>
+        <DCArtboard id="option-b" label="B · Mode-first stories" width={300} height={620}>
+          <HomeFeedB/>
+        </DCArtboard>
+        <DCArtboard id="option-c" label="C · Question + slow scroll" width={300} height={620}>
+          <HomeFeedC/>
+        </DCArtboard>
+        <DCArtboard id="option-d" label="D · Compromis A + B" width={300} height={620}>
+          <HomeFeedD/>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="compromis"
+        title="D · Le compromis"
+        subtitle="Ce que je garde de A, ce que je garde de B"
+      >
+        <DCArtboard id="notes-d" label="Pourquoi D" width={460} height={420}>
+          <div className="wf" style={{ padding: 22, height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="wf-title" style={{ fontSize: 18 }}>D · Mode + carrousel de Unes + FAB Spawter</div>
+            <div className="wf-line-soft"/>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Hérité de B :</b> les <i>stories de modes</i> en haut — la raison de sortir est claire dès la 1<sup>re</sup> seconde. Compactes (44px) pour ne pas voler la vedette à la photo.
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Hérité de A :</b> le <i>FAB Spawter</i> rond, vert, en flottant — bouton signature, toujours à portée du pouce, lisible sur n'importe quel fond.
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>L'apport propre à D :</b> la Une devient <b>un carrousel swipable</b> de 3 propositions du chat dans le mode actif. Tu glisses ← → pour voir les alternatives sans perdre l'écran d'accueil. Indicateurs de pagination (•••) sous l'image, flèches sketchy pour suggérer le geste.
+            </div>
+            <div className="wf-box-soft" style={{ padding: 8, background: '#fff7d6', fontSize: 12, marginTop: 'auto' }}>
+              ⚠ Le swipe doit avoir un peu d'inertie. Le swipe horizontal ne doit pas déclencher le scroll vertical (touch-action: pan-x sur le carrousel).
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="annot"
+        title="Notes de design"
+        subtitle="Détails et hypothèses derrière chaque option"
+      >
+        <DCArtboard id="notes-a" label="A · pourquoi" width={300} height={420}>
+          <div className="wf" style={{ padding: 18, height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="wf-title" style={{ fontSize: 17 }}>A · Magazine</div>
+            <div className="wf-line-soft"/>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Pari :</b> SPAWT n'est pas un annuaire, c'est un quotidien. La photo + le titre racontent une histoire avant de proposer une action.
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Mode contextuel sticky bas :</b> on peut scroller la Une et le feeuilleton sans le perdre. Le pouce reste sur la zone basse.
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>FAB Spawter :</b> contrasté (vert chat), au-dessus du sticky, lisible sur la photo.
+            </div>
+            <div className="wf-box-soft" style={{ padding: 8, background: '#fff7d6', fontSize: 12, marginTop: 'auto' }}>
+              ⚠ Vérifier que la Une ne pousse pas trop le mode contextuel sous le pli.
+            </div>
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="notes-b" label="B · pourquoi" width={300} height={420}>
+          <div className="wf" style={{ padding: 18, height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="wf-title" style={{ fontSize: 17 }}>B · Mode-first</div>
+            <div className="wf-line-soft"/>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Pari :</b> on ne sort pas dans le vide. Le Mode (manger/boire/bouger × solo/à 2/crew) est l'identité de la sortie. Il pilote tout.
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Stories en haut :</b> métaphore connue, scrollable horizontalement, le mode actif est marqué (vert chat).
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Spawter dans la tab bar :</b> action centrale, accessible depuis n'importe quel écran. Cohérent avec l'app principale.
+            </div>
+            <div className="wf-box-soft" style={{ padding: 8, background: '#fff7d6', fontSize: 12, marginTop: 'auto' }}>
+              ⚠ État vide quand aucun mode n'a jamais été choisi : à dessiner (J0).
+            </div>
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="notes-c" label="C · pourquoi" width={300} height={420}>
+          <div className="wf" style={{ padding: 18, height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="wf-title" style={{ fontSize: 17 }}>C · Question</div>
+            <div className="wf-line-soft"/>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Pari :</b> 1 min 23 chrono. Le chat pose une question, on répond, c'est fini. Le feed n'est qu'un dépaysement après l'action.
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Spawter intégré dans la question :</b> impossible à manquer, et tout le bloc respire (ratio 60/40).
+            </div>
+            <div className="wf-text" style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <b>Sections nommées :</b> on transforme le scroll en lecture (Aujourd'hui → Le pavé → Trois adresses → l'ours).
+            </div>
+            <div className="wf-box-soft" style={{ padding: 8, background: '#fff7d6', fontSize: 12, marginTop: 'auto' }}>
+              ⚠ Tester si la question change de ton selon l'heure / la météo (« C'est vendredi. On boit où ? »).
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

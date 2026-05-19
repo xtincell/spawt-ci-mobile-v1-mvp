@@ -1,0 +1,61 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`place-adn-signals — snapshots TAG_TO_ADN_SIGNALS figé 1`] = `
+{
+  "a_refaire": [
+    {
+      "axis": "axe_populaire_prive",
+      "direction": -1,
+      "weight": 0.02,
+    },
+  ],
+  "ambiance_top": [
+    {
+      "axis": "axe_populaire_prive",
+      "direction": -1,
+      "weight": 0.03,
+    },
+    {
+      "axis": "axe_decontracte_habille",
+      "direction": 1,
+      "weight": 0.02,
+    },
+  ],
+  "cher": [
+    {
+      "axis": "axe_budget_premium",
+      "direction": 1,
+      "weight": 0.04,
+    },
+    {
+      "axis": "axe_informel_etabli",
+      "direction": 1,
+      "weight": 0.02,
+    },
+  ],
+  "copieux": [
+    {
+      "axis": "axe_informel_etabli",
+      "direction": -1,
+      "weight": 0.03,
+    },
+    {
+      "axis": "axe_budget_premium",
+      "direction": -1,
+      "weight": 0.02,
+    },
+  ],
+  "rapide": [
+    {
+      "axis": "axe_informel_etabli",
+      "direction": -1,
+      "weight": 0.03,
+    },
+    {
+      "axis": "axe_decontracte_habille",
+      "direction": -1,
+      "weight": 0.02,
+    },
+  ],
+}
+`;

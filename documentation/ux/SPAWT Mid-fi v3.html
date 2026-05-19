@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SPAWT · Mid-fi v3</title>
+<link rel="stylesheet" href="spawt-tokens.css"/>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Gotham', -apple-system, sans-serif; }
+  #root { width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="midfi-kit.jsx"></script>
+<script type="text/babel" src="midfi-screens-1.jsx"></script>
+<script type="text/babel" src="midfi-screens-2.jsx"></script>
+<script type="text/babel" src="midfi-screens-3.jsx"></script>
+<script type="text/babel" src="midfi-screens-4.jsx"></script>
+<script type="text/babel" src="midfi-screens-5.jsx"></script>
+<script type="text/babel" src="midfi-screens-6.jsx"></script>
+<script type="text/babel" src="midfi-home-d.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "stade": "Explorateur",
+  "premium": false,
+  "voixChat": true,
+  "j0": false,
+  "modeContextuel": "Date"
+}/*EDITMODE-END*/;
+
+const STADE_OPTS = ['Touriste', 'Explorateur', 'Détective', 'Djidji', 'Guide'];
+const MODE_OPTS = ['Date', 'Solo', 'Squad', 'Famille'];
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const { stade, premium, voixChat, j0, modeContextuel } = tweaks;
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection id="intro" title="SPAWT · Mid-fi" subtitle="Klinsman + Gotham · palette officielle Black/Gold/Chat Green · 6 écrans validés">
+          <DCArtboard id="readme" label="Direction" width={300} height={420}>
+            <div style={{ padding: 24, fontFamily: 'Gotham, sans-serif', fontSize: 13, lineHeight: 1.55, color: '#333', height: '100%', overflow: 'auto' }}>
+              <div style={{ fontFamily: 'Klinsman, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 12, letterSpacing: '-0.005em' }}>
+                Direction visuelle
+              </div>
+              <p style={{ marginTop: 0 }}>
+                Suivi du brandbook v1.0 : <strong>Klinsman</strong> pour titres/wordmark/archétypes, <strong>Gotham</strong> pour UI/corps.
+              </p>
+              <div style={{ display: 'flex', gap: 4, margin: '14px 0' }}>
+                <div style={{ flex: 1, height: 28, background: '#0A0A0A', borderRadius: 4 }}/>
+                <div style={{ flex: 1, height: 28, background: '#C8A44E', borderRadius: 4 }}/>
+                <div style={{ flex: 1, height: 28, background: '#2D6B4F', borderRadius: 4 }}/>
+                <div style={{ flex: 1, height: 28, background: '#FAFAF8', border: '1px solid #ddd', borderRadius: 4 }}/>
+                <div style={{ flex: 1, height: 28, background: '#EFE8DC', borderRadius: 4 }}/>
+              </div>
+              <p>
+                <strong>Imagerie :</strong> placeholders dégradés chauds (food porn authentique pas dispo en mid-fi).
+              </p>
+              <p>
+                <strong>Voix du chat :</strong> bulles noires aux moments-clés (onboarding, spawt, montée de stade). Toggle dans les Tweaks.
+              </p>
+              <p>
+                <strong>Tweaks :</strong> <em>stade</em> change le ton du chat dans le feed · <em>Gold</em> retire le paywall sur la carte.
+              </p>
+              <p style={{ marginBottom: 0, fontSize: 11, color: '#888' }}>
+                Densité moyenne · ton complice (tutoiement) · vocabulaire SPAWT (spawt, spawter, palais, tanière, meute, djidji).
+              </p>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="onb" title="1 · Onboarding" subtitle="Calibrage du Palais · 5 écrans à cartes visuelles">
+          <DCArtboard id="onb-1" label="Q3 · Le territoire" width={360} height={800}>
+            <OnbMidfi voixChat={voixChat}/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="home-d" title="2 · Home D · grammaire validée" subtitle="Stories de modes (44px) + carrousel de Unes éditoriales + édito du chat + feuilleton">
+          <DCArtboard id="home-d-1" label={`Home D · ${modeContextuel}`} width={360} height={1100}>
+            <HomeD stade={stade} voixChat={voixChat} mode={modeContextuel === 'Date' ? 'Date' : modeContextuel === 'Solo' ? 'Bouger' : modeContextuel === 'Squad' ? 'Boire' : 'Manger'}/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="fiche" title="3 · Fiche lieu" subtitle="Saakan · ADN en tags + focus avis + mini-map">
+          <DCArtboard id="fiche-1" label="Saakan · maquis" width={360} height={800}>
+            <FicheMidfi/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="spawt" title="4 · Le Spawt" subtitle="3 moments clés du flow VTC → notation → célébration">
+          <DCArtboard id="spawt-1" label="Notif lock screen" width={360} height={800}>
+            <SpawtNotif voixChat={voixChat}/>
+          </DCArtboard>
+          <DCArtboard id="spawt-2" label="Sheet de notation" width={360} height={800}>
+            <SpawtSheet voixChat={voixChat}/>
+          </DCArtboard>
+          <DCArtboard id="spawt-3" label="Montée de stade" width={360} height={800}>
+            <SpawtCelebration/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="profil" title="5 · Profil + Palais" subtitle="3 vues complémentaires de l'identité">
+          <DCArtboard id="profil-1" label="Radar central" width={360} height={800}>
+            <ProfilRadar premium={premium}/>
+          </DCArtboard>
+          <DCArtboard id="profil-2" label="Collection de titres" width={360} height={800}>
+            <ProfilTitres/>
+          </DCArtboard>
+          <DCArtboard id="profil-3" label="Journal du chat" width={360} height={800}>
+            <ProfilJournal voixChat={voixChat}/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="carte" title="6 · Carte" subtitle="Cercle 3km + flou au-delà · paywall Gold (toggle dans Tweaks)">
+          <DCArtboard id="carte-1" label={premium ? 'Mode Gold · ville entière' : 'Free · 3km + flou'} width={360} height={800}>
+            <CarteMidfi premium={premium}/>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── NOUVEAUX ÉCRANS — couverture étendue ─── */}
+
+        <DCSection id="auth" title="A · Auth & Splash" subtitle="Entrée dans l'app — 3 écrans">
+          <DCArtboard id="auth-splash" label="Splash" width={360} height={800}><Splash/></DCArtboard>
+          <DCArtboard id="auth-login" label="Login" width={360} height={800}><Login/></DCArtboard>
+          <DCArtboard id="auth-signup" label="Signup" width={360} height={800}><Signup/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="onb-full" title="B · Onboarding complet" subtitle="5 étapes — du chat au premier mode">
+          <DCArtboard id="onb-1f" label="1 · Le chat" width={360} height={800}><Onb1/></DCArtboard>
+          <DCArtboard id="onb-2f" label="2 · Quartier" width={360} height={800}><Onb2/></DCArtboard>
+          <DCArtboard id="onb-3f" label="3 · Style" width={360} height={800}><Onb3/></DCArtboard>
+          <DCArtboard id="onb-4f" label="4 · Budget" width={360} height={800}><Onb4/></DCArtboard>
+          <DCArtboard id="onb-5f" label="5 · Premier mode" width={360} height={800}><Onb5/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="home-mode" title="C · Home & Mode contextuel" subtitle="Cœur du produit — 3 entrées + qualification (inspiré démo dev)">
+          <DCArtboard id="home-ctx" label={j0 ? 'Home · J0 vide' : 'Home · contextuel'} width={360} height={800}>
+            <HomeContextuel stade={stade} voixChat={voixChat} empty={j0}/>
+          </DCArtboard>
+          <DCArtboard id="home-avec" label="Avec quelqu'un · contexte" width={360} height={800}><HomeAvec/></DCArtboard>
+          <DCArtboard id="home-impress" label="Niveau d'impression" width={360} height={800}><HomeImpress/></DCArtboard>
+          <DCArtboard id="home-solo" label="Solo · mood" width={360} height={800}><HomeSolo/></DCArtboard>
+          <DCArtboard id="home-squad" label="Squad · config" width={360} height={800}><HomeSquad/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="results" title="D · Résultats par mode" subtitle="3 vues distinctes — Date / Solo / Squad">
+          <DCArtboard id="res-date" label="Résultats · Date Wow" width={360} height={800}><ResultsDate voixChat={voixChat}/></DCArtboard>
+          <DCArtboard id="res-solo" label="Résultats · Solo léger" width={360} height={800}><ResultsSolo/></DCArtboard>
+          <DCArtboard id="res-squad" label="Résultats · Squad" width={360} height={800}><ResultsSquad/></DCArtboard>
+          <DCArtboard id="res-squad-list" label="Liste vote partagée WhatsApp" width={360} height={800}><SquadList/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="spot-prem" title="E · Fiche premium" subtitle="Refonte façon démo dev — Stats + Traces + Budget">
+          <DCArtboard id="spot-premium" label="Sky Lounge premium" width={360} height={800}><SpotDetailPremium/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="search" title="F · Recherche" subtitle="Vide · résultats · filtres">
+          <DCArtboard id="search-empty" label="Recherche · vide" width={360} height={800}><SearchEmpty/></DCArtboard>
+          <DCArtboard id="search-results" label="Recherche · résultats" width={360} height={800}><SearchResults/></DCArtboard>
+          <DCArtboard id="search-filters" label="Recherche · filtres" width={360} height={800}><SearchFilters/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="discovery" title="G · Découvrir" subtitle="Au-delà de ton territoire — trending, zones, hasard">
+          <DCArtboard id="disco" label="Découvrir" width={360} height={800}><Discovery/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="meute" title="H · La Meute" subtitle="Crew + fil + demander une reco">
+          <DCArtboard id="meute-fil" label="Fil de la meute" width={360} height={800}><MeuteFil/></DCArtboard>
+          <DCArtboard id="meute-crew" label="Ton crew · 5 spawters" width={360} height={800}><MeuteCrew/></DCArtboard>
+          <DCArtboard id="meute-ask" label="Demander une reco" width={360} height={800}><MeuteAsk/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="taniere" title="I · Tanière" subtitle="Cercle privé — création + détail">
+          <DCArtboard id="tan-create" label="Créer une tanière" width={360} height={800}><TaniereCreate/></DCArtboard>
+          <DCArtboard id="tan-detail" label="Tanière · Le Crew Cocody" width={360} height={800}><TaniereDetail/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="profil-terr" title="J · Profil Territoire" subtitle="Refonte avec 5 axes corrects (Curiosité / Discernement / Générosité / Raffinement / Ancrage)">
+          <DCArtboard id="profil-territoire" label="Territoire complet" width={360} height={1500}><ProfilTerritoire/></DCArtboard>
+          <DCArtboard id="listes" label="Listes" width={360} height={800}><Listes/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="spawte-ext" title="K · Spawte (suite)" subtitle="Partage post-célébration + détail spawt passé">
+          <DCArtboard id="spawte-share" label="Partage" width={360} height={800}><SpawtePartage/></DCArtboard>
+          <DCArtboard id="spawte-past" label="Détail spawt passé" width={360} height={800}><SpawteDetail/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="paywall-full" title="L · Paywall Spawter Gold" subtitle="Page complète + modal en contexte">
+          <DCArtboard id="pay-full" label="Paywall complet" width={360} height={900}><PaywallFull/></DCArtboard>
+          <DCArtboard id="pay-modal" label="Modal en contexte" width={360} height={800}><PaywallModal/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="settings" title="M · Réglages & Notifs" subtitle="Compte, préférences, abonnement, pings">
+          <DCArtboard id="reglages" label="Réglages" width={360} height={1000}><Reglages/></DCArtboard>
+          <DCArtboard id="notifs" label="Centre de notifs" width={360} height={800}><Notifs/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="empty" title="N · États vides & erreurs" subtitle="J0, hors-ligne, 0 résultat, fermé, erreur">
+          <DCArtboard id="empty-j0" label="J0 vide" width={360} height={800}><J0Empty/></DCArtboard>
+          <DCArtboard id="empty-offline" label="Hors-ligne" width={360} height={800}><OfflineEmpty/></DCArtboard>
+          <DCArtboard id="empty-noresults" label="0 résultat" width={360} height={800}><NoResults/></DCArtboard>
+          <DCArtboard id="empty-closed" label="Lieu fermé" width={360} height={800}><SpotClosed/></DCArtboard>
+          <DCArtboard id="empty-error" label="Erreur réseau" width={360} height={800}><NetworkError/></DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="Spawter">
+          <TweakRadio
+            label="Stade"
+            value={stade}
+            options={STADE_OPTS}
+            onChange={v => setTweak('stade', v)}
+          />
+          <TweakToggle
+            label="Spawter Gold"
+            value={premium}
+            onChange={v => setTweak('premium', v)}
+            hint="Retire le paywall sur la carte"
+          />
+        </TweakSection>
+        <TweakSection title="Voix">
+          <TweakToggle
+            label="Voix du chat"
+            value={voixChat}
+            onChange={v => setTweak('voixChat', v)}
+            hint="Bulles aux moments-clés"
+          />
+        </TweakSection>
+        <TweakSection title="États">
+          <TweakToggle
+            label="Mode J0 (sans data)"
+            value={j0}
+            onChange={v => setTweak('j0', v)}
+            hint="Home en état vide"
+          />
+          <TweakRadio
+            label="Mode contextuel"
+            value={modeContextuel}
+            options={MODE_OPTS}
+            onChange={v => setTweak('modeContextuel', v)}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

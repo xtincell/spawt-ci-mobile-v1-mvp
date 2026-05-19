@@ -35,6 +35,12 @@ export const CHAT_MOMENTS = [
   "stade_up_guide",
   "geoloc_consent_request",
   "demographics_consent_request",
+  /** Story 3.3c — édito du Chat affiché en tête du feed HomeD. */
+  "home_edito",
+  /** Story 3.5 — suggestion textuelle du Chat affichée sur l'écran search vide. */
+  "search_suggestions",
+  /** Story 4.2 — prompt notif post-spawt (V1 : body neutre, mapping stade reservé V2 D-408). */
+  "guet_prompt",
 ] as const;
 
 /** Clé i18n correspondante à un message du Chat selon le contexte */

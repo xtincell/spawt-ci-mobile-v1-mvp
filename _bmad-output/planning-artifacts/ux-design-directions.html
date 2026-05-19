@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SPAWT — Direction canonique (kit documentation/ux/)</title>
+<style>
+  /* ════════════════════════════════════════════════════════════
+     SPAWT — showcase de la DIRECTION CANONIQUE
+     Source : documentation/ux/spawt-tokens.css + midfi-*.jsx
+     ⚠ Polices réelles : Klinsman (display) + Gotham (body) — non
+     libres, donc fallbacks ci-dessous. Le rendu réel utilise les
+     .otf/.ttf de documentation/ux/fonts/.
+     ════════════════════════════════════════════════════════════ */
+  :root {
+    --spawt-black: #0A0A0A;
+    --spawt-gold: #C8A44E;
+    --spawt-gold-light: #E8D5A0;
+    --chat-green: #2D6B4F;
+    --chat-green-deep: #1F4D39;
+    --blanc-casse: #FAFAF8;
+    --amber-warm: #E89A39;
+    --creme-sable: #EFE8DC;
+    --pure-white: #FFFFFF;
+    --gris-moyen: #8A8A8A;
+    --graphite: #333333;
+    --bg: var(--blanc-casse);
+    --bg-card: var(--pure-white);
+    --bg-warm: var(--creme-sable);
+    --ink: var(--spawt-black);
+    --ink-soft: var(--graphite);
+    --ink-mute: var(--gris-moyen);
+    --line: rgba(10,10,10,.10);
+    --line-strong: rgba(10,10,10,.18);
+    --r-card: 20px;
+    --gr-night: linear-gradient(180deg,#0A0A0A 0%,#1A1A2E 100%);
+    --gr-gold: linear-gradient(135deg,#C8A44E 0%,#E8D5A0 50%,#C8A44E 100%);
+    --sh-glow: 0 0 20px rgba(200,164,78,.30);
+    /* Fallbacks — réel = Klinsman / Gotham */
+    --font-display: 'Georgia', 'Times New Roman', serif;
+    --font-body: 'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    background: #14140f; color: var(--blanc-casse);
+    padding: 32px 24px 80px; line-height: 1.5;
+  }
+  .head { max-width: 1180px; margin: 0 auto 36px; }
+  .head h1 { font-family: var(--font-display); font-size: 30px; color: var(--spawt-gold); }
+  .head .sub { color: #b8b3a6; max-width: 780px; margin-top: 8px; font-size: 13.5px; }
+  .head .warn {
+    margin-top: 14px; padding: 10px 14px; background: rgba(232,154,57,.12);
+    border: 1px solid rgba(232,154,57,.35); border-radius: 8px;
+    font-size: 12.5px; color: #e8c79a;
+  }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 11.5px; color: #9a9488; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 3px; display: inline-block; }
+
+  .grid {
+    max-width: 1320px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 34px;
+  }
+  .frame { background: #232319; border: 1px solid #38382a; border-radius: 18px; padding: 22px; }
+  .frame > .tag { font-size: 11px; color: var(--spawt-gold); font-weight: 700; letter-spacing: .08em; }
+  .frame > h2 { font-family: var(--font-display); font-size: 18px; color: var(--blanc-casse); margin: 2px 0 3px; }
+  .frame > .desc { font-size: 12px; color: #b0aa9c; margin-bottom: 4px; }
+  .frame > .ref { font-size: 10.5px; color: #807a6c; margin-bottom: 16px; }
+  .frame > .ref code { color: #b8b3a6; }
+
+  /* ── phone ── */
+  .phone {
+    width: 320px; height: 660px; margin: 0 auto;
+    background: var(--bg); border-radius: 32px;
+    border: 8px solid #050505; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 18px 44px rgba(0,0,0,.55);
+    font-size: 13px; color: var(--ink);
+  }
+  .sb {
+    height: 26px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 16px;
+    font-size: 10.5px; font-weight: 700;
+  }
+  .scr { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .scroll { flex: 1; overflow: hidden; }
+  .tabbar {
+    height: 56px; flex-shrink: 0; background: var(--pure-white);
+    border-top: 1px solid var(--line); display: flex; align-items: center;
+  }
+  .tabbar .t {
+    flex: 1; text-align: center; font-size: 8.5px; font-weight: 600;
+    color: var(--ink-mute); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .tabbar .t.on { color: var(--spawt-black); }
+  .tabbar .t .i { font-size: 15px; display: block; margin-bottom: 2px; }
+  .tabbar .fab {
+    width: 42px; height: 42px; border-radius: 50%; background: var(--spawt-black);
+    color: var(--spawt-gold); display: flex; align-items: center; justify-content: center;
+    margin: -20px auto 0; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  }
+  .ph { background-size: cover; position: relative; }
+  .ph-a { background-image: linear-gradient(135deg,#2a1810,#5a3520 40%,#8b5a2b); }
+  .ph-b { background-image: linear-gradient(135deg,#1a3a2e,#3a6b50 50%,#6b8a5a); }
+  .ph-c { background-image: linear-gradient(135deg,#4a1a0a,#8a3a1a 50%,#c86a2a); }
+  .ph-d { background-image: linear-gradient(135deg,#3a2a0a,#7a5a1a 50%,#c8a44e); }
+  .over { font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--gris-moyen); }
+  .h-disp { font-family: var(--font-display); font-weight: 700; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px;
+    border-radius: 100px; font-size: 9.5px; font-weight: 600;
+    background: rgba(10,10,10,.06); color: var(--ink);
+  }
+  .chip.gold { background: rgba(200,164,78,.16); color: #8a6f2c; border: 1px solid rgba(200,164,78,.4); }
+  .chip.green { background: rgba(45,107,79,.12); color: var(--chat-green-deep); border: 1px solid rgba(45,107,79,.3); }
+  .chip.dark { background: var(--spawt-black); color: #fff; }
+  .catbubble {
+    display: flex; gap: 8px; padding: 10px 12px; background: var(--spawt-black);
+    color: #fff; border-radius: 14px 14px 14px 3px; font-size: 11.5px;
+    font-family: var(--font-display); line-height: 1.4;
+  }
+  .catbubble .ci {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--spawt-gold);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .btn {
+    border: none; border-radius: 12px; padding: 12px; font-weight: 700;
+    font-size: 12px; font-family: var(--font-body); text-align: center;
+  }
+  .btn.primary { background: var(--spawt-black); color: #fff; }
+  .btn.gold { background: var(--gr-gold); color: var(--spawt-black); box-shadow: var(--sh-glow); }
+
+  .note {
+    max-width: 1180px; margin: 44px auto 0; background: #232319;
+    border: 1px solid #38382a; border-radius: 14px; padding: 24px;
+  }
+  .note h3 { font-family: var(--font-display); color: var(--spawt-gold); font-size: 17px; margin-bottom: 10px; }
+  .note ul { margin-left: 18px; font-size: 12.5px; color: #c0bbae; }
+  .note li { margin-bottom: 5px; }
+  .note code { color: #d8d3c4; background: #14140f; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>SPAWT — Direction canonique</h1>
+  <p class="sub">Showcase de la direction <b>« Magazine éditorial × Mode contextuel »</b> telle qu'établie dans le kit canonique <code>documentation/ux/</code> (brandbook v1.0 + <code>spawt-tokens.css</code> + wireframes + mid-fi). Ce fichier <b>remplace</b> la version précédente (6 directions inventées) — la direction n'est pas à choisir, elle est déjà explorée et aboutie dans le kit.</p>
+  <div class="warn">⚠ Polices réelles : <b>Klinsman</b> (display) + <b>Gotham</b> (body) — non libres, fournies dans <code>documentation/ux/fonts/</code>. Ce showcase HTML utilise des fallbacks (Georgia / Futura) pour l'aperçu. Couleurs = exactes (<code>spawt-tokens.css</code>).</div>
+  <div class="legend">
+    <span><i class="sw" style="background:#0A0A0A"></i> Noir #0A0A0A</span>
+    <span><i class="sw" style="background:#C8A44E"></i> Or #C8A44E</span>
+    <span><i class="sw" style="background:#2D6B4F"></i> Vert Chat #2D6B4F</span>
+    <span><i class="sw" style="background:#FAFAF8;border:1px solid #555"></i> Blanc cassé #FAFAF8</span>
+    <span><i class="sw" style="background:#EFE8DC"></i> Crème sable #EFE8DC</span>
+    <span><i class="sw" style="background:linear-gradient(180deg,#0A0A0A,#1A1A2E)"></i> gr-night</span>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- 1 — HOME D (décision D11) -->
+  <div class="frame">
+    <div class="tag">ÉCRAN 1 — HOME SPRINT 1 (décision D11)</div>
+    <h2>Home D · grammaire validée</h2>
+    <div class="desc">Masthead daté + stories de modes (44px) + carrousel de Unes éditoriales swipeable + baseline du Chat + feuilleton. Le « Home contextuel » (drill-down) = V1.5.</div>
+    <div class="ref">réf : <code>documentation/ux/midfi-home-d.jsx</code> · « 6 écrans validés » de <code>SPAWT Mid-fi v3.html</code></div>
+    <div class="phone">
+      <div class="sb" style="background:var(--bg)"><span>9:41</span><span>▸ ▪ ▰</span></div>
+      <div class="scr">
+        <div class="scroll">
+          <!-- masthead compact -->
+          <div style="padding:8px 16px 6px;display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px">🐱</span><span class="h-disp" style="font-size:15px;letter-spacing:.04em">SPAWT</span>
+            </div>
+            <span style="font-size:10px;color:var(--ink-mute)">Mardi · Cocody · 27°</span>
+          </div>
+          <!-- stories de modes -->
+          <div style="border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg-warm);padding:4px 0 8px">
+            <div class="over" style="padding:3px 16px 4px">JE SORS POUR…</div>
+            <div style="display:flex;gap:8px;padding:0 16px;overflow:hidden">
+              <div style="text-align:center;flex-shrink:0;width:50px">
+                <div style="width:44px;height:44px;border-radius:50%;border:2.5px solid var(--ink);background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;position:relative">🍽<span style="position:absolute;bottom:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:var(--chat-green);border:1.5px solid var(--bg-warm)"></span></div>
+                <div class="h-disp" style="font-size:10px;font-weight:700;margin-top:2px">Manger</div><div style="font-size:8px;color:var(--ink-mute)">à 2</div>
+              </div>
+              <div style="text-align:center;flex-shrink:0;width:50px">
+                <div style="width:44px;height:44px;border-radius:50%;border:1px solid var(--line-strong);background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">🥂</div>
+                <div class="h-disp" style="font-size:10px;margin-top:2px">Boire</div><div style="font-size:8px;color:var(--ink-mute)">crew</div>
+              </div>
+              <div style="text-align:center;flex-shrink:0;width:50px">
+                <div style="width:44px;height:44px;border-radius:50%;border:1px solid var(--line-strong);background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">↗</div>
+                <div class="h-disp" style="font-size:10px;margin-top:2px">Bouger</div><div style="font-size:8px;color:var(--ink-mute)">solo</div>
+              </div>
+              <div style="text-align:center;flex-shrink:0;width:50px">
+                <div style="width:44px;height:44px;border-radius:50%;border:1px solid var(--line-strong);background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">★</div>
+                <div class="h-disp" style="font-size:10px;margin-top:2px">Date</div><div style="font-size:8px;color:var(--ink-mute)">wow</div>
+              </div>
+              <div style="text-align:center;flex-shrink:0;width:44px">
+                <div style="width:44px;height:44px;border-radius:50%;border:1px dashed var(--line-strong);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ink-mute)">+</div>
+                <div style="font-size:9px;color:var(--ink-mute);margin-top:2px">Plus</div>
+              </div>
+            </div>
+          </div>
+          <!-- sous-titre dynamique -->
+          <div class="over" style="padding:10px 16px 4px">MANGER · À 2 · CE SOIR — LE CHAT PROPOSE</div>
+          <!-- carrousel de Unes -->
+          <div style="padding:4px 16px 0">
+            <div class="ph ph-a" style="height:200px;border-radius:16px;position:relative">
+              <div style="position:absolute;inset:0;border-radius:16px;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.6))"></div>
+              <div style="position:absolute;top:10px;right:10px;background:var(--spawt-gold);color:var(--spawt-black);padding:3px 9px;border-radius:100px;font-size:9.5px;font-weight:700">★ Sélection</div>
+              <div style="position:absolute;left:14px;right:14px;bottom:12px;color:#fff">
+                <div class="over" style="color:#fff;opacity:.95">WOW · 92% MATCH</div>
+                <div class="h-disp" style="font-size:21px;line-height:1.1;margin-top:3px">Sky Lounge fait son retour</div>
+                <div style="font-size:10px;opacity:.9;margin-top:3px">Cocody · 18 000 F /pers · libre 20h</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:center;gap:5px;margin-top:8px">
+              <div style="width:16px;height:5px;border-radius:3px;background:var(--ink)"></div>
+              <div style="width:5px;height:5px;border-radius:3px;background:var(--line-strong)"></div>
+              <div style="width:5px;height:5px;border-radius:3px;background:var(--line-strong)"></div>
+            </div>
+          </div>
+          <!-- baseline du chat -->
+          <div style="padding:12px 16px">
+            <div style="font-family:var(--font-display);font-size:12.5px;color:var(--ink-soft);line-height:1.3">
+              <b style="color:var(--ink)">«</b> Nouveau chef. Pour impressionner sans te ruiner, c'est ton moment. <b style="color:var(--ink)">»</b>
+              <span style="font-size:10px;margin-left:4px">— le chat</span>
+            </div>
+            <div style="font-size:9.5px;color:var(--ink-mute);font-style:italic;margin-top:3px">← swipe pour voir les autres propositions</div>
+          </div>
+          <!-- feuilleton -->
+          <div style="padding:10px 16px 4px;border-top:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span class="h-disp" style="font-size:15px">Et aussi, dans le mode</span>
+              <span style="font-size:10px;color:var(--ink-mute)">3 adresses</span>
+            </div>
+            <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)">
+              <div class="ph ph-c" style="width:54px;height:54px;border-radius:10px"></div>
+              <div style="flex:1"><div class="over">AUTHENTIQUE · 86%</div><div class="h-disp" style="font-size:13px">Chez Brigitte · garba revisité</div><div style="font-size:10px;color:var(--ink-mute);margin-top:2px">★ 4.5 · Treichville · 6 000 F</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="t on"><span class="i">⌂</span>Feed</div>
+          <div class="t"><span class="i">◇</span>Carte</div>
+          <div class="t"><span class="fab">+</span></div>
+          <div class="t"><span class="i">🐺</span>Meute</div>
+          <div class="t"><span class="i">☻</span>Palais</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 — FEED magazine -->
+  <div class="frame">
+    <div class="tag">ÉCRAN 2 — LANGAGE VISUEL</div>
+    <h2>Feed · Magazine éditorial</h2>
+    <div class="desc">Masthead daté, hero « une de couverture », bulle du Chat contextuelle, liste numérotée éditoriale avec MatchScore.</div>
+    <div class="ref">réf : <code>midfi-screens-1.jsx</code> (FeedMidfi)</div>
+    <div class="phone">
+      <div class="sb" style="background:var(--bg)"><span>9:41</span><span>▸ ▪ ▰</span></div>
+      <div class="scr">
+        <div class="scroll">
+          <div style="padding:8px 18px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="h-disp" style="font-size:20px;letter-spacing:.04em">SPAWT</div>
+              <div class="over" style="font-size:8px;margin-top:1px">Vendredi · 14 Mars · Cocody</div>
+            </div>
+            <div style="font-size:13px;color:var(--ink-soft)">⌕ ◔</div>
+          </div>
+          <div class="ph ph-c" style="height:170px">
+            <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.85))"></div>
+            <div style="position:absolute;top:12px;left:14px;display:flex;gap:5px">
+              <span class="chip" style="background:var(--spawt-gold);color:var(--spawt-black);font-weight:700">★ TROUVAILLE 01</span>
+              <span class="chip" style="background:rgba(255,255,255,.2);color:#fff">97% match</span>
+            </div>
+            <div style="position:absolute;bottom:14px;left:14px;right:14px;color:#fff">
+              <div class="over" style="color:var(--spawt-gold-light)">MAQUIS · MARCORY</div>
+              <div class="h-disp" style="font-size:26px;line-height:1;margin-top:2px">Chez Mama Yvonne</div>
+              <div style="font-size:10.5px;opacity:.8;margin-top:6px">★★★★ · 3 200 F · 1.8 km</div>
+            </div>
+          </div>
+          <div style="padding:12px 18px 0" class="catbubble">
+            <div class="ci">🐱</div><div>Ton Palais se dessine. 4 spots cette semaine, c'est solide.</div>
+          </div>
+          <div style="padding:14px 18px 4px">
+            <div class="over">LA SÉLECTION DU JOUR</div>
+            <div class="h-disp" style="font-size:17px">Pour ton Palais</div>
+          </div>
+          <div style="padding:0 18px">
+            <div style="display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)">
+              <div class="h-disp" style="font-size:22px;color:var(--spawt-gold);width:26px">02</div>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between"><span class="h-disp" style="font-size:14px">Saakan</span><span class="chip green" style="font-size:9px">● 91%</span></div>
+                <div style="font-size:10px;color:var(--ink-mute);margin-top:2px">Maquis · Riviera 2</div>
+                <div style="font-size:10px;color:var(--ink-soft);margin-top:5px">★★★★ · 🚶 1.4 km</div>
+              </div>
+              <div class="ph ph-a" style="width:54px;height:54px;border-radius:8px"></div>
+            </div>
+            <div style="display:flex;gap:12px;padding:11px 0">
+              <div class="h-disp" style="font-size:22px;color:var(--spawt-gold);width:26px">03</div>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between"><span class="h-disp" style="font-size:14px">Norima</span><span class="chip green" style="font-size:9px">● 88%</span></div>
+                <div style="font-size:10px;color:var(--ink-mute);margin-top:2px">Japonais · Cocody</div>
+                <div style="font-size:10px;color:var(--ink-soft);margin-top:5px">★★★★ · 🚶 2.1 km</div>
+              </div>
+              <div class="ph ph-b" style="width:54px;height:54px;border-radius:8px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="t on"><span class="i">⌂</span>Feed</div>
+          <div class="t"><span class="i">◇</span>Carte</div>
+          <div class="t"><span class="fab">+</span></div>
+          <div class="t"><span class="i">🐺</span>Meute</div>
+          <div class="t"><span class="i">☻</span>Palais</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 — FICHE LIEU -->
+  <div class="frame">
+    <div class="tag">ÉCRAN 3 — CONVERSION</div>
+    <h2>Fiche lieu</h2>
+    <div class="desc">Hero photo, titre Klinsman, note + MatchScore, ADN du lieu en <b>tags</b> (pas radar) + synthèse d'avis, CTA sticky « Spawter ici ».</div>
+    <div class="ref">réf : <code>midfi-screens-1.jsx</code> (FicheMidfi)</div>
+    <div class="phone">
+      <div class="sb" style="background:var(--bg)"><span>9:41</span><span>▸ ▪ ▰</span></div>
+      <div class="scr">
+        <div class="scroll">
+          <div class="ph ph-c" style="height:150px">
+            <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;color:#fff;font-size:13px">
+              <span style="background:rgba(0,0,0,.4);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center">‹</span>
+              <span style="display:flex;gap:6px"><span style="background:rgba(0,0,0,.4);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center">↗</span><span style="background:rgba(0,0,0,.4);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center">♡</span></span>
+            </div>
+          </div>
+          <div style="padding:16px 18px 12px;border-bottom:1px solid var(--line)">
+            <div class="over" style="color:var(--ink-mute)">MAQUIS · COCODY RIVIERA 2</div>
+            <div class="h-disp" style="font-size:28px;margin-top:4px">Saakan</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px">
+              <span style="color:var(--spawt-gold)">★★★★</span>
+              <b>4.2</b><span style="color:var(--ink-mute)">· 184 spawts</span>
+              <span class="chip green" style="font-size:9px">● 91%</span>
+            </div>
+          </div>
+          <div style="padding:16px 18px 12px">
+            <div class="over" style="margin-bottom:9px">L'ADN DU LIEU</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <span class="chip green">● Maquis authentique</span>
+              <span class="chip gold">● Poisson braisé</span>
+              <span class="chip">Ambiance famille</span>
+              <span class="chip">Terrasse</span>
+            </div>
+            <div style="margin-top:12px;padding:12px;background:var(--bg-warm);border-radius:12px;font-size:11.5px;font-style:italic;color:var(--ink-soft);line-height:1.5">
+              « Tient sa promesse de maquis. Direct, généreux, sans détour. »
+              <div class="over" style="margin-top:6px;font-style:normal">SYNTHÈSE DE 184 AVIS</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--line);background:var(--bg);display:flex;gap:8px">
+          <div class="btn primary" style="flex:0;padding:12px 14px">📍</div>
+          <div class="btn primary" style="flex:1">Spawter ici ›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 — LE SPAWT notif + sheet -->
+  <div class="frame">
+    <div class="tag">ÉCRAN 4 — DEFINING EXPERIENCE</div>
+    <h2>Le Spawt · notif + sheet</h2>
+    <div class="desc">Notif lock-screen sur fond <code>gr-night</code> (« Tu sors de Saakan ? »), puis bottom-sheet de notation — note, tags, photo optionnelle.</div>
+    <div class="ref">réf : <code>midfi-screens-2.jsx</code> (SpawtNotif, SpawtSheet) · ⚠ drift D6 « VTC », D7 note 4★</div>
+    <div class="phone">
+      <div class="sb" style="background:#14120f;color:#fff"><span>13:42</span><span>▸ ▪ ▰</span></div>
+      <div class="scr" style="background:var(--gr-night)">
+        <div style="text-align:center;padding-top:34px;color:#fff">
+          <div style="font-size:12px;opacity:.8">vendredi 14 mars</div>
+          <div class="h-disp" style="font-size:58px;font-weight:300;margin-top:2px">13:42</div>
+        </div>
+        <div style="margin:40px 12px 0">
+          <div style="background:rgba(20,18,16,.82);backdrop-filter:blur(20px);border-radius:16px;padding:13px;border:.5px solid rgba(255,255,255,.12)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:10px;color:rgba(255,255,255,.65)">
+              <span style="width:18px;height:18px;background:#000;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--spawt-gold)">◉</span>
+              SPAWT <span style="margin-left:auto">maintenant</span>
+            </div>
+            <div class="h-disp" style="color:#fff;font-size:14px;margin-bottom:3px">Tu sors de Saakan ?</div>
+            <div style="color:rgba(255,255,255,.78);font-size:11.5px;line-height:1.4">Comment c'était ? Tape pour spawter — tu as 15 minutes.</div>
+            <div style="margin-top:10px;padding-top:10px;border-top:.5px solid rgba(255,255,255,.12);font-size:11px;font-style:italic;color:rgba(255,255,255,.7)">🐱 « Allez, dis-moi tout. »</div>
+          </div>
+        </div>
+        <div style="margin:auto 14px 16px;background:var(--bg);border-radius:20px 20px 0 0;padding:14px 16px">
+          <div style="width:34px;height:4px;background:var(--line-strong);border-radius:4px;margin:0 auto 12px"></div>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+            <div class="ph ph-c" style="width:42px;height:42px;border-radius:10px"></div>
+            <div><div class="h-disp" style="font-size:15px">Saakan</div><div style="font-size:10px;color:var(--ink-mute)">Maquis · 14 mars · 13:38</div></div>
+          </div>
+          <div class="over" style="margin-bottom:7px">TA NOTE</div>
+          <div style="display:flex;gap:7px;margin-bottom:12px">
+            <div style="flex:1;aspect-ratio:1;border-radius:10px;background:var(--spawt-gold);display:flex;align-items:center;justify-content:center;font-size:18px">★</div>
+            <div style="flex:1;aspect-ratio:1;border-radius:10px;background:var(--spawt-gold);display:flex;align-items:center;justify-content:center;font-size:18px">★</div>
+            <div style="flex:1;aspect-ratio:1;border-radius:10px;background:var(--spawt-gold);display:flex;align-items:center;justify-content:center;font-size:18px">★</div>
+            <div style="flex:1;aspect-ratio:1;border-radius:10px;border:2px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(10,10,10,.25)">★</div>
+          </div>
+          <div class="btn primary" style="width:100%">Spawter ce lieu ›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 — CÉLÉBRATION DE STADE -->
+  <div class="frame">
+    <div class="tag">ÉCRAN 5 — MOMENT RITUEL</div>
+    <h2>Montée de stade</h2>
+    <div class="desc">Fond <code>gr-night</code>, halo or, gros <code>CatIcon</code>, ancien stade barré → nouveau en or, mot du Chat, progression. Quasi-rituel, pas Duolingo.</div>
+    <div class="ref">réf : <code>midfi-screens-2.jsx</code> (SpawtCelebration)</div>
+    <div class="phone">
+      <div class="sb" style="background:#14120f;color:#fff"><span>9:41</span><span>▸ ▪ ▰</span></div>
+      <div class="scr" style="background:var(--gr-night);color:#fff;align-items:center;padding:40px 26px;text-align:center">
+        <div class="over" style="color:var(--spawt-gold);letter-spacing:.2em">✦ TU CHANGES DE STADE ✦</div>
+        <div style="width:104px;height:104px;border-radius:50%;background:var(--gr-gold);display:flex;align-items:center;justify-content:center;font-size:52px;margin:30px 0 22px;box-shadow:0 0 36px rgba(200,164,78,.5)">🐈</div>
+        <div class="h-disp" style="font-size:13px;opacity:.5;text-decoration:line-through">🐱 Touriste</div>
+        <div class="h-disp" style="font-size:34px;color:var(--spawt-gold);line-height:1">Explorateur</div>
+        <div style="font-size:11px;opacity:.7;margin-top:6px">11 spawts · ton territoire se dessine</div>
+        <div style="margin-top:20px;background:rgba(255,255,255,.06);border:.5px solid rgba(200,164,78,.3);border-radius:16px;padding:14px;font-size:12px;font-style:italic;line-height:1.5">
+          « Tu commences à avoir du flair. Encore quelques spots et je te dirai à quel archétype tu appartiens. »
+          <div class="over" style="margin-top:7px;color:var(--spawt-gold);font-style:normal">— Le Chat</div>
+        </div>
+        <div style="width:100%;margin-top:20px">
+          <div style="display:flex;justify-content:space-between;font-size:9.5px;opacity:.6;margin-bottom:5px"><span>11 / 20 spawts</span><span>→ Détective</span></div>
+          <div style="height:4px;background:rgba(255,255,255,.1);border-radius:4px"><div style="width:55%;height:100%;background:var(--gr-gold);border-radius:4px"></div></div>
+        </div>
+        <div style="display:flex;gap:8px;width:100%;margin-top:18px">
+          <div class="btn" style="flex:1;background:transparent;border:1.5px solid rgba(255,255,255,.3);color:#fff">Partager</div>
+          <div class="btn gold" style="flex:1">Voir mon Palais</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 — CARTE SPAWTER (profil) -->
+  <div class="frame">
+    <div class="tag">ÉCRAN 6 — IDENTITÉ</div>
+    <h2>Palais · Carte spawter (recto)</h2>
+    <div class="desc">Carte flip recto/verso. Recto = fierté (nom, archétype, citation, stats héro). Verso = <code>PalaisRadar</code> 5 axes. Fond <code>gr-night</code>.</div>
+    <div class="ref">réf : <code>midfi-screens-2.jsx</code> (SpawterCard) · ⚠ archétypes = V1.5 (drift D4/D5)</div>
+    <div class="phone">
+      <div class="sb" style="background:var(--bg)"><span>9:41</span><span>▸ ▪ ▰</span></div>
+      <div class="scr">
+        <div style="padding:8px 18px;display:flex;justify-content:space-between;align-items:center">
+          <span>‹</span><span class="over">MA CARTE</span><span>↗</span>
+        </div>
+        <div class="scroll" style="padding:10px 18px">
+          <div style="aspect-ratio:.72;background:var(--gr-night);border-radius:20px;border:1px solid rgba(200,164,78,.35);color:#fff;padding:14px 16px;display:flex;flex-direction:column;position:relative;overflow:hidden">
+            <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(200,164,78,.35),transparent 70%)"></div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;position:relative">
+              <span style="color:var(--spawt-gold);letter-spacing:.16em;font-weight:700">SPAWTER · DJIDJI</span>
+              <span style="opacity:.55">N° 0142 / ABJ</span>
+            </div>
+            <div style="text-align:center;margin-top:14px;position:relative">
+              <div class="ph ph-d" style="width:84px;height:84px;border-radius:50%;margin:0 auto;border:3px solid var(--spawt-gold);box-shadow:0 0 22px rgba(200,164,78,.4)"></div>
+              <div class="h-disp" style="font-size:20px;margin-top:12px">Betsy Diomandé</div>
+              <div class="h-disp" style="font-size:24px;color:var(--spawt-gold);margin-top:4px">Œil de Chat</div>
+              <div style="font-size:10px;opacity:.6;margin-top:8px;font-style:italic">« Si c'est moyen, ça n'existe pas. »</div>
+            </div>
+            <div style="margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);position:relative;padding-top:14px">
+              <div style="text-align:center;border-right:1px solid rgba(255,255,255,.12)"><div class="h-disp" style="font-size:20px;color:var(--spawt-gold)">38</div><div class="over" style="font-size:7.5px;opacity:.65">Spawts</div></div>
+              <div style="text-align:center;border-right:1px solid rgba(255,255,255,.12)"><div class="h-disp" style="font-size:20px;color:var(--spawt-gold)">12</div><div class="over" style="font-size:7.5px;opacity:.65">Tanières</div></div>
+              <div style="text-align:center"><div class="h-disp" style="font-size:20px;color:var(--spawt-gold)">6</div><div class="over" style="font-size:7.5px;opacity:.65">Quartiers</div></div>
+            </div>
+            <div style="text-align:center;font-size:9px;opacity:.45;margin-top:12px;position:relative">↻ Tape pour voir ton Palais</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="t"><span class="i">⌂</span>Feed</div>
+          <div class="t"><span class="i">◇</span>Carte</div>
+          <div class="t"><span class="fab">+</span></div>
+          <div class="t"><span class="i">🐺</span>Meute</div>
+          <div class="t on"><span class="i">☻</span>Palais</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="note">
+  <h3>Ce que ce showcase établit</h3>
+  <ul>
+    <li><b>Direction = « Magazine éditorial × Mode contextuel »</b> — déjà explorée et aboutie dans <code>documentation/ux/</code>. Pas un choix à faire, un canon à suivre.</li>
+    <li><b>Palette canonique</b> : Or <code>#C8A44E</code> · Vert Chat <code>#2D6B4F</code> · Blanc cassé <code>#FAFAF8</code> · gradients <code>gr-night</code> / <code>gr-gold</code> — depuis <code>spawt-tokens.css</code>.</li>
+    <li><b>Typo</b> : Klinsman (display) + Gotham (body) — fournies dans <code>documentation/ux/fonts/</code>.</li>
+    <li><b>Nav 5 onglets</b> : Feed · Carte · [FAB + Spawter] · Meute · Palais.</li>
+    <li><b>Light-first + moments <code>gr-night</code></b> : le sombre est un traitement de moment (notif, célébration, carte spawter, paywall, splash), pas un thème.</li>
+    <li><b>✅ Drifts kit ↔ PRD ↔ Contrat — 11/11 tranchés</b> le 2026-05-14 (voir « Canonical Sources &amp; Reconciliation » dans <code>ux-design-specification.md</code>) : OTP only (D1) · « paws » gardé non-convertible + « reconnaissances » non-public, sous garde-fous Contrat (D2/D3) · 1 badge Sprint 1 (D4) · Tanière = cercle privé, favoris renommés (D5) · « Le Guet » pas « VTC » (D6) · note 1-5 (D7) · axes Palais PRD (D8) · réservation/Visa hors V1 (D9) · onboarding = <code>OnbMidfi</code> cartes visuelles (D10) · <b>Home = HomeD</b> (D11).</li>
+  </ul>
+</div>
+
+</body>
+</html>
