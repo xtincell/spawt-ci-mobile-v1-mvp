@@ -116,6 +116,9 @@ Provider cible (PRD §12.1) : **PostHog ou Mixpanel**. Sprint 1 instrumente la c
 |---|---|---|
 | `palais_updated` | Recalcul après spawt | `confidence_score`, `dominant_axes`, `total_spawts` |
 | `stade_unlocked` | Passage à un nouveau stade | `from_stade`, `to_stade`, `unique_spots` |
+| `title_displayed_changed` | Toggle d'un titre affiché parmi la collection | `from` (i18n key ou null), `to` (i18n key) |
+| `profile_opened` | Ouverture de l'onglet profil | — |
+| `spawter_card_flipped` | Flip de la carte spawter (recto ↔ verso) | `to` (`"recto"` ou `"verso"`) |
 | `archetype_assigned` | (Sprint 2) Premier archetype attribué | `archetype_id`, `dominant_axes` |
 | `archetype_mue` | (Sprint 2) Changement latéral d'archetype | `from_archetype`, `to_archetype`, `inertie_days` |
 

@@ -1,28 +1,37 @@
-// Profil spawter — PRD §3.1 Feature 7
-// Affiche : nom, stade, total spawts, radar Palais (5 axes en démo).
-// Story 4.3 — Bouton conditionnel d'accès à OfflineQueueInspector.
+// Story 5.3 — Profil spawter (refactor complet).
+// PRD §3.1 FR-008 + §20.1 — identité avant utilité. SpawterCard flip 3D au centre.
 
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
+
 import { useTheme } from "../../src/theme/ThemeProvider";
-import { ChatBubble } from "../../src/components/ChatBubble";
-import { AxisRadar } from "../../src/components/AxisRadar";
+import { SpawterCard } from "../../src/components/SpawterCard";
+import { CollectionTitlesSection } from "../../src/components/profile/CollectionTitlesSection";
 import { OfflineQueueInspector } from "../../src/components/OfflineQueueInspector";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { STADE_DESCRIPTORS } from "../../src/types/stade";
 import { resetAll } from "../../src/lib/storage";
 import { inspect } from "../../src/lib/offline-queue";
+import { isGoldSpawter } from "../../src/lib/spawter-gold";
+import { defaultTitleKeyForStade } from "../../src/lib/titres-catalogue";
+import { track } from "../../src/lib/analytics";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const router = useRouter();
+
   const spawter = useSpawterStore((s) => s.spawter);
   const palais = useSpawterStore((s) => s.palais);
+  const spawts = useSpawterStore((s) => s.spawts);
+  const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
+  const collectionTitres = useSpawterStore((s) => s.collectionTitres);
+  const setDisplayedTitle = useSpawterStore((s) => s.setDisplayedTitle);
   const reset = useSpawterStore((s) => s.reset);
 
-  // Story 4.3 — poll offline queue size (5s) pour décider l'affichage du bouton.
   const [queueSize, setQueueSize] = useState(0);
   const [inspectorVisible, setInspectorVisible] = useState(false);
   const refreshQueueSize = useCallback(async () => {
@@ -37,114 +46,60 @@ export default function ProfileScreen() {
     return () => clearInterval(id);
   }, [refreshQueueSize]);
 
+  useEffect(() => {
+    track({ name: "profile_opened", properties: {} });
+  }, []);
+
   if (!spawter || !palais) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: theme.spacing.lg }}>
-          <Text style={{ color: theme.colors.text.secondary }}>Onboarding pas terminé.</Text>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            padding: theme.spacing.lg,
+          }}
+        >
+          <Text style={{ color: theme.colors.text.secondary }}>
+            {t("profile.onboarding_pending")}
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  const reviewsCount = spawts.filter((s) => s.note_etoiles !== null).length;
+  const isGold = isGoldSpawter(spawter);
+  const displayedRow = collectionTitres.find((r) => r.is_displayed);
+  const displayedTitleKey = displayedRow?.title_key ?? defaultTitleKeyForStade(spawter.stade);
+
   const stadeDesc = STADE_DESCRIPTORS[spawter.stade];
-  const adnReady = palais.confidence_score >= 0.3;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
-      <ScrollView contentContainerStyle={{ padding: theme.spacing.lg }}>
+      <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
         <Text
           style={{
-            color: theme.colors.text.primary,
-            fontSize: theme.typography.size["2xl"],
-            fontWeight: theme.typography.weight.bold,
+            ...theme.typography.preset.overline,
+            color: theme.colors.text.tertiary,
           }}
         >
-          {spawter.display_name}
-        </Text>
-        <Text
-          style={{
-            color: theme.colors.text.secondary,
-            fontSize: theme.typography.size.sm,
-            marginTop: 2,
-            marginBottom: theme.spacing.lg,
-          }}
-        >
-          {spawter.neighborhood} · {t(`stade.${spawter.stade}`)} · {spawter.total_spawts} spawt
-          {spawter.total_spawts !== 1 ? "s" : ""}
+          {spawter.neighborhood ?? t("profile.neighborhood_unknown")}
         </Text>
 
-        <ChatBubble stade={spawter.stade} moment="post_calibration" />
+        <SpawterCard
+          spawter={spawter}
+          palais={palais}
+          displayedTitleKey={displayedTitleKey}
+          isGold={isGold}
+          totalSpawts={spawter.total_spawts}
+          uniqueSpots={spawter.unique_spots}
+          reviewsCount={reviewsCount}
+        />
 
         <View
           style={{
-            marginTop: theme.spacing.xl,
-            padding: theme.spacing.lg,
-            backgroundColor: theme.colors.surface.raised,
-            borderRadius: theme.radius.lg,
-            borderWidth: 1,
-            borderColor: theme.colors.border.subtle,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              color: theme.colors.text.primary,
-              fontSize: theme.typography.size.lg,
-              fontWeight: theme.typography.weight.semibold,
-              marginBottom: theme.spacing.sm,
-            }}
-          >
-            Ton Palais
-          </Text>
-          <Text
-            style={{
-              color: theme.colors.text.tertiary,
-              fontSize: theme.typography.size.xs,
-              marginBottom: theme.spacing.base,
-              fontStyle: adnReady ? "normal" : "italic",
-            }}
-          >
-            {adnReady
-              ? `Confidence ${Math.round(palais.confidence_score * 100)}%`
-              : "En construction · spawt davantage pour le préciser"}
-          </Text>
-          <AxisRadar
-            axes={[
-              {
-                value: palais.axe_racines_horizons,
-                negLabel: t("axis.racines"),
-                posLabel: t("axis.horizons"),
-              },
-              {
-                value: palais.axe_taniere_nomade,
-                negLabel: t("axis.taniere"),
-                posLabel: t("axis.nomade"),
-              },
-              {
-                value: palais.axe_exigeant_enthousiaste,
-                negLabel: t("axis.exigeant"),
-                posLabel: t("axis.enthousiaste"),
-              },
-              {
-                value: palais.axe_foule_secret,
-                negLabel: t("axis.foule"),
-                posLabel: t("axis.secret"),
-              },
-              {
-                value: palais.axe_maquis_table,
-                negLabel: t("axis.maquis"),
-                posLabel: t("axis.table"),
-              },
-            ]}
-            underConstruction={!adnReady}
-            underConstructionLabel={t("palais.underConstruction")}
-          />
-        </View>
-
-        <View
-          style={{
-            marginTop: theme.spacing.xl,
             padding: theme.spacing.base,
             backgroundColor: theme.colors.surface.subtle,
             borderRadius: theme.radius.lg,
@@ -152,14 +107,51 @@ export default function ProfileScreen() {
         >
           <Text
             style={{
-              color: theme.colors.text.secondary,
-              fontSize: theme.typography.size.xs,
+              ...theme.typography.preset.caption,
+              color: theme.colors.text.tertiary,
             }}
           >
-            Stade actuel : <Text style={{ fontWeight: "700" }}>{stadeDesc.label}</Text>
-            {"\n"}
+            {t("profile.stade_section_title")}
+          </Text>
+          <Text
+            style={{
+              ...theme.typography.preset.body,
+              color: theme.colors.text.primary,
+              marginTop: theme.spacing.xs,
+            }}
+          >
             {stadeDesc.behavior}
           </Text>
+        </View>
+
+        <CollectionTitlesSection
+          collectionTitres={collectionTitres}
+          displayedTitleKey={displayedTitleKey}
+          onSetDisplayed={(key) => {
+            void setDisplayedTitle(key);
+          }}
+        />
+
+        <View style={{ gap: theme.spacing.sm }}>
+          <QuickLink
+            label={t("profile.link_saved")}
+            count={savedPlaceIds.size}
+            onPress={() => router.push("/saved" as never)}
+          />
+          <QuickLink
+            label={t("profile.link_spawts")}
+            count={spawter.total_spawts}
+            onPress={() => Alert.alert(t("profile.link_spawts_stub"))}
+          />
+          <QuickLink
+            label={t("profile.link_avis")}
+            count={reviewsCount}
+            onPress={() => Alert.alert(t("profile.link_avis_stub"))}
+          />
+          <QuickLink
+            label={t("profile.link_settings")}
+            onPress={() => Alert.alert(t("profile.link_settings_stub"))}
+          />
         </View>
 
         {queueSize > 0 ? (
@@ -168,7 +160,6 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             accessibilityLabel={t("offline_queue.open_button")}
             style={({ pressed }) => ({
-              marginTop: theme.spacing.lg,
               padding: theme.spacing.base,
               backgroundColor: theme.colors.surface.subtle,
               borderRadius: theme.radius.lg,
@@ -192,7 +183,6 @@ export default function ProfileScreen() {
             reset();
           }}
           style={({ pressed }) => ({
-            marginTop: theme.spacing["2xl"],
             paddingVertical: theme.spacing.sm,
             opacity: pressed ? 0.6 : 1,
           })}
@@ -200,11 +190,11 @@ export default function ProfileScreen() {
           <Text
             style={{
               color: theme.colors.state.danger,
-              fontSize: theme.typography.size.sm,
+              ...theme.typography.preset.small,
               textAlign: "center",
             }}
           >
-            Réinitialiser le compte (mode démo)
+            {t("profile.reset_demo")}
           </Text>
         </Pressable>
       </ScrollView>
@@ -216,5 +206,45 @@ export default function ProfileScreen() {
         }}
       />
     </SafeAreaView>
+  );
+}
+
+function QuickLink({
+  label,
+  count,
+  onPress,
+}: {
+  label: string;
+  count?: number;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: theme.spacing.base,
+        paddingHorizontal: theme.spacing.lg,
+        backgroundColor: theme.colors.surface.raised,
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border.subtle,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.primary }}>
+        {label}
+      </Text>
+      {typeof count === "number" ? (
+        <Text style={{ ...theme.typography.preset.data, color: theme.colors.brand.primary }}>
+          {count}
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }

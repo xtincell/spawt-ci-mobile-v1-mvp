@@ -15,21 +15,26 @@
     "feed": "Feed",
     "map": "Carte",
     "fab": "Spawter",
-    "meute": "Meute",
+    "meute": "La bande",
     "palais": "Palais"
   },
   "fab": {
     "stub_title": "Je spawt ici",
-    "stub_body": "Le Guet n'est pas encore armé sur ton téléphone. Va sur la fiche d'un lieu et tape « Je spawt ici (mode démo) » pour valider la mécanique.",
-    "action_label": "Spawter depuis le centre"
+    "stub_body": "Active la géoloc pour qu'on te propose les lieux les plus proches.",
+    "action_label": "Spawter depuis le centre",
+    "nearby_title": "Tu es près de…",
+    "nearby_empty": "Aucun lieu connu dans les 500 m. Élargis ta recherche.",
+    "nearby_loading": "Localisation en cours…",
+    "nearby_perm_required": "Active la géoloc dans tes paramètres pour spawter depuis ici.",
+    "nearby_cta_spawt": "Spawter ici"
   },
   "guet": {
     "indicator_label": "Le Chat fait le guet chez {{place_name}}…",
-    "cta_manual_demo": "Je spawt ici (aperçu du geste)",
-    "cta_manual_demo_alert_title": "Aperçu du geste",
-    "cta_manual_demo_alert_body": "En live, Le Chat aurait sonné l'arrivée ici. La vraie confirmation arrive bientôt.",
-    "cta_manual_demo_success": "Spawt enregistré (aperçu). En live, ton Palais s'enrichirait après ton avis.",
-    "stub_blocked_geoloc": "La géoloc n'est pas activée — Le Chat ne peut pas faire le guet. Active-la dans tes paramètres."
+    "cta_manual_demo": "Spawter ici",
+    "cta_manual_demo_alert_title": "Spawt enregistré",
+    "cta_manual_demo_alert_body": "Ton spawt est validé. Tu peux laisser un avis maintenant ou plus tard.",
+    "cta_manual_demo_success": "Spawt enregistré. Laisse un avis pour enrichir ton Palais.",
+    "stub_blocked_geoloc": "La géoloc n'est pas activée. Active-la dans tes paramètres."
   },
   "notif": {
     "guet": {
@@ -41,7 +46,7 @@
   },
   "badge": {
     "premier_spawt_title": "Premier Spawt",
-    "premier_spawt_body": "Le Chat sait que tu es passé chez {{place_name}}. La Meute s'enrichit d'un palais.",
+    "premier_spawt_body": "Le Chat sait que tu es passé chez {{place_name}}. Ton Palais s'éveille.",
     "premier_spawt_cta": "Continuer"
   },
   "review": {
@@ -67,22 +72,23 @@
   "empty_state": {
     "map_title": "Le Chat regarde la carte…",
     "map_body": "Mais pas encore. Reviens bientôt — la carte s'allume au sprint d'après.",
-    "meute_title": "La Meute se rassemble…",
+    "meute_title": "La bande se rassemble…",
     "meute_body": "Pour l'instant, retrouve les autres spawters via les avis et les Coups de Cœur sur les fiches lieu."
   },
   "home": {
     "masthead_kicker": "ÉDITION DU JOUR",
-    "modes_title": "Je sors pour…"
+    "modes_title": "Je sors pour…",
+    "suggestions_title": "Voici mes 3 suggestions du jour."
   },
   "modes": {
-    "traine": { "label": "Je traîne", "sub": "Détente" },
-    "decouvre": { "label": "Je découvre", "sub": "Atypique" },
-    "tribu": { "label": "Avec la tribu", "sub": "Groupe" },
-    "chic": { "label": "C'est chic", "sub": "Soir spécial" },
+    "traine": { "label": "Chiller", "sub": "Détente" },
+    "decouvre": { "label": "Découvrir", "sub": "Nouveau" },
+    "tribu": { "label": "En groupe", "sub": "Entre amis" },
+    "chic": { "label": "Pour une date", "sub": "Soir spécial" },
     "vite": { "label": "Vite fait", "sub": "Rapide" }
   },
   "search": {
-    "placeholder": "Cherche un spot, un plat, une zone…",
+    "placeholder": "Cherche un spawt, un plat, une zone…",
     "title": "Chercher",
     "empty_recents_title": "Tes dernières recherches",
     "empty_recents_clear": "Effacer",
@@ -95,78 +101,81 @@
     "filters_section_distance": "Distance",
     "filters_section_rating": "Note minimale",
     "filters_clear_all": "Effacer tout",
-    "filters_cta_see": "Voir {{count}} spots",
-    "filters_cta_see_one": "Voir 1 spot",
-    "filters_cta_see_zero": "Aucun spot — élargis tes filtres",
+    "filters_cta_see": "Voir {{count}} spawts",
+    "filters_cta_see_one": "Voir 1 spawt",
+    "filters_cta_see_zero": "Aucun spawt — élargis tes filtres",
     "budget_low": "₣ Économique",
     "budget_mid": "₣₣ Moyen",
     "budget_high": "₣₣₣ Premium",
     "distance_unit": "≤ {{km}} km",
     "distance_off": "Toutes distances",
     "rating_min": "Note ≥ {{value}}",
-    "results_empty_title": "Aucun spot ne correspond",
+    "results_empty_title": "Aucun spawt ne correspond",
     "results_empty_body": "Élargis tes filtres ou demande au Chat des suggestions."
   },
   "saved": {
-    "title": "Mes spots",
-    "empty_title": "Tu n'as pas encore sauvegardé de spot",
+    "title": "Mes spawts sauvegardés",
+    "empty_title": "Tu n'as pas encore sauvegardé de spawt",
     "empty_body": "Tape le cœur sur une fiche pour le retrouver ici.",
-    "count_zero": "0 spot sauvegardé",
-    "count_one": "1 spot sauvegardé",
-    "count_many": "{{count}} spots sauvegardés",
-    "save_aria": "Sauvegarder ce spot",
-    "unsave_aria": "Retirer ce spot des favoris"
+    "count_zero": "0 spawt sauvegardé",
+    "count_one": "1 spawt sauvegardé",
+    "count_many": "{{count}} spawts sauvegardés",
+    "save_aria": "Sauvegarder ce spawt",
+    "unsave_aria": "Retirer ce spawt des favoris"
   },
   "profile_links": {
-    "saved_quick_link": "Mes spots ({{count}})"
+    "saved_quick_link": "Mes favoris ({{count}})"
   },
   "share": {
     "button_label": "Partager",
     "dialog_title": "Partager via",
-    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\n{{url}}\n\nvia SPAWT — la Meute du goût à Abidjan.",
+    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\n{{url}}\n\nvia SPAWT — la bande du goût à Abidjan.",
     "fallback_no_phone": "WhatsApp n'a pas pu s'ouvrir. Copie le lien manuellement.",
     "copy_link": "Copier le lien"
   },
   "splash": {
-    "tagline": "Ne plus jamais regretter un restaurant.",
-    "cta_start": "Entrer dans la Meute"
+    "tagline": "Plus jamais goumin de restaurant.",
+    "cta_start": "Rejoindre la bande"
   },
   "consent": {
-    "title": "Avant qu'on parte ensemble",
-    "cgv_label": "J'accepte les CGU/CGV",
-    "cgv_body": "En tapant Accepter, tu rentres dans la Meute. Tu utilises SPAWT pour découvrir des lieux, spawter quand tu y vas, et partager tes avis. SPAWT t'engage à respecter les autres, ne pas inventer d'avis, et garder un ton qui ne blesse pas. Aucun usage commercial sans accord. Le détail complet — version juriste — arrive bientôt.",
+    "title": "Avant de commencer…",
+    "intro": "Parlons de tes données personnelles.",
+    "cgv_label": "J'accepte les Conditions Générales d'Utilisation et de Vente",
+    "cgv_body": "En tapant Accepter, tu rejoins la bande. Tu utilises SPAWT pour découvrir des lieux, spawter quand tu y vas, et partager tes avis. SPAWT t'engage à respecter les autres, ne pas inventer d'avis, et garder un ton qui ne blesse pas. Aucun usage commercial sans accord. Le détail complet — version juriste — arrive bientôt.",
     "geoloc_label": "J'accepte la collecte de mes données et de ma géolocalisation",
-    "geoloc_body": "Tes infos (nom, quartier, tranche d'âge) servent à mieux te recommander des lieux et à comprendre la Meute. Ta position sert UNIQUEMENT à valider un spawt quand tu es dans un lieu — jamais en arrière-plan pour te tracker. Tu peux tout couper plus tard. Wording final juriste à venir.",
+    "geoloc_body": "Tes infos (nom, quartier, date de naissance) servent à mieux te recommander des lieux. Ta position sert UNIQUEMENT à valider un spawt quand tu es dans un lieu — jamais en arrière-plan pour te tracker. Tu peux tout couper plus tard. Wording final juriste à venir.",
     "policy_link": "Politique de confidentialité",
     "terms_link": "Conditions d'utilisation"
   },
   "onboarding": {
     "step": "Étape {{current}} / {{total}}",
     "profile_title": "Présente-toi",
-    "profile_body": "6 trucs rapides pour que je te reconnaisse. Tu choisis ce que tu partages.",
+    "profile_body": "6 trucs rapides pour mieux te connaître. Tu choisis ce que tu partages.",
     "phone_title": "Ton numéro",
     "phone_body": "On envoie un code par SMS. Pas de mot de passe.",
     "phone_placeholder": "+225 ...",
     "otp_title": "Le code reçu",
     "otp_body": "Tape les 6 chiffres reçus par SMS.",
-    "name_title": "Comment tu t'appelles",
+    "name_title": "Nom et prénom",
     "name_placeholder": "Ton prénom",
-    "neighborhood_title": "Ton quartier",
+    "neighborhood_title": "Ta commune",
     "neighborhood_body": "Cocody, Yopougon, Marcory… On t'affichera des lieux proches.",
     "neighborhood_placeholder": "Cocody, Yopougon, Marcory…",
     "country_title": "Pays de résidence",
     "country_body": "Pour t'afficher les lieux du bon pays.",
-    "origin_country_title": "Tes origines",
-    "origin_country_body": "D'où tu viens — utile pour comprendre les communautés culinaires. Tu peux dire non.",
+    "origin_country_title": "Pays d'origine",
+    "origin_country_body": "Savoir d'où tu viens aide à te proposer ce que tu pourrais aimer.",
     "origin_country_skip": "Préfère ne pas dire",
-    "gender_title": "Comment tu t'identifies",
-    "gender_body": "Pour mieux représenter la Meute dans nos décisions. Aucune diffusion publique.",
+    "gender_title": "Genre",
+    "gender_body": "Aucune diffusion publique.",
     "gender_femme": "Femme",
     "gender_homme": "Homme",
     "gender_autre": "Autre",
     "gender_non_renseigne": "Préfère ne pas dire",
-    "age_title": "Ta tranche d'âge",
-    "age_body": "Tranche, pas date exacte — moins intrusif.",
+    "age_title": "Ta date de naissance",
+    "age_body": "On te souhaitera ton anniversaire, promis. (Et on garde ça discret.)",
+    "dob_placeholder": "JJ/MM/AAAA",
+    "dob_pick": "Choisir une date",
     "country": {
       "CI": "Côte d'Ivoire",
       "NG": "Nigeria",
@@ -214,52 +223,52 @@
     "cta_skip": "Pas d'avis",
     "q_racines_horizons": {
       "question": "Quand tu as faim, tu penses à quoi en premier ?",
-      "option_neg": "Attieke poisson, alloco, garba — les classiques",
-      "option_pos": "Pizza, sushi, burger — le monde dans l'assiette",
+      "option_neg": "Garba, placali, poulet braisé — les classiques",
+      "option_pos": "Burger, ramen, pâtisseries — le monde dans l'assiette",
       "option_neutral": "Pas d'avis",
       "card": {
-        "garba": "Garba",
-        "attieke": "Attiéké poisson",
-        "alloco": "Alloco",
-        "pizza": "Pizza",
-        "sushi": "Sushi",
-        "ramen": "Ramen"
+        "garba": "🍤 Garba",
+        "placali": "🍘 Placali",
+        "poulet_braise": "🍗 Poulet braisé",
+        "burger": "🍔 Burger",
+        "ramen": "🍜 Ramen",
+        "patisseries": "🥐 Pâtisseries"
       }
     },
     "q_taniere_nomade": {
       "question": "Samedi soir, tu fais quoi ?",
-      "option_neg": "Mon spot habituel. Ils me connaissent.",
+      "option_neg": "Mon spawt habituel. Ils me connaissent.",
       "option_pos": "Un endroit que je n'ai jamais testé",
       "option_neutral": "Pas d'avis",
       "card": {
-        "spot_pref": "Mon spot préféré toutes les semaines",
-        "deux_trois": "Deux-trois spots qui tournent",
+        "spot_pref": "Mon spawt préféré toutes les semaines",
+        "deux_trois": "Deux-trois spawts qui tournent",
         "nouvelle_adresse": "Une nouvelle adresse à chaque fois",
-        "teste_tout": "Je teste tout"
+        "teste_tout": "Je mange où c'est bon"
       }
     },
     "q_exigeant_enthousiaste": {
-      "question": "Tu goûtes un plat moyen dans un nouveau lieu. Tu fais quoi ?",
+      "question": "Le coin est chic, mais le plat est bof. Que fais-tu ?",
       "option_neg": "Je note mentalement. Je ne reviendrai pas.",
       "option_pos": "C'est pas grave, l'ambiance compense",
       "option_neutral": "Pas d'avis",
       "card": {
-        "service_compte": "Le service compte autant que la cuisine",
-        "note_tout": "Je note tout en détail",
-        "bon_pardonne": "Si c'est bon je pardonne tout",
-        "ambiance_fait": "L'ambiance fait l'expérience"
+        "service_compte": "La qualité du service avant tout",
+        "bon_pardonne": "Si c'est bon, je pardonne tout",
+        "ambiance_fait": "Le cadre fait l'expérience",
+        "note_tout": "Je note tout"
       }
     },
     "q_foule_secret": {
-      "question": "Le spot idéal c'est :",
+      "question": "Le spawt idéal c'est :",
       "option_neg": "Plein de monde, ça prouve que c'est bon",
       "option_pos": "Vide. Mon secret. Mon trésor.",
       "option_neutral": "Pas d'avis",
       "card": {
-        "maquis_bonde": "Le maquis bondé un samedi soir",
-        "spot_anime": "Un spot animé toute la semaine",
-        "spot_cache": "Un spot que personne ne connaît",
-        "table_intime": "Une table intime, peu connue"
+        "maquis_bonde": "Un maquis bondé — tout pour le show",
+        "spot_anime": "Un nouveau spawt — tout pour la hype",
+        "spot_cache": "Un spawt que personne ne connaît — tout pour l'intimité",
+        "table_intime": "Un spawt testé et approuvé — tout pour la bonne bouffe"
       }
     },
     "q_maquis_table": {
@@ -282,13 +291,13 @@
       "post_calibration": "Premier coup d'œil sur ton Palais. Encore très flou — c'est normal. Va spawter, je précise au fur et à mesure.",
       "first_spawt_invite": "Le premier spawt te débloque l'app. Choisis un lieu et lance-toi.",
       "post_first_spawt": "Premier spawt validé. Ton Palais bouge. Continue.",
-      "stade_up_explorateur": "11 spots. Tu n'es plus Touriste — tu es Explorateur. Ton territoire commence à se dessiner.",
+      "stade_up_explorateur": "11 spawts. Tu n'es plus Touriste — tu es Explorateur. Ton territoire commence à se dessiner.",
       "stade_up_detective": "",
       "stade_up_djidji": "",
       "stade_up_guide": "",
-      "geoloc_consent_request": "On va parler de deux trucs. Tes infos, ta position. Je t'explique sans gronder.",
-      "demographics_consent_request": "Quelques infos sur toi pour qu'on connaisse mieux la Meute. Toujours optionnel.",
-      "home_edito": "Aujourd'hui je te propose 3 spots à ton goût. Trie ton choix.",
+      "geoloc_consent_request": "Parlons de tes données personnelles.",
+      "demographics_consent_request": "Quelques infos sur toi pour qu'on connaisse mieux la bande. Toujours optionnel.",
+      "home_edito": "Aujourd'hui je te propose 3 spawts à ton goût. Trie ton choix.",
       "search_suggestions": "Essaie : maquis, café, à 2 km",
       "guet_prompt": ""
     },
@@ -299,7 +308,7 @@
       "first_spawt_invite": "",
       "post_first_spawt": "",
       "stade_up_explorateur": "",
-      "stade_up_detective": "21 spots. Détective. Ton flair ne ment plus.",
+      "stade_up_detective": "21 spawts. Détective. Ton flair ne ment plus.",
       "stade_up_djidji": "",
       "stade_up_guide": "",
       "geoloc_consent_request": "",
@@ -316,11 +325,11 @@
       "post_first_spawt": "",
       "stade_up_explorateur": "",
       "stade_up_detective": "",
-      "stade_up_djidji": "31 spots. Djidji. La colonie écoute.",
+      "stade_up_djidji": "31 spawts. Djidji. La colonie écoute.",
       "stade_up_guide": "",
       "geoloc_consent_request": "",
       "demographics_consent_request": "",
-      "home_edito": "Les bons spots sont là. Toi, choisis.",
+      "home_edito": "Les bons spawts sont là. Toi, choisis.",
       "search_suggestions": "Cherche : ouest-africaine, premium, pépite vérifiée",
       "guet_prompt": ""
     },
@@ -333,7 +342,7 @@
       "stade_up_explorateur": "",
       "stade_up_detective": "",
       "stade_up_djidji": "",
-      "stade_up_guide": "51 spots. Guide. Le Chat marche derrière toi maintenant.",
+      "stade_up_guide": "51 spawts. Guide. Le Chat marche derrière toi maintenant.",
       "geoloc_consent_request": "",
       "demographics_consent_request": "",
       "home_edito": "La sélection est fine aujourd'hui. Prends ton temps.",
@@ -349,7 +358,7 @@
       "stade_up_explorateur": "",
       "stade_up_detective": "",
       "stade_up_djidji": "",
-      "stade_up_guide": "Tu es Guide. 51 spots, ton territoire. La Meute te suit.",
+      "stade_up_guide": "Tu es Guide. 51 spawts, ton territoire. La bande te suit.",
       "geoloc_consent_request": "",
       "demographics_consent_request": "",
       "home_edito": "",
@@ -363,6 +372,44 @@
     "detective": "Détective",
     "djidji": "Djidji",
     "guide": "Guide"
+  },
+  "title": {
+    "touriste": "Touriste",
+    "explorateur": "Explorateur",
+    "detective": "Détective",
+    "djidji": "Djidji",
+    "guide": "Guide",
+    "premier_spawt": "Premier Spawt"
+  },
+  "profile": {
+    "onboarding_pending": "Onboarding pas terminé.",
+    "neighborhood_unknown": "Commune non renseignée",
+    "card_id_prefix": "SPAWTER",
+    "card_flip_aria": "Retourner la carte pour voir le Palais",
+    "stat_spawts": "Spawts",
+    "stat_spots": "Spawts uniques",
+    "stat_avis": "Avis",
+    "stade_section_title": "TON STADE",
+    "collection_title": "TES TITRES",
+    "collection_empty": "Tes titres apparaîtront ici à chaque évolution.",
+    "title_select_aria": "Afficher le titre {{title}}",
+    "palais_gold_teaser": "+3 axes débloqués avec Spawter Gold (bientôt)",
+    "link_saved": "Mes favoris",
+    "link_spawts": "Mes spawts",
+    "link_avis": "Mes avis",
+    "link_settings": "Réglages",
+    "link_spawts_stub": "Cet écran arrive au prochain sprint.",
+    "link_avis_stub": "Cet écran arrive au prochain sprint.",
+    "link_settings_stub": "Cet écran arrive au prochain sprint.",
+    "reset_demo": "Réinitialiser le compte (mode démo)"
+  },
+  "celebration": {
+    "cta": "Continuer",
+    "cta_aria": "Fermer la célébration",
+    "from_stade_aria": "Tu étais {{stade}}",
+    "to_stade_aria": "Tu es maintenant {{stade}}",
+    "progress_label": "{{current}} / {{next_threshold}} spawts vers {{next_stade}}",
+    "progress_label_guide": "Tu es Guide. La bande marche derrière toi."
   },
   "axis": {
     "racines": "Racines",
@@ -380,14 +427,14 @@
     "underConstruction": "En construction"
   },
   "palais_reveal": {
-    "first_title": "Touriste",
-    "first_title_subtitle": "Tes premiers pas dans la Meute",
-    "continue": "Entrer dans la Meute"
+    "first_title": "Voici ton palais",
+    "first_title_subtitle": "Plus tu Spawtes, plus il est précis.",
+    "continue": "Rejoindre la bande"
   },
   "place": {
     "notRatedYet": "Pas encore noté",
-    "spawt_cta_demo": "Je spawt ici (mode démo)",
-    "spawt_cta_demo_hint": "En live, Le Guet détecterait ta présence automatiquement.",
+    "spawt_cta_demo": "Spawter ici",
+    "spawt_cta_demo_hint": "Tu valides ton passage. Tu pourras laisser un avis ensuite.",
     "info_address": "Adresse",
     "info_hours": "Horaires",
     "info_hours_closed": "Fermé",
@@ -399,15 +446,21 @@
     "match_with_palais": "{{score}}% pour ton Palais",
     "card_aria_label": "{{name}}, {{score}}% pour ton Palais",
     "call": "Appeler",
-    "whatsapp": "WhatsApp",
+    "whatsapp": "Réserver via WhatsApp",
     "back": "Retour",
     "not_found": "Lieu introuvable",
-    "spawter_required_title": "Tu n'es pas encore dans la Meute",
-    "spawter_required_body": "Finis l'entrée dans la Meute pour pouvoir spawter.",
-    "spawter_required_cta": "Entrer dans la Meute"
+    "spawter_required_title": "Tu n'es pas encore dans la bande",
+    "spawter_required_body": "Finis ton inscription pour pouvoir spawter.",
+    "spawter_required_cta": "Rejoindre la bande",
+    "saved_aria": "Sauvegarder dans tes favoris",
+    "unsaved_aria": "Retirer de tes favoris",
+    "reviews_title": "Ce qu'en dit la bande",
+    "reviews_empty": "Pas encore d'avis. Sois le premier à raconter.",
+    "reviews_loading": "Chargement des avis…",
+    "reviews_see_all": "Voir tous les avis ({{count}})"
   },
   "list": {
-    "remove_from_saved_aria": "Retirer ce spot des favoris",
+    "remove_from_saved_aria": "Retirer ce spawt des favoris",
     "selection_badge": "★ Sélection",
     "selection_signal_coup_de_coeur": "Coup de Cœur",
     "selection_signal_pepite_verifiee": "Pépite vérifiée",

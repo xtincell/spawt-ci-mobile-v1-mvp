@@ -95,9 +95,9 @@ export function ModeStories({ selectedMode, onModePress }: Props) {
                     : theme.colors.text.tertiary,
                   marginTop: 4,
                   textAlign: "center",
-                  maxWidth: 72,
+                  maxWidth: 96,
                 }}
-                numberOfLines={1}
+                numberOfLines={2}
               >
                 {label}
               </Text>

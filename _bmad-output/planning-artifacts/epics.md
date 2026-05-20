@@ -985,6 +985,71 @@ So that les profils de lieux se construisent organiquement par la communauté.
 **Then** « ADN en construction » est affiché
 **And** les check-ins simples (sans avis) ne modifient pas l'ADN
 
+### Story 4.8: Refactor date_of_birth dynamique (Epic 4 PASS 2 — retour user 2026-05-20 point #2)
+
+As a spawter,
+I want pouvoir saisir ma date de naissance précise plutôt qu'une tranche d'âge figée,
+So that le Chat puisse me souhaiter mon anniversaire et que les KPIs démographiques restent calculables côté funnel.
+
+**Acceptance Criteria:**
+
+**Given** la table `spawters` (Story 2.4 + migration 0020)
+**When** un spawter complète l'onboarding profile
+**Then** `date_of_birth` est persisté ET `age_range` est calculé via helper pur `ageRangeFromDateOfBirth()` au moment du finalize
+
+**Given** un âge < 13 ans calculé depuis la date saisie
+**When** la validation du formulaire s'exécute
+**Then** l'onboarding refuse de continuer avec message dédié
+
+**Given** un row spawter pré-existant Sprint 1 alpha (`date_of_birth = null`)
+**When** la story est livrée
+**Then** la lecture ne casse pas (champ nullable, helper tolère null)
+
+### Story 4.9: Place page refonte + reviews fetch (Epic 4 PASS 2 — retour user 2026-05-20 point #10)
+
+As a spawter sur la fiche d'un lieu,
+I want voir les avis des autres spawters et lire clairement la note + le budget,
+So that je puisse décider d'aller au lieu sans ouvrir 3 onglets et comprendre la confiance communautaire.
+
+**Acceptance Criteria:**
+
+**Given** une fiche lieu avec au moins 1 avis seeded (`is_seed = true`) ou communauté
+**When** la fiche est ouverte
+**Then** la section « Ce qu'en dit la bande » affiche jusqu'à 5 reviews (avatar + nom + étoiles + texte + badge `Avis fondateur` si seed)
+
+**Given** le header de la fiche
+**When** la story est livrée
+**Then** la taille typo du rating et du price tier est en `h2` (lisible à 1m)
+**And** le heart toggle (favori) est différencié visuellement et textuellement du chip Coup de Cœur
+
+**Given** le bouton WhatsApp
+**When** il est rendu
+**Then** son label est « Réserver via WhatsApp » avec icône explicite (calendar ou similaire)
+
+### Story 4.10: Onglet Spawter géolocalisé (Epic 4 PASS 2 — retour user 2026-05-20 point #14)
+
+As a spawter qui ouvre l'app pour faire un spawt rapide,
+I want voir directement les 5 lieux les plus proches de moi et taper « Spawter ici » en 1 geste,
+So that je n'aie pas à scroller le feed, ouvrir une fiche, descendre au sticky CTA pour valider mon passage.
+
+**Acceptance Criteria:**
+
+**Given** la permission géoloc accordée
+**When** je tape le FAB central de la tab bar
+**Then** l'écran Spawter affiche les 5 lieux publiés les plus proches dans un rayon de 2km, triés ascendant par distance
+
+**Given** un lieu à moins de 100m
+**When** je tape « Spawter ici »
+**Then** un `SpawtCheckin` est créé avec `is_verified = true`, sync fire-and-forget Supabase + navigation vers la modal review
+
+**Given** un lieu entre 100m et 2km
+**When** je tape « Spawter ici »
+**Then** un `SpawtCheckin` est créé avec `is_verified = false` (poids 0.5x — PRD §7.2), même flow review
+
+**Given** la permission géoloc refusée
+**When** l'écran s'ouvre
+**Then** un message explicite + bouton Settings est affiché (jamais d'écran vide silencieux)
+
 ## Epic 5: Identité du spawter — profil, Palais radar & stades
 
 Le spawter consulte son identité (carte spawter flip, radar Palais, collection de titres permanente, titre affiché choisi librement), voit son Palais évoluer et monte de stade lors d'un moment quasi-rituel non gamifié. Identité avant utilité — moat de rétention. `spawter_progression` est créée en 5.1, `collection_titres` en 5.2.

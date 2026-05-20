@@ -10,7 +10,8 @@ import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
 import type { FeatureFlag } from "../types/feature-flag";
-import type { PlaceWithAdn } from "./data-source";
+import type { PlaceWithAdn, ProgressionRow } from "./data-source";
+import type { CollectionTitreRow } from "../types/collection-titres";
 import { PlaceWithAdnSchema } from "../types/place.schema";
 
 /**
@@ -213,6 +214,80 @@ export async function listFeatureFlagsFromSupabase(
     return [];
   }
   return (data ?? []) as FeatureFlag[];
+}
+
+// ─── Story 5.1 — spawter_progression ──────────────
+
+/**
+ * Story 5.1 — Upsert `spawter_progression` (overwrite par PK spawter_id).
+ * Si le trigger SQL `assert_stade_never_recedes` rejette (baisse de stade), on log
+ * et on swallow — le local conserve la vérité côté client via maxStade.
+ */
+export async function upsertProgressionToSupabase(row: ProgressionRow): Promise<void> {
+  const { error } = await supabase
+    .from("spawter_progression")
+    .upsert(row, { onConflict: "spawter_id" });
+  if (error && __DEV__) {
+    console.warn("[data-source] upsertProgression rejected", error);
+  }
+}
+
+// ─── Story 5.2 — collection_titres ──────────────
+
+/**
+ * Story 5.2 — Insert append-only d'un titre. L'index unique (spawter_id, title_key)
+ * rejette les doublons côté serveur (le client gate aussi via dedup local).
+ */
+export async function insertTitreToSupabase(row: CollectionTitreRow): Promise<void> {
+  const { error } = await supabase.from("collection_titres").insert(row);
+  if (error && __DEV__) {
+    console.warn("[data-source] insertTitre rejected", error);
+  }
+}
+
+/**
+ * Story 5.2 — Set titre affiché via 2 UPDATE séquentiels (reset puis set).
+ * Fenêtre micro-temps acceptable V1 (cf. Dev Notes 5.2 §3).
+ */
+export async function setDisplayedTitreInSupabase(
+  spawter_id: string,
+  title_key: string,
+): Promise<void> {
+  // Étape 1 — reset tous les autres titres affichés (peut être 0 ou 1 row).
+  const r1 = await supabase
+    .from("collection_titres")
+    .update({ is_displayed: false })
+    .eq("spawter_id", spawter_id)
+    .eq("is_displayed", true)
+    .neq("title_key", title_key);
+  if (r1.error && __DEV__) {
+    console.warn("[data-source] setDisplayedTitre reset failed", r1.error);
+  }
+  // Étape 2 — set le nouveau titre affiché.
+  const r2 = await supabase
+    .from("collection_titres")
+    .update({ is_displayed: true })
+    .eq("spawter_id", spawter_id)
+    .eq("title_key", title_key);
+  if (r2.error && __DEV__) {
+    console.warn("[data-source] setDisplayedTitre set failed", r2.error);
+  }
+}
+
+/** Story 5.2 — List titres pour un spawter (RLS auto-filter own only). */
+export async function listTitresFromSupabase(
+  spawter_id: string,
+): Promise<CollectionTitreRow[]> {
+  const { data, error } = await supabase
+    .from("collection_titres")
+    .select("*")
+    .eq("spawter_id", spawter_id)
+    .order("unlocked_at", { ascending: true });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] listTitres failed", error);
+    return [];
+  }
+  return (data ?? []) as CollectionTitreRow[];
 }
 
 /**

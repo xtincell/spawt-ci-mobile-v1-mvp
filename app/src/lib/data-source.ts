@@ -13,6 +13,8 @@ import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
 import type { FeatureFlag } from "../types/feature-flag";
+import type { CollectionTitreRow } from "../types/collection-titres";
+import type { Stade } from "../types/stade";
 
 import { SEED_PLACES, type SeedPlace } from "../data/seed/places";
 
@@ -101,6 +103,52 @@ export async function updateSpawt(
   if (!isSupabaseConfigured) return true;
   const mod = await import("./data-source.supabase");
   return mod.updateSpawtInSupabase(row_id, patch);
+}
+
+// ─── Story 5.1 — progression par stade ──────────────
+
+export interface ProgressionRow {
+  spawter_id: string;
+  unique_spots: number;
+  stade: Stade;
+  /** i18n key — défaut `title.<stade>` (Story 5.2 livre la mapping enrichie). */
+  current_title: string;
+  updated_at: string;
+}
+
+/**
+ * Story 5.1 — Upsert idempotent `spawter_progression` (overwrite par PK = spawter_id).
+ * Fire-and-forget côté caller. Mode fallback : no-op silencieux.
+ */
+export async function upsertProgression(row: ProgressionRow): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { upsertProgressionToSupabase } = await import("./data-source.supabase");
+  await upsertProgressionToSupabase(row);
+}
+
+// ─── Story 5.2 — collection de titres ──────────────
+
+export async function insertTitre(row: CollectionTitreRow): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { insertTitreToSupabase } = await import("./data-source.supabase");
+  await insertTitreToSupabase(row);
+}
+
+export async function setDisplayedTitre(
+  spawter_id: string,
+  title_key: string,
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { setDisplayedTitreInSupabase } = await import("./data-source.supabase");
+  await setDisplayedTitreInSupabase(spawter_id, title_key);
+}
+
+export async function listTitresForSpawter(
+  spawter_id: string,
+): Promise<CollectionTitreRow[]> {
+  if (!isSupabaseConfigured) return [];
+  const { listTitresFromSupabase } = await import("./data-source.supabase");
+  return listTitresFromSupabase(spawter_id);
 }
 
 /**

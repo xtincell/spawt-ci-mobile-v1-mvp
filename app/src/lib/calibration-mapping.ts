@@ -56,11 +56,11 @@ export const CALIBRATION_QUESTIONS: readonly CalibrationQuestion[] = [
     axis: "racines_horizons",
     cards: [
       { altKey: "garba", labelKey: "calibration.q_racines_horizons.card.garba", polarity: "neg" },
-      { altKey: "attieke", labelKey: "calibration.q_racines_horizons.card.attieke", polarity: "neg" },
-      { altKey: "alloco", labelKey: "calibration.q_racines_horizons.card.alloco", polarity: "neg" },
-      { altKey: "pizza", labelKey: "calibration.q_racines_horizons.card.pizza", polarity: "pos" },
-      { altKey: "sushi", labelKey: "calibration.q_racines_horizons.card.sushi", polarity: "pos" },
+      { altKey: "placali", labelKey: "calibration.q_racines_horizons.card.placali", polarity: "neg" },
+      { altKey: "poulet_braise", labelKey: "calibration.q_racines_horizons.card.poulet_braise", polarity: "neg" },
+      { altKey: "burger", labelKey: "calibration.q_racines_horizons.card.burger", polarity: "pos" },
       { altKey: "ramen", labelKey: "calibration.q_racines_horizons.card.ramen", polarity: "pos" },
+      { altKey: "patisseries", labelKey: "calibration.q_racines_horizons.card.patisseries", polarity: "pos" },
     ],
   },
   {
@@ -76,9 +76,9 @@ export const CALIBRATION_QUESTIONS: readonly CalibrationQuestion[] = [
     axis: "exigeant_enthousiaste",
     cards: [
       { altKey: "service_compte", labelKey: "calibration.q_exigeant_enthousiaste.card.service_compte", polarity: "neg" },
-      { altKey: "note_tout", labelKey: "calibration.q_exigeant_enthousiaste.card.note_tout", polarity: "neg" },
       { altKey: "bon_pardonne", labelKey: "calibration.q_exigeant_enthousiaste.card.bon_pardonne", polarity: "pos" },
       { altKey: "ambiance_fait", labelKey: "calibration.q_exigeant_enthousiaste.card.ambiance_fait", polarity: "pos" },
+      { altKey: "note_tout", labelKey: "calibration.q_exigeant_enthousiaste.card.note_tout", polarity: "neg" },
     ],
   },
   {

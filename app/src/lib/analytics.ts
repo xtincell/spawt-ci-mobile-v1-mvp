@@ -163,8 +163,9 @@ type EventName =
   | "review_started" | "review_submitted" | "review_photo_added" | "review_abandoned"
   // 8. Coup de Cœur
   | "coup_de_coeur_attempted" | "coup_de_coeur_posted" | "coup_de_coeur_quota_exhausted"
-  // 9. Stade & Palais
+  // 9. Stade & Palais & Identité
   | "palais_updated" | "stade_unlocked" | "archetype_assigned" | "archetype_mue"
+  | "title_displayed_changed" | "profile_opened" | "spawter_card_flipped"
   // 10. Partage
   | "share_initiated" | "share_completed" | "share_link_opened"
   // 11. Auth
@@ -217,6 +218,10 @@ const EVENT_TO_SIGNAL = {
   coup_de_coeur_quota_exhausted: "review",
   palais_updated: "review", stade_unlocked: "review",
   archetype_assigned: "review", archetype_mue: "review",
+  // Identité (Story 5.2 / 5.3)
+  title_displayed_changed: "click",
+  profile_opened: "view",
+  spawter_card_flipped: "click",
   // save
   place_saved: "save", place_unsaved: "save",
   // share
