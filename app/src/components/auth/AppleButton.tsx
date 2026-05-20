@@ -55,6 +55,9 @@ function capGraphemes(str: string, max: number): string {
 }
 
 export function AppleButton({ onError }: Props) {
+  // Mode démo (pas de Supabase) : pas d'auth possible → ne pas mount.
+  if (!isSupabaseConfigured) return null;
+
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();

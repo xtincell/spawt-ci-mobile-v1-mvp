@@ -5,6 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
+import type { CollectionTitreRow } from "../types/collection-titres";
 
 const KEYS = {
   spawter: "spawt:spawter",
@@ -16,6 +17,8 @@ const KEYS = {
   saved_places: "spawt:saved_places",
   /** Story 3.5 — queue des recherches récentes (cap 10, FIFO). */
   recent_searches: "spawt:recent_searches",
+  /** Story 5.2 — collection de titres locale (cache du serveur, source de vérité côté store). */
+  collection_titres: "spawt:collection_titres",
 } as const;
 
 // P9 — migration one-shot de la clé legacy `spawt:consent:data` → `spawt:consent:cgv`.
@@ -122,6 +125,30 @@ export async function saveSavedLocal(set: Set<string>): Promise<boolean> {
     return true;
   } catch (err) {
     if (__DEV__) console.warn("[storage] saveSavedLocal failed", err);
+    return false;
+  }
+}
+
+// ─── Story 5.2 — collection de titres ─────────────
+
+export async function loadCollectionTitres(): Promise<CollectionTitreRow[]> {
+  try {
+    const raw = await AsyncStorage.getItem(KEYS.collection_titres);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed as CollectionTitreRow[];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCollectionTitresLocal(list: CollectionTitreRow[]): Promise<boolean> {
+  try {
+    await AsyncStorage.setItem(KEYS.collection_titres, JSON.stringify(list));
+    return true;
+  } catch (err) {
+    if (__DEV__) console.warn("[storage] saveCollectionTitresLocal failed", err);
     return false;
   }
 }

@@ -7,6 +7,7 @@ import type { Spawter, OnboardingDraft } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin, ReviewTag } from "../types/spawt";
 import type { CalibrationDelta } from "../types/palais";
+import type { CollectionTitreRow } from "../types/collection-titres";
 
 import {
   loadSpawter,
@@ -18,8 +19,23 @@ import {
   savePalaisLocal,
   appendSpawtLocal,
   setConsent as setConsentLocal,
+  loadCollectionTitres,
+  saveCollectionTitresLocal,
 } from "../lib/storage";
-import { saveSpawter, savePalais, isSupabaseConfigured } from "../lib/data-source";
+import {
+  saveSpawter,
+  savePalais,
+  isSupabaseConfigured,
+  upsertProgression,
+  insertTitre,
+  setDisplayedTitre,
+} from "../lib/data-source";
+import {
+  isKnownTitleKey,
+  STADE_TITLE_KEYS,
+  PREMIER_SPAWT_TITLE_KEY,
+  type TitleSource,
+} from "../lib/titres-catalogue";
 import { saveSpawtToSupabaseOrEnqueue } from "../lib/offline-queue";
 import { applyReviewToPalais } from "../lib/palais-signals";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
@@ -29,7 +45,20 @@ import { getStade, maxStade } from "../types/stade";
 import { EMPTY_PALAIS, SAMPLE_SPAWTER } from "../data/seed/sample-spawter";
 import { useOnboardingDraft } from "./onboarding-draft";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
 import { track } from "../lib/analytics";
+
+let __idCounter = 0;
+function makeId(): string {
+  __idCounter += 1;
+  try {
+    const v = (Crypto as { randomUUID?: () => string }).randomUUID?.();
+    if (typeof v === "string" && v.length > 8) return v;
+  } catch {
+    // jest-expo peut ne pas stuber randomUUID — fallthrough vers le générateur local.
+  }
+  return `loc-${Date.now()}-${__idCounter}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 const BADGE_CELEBRATED_KEY = "spawt:badge:premier_spawt_celebrated";
 
@@ -48,6 +77,20 @@ interface SpawterStore {
   savedPlaceIds: Set<string>;
   /** Story 4.2 — Badge "Premier Spawt" en attente d'affichage. Consommé par overlay root. */
   pendingBadge: PendingBadge | null;
+  /** Story 5.2 — Collection de titres (append-only mémoire d'identité). */
+  collectionTitres: CollectionTitreRow[];
+  /** Story 5.4 — Montée de stade en attente de célébration (overlay root). */
+  pendingStadeCelebration: {
+    from_stade: import("../types/stade").Stade;
+    to_stade: import("../types/stade").Stade;
+    unique_spots: number;
+  } | null;
+  /** Story 5.4 — Acquitte la célébration (set flag anti-replay + clear). */
+  consumePendingStadeCelebration: () => Promise<void>;
+  /** Story 5.2 — Débloque un titre dans la collection (append idempotent). Retourne true si row ajoutée. */
+  unlockTitle: (title_key: string, source: TitleSource) => Promise<boolean>;
+  /** Story 5.2 — Définit le titre affiché (doit exister dans collection sinon no-op + warn). */
+  setDisplayedTitle: (title_key: string) => Promise<void>;
   /** Story 4.2 — Acquitte l'affichage du badge (set flag AsyncStorage set-once + clear). */
   consumePendingBadge: () => Promise<void>;
 
@@ -96,6 +139,8 @@ interface SpawterStore {
   reset: () => void;
 }
 
+const STADE_CELEBRATED_KEY = "spawt:stade:celebrated";
+
 export const useSpawterStore = create<SpawterStore>((set, get) => ({
   hydrating: true,
   spawter: null,
@@ -103,9 +148,17 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   spawts: [],
   savedPlaceIds: new Set(),
   pendingBadge: null,
+  collectionTitres: [],
+  pendingStadeCelebration: null,
 
   consumePendingBadge: async () => {
     set({ pendingBadge: null });
+    // Story 5.2 — ajoute le titre Premier Spawt à la collection (D4 — 1 seul badge V1).
+    void get()
+      .unlockTitle(PREMIER_SPAWT_TITLE_KEY, "badge")
+      .catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] unlockTitle badge failed", err);
+      });
     try {
       await AsyncStorage.setItem(BADGE_CELEBRATED_KEY, new Date().toISOString());
     } catch (err) {
@@ -113,14 +166,88 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     }
   },
 
+  consumePendingStadeCelebration: async () => {
+    const pending = get().pendingStadeCelebration;
+    set({ pendingStadeCelebration: null });
+    if (!pending) return;
+    try {
+      await AsyncStorage.setItem(
+        `${STADE_CELEBRATED_KEY}:${pending.to_stade}`,
+        new Date().toISOString(),
+      );
+    } catch (err) {
+      if (__DEV__) console.warn("[spawter-store] stade celebration flag write failed", err);
+    }
+  },
+
+  unlockTitle: async (title_key, source) => {
+    const spawter = get().spawter;
+    if (!spawter) {
+      if (__DEV__) console.warn("[spawter-store] unlockTitle no spawter — skip");
+      return false;
+    }
+    if (!isKnownTitleKey(title_key)) {
+      if (__DEV__) console.warn("[spawter-store] unlockTitle unknown key — skip", title_key);
+      return false;
+    }
+    const current = get().collectionTitres;
+    if (current.some((r) => r.title_key === title_key && r.spawter_id === spawter.id)) {
+      return false; // idempotent
+    }
+    const row: CollectionTitreRow = {
+      id: makeId(),
+      spawter_id: spawter.id,
+      title_key,
+      source,
+      is_displayed: false,
+      unlocked_at: new Date().toISOString(),
+    };
+    const next = [...current, row];
+    await saveCollectionTitresLocal(next);
+    void insertTitre(row).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] insertTitre failed", err);
+    });
+    set({ collectionTitres: next });
+    return true;
+  },
+
+  setDisplayedTitle: async (title_key) => {
+    const spawter = get().spawter;
+    if (!spawter) {
+      if (__DEV__) console.warn("[spawter-store] setDisplayedTitle no spawter — skip");
+      return;
+    }
+    const list = get().collectionTitres;
+    const target = list.find(
+      (r) => r.title_key === title_key && r.spawter_id === spawter.id,
+    );
+    if (!target) {
+      if (__DEV__) console.warn("[spawter-store] setDisplayedTitle title not unlocked", title_key);
+      return;
+    }
+    const fromKey = list.find((r) => r.is_displayed)?.title_key ?? null;
+    if (fromKey === title_key) return; // no-op si déjà displayed
+    const updated = list.map((r) => ({ ...r, is_displayed: r.id === target.id }));
+    await saveCollectionTitresLocal(updated);
+    void setDisplayedTitre(spawter.id, title_key).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] setDisplayedTitre failed", err);
+    });
+    set({ collectionTitres: updated });
+    track({
+      name: "title_displayed_changed",
+      properties: { from: fromKey, to: title_key },
+    });
+  },
+
   hydrate: async () => {
-    const [spawter, palais, spawts, savedPlaceIds] = await Promise.all([
+    const [spawter, palais, spawts, savedPlaceIds, collectionTitres] = await Promise.all([
       loadSpawter(),
       loadPalais(),
       loadSpawts(),
       loadSaved(),
+      loadCollectionTitres(),
     ]);
-    set({ spawter, palais, spawts, savedPlaceIds, hydrating: false });
+    set({ spawter, palais, spawts, savedPlaceIds, collectionTitres, hydrating: false });
   },
 
   toggleSaved: async (place_id: string) => {
@@ -292,6 +419,53 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         if (__DEV__) console.warn("[spawter-store] saveSpawter registerSpawt failed", err);
       });
 
+      // Story 5.1 — Détection franchissement de seuil de stade.
+      // maxStade a déjà filtré les baisses → une différence ici est une montée garantie.
+      const stadeChanged = updated.stade !== spawter.stade;
+      let pendingStadeCelebration:
+        | {
+            from_stade: import("../types/stade").Stade;
+            to_stade: import("../types/stade").Stade;
+            unique_spots: number;
+          }
+        | null = null;
+      if (stadeChanged) {
+        track({
+          name: "stade_unlocked",
+          properties: {
+            from_stade: spawter.stade,
+            to_stade: updated.stade,
+            unique_spots: uniqueSpots,
+          },
+        });
+        // Story 5.4 — pending celebration transient (anti-replay AsyncStorage par stade).
+        const alreadyCelebrated = await isStadeCelebrated(updated.stade);
+        if (!alreadyCelebrated) {
+          pendingStadeCelebration = {
+            from_stade: spawter.stade,
+            to_stade: updated.stade,
+            unique_spots: uniqueSpots,
+          };
+        }
+        // Story 5.2 — append titre du nouveau stade dans la collection (idempotent).
+        void get()
+          .unlockTitle(STADE_TITLE_KEYS[updated.stade], "stade")
+          .catch((err) => {
+            if (__DEV__) console.warn("[spawter-store] unlockTitle stade failed", err);
+          });
+      }
+
+      // Story 5.1 — Sync `spawter_progression` (overwrite) fire-and-forget.
+      void upsertProgression({
+        spawter_id: updated.id,
+        unique_spots: uniqueSpots,
+        stade: updated.stade,
+        current_title: STADE_TITLE_KEYS[updated.stade],
+        updated_at: updated.updated_at,
+      }).catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] upsertProgression failed", err);
+      });
+
       // Story 4.2 — Premier Spawt detect : transition total_spawts: 0 → 1 ET
       // is_verified === true. Anti-replay via AsyncStorage set-once.
       let pendingBadge: PendingBadge | null = null;
@@ -317,6 +491,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         spawter: updated,
         spawts: list,
         ...(pendingBadge ? { pendingBadge } : {}),
+        ...(pendingStadeCelebration ? { pendingStadeCelebration } : {}),
       });
     } else {
       set({ spawts: list });
@@ -410,7 +585,15 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   },
 
   reset: () => {
-    set({ spawter: null, palais: null, spawts: [], savedPlaceIds: new Set(), pendingBadge: null });
+    set({
+      spawter: null,
+      palais: null,
+      spawts: [],
+      savedPlaceIds: new Set(),
+      pendingBadge: null,
+      collectionTitres: [],
+      pendingStadeCelebration: null,
+    });
     // Privacy : purger le cache AsyncStorage des favoris pour qu'un user suivant
     // sur le même device n'hérite pas des spots sauvegardés. Les autres clés
     // (spawter, palais, spawts, consent) restent gérées par leurs propres flux.
@@ -431,6 +614,16 @@ export function calibrationDelta(direction: "neg" | "pos" | "neutral"): Calibrat
 async function isPremierSpawtCelebrated(): Promise<boolean> {
   try {
     const v = await AsyncStorage.getItem(BADGE_CELEBRATED_KEY);
+    return Boolean(v && v.length > 0);
+  } catch {
+    return false;
+  }
+}
+
+/** Story 5.4 — Anti-replay de la célébration de stade. 1 flag par stade-cible. */
+async function isStadeCelebrated(stade: import("../types/stade").Stade): Promise<boolean> {
+  try {
+    const v = await AsyncStorage.getItem(`${STADE_CELEBRATED_KEY}:${stade}`);
     return Boolean(v && v.length > 0);
   } catch {
     return false;

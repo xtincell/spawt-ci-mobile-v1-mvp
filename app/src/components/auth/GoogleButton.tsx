@@ -62,6 +62,10 @@ function generateSecureNonce(): string | null {
 }
 
 export function GoogleButton({ onError }: Props) {
+  // Mode démo (pas de Supabase) : pas d'auth possible → ne pas mount le hook
+  // `Google.useAuthRequest` qui throw sans clientId configuré.
+  if (!isSupabaseConfigured) return null;
+
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();

@@ -98,6 +98,17 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
   const admin = createClient(supabaseUrl, serviceRole);
 
+  // Story 6.4 — refuse les comptes bannis (is_banned = true).
+  // Vérification AVANT le rate-limit pour ne pas consommer un slot pour rien.
+  const { data: spawter } = await admin
+    .from("spawters")
+    .select("is_banned")
+    .eq("phone_e164", payload.phone_e164)
+    .maybeSingle();
+  if (spawter?.is_banned) {
+    return json({ error: "account_banned" }, req, 403);
+  }
+
   // Rate-limit : count des envois de la dernière heure.
   // P-07 — Si la query Supabase échoue (RLS bug, table absente, transient), on
   // ne peut pas garantir le rate-limit → reject 500 plutôt que de laisser passer

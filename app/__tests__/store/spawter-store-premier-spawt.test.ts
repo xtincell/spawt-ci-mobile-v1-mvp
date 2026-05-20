@@ -24,6 +24,9 @@ jest.mock("../../src/lib/data-source", () => ({
   saveSpawter: jest.fn(() => Promise.resolve()),
   savePalais: jest.fn(() => Promise.resolve()),
   isSupabaseConfigured: false,
+  upsertProgression: jest.fn(() => Promise.resolve()),
+  insertTitre: jest.fn(() => Promise.resolve()),
+  setDisplayedTitre: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock("../../src/lib/supabase", () => ({
@@ -83,6 +86,8 @@ beforeEach(() => {
     spawts: [],
     savedPlaceIds: new Set(),
     pendingBadge: null,
+    collectionTitres: [],
+    pendingStadeCelebration: null,
   });
 });
 

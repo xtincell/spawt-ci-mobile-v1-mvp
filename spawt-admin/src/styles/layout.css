@@ -1,0 +1,135 @@
+:root {
+  --bg: #fafaf8;
+  --bg-card: #ffffff;
+  --bg-warm: #efe8dc;
+  --ink: #0a0a0a;
+  --ink-soft: #333333;
+  --ink-mute: #8a8a8a;
+  --gold: #c8a44e;
+  --green: #2d6b4f;
+  --danger: #c0392b;
+  --line: rgba(10, 10, 10, 0.1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar h1 {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 16px 0;
+}
+
+.sidebar a {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--bg);
+  text-decoration: none;
+}
+
+.sidebar a:hover { background: rgba(255, 255, 255, 0.08); }
+.sidebar a.active { background: var(--gold); color: var(--ink); }
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+}
+
+.topbar .role-badge {
+  background: var(--gold);
+  color: var(--ink);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: 8px;
+}
+
+.content { padding: 24px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); }
+
+button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg-card); }
+button.btn-primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+button.btn-destructive { background: var(--danger); color: white; border-color: var(--danger); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal {
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: 8px;
+  min-width: 480px;
+  max-width: 640px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.viewport-warning {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 18px;
+  padding: 24px;
+  text-align: center;
+  z-index: 9999;
+}
+
+@media (max-width: 1023px) {
+  .viewport-warning { display: flex; }
+}

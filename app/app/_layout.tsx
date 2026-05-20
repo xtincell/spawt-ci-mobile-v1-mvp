@@ -12,12 +12,14 @@ import { useAppFonts } from "../src/theme/useAppFonts";
 import { useSpawterStore } from "../src/store/spawter-store";
 import { flushPendingSignals } from "../src/lib/analytics";
 import { isSupabaseConfigured } from "../src/lib/data-source";
+import { maybeDevAutologin } from "../src/lib/dev-autologin";
 // Story 4.1 — import side-effect : enregistre `TaskManager.defineTask` au
 // niveau module (invariant OS-kill Tecno/Infinix). Doit être importé une
 // seule fois au Root, avant tout mount des écrans.
 import "../src/lib/guet";
 import { ensureGuetChannel, setupGuetCategories } from "../src/lib/guet";
 import { BadgePremierSpawt } from "../src/components/BadgePremierSpawt";
+import { StadeCelebration } from "../src/components/StadeCelebration";
 import {
   bootOfflineQueue,
   shutdownOfflineQueue,
@@ -64,7 +66,11 @@ export default function RootLayout() {
   const { fontsLoaded, fontError } = useAppFonts();
 
   useEffect(() => {
-    void hydrate();
+    void (async () => {
+      // __DEV__ : tentative d'autologin avant hydrate, pour court-circuiter OTP Termii.
+      await maybeDevAutologin();
+      await hydrate();
+    })();
   }, [hydrate]);
 
   // Story 4.1 + 4.2 — channel Android + catégories d'actions notif (Confirmer/Snooze).
@@ -86,6 +92,12 @@ export default function RootLayout() {
   // Story 4.2 — Premier Spawt : overlay rendu si pendingBadge non-null.
   const pendingBadge = useSpawterStore((s) => s.pendingBadge);
   const consumePendingBadge = useSpawterStore((s) => s.consumePendingBadge);
+
+  // Story 5.4 — Célébration de stade : overlay rendu si pendingStadeCelebration non-null.
+  const pendingStadeCelebration = useSpawterStore((s) => s.pendingStadeCelebration);
+  const consumePendingStadeCelebration = useSpawterStore(
+    (s) => s.consumePendingStadeCelebration,
+  );
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -152,6 +164,15 @@ export default function RootLayout() {
             place_name={pendingBadge?.place_name}
             onDismiss={() => {
               void consumePendingBadge();
+            }}
+          />
+          <StadeCelebration
+            visible={pendingStadeCelebration !== null}
+            from_stade={pendingStadeCelebration?.from_stade}
+            to_stade={pendingStadeCelebration?.to_stade}
+            unique_spots={pendingStadeCelebration?.unique_spots}
+            onDismiss={() => {
+              void consumePendingStadeCelebration();
             }}
           />
         </ThemeProvider>

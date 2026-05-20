@@ -1,0 +1,9 @@
+DROP POLICY IF EXISTS storage_place_photos_staff_delete ON storage.objects;
+DROP POLICY IF EXISTS storage_place_photos_staff_update ON storage.objects;
+DROP POLICY IF EXISTS storage_place_photos_staff_insert ON storage.objects;
+DROP POLICY IF EXISTS place_adn_update_staff ON place_adn;
+DROP POLICY IF EXISTS place_adn_insert_staff ON place_adn;
+DROP POLICY IF EXISTS place_adn_select_staff ON place_adn;
+DROP POLICY IF EXISTS places_update_staff ON places;
+DROP POLICY IF EXISTS places_insert_staff ON places;
+DROP POLICY IF EXISTS places_select_staff ON places;
