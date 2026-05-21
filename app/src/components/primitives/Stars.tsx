@@ -9,10 +9,26 @@ import Svg, { Defs, ClipPath, Rect, Path } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider";
 
+/**
+ * Tailles canoniques pour `<Stars />`.
+ * Story 4.9 — `lg` (32px) pour le rating principal d'une fiche lieu (visible à 1m).
+ * `md` (20px) défaut card / liste. `sm` (12px) pour reviews compactes.
+ * Le `number` legacy reste accepté pour compat ; les nouveaux call-sites
+ * doivent préférer le token.
+ */
+export type StarsSize = "sm" | "md" | "lg";
+
+const STARS_SIZE_PX: Record<StarsSize, number> = {
+  sm: 12,
+  md: 20,
+  lg: 32,
+};
+
 interface Props {
   value: number;
   max?: number;
-  size?: number;
+  /** Taille via token (préféré) ou pixels bruts (legacy). */
+  size?: StarsSize | number;
   color?: string;
   accessibilityLabel?: string;
 }
@@ -21,7 +37,7 @@ interface Props {
 const STAR_PATH =
   "M12 2 L14.59 8.36 L21.45 8.91 L16.18 13.4 L17.77 20.09 L12 16.45 L6.23 20.09 L7.82 13.4 L2.55 8.91 L9.41 8.36 Z";
 
-export function Stars({ value, max = 5, size = 12, color, accessibilityLabel }: Props) {
+export function Stars({ value, max = 5, size = "sm", color, accessibilityLabel }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
   // Identifiant unique par instance : évite la collision `ClipPath#id` quand
@@ -32,6 +48,7 @@ export function Stars({ value, max = 5, size = 12, color, accessibilityLabel }: 
   const safe = Number.isFinite(value) ? value : 0;
   // Arrondi au demi-point : 4.2 → 4.0, 4.3 → 4.5, 4.7 → 4.5, 4.8 → 5.0.
   const rounded = Math.max(0, Math.min(Math.round(safe * 2) / 2, max));
+  const pxSize = typeof size === "number" ? size : STARS_SIZE_PX[size];
 
   return (
     <View
@@ -47,8 +64,8 @@ export function Stars({ value, max = 5, size = 12, color, accessibilityLabel }: 
         return (
           <Svg
             key={i}
-            width={size}
-            height={size}
+            width={pxSize}
+            height={pxSize}
             viewBox="0 0 24 24"
             importantForAccessibility="no-hide-descendants"
           >

@@ -25,6 +25,7 @@ import { Chip } from "../../src/components/primitives/Chip";
 import { Stars } from "../../src/components/primitives/Stars";
 import { MatchScore } from "../../src/components/primitives/MatchScore";
 import { AdnTags } from "../../src/components/AdnTags";
+import { PlaceReviews } from "../../src/components/PlaceReviews";
 import { DataSourceBanner } from "../../src/components/DataSourceBanner";
 import { getPlace, type PlaceWithAdn } from "../../src/lib/data-source";
 import {
@@ -424,9 +425,13 @@ export default function PlaceDetailScreen() {
               <Pressable
                 onPress={onToggleSavedPress}
                 accessibilityRole="button"
+                // Story 4.9 — désambiguïse vs chip Coup de Cœur sous le rating.
+                // Le heart top-right = sauvegarde personnelle (favoris). Le chip
+                // ❤️ sous le rating = signal communautaire rare (PRD §7.3).
                 accessibilityLabel={
-                  isSaved ? t("saved.unsave_aria") : t("saved.save_aria")
+                  isSaved ? t("place.heart_active") : t("place.heart_hint")
                 }
+                accessibilityHint={t("place.heart_hint")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={{
                   width: 40,
@@ -483,6 +488,8 @@ export default function PlaceDetailScreen() {
           >
             {place.name}
           </Text>
+          {/* Story 4.9 — sous-titre ne porte plus le price tier (déplacé dans
+              le bloc rating en h2 pour lisibilité 1m). Garde quartier + cuisine. */}
           <Text
             style={{
               ...theme.typography.preset.body,
@@ -492,8 +499,49 @@ export default function PlaceDetailScreen() {
           >
             {place.location.neighborhood}
             {place.cuisine.length > 0 ? ` · ${place.cuisine.join(" · ")}` : ""}
-            {` · ${PRICE_TIER_LABELS[place.price.tier]}`}
           </Text>
+
+          {/* Story 4.9 — Rating principal + price tier en h2, visible à 1m.
+              Affiché sur la même ligne sous le nom du lieu. */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: theme.spacing.sm,
+              marginBottom: theme.spacing.base,
+            }}
+          >
+            {place.adn.weighted_rating > 0 ? (
+              <>
+                <Text
+                  style={{
+                    ...theme.typography.preset.h2,
+                    color: theme.colors.text.primary,
+                  }}
+                  accessibilityLabel={t("a11y.stars", {
+                    count: Math.round(place.adn.weighted_rating * 10) / 10,
+                    max: 5,
+                  })}
+                >
+                  {place.adn.weighted_rating.toFixed(1)}
+                </Text>
+                <Stars value={place.adn.weighted_rating} size="lg" />
+              </>
+            ) : (
+              <Chip label={t("place.notRatedYet")} variant="default" />
+            )}
+            <Text
+              style={{
+                ...theme.typography.preset.h2,
+                color: theme.colors.text.primary,
+                marginLeft: theme.spacing.xs,
+              }}
+              accessibilityLabel={`Budget ${PRICE_TIER_LABELS[place.price.tier]}`}
+            >
+              {PRICE_TIER_LABELS[place.price.tier]}
+            </Text>
+          </View>
 
           {/* CTAs Appel + WhatsApp */}
           {(place.phone || place.whatsapp) && (
@@ -551,7 +599,10 @@ export default function PlaceDetailScreen() {
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
-                  <Ico name="send" size={18} />
+                  {/* Story 4.9 — Ico clock signale "réserver / planifier" (proxy
+                      calendrier — Ico primitif n'a pas encore "calendar" V1).
+                      Le label « Réserver via WhatsApp » porte le sens explicite. */}
+                  <Ico name="clock" size={18} />
                   <Text
                     style={{
                       ...theme.typography.preset.body,
@@ -565,7 +616,7 @@ export default function PlaceDetailScreen() {
             </View>
           )}
 
-          {/* MatchScore + Stars + Distance */}
+          {/* MatchScore + Distance (Stars + price ont été remontés au-dessus). */}
           <View
             style={{
               flexDirection: "row",
@@ -578,11 +629,6 @@ export default function PlaceDetailScreen() {
             {matchScore !== null && palaisConfident ? (
               <MatchScore value={matchScore} />
             ) : null}
-            {place.adn.weighted_rating > 0 ? (
-              <Stars value={place.adn.weighted_rating} />
-            ) : (
-              <Chip label={t("place.notRatedYet")} variant="default" />
-            )}
             <View
               style={{
                 flexDirection: "row",
@@ -665,6 +711,10 @@ export default function PlaceDetailScreen() {
               </View>
             )}
           </View>
+
+          {/* Story 4.9 — Section reviews (avis spawter). Affichée entre ADN
+              et InfoLines pour donner le récit avant les infos pratiques. */}
+          <PlaceReviews placeId={place.id} />
 
           {/* InfoLines */}
           <View style={{ marginTop: theme.spacing.lg }}>
