@@ -26,7 +26,22 @@
     "nearby_empty": "Aucun lieu connu dans les 500 m. Élargis ta recherche.",
     "nearby_loading": "Localisation en cours…",
     "nearby_perm_required": "Active la géoloc dans tes paramètres pour spawter depuis ici.",
+    "nearby_perm_open_settings": "Ouvrir les réglages",
+    "nearby_close_label": "Fermer",
     "nearby_cta_spawt": "Spawter ici"
+  },
+  "cuisine": {
+    "ivoirienne": "Ivoirienne",
+    "ouest_africaine": "Ouest-africaine",
+    "francaise": "Française",
+    "italienne": "Italienne",
+    "asiatique": "Asiatique",
+    "libanaise": "Libanaise",
+    "fusion": "Fusion",
+    "burger_pizza": "Burger / Pizza",
+    "patisserie": "Pâtisserie",
+    "cafe": "Café",
+    "autre": "Autre"
   },
   "guet": {
     "indicator_label": "Le Chat fait le guet chez {{place_name}}…",

@@ -93,6 +93,15 @@ Provider cible (PRD §12.1) : **PostHog ou Mixpanel**. Sprint 1 instrumente la c
 | `spawt_cancelled` | Cancel manuel | `place_id`, `reason` (not_here \| wrong_place \| skip) |
 | `antifraud_flag_raised` | Drapeau anti-fraude posé (côté serveur ou client) | `place_id`, `flag` (frequence_meme_lieu \| frequence_globale \| ...) |
 
+### 6.b — Onglet Spawter géolocalisé (Story 4.10 — bundle UX retour user)
+
+| Event | Quand | Propriétés |
+|---|---|---|
+| `nearby_screen_opened` | Ouverture de l'écran modal "Tu es près de…" via tap FAB central | `count_in_radius` (nombre de lieux trouvés ≤2km, 0 si vide ou perm refusée), `has_geoloc_perm` (boolean) |
+| `nearby_spawt_tapped` | Tap "Spawter ici" sur une carte de l'écran proximité | `place_id`, `distance_m` (entier arrondi), `is_within_range` (boolean — distance < 100m → spawt verified) |
+
+> Anti-pattern (Story 4.10 Dev Notes §4) : pas de notification push proactive ni de hiérarchie compétitive « le plus proche est mieux » — uniquement tri par distance.
+
 ## 7. Engagement — Avis (PRD §3.1 #6)
 
 | Event | Quand | Propriétés |
