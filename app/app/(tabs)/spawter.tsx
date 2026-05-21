@@ -51,7 +51,7 @@ type ScreenState =
   | { kind: "perm_denied" }
   | { kind: "loading_position" }
   | { kind: "empty" }
-  | { kind: "loaded"; items: NearbyPlace[] };
+  | { kind: "loaded"; items: NearbyPlace[]; userLat: number; userLng: number };
 
 const PRICE_LABELS: Record<1 | 2 | 3, string> = {
   1: "₣",
@@ -128,7 +128,7 @@ export default function SpawterTabScreen() {
         setState({ kind: "empty" });
         return;
       }
-      setState({ kind: "loaded", items });
+      setState({ kind: "loaded", items, userLat, userLng });
     } catch (err) {
       if (__DEV__) console.warn("[spawter-tab] listPlaces failed", err);
       setState({ kind: "empty" });
@@ -146,19 +146,27 @@ export default function SpawterTabScreen() {
         return;
       }
 
-      // 1. Build row manuel.
+      // 1. Build row manuel — buildManualSpawt attend les coords spawter
+      //    (PRD §7.2 anti-fraude trigger `frequence_meme_lieu` compare
+      //    distance spawter↔lieu, donc on lui passe les coords USER).
       const row = buildManualSpawt(
         spawter.id,
         item.place.id,
-        item.place.location.lat,
-        item.place.location.lng,
+        userLat,
+        userLng,
       );
       // 2. Override `is_verified` selon la distance réelle spawter → lieu
       //    (buildManualSpawt par défaut force false — Story 4.10 décide
-      //    is_verified=true uniquement si dans la zone de 100m).
+      //    is_verified=true uniquement si dans la zone de 100m). Le
+      //    `geolocation_source` doit suivre la sémantique :
+      //    - dans la zone → "gps" (la position user est exploitable)
+      //    - hors zone → "manual" (passive_checkin, distance approximative)
       const verifiedRow = {
         ...row,
         is_verified: item.is_within_spawt_range,
+        geolocation_source: item.is_within_spawt_range
+          ? ("gps" as const)
+          : ("manual" as const),
         geolocation_lat: userLat,
         geolocation_lng: userLng,
       };
@@ -317,22 +325,21 @@ export default function SpawterTabScreen() {
         ) : null}
 
         {state.kind === "loaded"
-          ? state.items.map((item) => (
-              <NearbyCard
-                key={item.place.id}
-                item={item}
-                onSpawt={() =>
-                  // Re-récupère la position au moment du tap pour précision —
-                  // mais l'objet item.distance_km a été calculé au mount.
-                  // En V1 on accepte cette légère staleness (≤30s typique).
-                  void handleSpawt(
-                    item,
-                    item.place.location.lat,
-                    item.place.location.lng,
-                  )
-                }
-              />
-            ))
+          ? state.items.map((item) => {
+              // Capture les coords USER du state.loaded — pas du lieu —
+              // pour préserver l'invariant anti-fraude (distance réelle
+              // spawter↔lieu). item.distance_km a été calculé au mount,
+              // staleness ≤30s typique acceptée V1.
+              const userLat = state.userLat;
+              const userLng = state.userLng;
+              return (
+                <NearbyCard
+                  key={item.place.id}
+                  item={item}
+                  onSpawt={() => void handleSpawt(item, userLat, userLng)}
+                />
+              );
+            })
           : null}
       </ScrollView>
     </SafeAreaView>

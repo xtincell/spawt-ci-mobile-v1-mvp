@@ -293,10 +293,19 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
       is_verified: boolean;
       place_id: string;
       check_in_type: string;
+      geolocation_lat: number;
+      geolocation_lng: number;
+      geolocation_source: "gps" | "manual";
     };
     expect(registeredRow.is_verified).toBe(true);
     expect(registeredRow.place_id).toBe("p-near");
     expect(registeredRow.check_in_type).toBe("manual");
+    // Adversarial sweep 2026-05-21 — anti-corruption coords. Le row doit
+    // contenir les coords USER (5.348 / -3.998) et NON pas les coords du
+    // lieu (5.348+0.0005 / -3.998). geolocation_source="gps" car in-range.
+    expect(registeredRow.geolocation_lat).toBe(5.348);
+    expect(registeredRow.geolocation_lng).toBe(-3.998);
+    expect(registeredRow.geolocation_source).toBe("gps");
 
     expect(mockTrack).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -331,8 +340,17 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
 
     const registeredRow = mockRegisterSpawt.mock.calls[0]?.[0] as {
       is_verified: boolean;
+      geolocation_lat: number;
+      geolocation_lng: number;
+      geolocation_source: "gps" | "manual";
     };
     expect(registeredRow.is_verified).toBe(false);
+    // Adversarial sweep 2026-05-21 — out-of-range = geolocation_source "manual"
+    // (passive_checkin, distance approximative). Coords USER tout de même
+    // persistées pour anti-fraude trigger frequence_meme_lieu.
+    expect(registeredRow.geolocation_lat).toBe(5.348);
+    expect(registeredRow.geolocation_lng).toBe(-3.998);
+    expect(registeredRow.geolocation_source).toBe("manual");
     expect(mockTrack).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "nearby_spawt_tapped",
