@@ -13,7 +13,9 @@ const initial: OnboardingDraft = {
   country_code: "CI",
   origin_country_code: null,
   gender: "non_renseigne",
-  age_range: null,
+  // Story 4.8 — `age_range` est supprimé du draft (dérivé au finalize via
+  // `ageRangeFromDateOfBirth(date_of_birth)`).
+  date_of_birth: null,
   consent: {
     cgv_accepted_at: null,
     geoloc_consent_at: null,

@@ -8,6 +8,9 @@ export type Gender = "homme" | "femme" | "autre" | "non_renseigne";
 
 export type AgeRange = "18-24" | "25-34" | "35-44" | "45-54" | "55+";
 
+/** Story 4.8 — Date ISO 'YYYY-MM-DD' (date_of_birth). */
+export type ISODateString = string;
+
 export type CountryCode = "CI" | "NG" | "SN" | "CM" | "TG" | "BJ" | "BF" | "ML" | "GN" | "GH";
 
 export interface Spawter {
@@ -24,7 +27,12 @@ export interface Spawter {
   origin_country_code: CountryCode | null;
   /** Démographique — amendement team 4.5 (KPIs Madame Sun) */
   gender: Gender;
-  /** Tranche d'âge — pas de date de naissance brute pour limiter PII */
+  /** Story 4.8 — Date de naissance précise (Epic 4 PASS 2).
+   *  Reste DB-only — jamais émis dans analytics (PII brute).
+   *  Nullable pour back-compat rows pré-4.8. */
+  date_of_birth: ISODateString | null;
+  /** Tranche d'âge — dérivée de `date_of_birth` au finalize onboarding via
+   *  `ageRangeFromDateOfBirth()`. Conservée pour KPI funnel Madame Sun. */
   age_range: AgeRange | null;
   stade: Stade;
   total_spawts: number;
@@ -50,7 +58,11 @@ export interface OnboardingDraft {
   country_code: CountryCode;
   origin_country_code: CountryCode | null;
   gender: Gender;
-  age_range: AgeRange | null;
+  /** Story 4.8 — Date de naissance (remplace `age_range` côté saisie UI).
+   *  `age_range` est dérivé via `ageRangeFromDateOfBirth()` au finalize.
+   *  Le champ `age_range` du draft est supprimé (V1 — Story 4.8) — n'est
+   *  plus saisi user-side, calculé uniquement au moment du finalize. */
+  date_of_birth: ISODateString | null;
   /** Timestamps des 2 consents ARTCI saisis pré-auth (Story 2.2 / FR-040).
    *  Le finalize de l'onboarding les transfère sur le row spawters à l'insert. */
   consent: {

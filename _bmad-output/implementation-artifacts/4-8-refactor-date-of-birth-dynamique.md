@@ -1,6 +1,6 @@
 # Story 4.8: Refactor date_of_birth dynamique
 
-Status: ready-for-dev
+Status: review
 
 <!-- Epic 4 PASS 2 — bundle UX retour user 2026-05-20 point #2 (CGU).
 Remplace `age_range: '18-24'|...` figé par `date_of_birth: ISODateString`.

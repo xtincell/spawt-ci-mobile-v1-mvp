@@ -1,13 +1,26 @@
-// Story 2.4 — AC #6 : <ProfileScreen /> valide les 6 champs (nom + quartier + 4 PII)
-// avant d'activer Continuer, émet onboarding_step_completed.
+// Story 2.4 + Story 4.8 — <ProfileScreen /> valide les 6 champs (nom + quartier
+// + 4 PII dont `date_of_birth`) avant d'activer Continuer, émet
+// onboarding_step_completed.
 
 import { type ReactNode } from "react";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — react-test-renderer ships JS only
 import TestRenderer from "react-test-renderer";
 
-import type { AgeRange, CountryCode, Gender } from "../../src/types/spawter";
+import type { CountryCode, Gender } from "../../src/types/spawter";
 import type { OnboardingDraft } from "../../src/types/spawter";
+
+// Story 4.8 — Mock du DateTimePicker natif (le module attend des bridges
+// natifs absents en environnement Jest). On expose un View testID-able pour
+// vérifier le rendering conditionnel ; les interactions onChange ne sont pas
+// testées ici (l'effet store est couvert par finalize-onboarding.test.ts).
+jest.mock("@react-native-community/datetimepicker", () => {
+  const ReactMock = jest.requireActual("react") as typeof import("react");
+  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const MockDTP = (props: { testID?: string }) =>
+    ReactMock.createElement(RNMock.View, { testID: props.testID });
+  return { __esModule: true, default: MockDTP };
+});
 
 const mockTranslate = jest.fn((key: string) => key);
 jest.mock("react-i18next", () => ({
@@ -59,7 +72,8 @@ function freshDraft(overrides: Partial<OnboardingDraft> = {}): OnboardingDraft {
     country_code: "CI",
     origin_country_code: null,
     gender: "non_renseigne",
-    age_range: null,
+    // Story 4.8 — `age_range` du draft supprimé, remplacé par `date_of_birth`.
+    date_of_birth: null,
     consent: { cgv_accepted_at: null, geoloc_consent_at: null },
     calibration_answers: {
       racines_horizons: 0,
@@ -91,17 +105,18 @@ describe("<ProfileScreen /> — Story 2.4", () => {
     mockDraftState = freshDraft();
   });
 
-  it("CTA Continuer disabled au mount (name + neighborhood + age_range manquants)", () => {
+  it("CTA Continuer disabled au mount (name + neighborhood + date_of_birth manquants)", () => {
     const instance = render();
     const cta = instance.root.findByProps({ testID: "profile-continue" });
     expect(cta.props.disabled).toBe(true);
   });
 
-  it("name >=2 + neighborhood >=2 + age_range cliqué → CTA actif → tap → emit + push calibration", () => {
+  it("name >=2 + neighborhood >=2 + date_of_birth ≥13 ans → CTA actif → tap → emit + push calibration", () => {
     mockDraftState = freshDraft({
       display_name: "Yann",
       neighborhood: "Cocody",
-      age_range: "25-34" as AgeRange,
+      // Story 4.8 — date de naissance qui mappe sur âge ≥ 13 ans.
+      date_of_birth: "1995-06-15",
     });
     const instance = render();
     const cta = instance.root.findByProps({ testID: "profile-continue" });
@@ -122,11 +137,48 @@ describe("<ProfileScreen /> — Story 2.4", () => {
     mockDraftState = freshDraft({
       display_name: "Yann",
       neighborhood: "Cocody",
-      age_range: "25-34" as AgeRange,
+      date_of_birth: "1995-06-15",
       origin_country_code: null,
     });
     const instance = render();
     expect(instance.root.findByProps({ testID: "profile-continue" }).props.disabled).toBe(false);
+  });
+
+  it("Story 4.8 — date_of_birth < 13 ans → CTA disabled + message inline affiché", () => {
+    // Born "today" in spec sense → âge calculé est < 13 ans.
+    mockDraftState = freshDraft({
+      display_name: "Yann",
+      neighborhood: "Cocody",
+      date_of_birth: "2020-01-01",
+    });
+    const instance = render();
+    const cta = instance.root.findByProps({ testID: "profile-continue" });
+    expect(cta.props.disabled).toBe(true);
+    // Message d'erreur inline visible.
+    const tooYoung = (instance.root as unknown as {
+      findAllByProps: (p: Record<string, unknown>) => { props: Record<string, unknown> }[];
+    }).findAllByProps({ testID: "profile-dob-too-young" });
+    expect(tooYoung.length).toBeGreaterThan(0);
+  });
+
+  it("Story 4.8 — tap sur le déclencheur DOB affiche le DateTimePicker", () => {
+    mockDraftState = freshDraft();
+    const instance = render();
+    // Pre-tap : pas de picker rendu.
+    const before = (instance.root as unknown as {
+      findAllByProps: (p: Record<string, unknown>) => { props: Record<string, unknown> }[];
+    }).findAllByProps({ testID: "profile-dob-picker" });
+    expect(before.length).toBe(0);
+    // Tap déclencheur.
+    const trigger = instance.root.findByProps({ testID: "profile-dob-trigger" });
+    TestRenderer.act(() => {
+      (trigger.props.onPress as () => void)();
+    });
+    // Post-tap : picker rendu.
+    const after = (instance.root as unknown as {
+      findAllByProps: (p: Record<string, unknown>) => { props: Record<string, unknown> }[];
+    }).findAllByProps({ testID: "profile-dob-picker" });
+    expect(after.length).toBeGreaterThan(0);
   });
 
   it("country_code default CI sélectionné au mount", () => {

@@ -1,7 +1,11 @@
-// Étape Profile — Story 2.4 (FR-002 + ARTCI DR-02)
-// Capture nom + quartier + 4 PII (country, origin_country, gender, age_range).
+// Étape Profile — Story 2.4 + Story 4.8 refactor date_of_birth (FR-002 + ARTCI DR-02)
+// Capture nom + quartier + 4 PII (country, origin_country, gender, date_of_birth).
 // Persiste dans `useOnboardingDraft` (éphémère). La création du row spawters
 // se fait en Story 2.6 (`finalizeOnboarding`).
+//
+// Story 4.8 — La tranche d'âge `age_range` est supprimée du draft ; le user
+// saisit sa date de naissance complète via DateTimePicker natif. `age_range` est
+// dérivé au finalize via `ageRangeFromDateOfBirth()` (helper pur).
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,10 +19,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { track } from "../../src/lib/analytics";
-import type { AgeRange, CountryCode, Gender } from "../../src/types/spawter";
+import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
+import type { CountryCode, Gender, ISODateString } from "../../src/types/spawter";
 
 const COUNTRY_CODES: CountryCode[] = [
   "CI",
@@ -40,7 +48,50 @@ const GENDERS: { id: Gender; labelKey: string }[] = [
   { id: "non_renseigne", labelKey: "onboarding.gender_non_renseigne" },
 ];
 
-const AGE_RANGES: AgeRange[] = ["18-24", "25-34", "35-44", "45-54", "55+"];
+// Story 4.8 — bornes DateTimePicker.
+// maximumDate = aujourd'hui (impossible de saisir une date future).
+// minimumDate = cap à 100 ans (1924-01-01 par convention spec).
+const DOB_MIN_DATE = new Date(1924, 0, 1);
+
+// Formatteur fr-FR "DD MMMM YYYY" (locale française).
+function formatDobFr(iso: ISODateString): string {
+  const parts = iso.split("-");
+  if (parts.length !== 3) return iso;
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return iso;
+  const date = new Date(y, m - 1, d);
+  try {
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    // Fallback (Intl peut être indisponible en environnement de test).
+    return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+  }
+}
+
+/** Convertit une `Date` JS en `YYYY-MM-DD` (timezone-agnostic, jour calendaire local). */
+function dateToISO(d: Date): ISODateString {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Convertit un `YYYY-MM-DD` en `Date` JS (midi local, évite ambiguïtés DST). */
+function isoToDate(iso: ISODateString): Date | null {
+  const parts = iso.split("-");
+  if (parts.length !== 3) return null;
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+  return new Date(y, m - 1, d, 12, 0, 0);
+}
 
 // P-24 round 3 — cap synchroniquement à 50 graphèmes pour qu'un user qui colle
 // un texte de 100 chars ne soit pas refusé silencieusement par la validation.
@@ -60,10 +111,13 @@ export default function ProfileScreen() {
 
   const [name, setName] = useState(draft.display_name);
   const [neighborhood, setNeighborhood] = useState(draft.neighborhood);
+  // Story 4.8 — état local d'ouverture du DateTimePicker (Android : visible
+  // uniquement on-demand ; iOS : pourra rester affiché inline).
+  const [showDobPicker, setShowDobPicker] = useState(false);
 
   // P25 — `country_code` et `gender` ne sont jamais null (types non-null,
   // defaults CI / `non_renseigne`). Validation gardée sur les 3 vrais champs
-  // exigés (display_name + neighborhood ≥ 2 chars `[\p{L}\p{N}]` + age_range).
+  // exigés (display_name + neighborhood ≥ 2 chars `[\p{L}\p{N}]` + date_of_birth ≥ 13 ans).
   // P26 — exige au moins 1 lettre/chiffre dans le trim pour bloquer un nom
   // composé uniquement d'emojis/symboles.
   // P-29 — NAME_RE testé sur `.trim()` (et non la valeur brute) pour rester
@@ -82,6 +136,14 @@ export default function ProfileScreen() {
   const neighborhoodLen = Array.from(trimmedNeighborhood).length;
   const alphaCount = (s: string): number =>
     Array.from(s).filter((c) => NAME_RE.test(c)).length;
+  // Story 4.8 — validation date_of_birth : doit être posée ET parser sur un
+  // âge ≥ 13 ans (ageRangeFromDateOfBirth retourne `null` sinon).
+  const dobAgeRange =
+    draft.date_of_birth !== null ? ageRangeFromDateOfBirth(draft.date_of_birth) : null;
+  const dobValid = draft.date_of_birth !== null && dobAgeRange !== null;
+  // Distingue "pas saisi" (no message) de "saisi mais < 13 ans" (message inline).
+  const dobTooYoung = draft.date_of_birth !== null && dobAgeRange === null;
+
   const valid =
     nameLen >= 2 &&
     nameLen <= 50 &&
@@ -89,7 +151,7 @@ export default function ProfileScreen() {
     neighborhoodLen >= 2 &&
     neighborhoodLen <= 50 &&
     alphaCount(trimmedNeighborhood) >= 2 &&
-    draft.age_range !== null;
+    dobValid;
 
   const onContinue = () => {
     if (!valid) return;
@@ -228,17 +290,74 @@ export default function ProfileScreen() {
           label={t("onboarding.age_title")}
           hint={t("onboarding.age_body")}
         >
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
-            {AGE_RANGES.map((r) => (
-              <Choice
-                key={r}
-                label={r}
-                selected={draft.age_range === r}
-                onPress={() => setField("age_range", r)}
-                testID={`profile-age-${r}`}
-              />
-            ))}
-          </View>
+          <Pressable
+            onPress={() => setShowDobPicker(true)}
+            testID="profile-dob-trigger"
+            accessibilityRole="button"
+            accessibilityLabel={t("onboarding.age_select_cta")}
+            accessibilityState={{ selected: draft.date_of_birth !== null }}
+            style={({ pressed }) => ({
+              minHeight: 44,
+              backgroundColor: theme.colors.surface.raised,
+              paddingHorizontal: theme.spacing.base,
+              paddingVertical: theme.spacing.sm,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: dobTooYoung
+                ? theme.colors.state.danger
+                : draft.date_of_birth !== null
+                  ? theme.colors.brand.primary
+                  : theme.colors.border.subtle,
+              opacity: pressed ? 0.85 : 1,
+              justifyContent: "center",
+            })}
+          >
+            <Text
+              style={{
+                color:
+                  draft.date_of_birth !== null
+                    ? theme.colors.text.primary
+                    : theme.colors.text.tertiary,
+                fontSize: theme.typography.size.base,
+                fontWeight: theme.typography.weight.medium,
+              }}
+            >
+              {draft.date_of_birth !== null
+                ? formatDobFr(draft.date_of_birth)
+                : t("onboarding.age_select_cta")}
+            </Text>
+          </Pressable>
+          {dobTooYoung ? (
+            <Text
+              testID="profile-dob-too-young"
+              style={{
+                marginTop: theme.spacing.xs,
+                color: theme.colors.state.danger,
+                fontSize: theme.typography.size.sm,
+              }}
+            >
+              {t("onboarding.age_too_young")}
+            </Text>
+          ) : null}
+          {showDobPicker ? (
+            <DateTimePicker
+              testID="profile-dob-picker"
+              value={
+                draft.date_of_birth ? (isoToDate(draft.date_of_birth) ?? new Date(2000, 0, 1)) : new Date(2000, 0, 1)
+              }
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              maximumDate={new Date()}
+              minimumDate={DOB_MIN_DATE}
+              onChange={(event: DateTimePickerEvent, selected?: Date) => {
+                // Android : se ferme automatiquement après dismiss/set.
+                // iOS spinner : reste affiché tant qu'on ne tape pas hors champ.
+                if (Platform.OS !== "ios") setShowDobPicker(false);
+                if (event.type === "dismissed" || !selected) return;
+                setField("date_of_birth", dateToISO(selected));
+              }}
+            />
+          ) : null}
         </Field>
 
         <Pressable

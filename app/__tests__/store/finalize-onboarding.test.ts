@@ -56,7 +56,9 @@ function freshDraft(over: Partial<OnboardingDraft> = {}): OnboardingDraft {
     country_code: "CI",
     origin_country_code: "CI",
     gender: "femme",
-    age_range: "25-34",
+    // Story 4.8 — `age_range` du draft supprimé, remplacé par `date_of_birth`.
+    // 1995-06-15 → today=2026-05-21 → âge 30 (anniv pas encore passé) → "25-34".
+    date_of_birth: "1995-06-15",
     consent: {
       cgv_accepted_at: "2026-05-17T19:00:00.000Z",
       geoloc_consent_at: "2026-05-17T19:00:01.000Z",
@@ -148,5 +150,31 @@ describe("finalizeOnboarding — Story 2.6", () => {
 
     // 5 réponses (dont 1 neutral résolu) > 4 réponses (1 skip) côté confidence.
     expect(palaisFull?.confidence_score).toBeGreaterThan(palaisSkip?.confidence_score ?? 0);
+  });
+
+  // ─── Story 4.8 — date_of_birth → age_range dérivé au finalize ────────
+  it("Story 4.8 — draft.date_of_birth=1995-06-15 → spawter.age_range='25-34' + persist date_of_birth", async () => {
+    await useSpawterStore.getState().finalizeOnboarding(freshDraft());
+    const s = useSpawterStore.getState().spawter;
+    expect(s?.date_of_birth).toBe("1995-06-15");
+    // 30 ans (today 2026-05-21, anniv 15 juin → -1) → bucket 25-34.
+    expect(s?.age_range).toBe("25-34");
+  });
+
+  it("Story 4.8 — draft.date_of_birth=null → spawter.age_range=null", async () => {
+    await useSpawterStore.getState().finalizeOnboarding(
+      freshDraft({ date_of_birth: null }),
+    );
+    const s = useSpawterStore.getState().spawter;
+    expect(s?.date_of_birth).toBeNull();
+    expect(s?.age_range).toBeNull();
+  });
+
+  it("Story 4.8 — date_of_birth pour 55+ ans → spawter.age_range='55+'", async () => {
+    await useSpawterStore.getState().finalizeOnboarding(
+      freshDraft({ date_of_birth: "1960-01-01" }),
+    );
+    const s = useSpawterStore.getState().spawter;
+    expect(s?.age_range).toBe("55+");
   });
 });

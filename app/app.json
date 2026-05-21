@@ -49,7 +49,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Pour détecter tes spawts en arrière-plan."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
