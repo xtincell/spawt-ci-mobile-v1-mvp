@@ -106,6 +106,7 @@ function makeSpawter(): Spawter {
     origin_country_code: null,
     gender: "non_renseigne",
     age_range: null,
+    date_of_birth: null,
     stade: "touriste",
     total_spawts: 0,
     unique_spots: 0,
