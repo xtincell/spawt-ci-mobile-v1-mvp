@@ -10,7 +10,7 @@ import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
 import type { FeatureFlag } from "../types/feature-flag";
-import type { PlaceWithAdn, ProgressionRow } from "./data-source";
+import type { PlaceReview, PlaceWithAdn, ProgressionRow } from "./data-source";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import { PlaceWithAdnSchema } from "../types/place.schema";
 
@@ -301,6 +301,75 @@ export async function listTitresFromSupabase(
  * @returns `true` si l'insert a réussi, `false` sinon. Le wrapper analytics
  * utilise ce signal pour décider de persister ou non.
  */
+// ─── Story 4.9 — reviews d'un lieu ──────────────
+
+/**
+ * Liste les avis d'un lieu (Story 4.9 — AC #1).
+ *
+ * Critères :
+ *   - `place_id = X`
+ *   - `note_etoiles IS NOT NULL` (inclut `is_seed = true` pour la démo V1).
+ *   - join `spawters!inner` → 1 round-trip réseau pour name + avatar.
+ *   - Tri : note desc puis created_at desc (qualité puis fraîcheur).
+ *   - Limit configurable (5 par défaut sur la fiche).
+ *
+ * Le mapping Supabase remonte `spawters` comme objet (relation 1:1 via FK),
+ * mais le typage SDK le déclare comme `object | object[]` pour couvrir les
+ * deux cas (1:1 vs 1:n). On normalise via `Array.isArray()` pour rester
+ * defensive — si la relation devenait array, on prend `[0]`.
+ */
+export async function listReviewsForPlaceFromSupabase(
+  placeId: string,
+  limit: number,
+): Promise<PlaceReview[]> {
+  const { data, error } = await supabase
+    .from("spawt_checkin")
+    .select(
+      "id, spawter_id, note_etoiles, texte_avis, created_at, is_seed, spawters!inner(display_name, avatar_url)",
+    )
+    .eq("place_id", placeId)
+    .not("note_etoiles", "is", null)
+    .order("note_etoiles", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] listReviewsForPlace failed", error);
+    return [];
+  }
+
+  const out: PlaceReview[] = [];
+  for (const row of data) {
+    const r = row as Record<string, unknown>;
+    // Le SDK peut remonter la relation jointe en objet OU en array selon la
+    // version. On normalise les deux cas plutôt que d'assumer une forme.
+    const rel = r.spawters as
+      | { display_name?: unknown; avatar_url?: unknown }
+      | { display_name?: unknown; avatar_url?: unknown }[]
+      | null
+      | undefined;
+    const flat = Array.isArray(rel) ? rel[0] : rel;
+    if (!flat || typeof flat.display_name !== "string") {
+      if (__DEV__) console.warn("[data-source] review row dropped — missing spawter join", r.id);
+      continue;
+    }
+    out.push({
+      id: String(r.id),
+      spawter_id: String(r.spawter_id),
+      spawter_display_name: flat.display_name,
+      spawter_avatar_url:
+        typeof flat.avatar_url === "string" && flat.avatar_url.length > 0
+          ? flat.avatar_url
+          : null,
+      note_etoiles: Number(r.note_etoiles ?? 0),
+      texte_avis: typeof r.texte_avis === "string" ? r.texte_avis : null,
+      created_at: String(r.created_at ?? ""),
+      is_seed: Boolean(r.is_seed),
+    });
+  }
+  return out;
+}
+
 export async function insertUserSignals(
   payloads: readonly {
     signal_type: string;

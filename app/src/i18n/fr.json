@@ -457,7 +457,11 @@
     "reviews_title": "Ce qu'en dit la bande",
     "reviews_empty": "Pas encore d'avis. Sois le premier à raconter.",
     "reviews_loading": "Chargement des avis…",
-    "reviews_see_all": "Voir tous les avis ({{count}})"
+    "reviews_see_all": "Voir tous les avis ({{count}})",
+    "heart_hint": "Sauvegarde pour plus tard",
+    "heart_active": "Sauvegardé",
+    "founder_review_badge": "✨ Avis fondateur",
+    "coup_de_coeur_chip": "❤️ Coup de Cœur"
   },
   "list": {
     "remove_from_saved_aria": "Retirer ce spawt des favoris",

@@ -164,6 +164,49 @@ export async function listFeatureFlags(spawter_id: string | null): Promise<Featu
   return [];
 }
 
+// ─── Story 4.9 — reviews d'un lieu ──────────────
+
+/**
+ * Avis spawter agrégé pour affichage sur la fiche lieu (Story 4.9).
+ *
+ * `is_seed = true` → avis fondateur seedé en DB (Story 6.3) ; il alimente
+ * l'ADN mais reste hors du compteur public `total_reviews`. La fiche lieu V1
+ * les affiche **avec** un badge « Avis fondateur » pour assumer la démo.
+ */
+export interface PlaceReview {
+  /** spawt_checkin.id (UUID) — clé React stable. */
+  id: string;
+  spawter_id: string;
+  spawter_display_name: string;
+  spawter_avatar_url: string | null;
+  /** 1-5, demi-points possibles côté DB mais arrondi par Stars. */
+  note_etoiles: number;
+  texte_avis: string | null;
+  created_at: string;
+  is_seed: boolean;
+}
+
+/**
+ * Liste les avis (max `limit`) d'un lieu, tri qualité-puis-fraîcheur.
+ *
+ * Mode fallback (sans Supabase) : retourne `[]` — les seeds reviews ne sont
+ * pas embarqués côté mobile (volume trop élevé). La fiche affiche alors
+ * l'état vide via `reviews_empty`. Mode supabase : join `spawters!inner` en
+ * un round-trip.
+ */
+export async function listReviewsForPlace(
+  placeId: string,
+  limit = 5,
+): Promise<PlaceReview[]> {
+  if (isSupabaseConfigured) {
+    const { listReviewsForPlaceFromSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return listReviewsForPlaceFromSupabase(placeId, limit);
+  }
+  return [];
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {
