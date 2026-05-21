@@ -81,7 +81,9 @@ function freshDraft(over: Partial<OnboardingDraft> = {}): OnboardingDraft {
     country_code: "CI",
     origin_country_code: "CI",
     gender: "femme",
-    age_range: "25-34",
+    // Story 4.8 — date_of_birth précise (remplace `age_range` figé du draft).
+    // 1995-06-15 → 30 ans à today=2026-05-21 → derivedAgeRange = "25-34".
+    date_of_birth: "1995-06-15",
     consent: { cgv_accepted_at: "iso", geoloc_consent_at: "iso" },
     calibration_answers: {
       racines_horizons: -0.4,

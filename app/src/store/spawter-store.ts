@@ -38,6 +38,7 @@ import {
 } from "../lib/titres-catalogue";
 import { saveSpawtToSupabaseOrEnqueue } from "../lib/offline-queue";
 import { applyReviewToPalais } from "../lib/palais-signals";
+import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
 import { supabase } from "../lib/supabase";
 import { dominantAxes, computeConfidence } from "../lib/palais-engine";
@@ -330,6 +331,13 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       id = SAMPLE_SPAWTER.id;
     }
 
+    // Story 4.8 — `age_range` est dérivé de `date_of_birth` via helper pur.
+    // L'invariant analytics tient (Madame Sun consomme `age_range` only) tandis
+    // que `date_of_birth` reste DB-only (jamais émis dans les events).
+    const derivedAgeRange = draft.date_of_birth
+      ? ageRangeFromDateOfBirth(draft.date_of_birth)
+      : null;
+
     const spawter: Spawter = {
       ...SAMPLE_SPAWTER,
       id,
@@ -339,7 +347,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       country_code: draft.country_code,
       origin_country_code: draft.origin_country_code,
       gender: draft.gender,
-      age_range: draft.age_range,
+      date_of_birth: draft.date_of_birth,
+      age_range: derivedAgeRange,
       cgv_accepted_at: draft.consent.cgv_accepted_at,
       geoloc_consent_at: draft.consent.geoloc_consent_at,
       created_at: now,

@@ -18,6 +18,7 @@ import { PalaisRadar } from "../../src/components/primitives/PalaisRadar";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { computeConfidence, dominantAxes } from "../../src/lib/palais-engine";
+import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
 import { track } from "../../src/lib/analytics";
 
 // Calibration delta range is [-0.4, +0.4] (cf. calibration-mapping.ts).
@@ -118,11 +119,16 @@ export default function PalaisRevealScreen() {
       // réel. Désormais : finalize d'abord, track ensuite SI succès.
       await finalizeOnboarding(draft);
 
+      // Story 4.8 — `age_range` est dérivé du `date_of_birth` du draft (helper
+      // pur). On émet la tranche calculée, pas la date brute (invariant PII).
+      const derivedAgeRange = draft.date_of_birth
+        ? ageRangeFromDateOfBirth(draft.date_of_birth)
+        : null;
       track({
         name: "onboarding_completed",
         properties: {
           country_code: draft.country_code,
-          age_range: draft.age_range,
+          age_range: derivedAgeRange,
           gender: draft.gender,
           time_to_complete_seconds: seconds,
           palais_initial_dominant_axes: dominant ?? [],

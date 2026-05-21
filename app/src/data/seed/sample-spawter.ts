@@ -13,6 +13,7 @@ export const SAMPLE_SPAWTER: Spawter = {
   country_code: "CI",
   origin_country_code: "CI",
   gender: "non_renseigne",
+  date_of_birth: null,
   age_range: null,
   stade: "touriste",
   total_spawts: 0,
