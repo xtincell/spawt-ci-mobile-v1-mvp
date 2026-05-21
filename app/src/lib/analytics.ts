@@ -159,6 +159,8 @@ type EventName =
   | "guet_notification_sent" | "spawt_notification_opened" | "spawt_snoozed"
   | "spawt_completed" | "spawt_passive_recorded" | "spawt_cancelled"
   | "antifraud_flag_raised"
+  // 6b. Onglet Spawter géolocalisé (Story 4.10)
+  | "nearby_screen_opened" | "nearby_spawt_tapped"
   // 7. Avis
   | "review_started" | "review_submitted" | "review_photo_added" | "review_abandoned"
   // 8. Coup de Cœur
@@ -211,6 +213,8 @@ const EVENT_TO_SIGNAL = {
   spawt_passive_recorded: "spawt", guet_armed: "spawt",
   guet_geofence_triggered: "spawt", guet_threshold_reached: "spawt",
   activation_j7_reached: "spawt", antifraud_flag_raised: "spawt",
+  // Onglet Spawter géolocalisé (Story 4.10) — open=view, tap=click.
+  nearby_screen_opened: "view", nearby_spawt_tapped: "click",
   // review
   review_started: "review", review_submitted: "review",
   review_photo_added: "review",
