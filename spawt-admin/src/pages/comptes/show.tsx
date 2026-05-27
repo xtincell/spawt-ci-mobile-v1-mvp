@@ -5,6 +5,7 @@ import { useParams } from "react-router";
 import { useOne, useGetIdentity, useInvalidate } from "@refinedev/core";
 import { ReasonModal, FAUX_PAS_SPAWTER } from "../../components/ReasonModal";
 import { moderateSpawter } from "../../lib/moderate-spawter";
+import { maskPhone } from "./index";
 
 export const CompteShow = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,8 @@ export const CompteShow = () => {
   });
 
   const [modalKind, setModalKind] = useState<"warning" | "ban" | "unban" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!id) return <p>ID manquant</p>;
   if (query.isLoading) return <p>Chargement…</p>;
@@ -26,24 +29,37 @@ export const CompteShow = () => {
   if (!spawter) return <p>Spawter introuvable</p>;
 
   async function onConfirm(reason: string) {
-    if (!modalKind || !id) return;
-    const action = modalKind === "warning" ? "warning" : modalKind === "ban" ? "ban" : "unban";
-    const res = await moderateSpawter(id, action, reason);
-    if (!res.ok) {
-      alert(`Erreur : ${res.error?.code ?? "inconnue"}`);
-      return;
+    if (!modalKind || !id || submitting) return;
+    // CR Chunk B Edge#34 — disable submit pour éviter le double-ban (warning_count++
+    // double, ALREADY_BANNED 409 sur 2e click rapide).
+    setSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const action = modalKind === "warning" ? "warning" : modalKind === "ban" ? "ban" : "unban";
+      const res = await moderateSpawter(id, action, reason);
+      if (!res.ok) {
+        setErrorMsg(`Erreur : ${res.error?.code ?? "inconnue"}`);
+        return;
+      }
+      invalidate({ resource: "spawters", invalidates: ["detail", "list"] });
+      setModalKind(null);
+    } finally {
+      setSubmitting(false);
     }
-    invalidate({ resource: "spawters", invalidates: ["detail", "list"] });
-    setModalKind(null);
   }
 
   return (
     <div>
       <h1>{String(spawter.display_name)}</h1>
       <p>
-        Phone : {String(spawter.phone_e164)} · Quartier : {String(spawter.neighborhood ?? "—")} ·
+        {/* CR Chunk B m2 — masquage cohérent avec la liste. Admin n'a pas
+           besoin du téléphone clair en V1. Sprint 2 = bouton "Révéler" + audit. */}
+        Phone : {maskPhone(String(spawter.phone_e164))} · Quartier : {String(spawter.neighborhood ?? "—")} ·
         Stade : <strong>{String(spawter.stade)}</strong>
       </p>
+      {errorMsg ? (
+        <p style={{ background: "#3a1c1c", color: "#fff", padding: 10, borderRadius: 6 }}>{errorMsg}</p>
+      ) : null}
       <p>
         Spawts : <strong>{Number(spawter.total_spawts)}</strong> · Unique spots :{" "}
         <strong>{Number(spawter.unique_spots)}</strong> · Warnings :{" "}
@@ -59,15 +75,15 @@ export const CompteShow = () => {
       ) : null}
 
       <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-        <button type="button" disabled={!canModerate} onClick={() => setModalKind("warning")}>
+        <button type="button" disabled={!canModerate || submitting} onClick={() => setModalKind("warning")}>
           Warning
         </button>
         {!spawter.is_banned ? (
-          <button type="button" className="btn-destructive" disabled={!canModerate} onClick={() => setModalKind("ban")}>
+          <button type="button" className="btn-destructive" disabled={!canModerate || submitting} onClick={() => setModalKind("ban")}>
             Bannir
           </button>
         ) : (
-          <button type="button" disabled={!canModerate} onClick={() => setModalKind("unban")}>
+          <button type="button" disabled={!canModerate || submitting} onClick={() => setModalKind("unban")}>
             Débannir
           </button>
         )}

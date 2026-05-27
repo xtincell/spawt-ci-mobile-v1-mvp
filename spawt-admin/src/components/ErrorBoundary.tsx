@@ -24,6 +24,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.error) {
+      // CR Chunk B m4 — masquer le stack en prod (leak structure code).
+      // En dev (import.meta.env.DEV), affiche le stack pour debug rapide.
+      const isDev = (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
       return (
         <div
           style={{
@@ -36,9 +39,15 @@ export class ErrorBoundary extends Component<Props, State> {
         >
           <h1>Erreur de l'app admin</h1>
           <p>{this.state.error.message}</p>
-          <pre style={{ whiteSpace: "pre-wrap", background: "#f5f5f5", padding: 16, fontSize: 12 }}>
-            {this.state.error.stack}
-          </pre>
+          {isDev ? (
+            <pre style={{ whiteSpace: "pre-wrap", background: "#f5f5f5", padding: 16, fontSize: 12 }}>
+              {this.state.error.stack}
+            </pre>
+          ) : (
+            <p style={{ color: "#666", fontSize: 12 }}>
+              Détails techniques masqués en production. Recharger ou contacter le support.
+            </p>
+          )}
           <button type="button" onClick={() => location.reload()}>
             Recharger
           </button>

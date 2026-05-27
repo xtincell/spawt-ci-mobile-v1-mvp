@@ -17,9 +17,20 @@ interface SpawterRow {
 
 const STADES = ["touriste", "explorateur", "detective", "djidji", "guide"];
 
-function maskPhone(phone: string): string {
-  if (phone.length < 8) return phone;
-  return `${phone.slice(0, 4)} XX XX ${phone.slice(-2)}`;
+// CR Chunk B m2 — masquage E.164 strict. Garde l'indicatif pays (+225) pour
+// contextualiser le compte côté admin, masque TOUT le reste sauf les 2 derniers
+// chiffres. Ne préserve plus les chiffres opérateur (qui permettaient à un staff
+// de deviner Orange/MTN/Moov).
+export function maskPhone(phone: string): string {
+  if (!phone || phone.length < 6) return phone;
+  // E.164 attendu : +225XXXXXXXXXX
+  const match = phone.match(/^(\+\d{1,3})(.+)$/);
+  if (!match) {
+    return `••• ${phone.slice(-2)}`;
+  }
+  const [, prefix, rest] = match;
+  if (rest.length <= 2) return `${prefix}${rest}`;
+  return `${prefix} •• •• ${rest.slice(-2)}`;
 }
 
 export const ComptesList = () => {

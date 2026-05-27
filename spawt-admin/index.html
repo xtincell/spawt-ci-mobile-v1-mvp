@@ -2,7 +2,12 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1024" />
+    <!-- CR Chunk B m8 — viewport au comportement standard.
+         L'ancien `width=1024` forçait le scaling mobile et masquait le warning
+         viewport <1024 (le browser reportait 1024 même sur iPhone). Avec
+         device-width, le warning CSS (cf. Layout.tsx .viewport-warning) se
+         déclenche correctement sur les écrans <1024px réels. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SPAWT — Panel admin</title>
   </head>
   <body>

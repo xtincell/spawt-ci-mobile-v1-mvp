@@ -106,7 +106,18 @@ export async function handleRequest(req: Request): Promise<Response> {
     .eq("phone_e164", payload.phone_e164)
     .maybeSingle();
   if (spawter?.is_banned) {
-    return json({ error: "account_banned" }, req, 403);
+    // CR Chunk B C5 — format conforme spec Story 6.4 AC #7 : {code, message}
+    // structuré pour que le mobile (Story 2.3 handler) distingue le code i18n.
+    return json(
+      {
+        error: {
+          code: "ACCOUNT_BANNED",
+          message: "Compte suspendu. Contactez le support si vous pensez qu'il s'agit d'une erreur.",
+        },
+      },
+      req,
+      403,
+    );
   }
 
   // Rate-limit : count des envois de la dernière heure.

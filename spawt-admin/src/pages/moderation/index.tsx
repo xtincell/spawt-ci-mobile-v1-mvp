@@ -1,10 +1,15 @@
 // Story 6.4 — File de modération proactive (V1 — signalement spawter FR-017 reporté Sprint 2).
+//
+// CR Chunk B :
+//   C1 — onDelete include deleted_by_staff_id (sinon CHECK constraint reject)
+//   M9 — audit logAuditAction throw → try/catch + UI feedback inline
+//   m11/m14 — remplace alert() par toast/banner + disable button on click
 
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useTable, useUpdate, useGetIdentity, useInvalidate } from "@refinedev/core";
 import { ReasonModal, FAUX_PAS_REVIEW } from "../../components/ReasonModal";
-import { logAuditAction } from "../../lib/audit";
+import { logAuditAction, logAuditActionBestEffort, AuditLogError } from "../../lib/audit";
 import { moderateSpawter } from "../../lib/moderate-spawter";
 
 interface ReviewRow {
@@ -21,15 +26,30 @@ interface ReviewRow {
   spawters?: { id: string; display_name: string; stade: string; is_banned: boolean; warning_count: number };
 }
 
+interface Toast {
+  kind: "success" | "error";
+  message: string;
+}
+
+interface StaffIdentity {
+  id: string;
+  role: "admin" | "moderator" | "operator";
+}
+
 export const ModerationList = () => {
   const navigate = useNavigate();
-  const { data: identity } = useGetIdentity<{ role: "admin" | "moderator" | "operator" }>();
+  const { data: identity } = useGetIdentity<StaffIdentity>();
   const [filter, setFilter] = useState<"recent" | "flagged">("recent");
   const [activeAction, setActiveAction] = useState<
     | { kind: "delete"; review: ReviewRow }
     | { kind: "warning"; review: ReviewRow }
     | null
   >(null);
+  const [busyReviewId, setBusyReviewId] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
+  // CR m14 — anti-flood : track les reviews déjà "gardées" dans cette session
+  // pour disable le bouton et éviter l'audit log spam.
+  const [keptReviewIds, setKeptReviewIds] = useState<Set<string>>(new Set());
 
   const { tableQuery } = useTable<ReviewRow>({
     resource: "spawt_checkin",
@@ -48,62 +68,106 @@ export const ModerationList = () => {
     },
   });
 
-  const { mutate: updateReview } = useUpdate();
+  const { mutateAsync: updateReview } = useUpdate();
   const invalidate = useInvalidate();
 
   const rows = (tableQuery.data?.data ?? []) as ReviewRow[];
   const canModerate = identity?.role === "admin" || identity?.role === "moderator";
 
+  function showToast(t: Toast) {
+    setToast(t);
+    setTimeout(() => setToast((current) => (current === t ? null : current)), 4000);
+  }
+
   async function onKeep(review: ReviewRow) {
-    await logAuditAction({
-      action: "review_keep",
-      entity_type: "spawt_checkin",
-      entity_id: review.id,
-    });
-    alert("Avis marqué comme vu (audit log enregistré).");
+    if (keptReviewIds.has(review.id)) return;
+    setBusyReviewId(review.id);
+    try {
+      await logAuditAction({
+        action: "review_keep",
+        entity_type: "spawt_checkin",
+        entity_id: review.id,
+      });
+      setKeptReviewIds((prev) => new Set(prev).add(review.id));
+      showToast({ kind: "success", message: "Avis marqué comme vu (audit log enregistré)." });
+    } catch (err) {
+      const msg = err instanceof AuditLogError ? err.message : "Erreur inattendue";
+      showToast({ kind: "error", message: msg });
+    } finally {
+      setBusyReviewId(null);
+    }
   }
 
   async function onDelete(review: ReviewRow, reason: string) {
-    updateReview(
-      {
+    if (!identity) return;
+    setBusyReviewId(review.id);
+    try {
+      // C1 — deleted_by_staff_id obligatoire (CHECK constraint coherence).
+      // Le trigger 0023 auto-populate aussi côté DB en défense en profondeur,
+      // mais on l'envoie explicitement pour cohérence client.
+      await updateReview({
         resource: "spawt_checkin",
         id: review.id,
         values: {
           deleted_at: new Date().toISOString(),
+          deleted_by_staff_id: identity.id,
           deleted_reason: reason,
         },
-      },
-      {
-        onSuccess: async () => {
-          await logAuditAction({
-            action: "review_delete",
-            entity_type: "spawt_checkin",
-            entity_id: review.id,
-            payload_before: { texte_avis: review.texte_avis, note_etoiles: review.note_etoiles },
-            payload_after: { deleted_at: "now" },
-            reason,
-          });
-          invalidate({ resource: "spawt_checkin", invalidates: ["list"] });
-        },
-      },
-    );
-    setActiveAction(null);
+      });
+      // M9 — audit doit succeed sinon on a delete sans trace (compliance).
+      // Si audit échoue, on log warn server-side (best-effort) car le delete
+      // est déjà committé en DB et impossible à rollback automatiquement.
+      const ok = await logAuditActionBestEffort({
+        action: "review_delete",
+        entity_type: "spawt_checkin",
+        entity_id: review.id,
+        payload_before: { texte_avis: review.texte_avis, note_etoiles: review.note_etoiles, tags: review.tags },
+        payload_after: { deleted_at: "now", deleted_by_staff_id: identity.id },
+        reason,
+      });
+      invalidate({ resource: "spawt_checkin", invalidates: ["list"] });
+      setActiveAction(null);
+      showToast({
+        kind: ok ? "success" : "error",
+        message: ok
+          ? "Avis supprimé + audit log enregistré."
+          : "Avis supprimé MAIS audit log a échoué — vérifier admin_audit_log manuellement.",
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur inattendue";
+      showToast({ kind: "error", message: `Échec suppression : ${msg}` });
+    } finally {
+      setBusyReviewId(null);
+    }
   }
 
   async function onWarning(review: ReviewRow, reason: string) {
-    const res = await moderateSpawter(review.spawter_id, "warning", reason);
-    if (!res.ok) {
-      alert(`Erreur : ${res.error?.code ?? "inconnue"}`);
-      return;
+    setBusyReviewId(review.id);
+    try {
+      const res = await moderateSpawter(review.spawter_id, "warning", reason);
+      if (!res.ok) {
+        showToast({ kind: "error", message: `Erreur warning : ${res.error?.code ?? "inconnue"}` });
+        return;
+      }
+      // Best-effort sur l'audit review_warning : si fail, le spawter_warning
+      // a déjà été audité par l'Edge Function moderate-spawter (double-audit
+      // intentionnel pour traçer les deux entités review + spawter).
+      await logAuditActionBestEffort({
+        action: "review_warning",
+        entity_type: "spawt_checkin",
+        entity_id: review.id,
+        payload_before: { texte_avis: review.texte_avis, note_etoiles: review.note_etoiles },
+        reason,
+      });
+      invalidate({ resource: "spawt_checkin", invalidates: ["list"] });
+      setActiveAction(null);
+      showToast({ kind: "success", message: "Warning envoyé au spawter." });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur inattendue";
+      showToast({ kind: "error", message: msg });
+    } finally {
+      setBusyReviewId(null);
     }
-    await logAuditAction({
-      action: "review_warning",
-      entity_type: "spawt_checkin",
-      entity_id: review.id,
-      reason,
-    });
-    invalidate({ resource: "spawt_checkin", invalidates: ["list"] });
-    setActiveAction(null);
   }
 
   return (
@@ -113,6 +177,20 @@ export const ModerationList = () => {
         ⓘ Modération <strong>proactive</strong> V1 — le bouton « Signaler » côté mobile (FR-017)
         arrive Sprint 2. Cette file affiche les avis récents et les avis flagged anti-fraude.
       </p>
+      {toast ? (
+        <div
+          role="status"
+          style={{
+            margin: "12px 0",
+            padding: 10,
+            borderRadius: 6,
+            background: toast.kind === "success" ? "#1c3a1c" : "#3a1c1c",
+            color: "#fff",
+          }}
+        >
+          {toast.message}
+        </div>
+      ) : null}
       <div style={{ display: "flex", gap: 12, margin: "16px 0" }}>
         <button type="button" onClick={() => setFilter("recent")}>Avis récents</button>
         <button type="button" onClick={() => setFilter("flagged")}>Flagged anti-fraude</button>
@@ -132,23 +210,45 @@ export const ModerationList = () => {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              <td>{new Date(row.created_at).toLocaleString("fr-FR")}</td>
-              <td><a href="#" onClick={(e) => { e.preventDefault(); navigate(`/comptes/show/${row.spawter_id}`); }}>{row.spawters?.display_name}</a></td>
-              <td>{row.spawters?.stade}</td>
-              <td>{row.places?.name} ({row.places?.neighborhood})</td>
-              <td>{row.note_etoiles}/5</td>
-              <td>{row.tags?.join(", ")}</td>
-              <td style={{ maxWidth: 240 }}>{row.texte_avis}</td>
-              <td>{row.flag_reason ?? "—"}</td>
-              <td style={{ display: "flex", gap: 4 }}>
-                <button type="button" disabled={!canModerate} onClick={() => onKeep(row)}>Garder</button>
-                <button type="button" disabled={!canModerate} onClick={() => setActiveAction({ kind: "delete", review: row })}>Supprimer</button>
-                <button type="button" disabled={!canModerate} onClick={() => setActiveAction({ kind: "warning", review: row })}>Warning</button>
-              </td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const isBusy = busyReviewId === row.id;
+            const isKept = keptReviewIds.has(row.id);
+            return (
+              <tr key={row.id}>
+                <td>{new Date(row.created_at).toLocaleString("fr-FR")}</td>
+                <td><a href="#" onClick={(e) => { e.preventDefault(); navigate(`/comptes/show/${row.spawter_id}`); }}>{row.spawters?.display_name}</a></td>
+                <td>{row.spawters?.stade}</td>
+                <td>{row.places?.name} ({row.places?.neighborhood})</td>
+                <td>{row.note_etoiles}/5</td>
+                <td>{row.tags?.join(", ")}</td>
+                <td style={{ maxWidth: 240 }}>{row.texte_avis}</td>
+                <td>{row.flag_reason ?? "—"}</td>
+                <td style={{ display: "flex", gap: 4 }}>
+                  <button
+                    type="button"
+                    disabled={!canModerate || isBusy || isKept}
+                    onClick={() => onKeep(row)}
+                  >
+                    {isKept ? "✓ Gardé" : "Garder"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canModerate || isBusy}
+                    onClick={() => setActiveAction({ kind: "delete", review: row })}
+                  >
+                    Supprimer
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canModerate || isBusy}
+                    onClick={() => setActiveAction({ kind: "warning", review: row })}
+                  >
+                    Warning
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 

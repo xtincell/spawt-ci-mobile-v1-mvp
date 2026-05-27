@@ -26,7 +26,11 @@ export const ReasonModal = ({
 
   if (!isOpen) return null;
 
-  const valid = reason.trim().length >= 3;
+  // CR Chunk B m9 — au moins 1 lettre/chiffre (pas juste "...") pour éviter
+  // un motif sémantiquement vide qui rend l'audit log inutilisable.
+  const trimmed = reason.trim();
+  const hasAlphanumeric = /[a-zA-Z0-9]/u.test(trimmed);
+  const valid = trimmed.length >= 3 && hasAlphanumeric;
   const canSubmit = valid && (!destructive || confirmed);
 
   return (

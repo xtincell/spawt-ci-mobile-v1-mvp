@@ -1,12 +1,19 @@
 // Story 6.2 — Formulaire CRUD lieu partagé create/edit.
 // Validation Zod + audit log + upload photo.
+//
+// CR Chunk B :
+//   M11 — disable cover upload en create mode (path draft-* orphelin sinon)
+//   M12 — atomicité createPlace + createPlaceAdn (rollback si adn fail)
+//   M10 — uploadPlacePhoto retourne UploadResult (avec error structuré)
+//   M9 — audit best-effort + UI feedback inline
+//   m7 — useEffect dirty wipe protégé par useRef hydratedOnce
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { useCreate, useOne, useUpdate } from "@refinedev/core";
+import { useCreate, useDelete, useOne, useUpdate } from "@refinedev/core";
 
 import { PlaceFormSchema, PlaceAdnFormSchema, type PlaceForm as PlaceFormValues } from "../types/place.schema";
-import { logAuditAction } from "../lib/audit";
+import { logAuditActionBestEffort } from "../lib/audit";
 import { uploadPlacePhoto } from "../lib/storage";
 
 const ABIDJAN_NEIGHBORHOODS = [
@@ -51,11 +58,17 @@ export const PlaceForm = ({ mode, id }: Props) => {
   });
   const existingData = existingQuery.data;
   const loadingExisting = existingQuery.isLoading;
-  const { mutate: createPlace } = useCreate();
-  const { mutate: updatePlace } = useUpdate();
+  const { mutateAsync: createPlace } = useCreate();
+  const { mutateAsync: updatePlace } = useUpdate();
+  const { mutateAsync: deletePlace } = useDelete();
   const [submitting, setSubmitting] = useState(false);
-  const { mutate: createPlaceAdn } = useCreate();
-  const { mutate: updatePlaceAdn } = useUpdate();
+  const { mutateAsync: createPlaceAdn } = useCreate();
+  const { mutateAsync: updatePlaceAdn } = useUpdate();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  // CR m7 — useEffect re-sync re-écrase les valeurs en cours d'édition à
+  // chaque refetch. On gate avec useRef pour ne sync qu'au premier load réussi
+  // (sinon l'utilisateur perd ses changements unsaved à la prochaine query).
+  const hydratedOnce = useRef(false);
 
   const [values, setValues] = useState<PlaceFormValues>(emptyForm);
   const [adn, setAdn] = useState({
@@ -68,7 +81,8 @@ export const PlaceForm = ({ mode, id }: Props) => {
   const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
-    if (mode === "edit" && existingData?.data) {
+    if (mode === "edit" && existingData?.data && !hydratedOnce.current) {
+      hydratedOnce.current = true;
       const row = existingData.data as Record<string, unknown> & {
         place_adn?: typeof adn | null;
       };
@@ -145,66 +159,89 @@ export const PlaceForm = ({ mode, id }: Props) => {
     };
 
     setSubmitting(true);
-    if (mode === "create") {
-      createPlace(
-        { resource: "places", values: dbRow },
-        {
-          onSettled: () => setSubmitting(false),
-          onSuccess: async ({ data }) => {
-            const placeId = (data as { id: string }).id;
-            createPlaceAdn({
-              resource: "place_adn",
-              values: { place_id: placeId, ...parsedAdn.data, total_reviews: 0, confidence_score: 0, weighted_rating: 0 },
-            });
-            await logAuditAction({
-              action: "place_create",
-              entity_type: "place",
-              entity_id: placeId,
-              payload_before: null,
-              payload_after: { ...dbRow, adn: parsedAdn.data },
-            });
-            navigate("/lieux");
-          },
-        },
-      );
-    } else if (id) {
-      updatePlace(
-        { resource: "places", id, values: dbRow },
-        {
-          onSettled: () => setSubmitting(false),
-          onSuccess: async ({ data }) => {
-            const placeId = (data as { id: string }).id;
-            updatePlaceAdn({
-              resource: "place_adn",
-              id: placeId,
-              values: parsedAdn.data,
-            });
-            await logAuditAction({
-              action: "place_update",
-              entity_type: "place",
-              entity_id: placeId,
-              payload_before: beforeSnapshot,
-              payload_after: { ...dbRow, adn: parsedAdn.data },
-            });
-            await logAuditAction({
-              action: "place_adn_update",
-              entity_type: "place_adn",
-              entity_id: placeId,
-              payload_before: (beforeSnapshot as { place_adn?: typeof adn } | null)?.place_adn ?? null,
-              payload_after: parsedAdn.data,
-            });
-            navigate("/lieux");
-          },
-        },
-      );
+    try {
+      if (mode === "create") {
+        // M12 — atomicité : create place + create place_adn chaînés avec
+        // rollback du place si l'adn échoue (sinon orphan place sans ADN
+        // crashera le mobile au JOIN).
+        const placeRes = await createPlace({ resource: "places", values: dbRow });
+        const placeId = (placeRes.data as { id: string }).id;
+        try {
+          await createPlaceAdn({
+            resource: "place_adn",
+            values: { place_id: placeId, ...parsedAdn.data, total_reviews: 0, confidence_score: 0, weighted_rating: 0 },
+          });
+        } catch (adnErr) {
+          // Rollback explicite du place pour éviter l'orphan.
+          await deletePlace({ resource: "places", id: placeId }).catch(() => undefined);
+          throw new Error(
+            `place_adn creation failed (place rolled back): ${adnErr instanceof Error ? adnErr.message : String(adnErr)}`,
+          );
+        }
+        await logAuditActionBestEffort({
+          action: "place_create",
+          entity_type: "place",
+          entity_id: placeId,
+          payload_before: null,
+          payload_after: { ...dbRow, adn: parsedAdn.data },
+        });
+        navigate("/lieux");
+      } else if (id) {
+        await updatePlace({ resource: "places", id, values: dbRow });
+        await updatePlaceAdn({
+          resource: "place_adn",
+          id,
+          values: parsedAdn.data,
+        });
+        await logAuditActionBestEffort({
+          action: "place_update",
+          entity_type: "place",
+          entity_id: id,
+          payload_before: beforeSnapshot,
+          payload_after: { ...dbRow, adn: parsedAdn.data },
+        });
+        await logAuditActionBestEffort({
+          action: "place_adn_update",
+          entity_type: "place_adn",
+          entity_id: id,
+          payload_before: (beforeSnapshot as { place_adn?: typeof adn } | null)?.place_adn ?? null,
+          payload_after: parsedAdn.data,
+        });
+        navigate("/lieux");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrors((prev) => [...prev, msg]);
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function onUploadCover(file: File | null) {
     if (!file) return;
-    const placeId = id ?? "draft-" + Date.now();
-    const url = await uploadPlacePhoto(placeId, file);
-    if (url) setValues((v) => ({ ...v, cover_photo_url: url }));
+    setUploadError(null);
+    if (!id) {
+      // M11 — disable upload en create mode : sans placeId valide, le path
+      // serait `places/draft-<ts>/` ce qui (1) viole la policy RLS storage
+      // qui exige un UUID dans foldername[2], (2) crée des orphans Storage
+      // jamais nettoyés. Force le user à créer le place d'abord puis éditer.
+      setUploadError("Crée d'abord le lieu (bouton « Créer »), puis viens éditer pour ajouter la photo de couverture.");
+      return;
+    }
+    const result = await uploadPlacePhoto(id, file);
+    if (result.error) {
+      const detail =
+        result.error.code === "INVALID_MIME"
+          ? `Type de fichier non autorisé (${result.error.received}). Formats acceptés : JPEG, PNG, WebP.`
+          : result.error.code === "FILE_TOO_LARGE"
+          ? `Fichier trop volumineux (${Math.round(result.error.size / 1024)} KB > ${Math.round(result.error.limit / 1024)} KB max).`
+          : result.error.code === "INVALID_PLACE_ID"
+          ? "ID du lieu invalide."
+          : `Échec upload : ${result.error.message}`;
+      setUploadError(detail);
+      return;
+    }
+    if (result.publicUrl) setValues((v) => ({ ...v, cover_photo_url: result.publicUrl! }));
   }
 
   if (mode === "edit" && loadingExisting) return <p>Chargement…</p>;
@@ -293,7 +330,20 @@ export const PlaceForm = ({ mode, id }: Props) => {
 
       <fieldset>
         <legend>Photo de couverture</legend>
-        <input type="file" accept="image/*" onChange={(e) => onUploadCover(e.target.files?.[0] ?? null)} />
+        {mode === "create" ? (
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 8px 0" }}>
+            La photo s'ajoute après création du lieu (édition).
+          </p>
+        ) : (
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => onUploadCover(e.target.files?.[0] ?? null)}
+          />
+        )}
+        {uploadError ? (
+          <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>{uploadError}</p>
+        ) : null}
         {values.cover_photo_url ? <p style={{ fontSize: 11 }}>{values.cover_photo_url}</p> : null}
       </fieldset>
 

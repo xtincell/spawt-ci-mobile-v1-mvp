@@ -1,10 +1,15 @@
 // Story 6.1 — Helper d'audit log append-only.
-// L'INSERT échoué n'est pas re-thrown — le pipeline UX continue, le drift est loggé.
+//
+// CR Chunk B M9 — Throw au lieu de swallow l'erreur INSERT.
+// Avant : INSERT échoué → console.warn + continue → action destructive procède
+// sans audit (violation invariant compliance). Maintenant : throw, le caller
+// décide de rollback ou continuer (typique pour ban/delete : on rollback).
 
 import { supabaseClient } from "../utility/supabaseClient";
 
 export type AdminAction =
   | "login"
+  | "login_failed"
   | "place_create"
   | "place_update"
   | "place_delete"
@@ -35,10 +40,29 @@ export interface AuditEntry {
   reason?: string;
 }
 
+export class AuditLogError extends Error {
+  constructor(public readonly cause: unknown) {
+    super(`Audit log insert failed: ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = "AuditLogError";
+  }
+}
+
+/**
+ * INSERT dans admin_audit_log. **Throw** AuditLogError si l'INSERT échoue.
+ * Le caller doit décider : rollback l'action destructive, retry, ou ignorer
+ * (typiquement : rollback pour ban/delete, ignore pour place_publish_toggle
+ * qui est non-destructif).
+ *
+ * Si pas de session auth (race après expiration token), throw aussi —
+ * le caller ne doit jamais croire que son action a été tracée alors qu'elle
+ * ne l'est pas.
+ */
 export async function logAuditAction(entry: AuditEntry): Promise<void> {
-  const { data } = await supabaseClient.auth.getUser();
+  const { data, error: getUserErr } = await supabaseClient.auth.getUser();
+  if (getUserErr || !data.user) {
+    throw new AuditLogError(getUserErr ?? new Error("no auth session"));
+  }
   const user = data.user;
-  if (!user) return;
   const { error } = await supabaseClient.from("admin_audit_log").insert({
     spawt_staff_id: user.id,
     action: entry.action,
@@ -53,7 +77,23 @@ export async function logAuditAction(entry: AuditEntry): Promise<void> {
         : null,
   });
   if (error) {
+    throw new AuditLogError(error);
+  }
+}
+
+/**
+ * Variante "best-effort" pour les actions non-destructives (publish toggle,
+ * page metriques load) qui ne doivent PAS bloquer si l'audit échoue.
+ * Log console.warn en interne. **N'utiliser que si la traçabilité est
+ * secondaire.** Pour ban/delete/warning : utiliser `logAuditAction` strict.
+ */
+export async function logAuditActionBestEffort(entry: AuditEntry): Promise<boolean> {
+  try {
+    await logAuditAction(entry);
+    return true;
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn("[audit] insert failed", error);
+    console.warn("[audit] best-effort insert failed", err);
+    return false;
   }
 }
