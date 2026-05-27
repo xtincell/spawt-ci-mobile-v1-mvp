@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -19,9 +20,12 @@ import { useTheme } from "../theme/ThemeProvider";
 import { gradient } from "../theme/tokens";
 import { chatKey, type ChatMoment } from "../lib/chat-voice";
 import { STADE_DESCRIPTORS, type Stade } from "../types/stade";
+import { getNextStadeProgress } from "../lib/stade-progress";
 
 // PRD §9.3 — 4 montées de stade explicites (Touriste→Explorateur, etc.). Pas de moment
 // `stade_up_touriste` côté CHAT_MOMENTS (un Touriste n'a pas de montée *vers* lui-même).
+// CR finding M10 — accès via fonction helper plutôt qu'index direct pour bloquer
+// le cast implicite quand `to_stade === 'touriste'` (typing trick).
 const STADE_UP_MOMENTS: Record<
   Exclude<Stade, "touriste">,
   Extract<ChatMoment, `stade_up_${string}`>
@@ -31,7 +35,11 @@ const STADE_UP_MOMENTS: Record<
   djidji: "stade_up_djidji",
   guide: "stade_up_guide",
 };
-import { getNextStadeProgress } from "../lib/stade-progress";
+
+function getStadeUpMoment(stade: Stade): ChatMoment | null {
+  if (stade === "touriste") return null;
+  return STADE_UP_MOMENTS[stade];
+}
 
 interface Props {
   visible: boolean;
@@ -56,8 +64,16 @@ export function StadeCelebration({
   const opacity = useSharedValue(0);
   const haloScale = useSharedValue(0.8);
 
+  // CR finding M6 + m3 — n'animer que quand le triplet est valide. On dépend
+  // explicitement de from_stade/to_stade pour ne pas lancer d'animation quand
+  // le composant va rendre `null` (early return ci-dessous). Avant `set value`,
+  // on cancel les animations en cours pour qu'un set direct ne soit pas écrasé
+  // par un withSequence qui continue de tourner sur le UI thread (m3).
+  const animationReady = visible && Boolean(from_stade) && Boolean(to_stade);
   useEffect(() => {
-    if (visible) {
+    if (animationReady) {
+      cancelAnimation(opacity);
+      cancelAnimation(haloScale);
       opacity.value = withTiming(1, {
         duration: FADE_IN_MS,
         easing: Easing.out(Easing.ease),
@@ -71,21 +87,37 @@ export function StadeCelebration({
         withTiming(1, { duration: HALO_PULSE_MS, easing: Easing.inOut(Easing.cubic) }),
       );
     } else {
+      cancelAnimation(opacity);
+      cancelAnimation(haloScale);
       opacity.value = 0;
       haloScale.value = 0.8;
     }
-  }, [visible, opacity, haloScale]);
+    // Cleanup au unmount : cancel toutes les animations qui pourraient writer
+    // sur les shared values d'un composant déjà démonté.
+    return () => {
+      cancelAnimation(opacity);
+      cancelAnimation(haloScale);
+    };
+  }, [animationReady, opacity, haloScale]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
   const haloStyle = useAnimatedStyle(() => ({ transform: [{ scale: haloScale.value }] }));
 
+  // CR finding m4 — guard sur STADE_DESCRIPTORS lookup pour bloquer un state
+  // corrompu (devtools, hydrate cassé) qui passerait une valeur hors enum.
   if (!visible || !to_stade || !from_stade) return null;
-
   const fromDesc = STADE_DESCRIPTORS[from_stade];
   const toDesc = STADE_DESCRIPTORS[to_stade];
+  if (!fromDesc || !toDesc) {
+    if (__DEV__) {
+      console.warn("[StadeCelebration] STADE_DESCRIPTORS miss", { from_stade, to_stade });
+    }
+    return null;
+  }
 
-  const chatMoment: ChatMoment | null =
-    to_stade === "touriste" ? null : STADE_UP_MOMENTS[to_stade];
+  // CR finding M10 — helper-based lookup au lieu de l'index direct + ternaire
+  // qui dépendait d'un cast implicite TS-non-vérifié pour le cas 'touriste'.
+  const chatMoment = getStadeUpMoment(to_stade);
   const chatI18nKey = chatMoment ? chatKey(chatMoment, from_stade) : "";
   const chatText = chatMoment ? t(chatI18nKey) : "";
   const chatIsSilent = !chatMoment || chatText === chatI18nKey || chatText.trim().length === 0;

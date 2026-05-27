@@ -246,31 +246,24 @@ export async function insertTitreToSupabase(row: CollectionTitreRow): Promise<vo
 }
 
 /**
- * Story 5.2 — Set titre affiché via 2 UPDATE séquentiels (reset puis set).
- * Fenêtre micro-temps acceptable V1 (cf. Dev Notes 5.2 §3).
+ * Story 5.2 — Set titre affiché via RPC PL/pgSQL atomique `set_displayed_title`
+ * (migration 0022, CR Chunk A finding D1).
+ *
+ * Remplace l'ancien 2-UPDATE séquentiel qui pouvait laisser le serveur dans
+ * l'état "0 titre affiché" sur partial fail (réseau coupé entre les 2 steps).
+ * La RPC fait reset + set + sync `spawter_progression.current_title` dans
+ * une seule transaction PG.
  */
 export async function setDisplayedTitreInSupabase(
   spawter_id: string,
   title_key: string,
 ): Promise<void> {
-  // Étape 1 — reset tous les autres titres affichés (peut être 0 ou 1 row).
-  const r1 = await supabase
-    .from("collection_titres")
-    .update({ is_displayed: false })
-    .eq("spawter_id", spawter_id)
-    .eq("is_displayed", true)
-    .neq("title_key", title_key);
-  if (r1.error && __DEV__) {
-    console.warn("[data-source] setDisplayedTitre reset failed", r1.error);
-  }
-  // Étape 2 — set le nouveau titre affiché.
-  const r2 = await supabase
-    .from("collection_titres")
-    .update({ is_displayed: true })
-    .eq("spawter_id", spawter_id)
-    .eq("title_key", title_key);
-  if (r2.error && __DEV__) {
-    console.warn("[data-source] setDisplayedTitre set failed", r2.error);
+  const { error } = await supabase.rpc("set_displayed_title", {
+    p_spawter_id: spawter_id,
+    p_title_key: title_key,
+  });
+  if (error && __DEV__) {
+    console.warn("[data-source] setDisplayedTitre RPC failed", error);
   }
 }
 
@@ -325,7 +318,7 @@ export async function listReviewsForPlaceFromSupabase(
   const { data, error } = await supabase
     .from("spawt_checkin")
     .select(
-      "id, spawter_id, note_etoiles, texte_avis, created_at, is_seed, spawters!inner(display_name, avatar_url)",
+      "id, spawter_id, note_etoiles, texte_avis, photos, created_at, is_seed, spawters_public!inner(display_name, avatar_url)",
     )
     .eq("place_id", placeId)
     .not("note_etoiles", "is", null)
@@ -343,7 +336,7 @@ export async function listReviewsForPlaceFromSupabase(
     const r = row as Record<string, unknown>;
     // Le SDK peut remonter la relation jointe en objet OU en array selon la
     // version. On normalise les deux cas plutôt que d'assumer une forme.
-    const rel = r.spawters as
+    const rel = r.spawters_public as
       | { display_name?: unknown; avatar_url?: unknown }
       | { display_name?: unknown; avatar_url?: unknown }[]
       | null
@@ -353,6 +346,10 @@ export async function listReviewsForPlaceFromSupabase(
       if (__DEV__) console.warn("[data-source] review row dropped — missing spawter join", r.id);
       continue;
     }
+    const rawPhotos = Array.isArray(r.photos) ? r.photos : [];
+    const photos = rawPhotos.filter(
+      (p): p is string => typeof p === "string" && p.length > 0,
+    );
     out.push({
       id: String(r.id),
       spawter_id: String(r.spawter_id),
@@ -363,6 +360,7 @@ export async function listReviewsForPlaceFromSupabase(
           : null,
       note_etoiles: Number(r.note_etoiles ?? 0),
       texte_avis: typeof r.texte_avis === "string" ? r.texte_avis : null,
+      photos,
       created_at: String(r.created_at ?? ""),
       is_seed: Boolean(r.is_seed),
     });

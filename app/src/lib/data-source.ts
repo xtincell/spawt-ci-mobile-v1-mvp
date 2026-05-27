@@ -182,6 +182,8 @@ export interface PlaceReview {
   /** 1-5, demi-points possibles côté DB mais arrondi par Stars. */
   note_etoiles: number;
   texte_avis: string | null;
+  /** URLs publiques des photos (0..3). Story 4.5 = bucket place-photos, seeds = Unsplash CDN. */
+  photos: readonly string[];
   created_at: string;
   is_seed: boolean;
 }

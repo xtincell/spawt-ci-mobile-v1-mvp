@@ -92,6 +92,7 @@ describe("<PlaceReviews /> — Story 4.9", () => {
       note_etoiles: 5,
       texte_avis:
         "Ambiance super accueillante, le plat du jour est toujours bon, bonus pour la déco soignée, le service très pro avec un sourire constant, et un rapport qualité-prix exceptionnel à signaler",
+      photos: [],
       created_at: "2025-12-01T10:00:00Z",
       is_seed: false,
     };
@@ -116,6 +117,7 @@ describe("<PlaceReviews /> — Story 4.9", () => {
       spawter_avatar_url: null,
       note_etoiles: 4,
       texte_avis: "court",
+      photos: [],
       created_at: "2025-11-01T08:00:00Z",
       is_seed: true,
     };
@@ -141,6 +143,7 @@ describe("<PlaceReviews /> — Story 4.9", () => {
       spawter_avatar_url: null,
       note_etoiles: 5,
       texte_avis: null,
+      photos: [],
       created_at: "2025-12-01T10:00:00Z",
       is_seed: false,
     }));

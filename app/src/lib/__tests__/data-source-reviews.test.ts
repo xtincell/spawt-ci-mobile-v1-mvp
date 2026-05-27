@@ -71,7 +71,8 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           texte_avis: "Top",
           created_at: "2025-12-01T10:00:00Z",
           is_seed: true,
-          spawters: { display_name: "Stéphanie", avatar_url: "https://x/y.jpg" },
+          photos: ["https://x/p1.jpg", "https://x/p2.jpg"],
+          spawters_public: { display_name: "Stéphanie", avatar_url: "https://x/y.jpg" },
         },
       ],
       error: null,
@@ -85,6 +86,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
         spawter_avatar_url: "https://x/y.jpg",
         note_etoiles: 5,
         texte_avis: "Top",
+        photos: ["https://x/p1.jpg", "https://x/p2.jpg"],
         created_at: "2025-12-01T10:00:00Z",
         is_seed: true,
       },
@@ -101,7 +103,8 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           texte_avis: null,
           created_at: "2025-11-01T08:00:00Z",
           is_seed: false,
-          spawters: [{ display_name: "Kidam", avatar_url: null }],
+          photos: [],
+          spawters_public: [{ display_name: "Kidam", avatar_url: null }],
         },
       ],
       error: null,
@@ -122,7 +125,8 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           texte_avis: "x",
           created_at: "2025-10-01T08:00:00Z",
           is_seed: false,
-          spawters: null,
+          photos: [],
+          spawters_public: null,
         },
         {
           id: "r-ok",
@@ -131,7 +135,8 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           texte_avis: "y",
           created_at: "2025-10-01T08:00:00Z",
           is_seed: false,
-          spawters: { display_name: "OK", avatar_url: null },
+          photos: [],
+          spawters_public: { display_name: "OK", avatar_url: null },
         },
       ],
       error: null,
@@ -156,9 +161,9 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
   it("appelle Supabase avec le tri qualité-puis-fraîcheur et limit", async () => {
     mockResponse = { data: [], error: null };
     await listReviewsForPlaceFromSupabase("place-42", 3);
-    // select query string contient bien spawters!inner.
+    // select query string contient bien spawters_public!inner (view publique).
     const select = mockCalls.find((c) => c.kind === "select");
-    expect(select?.args[0]).toContain("spawters!inner");
+    expect(select?.args[0]).toContain("spawters_public!inner");
     // eq sur place_id avec la valeur transmise.
     const eq = mockCalls.find((c) => c.kind === "eq");
     expect(eq?.args).toEqual(["place_id", "place-42"]);
@@ -185,7 +190,8 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           texte_avis: null,
           created_at: "2025-12-01T10:00:00Z",
           is_seed: false,
-          spawters: { display_name: "X", avatar_url: "" },
+          photos: [],
+          spawters_public: { display_name: "X", avatar_url: "" },
         },
       ],
       error: null,

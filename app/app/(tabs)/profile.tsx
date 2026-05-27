@@ -30,6 +30,7 @@ export default function ProfileScreen() {
   const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
   const collectionTitres = useSpawterStore((s) => s.collectionTitres);
   const setDisplayedTitle = useSpawterStore((s) => s.setDisplayedTitle);
+  const clearDisplayedTitle = useSpawterStore((s) => s.clearDisplayedTitle);
   const reset = useSpawterStore((s) => s.reset);
 
   const [queueSize, setQueueSize] = useState(0);
@@ -127,8 +128,12 @@ export default function ProfileScreen() {
         <CollectionTitlesSection
           collectionTitres={collectionTitres}
           displayedTitleKey={displayedTitleKey}
+          currentStade={spawter.stade}
           onSetDisplayed={(key) => {
             void setDisplayedTitle(key);
+          }}
+          onClearDisplayed={() => {
+            void clearDisplayedTitle();
           }}
         />
 

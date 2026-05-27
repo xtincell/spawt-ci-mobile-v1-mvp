@@ -33,7 +33,9 @@ import {
 import {
   isKnownTitleKey,
   STADE_TITLE_KEYS,
+  STADE_ORDER,
   PREMIER_SPAWT_TITLE_KEY,
+  stadeTitleKeysBetween,
   type TitleSource,
 } from "../lib/titres-catalogue";
 import { saveSpawtToSupabaseOrEnqueue } from "../lib/offline-queue";
@@ -62,6 +64,16 @@ function makeId(): string {
 }
 
 const BADGE_CELEBRATED_KEY = "spawt:badge:premier_spawt_celebrated";
+
+/**
+ * CR Chunk A finding M7 — Guard in-flight contre double célébration de stade.
+ * Deux registerSpawt concurrents (double-tap, race async) peuvent computer
+ * la même montée et tomber tous les deux dans le `if (!alreadyCelebrated)`
+ * avant que `consumePendingStadeCelebration` n'ait posé le flag persistant.
+ * On ajoute un Set module-level synchrone qui agit comme verrou avant le set
+ * et qu'on libère uniquement quand le flag persistant est posé.
+ */
+const __celebrationInFlight: Set<import("../types/stade").Stade> = new Set();
 
 interface PendingBadge {
   place_id: string;
@@ -92,6 +104,8 @@ interface SpawterStore {
   unlockTitle: (title_key: string, source: TitleSource) => Promise<boolean>;
   /** Story 5.2 — Définit le titre affiché (doit exister dans collection sinon no-op + warn). */
   setDisplayedTitle: (title_key: string) => Promise<void>;
+  /** Story 5.2 D5 — Reset au titre par défaut du stade courant (désélectionne le custom). */
+  clearDisplayedTitle: () => Promise<void>;
   /** Story 4.2 — Acquitte l'affichage du badge (set flag AsyncStorage set-once + clear). */
   consumePendingBadge: () => Promise<void>;
 
@@ -153,24 +167,29 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   pendingStadeCelebration: null,
 
   consumePendingBadge: async () => {
-    set({ pendingBadge: null });
-    // Story 5.2 — ajoute le titre Premier Spawt à la collection (D4 — 1 seul badge V1).
-    void get()
-      .unlockTitle(PREMIER_SPAWT_TITLE_KEY, "badge")
-      .catch((err) => {
-        if (__DEV__) console.warn("[spawter-store] unlockTitle badge failed", err);
-      });
+    // CR finding M3 — POSE LE FLAG ANTI-REPLAY AVANT `set(null)` pour qu'un
+    // crash entre les deux ne supprime pas la trace serveur du badge déjà célébré.
     try {
       await AsyncStorage.setItem(BADGE_CELEBRATED_KEY, new Date().toISOString());
     } catch (err) {
       if (__DEV__) console.warn("[spawter-store] consumePendingBadge flag write failed", err);
     }
+    // Attend l'unlock titre Premier Spawt AVANT clear (M3+M9 — sinon un unmount
+    // entre les deux peut perdre la row collection_titres correspondante).
+    try {
+      await get().unlockTitle(PREMIER_SPAWT_TITLE_KEY, "badge");
+    } catch (err) {
+      if (__DEV__) console.warn("[spawter-store] unlockTitle badge failed", err);
+    }
+    set({ pendingBadge: null });
   },
 
   consumePendingStadeCelebration: async () => {
     const pending = get().pendingStadeCelebration;
-    set({ pendingStadeCelebration: null });
     if (!pending) return;
+    // CR finding M3 + M7 — flag posé AVANT clear state, in-flight libéré APRÈS
+    // le flag persistant (sinon un nouveau registerSpawt sur le même stade
+    // pourrait rouvrir une célébration entre clear-state et flag-write).
     try {
       await AsyncStorage.setItem(
         `${STADE_CELEBRATED_KEY}:${pending.to_stade}`,
@@ -179,6 +198,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     } catch (err) {
       if (__DEV__) console.warn("[spawter-store] stade celebration flag write failed", err);
     }
+    __celebrationInFlight.delete(pending.to_stade);
+    set({ pendingStadeCelebration: null });
   },
 
   unlockTitle: async (title_key, source) => {
@@ -230,6 +251,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     if (fromKey === title_key) return; // no-op si déjà displayed
     const updated = list.map((r) => ({ ...r, is_displayed: r.id === target.id }));
     await saveCollectionTitresLocal(updated);
+    // CR finding D1 — appel RPC atomique côté Supabase (migration 0022 set_displayed_title
+    // remplace l'ancien 2-step UPDATE non-atomique qui pouvait laisser le serveur
+    // dans l'état "0 titre affiché" sur partial fail).
     void setDisplayedTitre(spawter.id, title_key).catch((err) => {
       if (__DEV__) console.warn("[spawter-store] setDisplayedTitre failed", err);
     });
@@ -237,6 +261,30 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     track({
       name: "title_displayed_changed",
       properties: { from: fromKey, to: title_key },
+    });
+  },
+
+  clearDisplayedTitle: async () => {
+    const spawter = get().spawter;
+    if (!spawter) return;
+    const list = get().collectionTitres;
+    const fromRow = list.find((r) => r.is_displayed);
+    if (!fromRow) return; // déjà clear, no-op
+    const updated = list.map((r) => ({ ...r, is_displayed: false }));
+    await saveCollectionTitresLocal(updated);
+    // Côté serveur : on bascule sur le titre par défaut du stade actuel via RPC
+    // (set_displayed_title accepte n'importe quel titre déjà dans la collection
+    // donc le titre stade-courant unlock par registerSpawt fait l'affaire).
+    // Si le titre stade-courant n'est pas dans la collection (cas edge si user
+    // efface sa collection), le RPC retourne erreur silencieuse — local prime.
+    const defaultKey = STADE_TITLE_KEYS[spawter.stade];
+    void setDisplayedTitre(spawter.id, defaultKey).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] clearDisplayedTitle reset failed", err);
+    });
+    set({ collectionTitres: updated });
+    track({
+      name: "title_displayed_changed",
+      properties: { from: fromRow.title_key, to: null },
     });
   },
 
@@ -410,7 +458,12 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     const spawter = get().spawter;
     if (spawter) {
       const previousTotalSpawts = spawter.total_spawts;
-      const uniqueSpots = new Set(list.filter((x) => x.is_verified).map((x) => x.place_id)).size;
+      // CR finding C1 (CRITIQUE) — exclure les rows seed du compteur unique_spots
+      // pour éviter qu'un user en mode démo (DB seed avec is_verified=true) ne
+      // franchisse des stades artificiellement. PRD §4.3 anti-fraude.
+      const uniqueSpots = new Set(
+        list.filter((x) => x.is_verified && !x.is_seed).map((x) => x.place_id),
+      ).size;
       // PRD §5.2 — la maturité ne recule jamais. Si un check-in passe is_verified
       // false (rejet antifraude serveur), uniqueSpots peut chuter et getStade()
       // redescendre — on protège via maxStade(currentStade, candidateStade).
@@ -448,28 +501,41 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
           },
         });
         // Story 5.4 — pending celebration transient (anti-replay AsyncStorage par stade).
+        // CR finding M7 — guard in-flight synchrone AVANT le check async pour
+        // qu'un 2e registerSpawt parallèle ne tombe pas dans le même if.
+        const alreadyInFlight = __celebrationInFlight.has(updated.stade);
         const alreadyCelebrated = await isStadeCelebrated(updated.stade);
-        if (!alreadyCelebrated) {
+        if (!alreadyInFlight && !alreadyCelebrated) {
+          __celebrationInFlight.add(updated.stade);
           pendingStadeCelebration = {
             from_stade: spawter.stade,
             to_stade: updated.stade,
             unique_spots: uniqueSpots,
           };
         }
-        // Story 5.2 — append titre du nouveau stade dans la collection (idempotent).
-        void get()
-          .unlockTitle(STADE_TITLE_KEYS[updated.stade], "stade")
-          .catch((err) => {
-            if (__DEV__) console.warn("[spawter-store] unlockTitle stade failed", err);
-          });
+        // CR finding M8 — Story 5.2 — unlock TOUS les titres intermédiaires entre
+        // l'ancien stade et le nouveau (cas saut multi-stade : touriste → detective
+        // doit unlock `title.explorateur` ET `title.detective`).
+        const titlesToUnlock = stadeTitleKeysBetween(spawter.stade, updated.stade);
+        for (const titleKey of titlesToUnlock) {
+          void get()
+            .unlockTitle(titleKey, "stade")
+            .catch((err) => {
+              if (__DEV__) console.warn("[spawter-store] unlockTitle stade failed", err);
+            });
+        }
       }
 
-      // Story 5.1 — Sync `spawter_progression` (overwrite) fire-and-forget.
+      // Story 5.1 + CR finding D4 — Sync `spawter_progression` (overwrite) fire-and-forget.
+      // current_title = titre affiché user-choisi s'il existe (préserve le choix au
+      // franchissement de stade), sinon défaut du nouveau stade.
+      const displayed = get().collectionTitres.find((r) => r.is_displayed);
+      const currentTitleForSync = displayed?.title_key ?? STADE_TITLE_KEYS[updated.stade];
       void upsertProgression({
         spawter_id: updated.id,
         unique_spots: uniqueSpots,
         stade: updated.stade,
-        current_title: STADE_TITLE_KEYS[updated.stade],
+        current_title: currentTitleForSync,
         updated_at: updated.updated_at,
       }).catch((err) => {
         if (__DEV__) console.warn("[spawter-store] upsertProgression failed", err);
@@ -603,12 +669,22 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       collectionTitres: [],
       pendingStadeCelebration: null,
     });
-    // Privacy : purger le cache AsyncStorage des favoris pour qu'un user suivant
-    // sur le même device n'hérite pas des spots sauvegardés. Les autres clés
-    // (spawter, palais, spawts, consent) restent gérées par leurs propres flux.
-    void AsyncStorage.removeItem("spawt:saved_places").catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] reset saved_places clear failed", err);
+    // Privacy V1 — CR finding M2 : purger TOUS les caches AsyncStorage qui
+    // gardent une trace d'identité utilisateur (fuite cross-user sur même device).
+    // Les autres clés (spawter, palais, spawts, consent) sont écrasées par leurs
+    // propres flux au prochain onboarding.
+    const keysToPurge = [
+      "spawt:saved_places",
+      "spawt:collection_titres",
+      BADGE_CELEBRATED_KEY,
+      ...STADE_ORDER.map((s) => `${STADE_CELEBRATED_KEY}:${s}`),
+    ];
+    void AsyncStorage.multiRemove(keysToPurge).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] reset multiRemove failed", err);
     });
+    // CR finding M7 — vide aussi le guard in-flight pour que le prochain user
+    // puisse célébrer chaque stade comme un nouveau parcours.
+    __celebrationInFlight.clear();
   },
 }));
 

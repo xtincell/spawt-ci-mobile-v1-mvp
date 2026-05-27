@@ -3,10 +3,11 @@
 // Reanimated 4 useSharedValue + interpolate rotateY (UI thread, 60 FPS).
 // Pas de gamification — identité avant utilité.
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolate,
   useAnimatedStyle,
@@ -62,15 +63,37 @@ export function SpawterCard({
     });
   }, [flipProgress]);
 
+  // CR finding m2 — cleanup au unmount pour éviter "writing to shared value of
+  // unmounted component" si navigation rapide pendant mid-flip.
+  useEffect(
+    () => () => {
+      cancelAnimation(flipProgress);
+    },
+    [flipProgress],
+  );
+
+  // CR finding M5 — `backfaceVisibility: 'hidden'` n'agit qu'avec un contexte 3D :
+  // `perspective` doit être posé en tête du `transform` pour que la rotation Y
+  // donne un effet de tranche au lieu d'un flip-flop binaire à 0.5.
+  // Le `perspective: 1000` est une valeur fréquemment utilisée pour les cards
+  // 3D — cohérent avec le ratio aspectRatio 0.7 du Pressable parent.
   const rectoStyle = useAnimatedStyle(() => {
     const rotateY = `${interpolate(flipProgress.value, [0, 1], [0, 180])}deg`;
     const opacity = flipProgress.value < 0.5 ? 1 : 0;
-    return { transform: [{ rotateY }], opacity, backfaceVisibility: "hidden" };
+    return {
+      transform: [{ perspective: 1000 }, { rotateY }],
+      opacity,
+      backfaceVisibility: "hidden",
+    };
   });
   const versoStyle = useAnimatedStyle(() => {
     const rotateY = `${interpolate(flipProgress.value, [0, 1], [180, 360])}deg`;
     const opacity = flipProgress.value > 0.5 ? 1 : 0;
-    return { transform: [{ rotateY }], opacity, backfaceVisibility: "hidden" };
+    return {
+      transform: [{ perspective: 1000 }, { rotateY }],
+      opacity,
+      backfaceVisibility: "hidden",
+    };
   });
 
   const adnReady = palais.confidence_score >= 0.3;
@@ -120,7 +143,9 @@ export function SpawterCard({
                   color: theme.colors.text.onBrand,
                 }}
               >
-                {(spawter.display_name?.charAt(0) ?? "S").toUpperCase()}
+                {/* CR finding m1 — trim + fallback explicite "S" pour bloquer
+                    le cas display_name vide (DB default ""), sinon avatar lettre vide. */}
+                {(spawter.display_name?.trim().charAt(0) || "S").toUpperCase()}
               </Text>
             </View>
             <Text
@@ -209,6 +234,14 @@ function StatBlock({
   );
 }
 
+/**
+ * CR finding D2 — Vrai gate Gold sur le Palais (PRD §3.1 FR-008 + epics.md L1113).
+ * Free spawter : 2 axes fondamentaux affichés en barres horizontales lisibles
+ * (racines/horizons + tanière/nomade — les axes d'identité culinaire de base).
+ * Gold spawter : radar 5 axes complet via AxisRadar.
+ * Sous-construction (confidence < 0.3) : radar "En construction" même free
+ * (cohérent UX, on ne floute pas un Palais déjà non-fiable).
+ */
 function PalaisRadarGated({
   palais,
   visibleAxesCount,
@@ -220,8 +253,11 @@ function PalaisRadarGated({
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  return (
-    <>
+
+  // Cas 1 — Palais en construction : radar dim "En construction" pour tous,
+  // pas de gate Gold (on ne cache pas un Palais déjà invisible).
+  if (underConstruction) {
+    return (
       <AxisRadar
         axes={[
           { value: palais.axe_racines_horizons, negLabel: t("axis.racines"), posLabel: t("axis.horizons") },
@@ -231,23 +267,131 @@ function PalaisRadarGated({
           { value: palais.axe_maquis_table, negLabel: t("axis.maquis"), posLabel: t("axis.table") },
         ]}
         size={220}
-        underConstruction={underConstruction}
+        underConstruction
         underConstructionLabel={t("palais.underConstruction")}
       />
-      {visibleAxesCount === 2 && !underConstruction ? (
+    );
+  }
+
+  // Cas 2 — Gold : radar 5 axes plein, accès complet.
+  if (visibleAxesCount === 5) {
+    return (
+      <AxisRadar
+        axes={[
+          { value: palais.axe_racines_horizons, negLabel: t("axis.racines"), posLabel: t("axis.horizons") },
+          { value: palais.axe_taniere_nomade, negLabel: t("axis.taniere"), posLabel: t("axis.nomade") },
+          { value: palais.axe_exigeant_enthousiaste, negLabel: t("axis.exigeant"), posLabel: t("axis.enthousiaste") },
+          { value: palais.axe_foule_secret, negLabel: t("axis.foule"), posLabel: t("axis.secret") },
+          { value: palais.axe_maquis_table, negLabel: t("axis.maquis"), posLabel: t("axis.table") },
+        ]}
+        size={220}
+        underConstruction={false}
+        underConstructionLabel={t("palais.underConstruction")}
+      />
+    );
+  }
+
+  // Cas 3 — Free : 2 axes fondamentaux en barres horizontales + teaser Gold
+  // pour les 3 axes restants. Honnête vs PRD : on cache vraiment ce qui n'est
+  // pas accessible (anti-mensonge), au lieu d'afficher un radar 5 axes complet.
+  return (
+    <View style={{ width: "100%", paddingHorizontal: theme.spacing.lg }}>
+      <AxisBar
+        value={palais.axe_racines_horizons}
+        negLabel={t("axis.racines")}
+        posLabel={t("axis.horizons")}
+      />
+      <View style={{ height: theme.spacing.lg }} />
+      <AxisBar
+        value={palais.axe_taniere_nomade}
+        negLabel={t("axis.taniere")}
+        posLabel={t("axis.nomade")}
+      />
+      <Text
+        style={{
+          marginTop: theme.spacing.xl,
+          ...theme.typography.preset.small,
+          color: theme.colors.text.tertiary,
+          textAlign: "center",
+          fontStyle: "italic",
+          opacity: 0.8,
+        }}
+      >
+        {t("profile.palais_gold_teaser")}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Barre horizontale -1..+1 avec label des deux pôles et marqueur central.
+ * Honnête remplacement du radar quand seul 1 axe est exposé (gate free V1).
+ */
+function AxisBar({
+  value,
+  negLabel,
+  posLabel,
+}: {
+  value: number;
+  negLabel: string;
+  posLabel: string;
+}) {
+  const theme = useTheme();
+  // value ∈ [-1, +1] → position en % depuis la gauche (0% = -1, 100% = +1).
+  const clamped = Math.max(-1, Math.min(1, value));
+  const positionPercent = ((clamped + 1) / 2) * 100;
+  return (
+    <View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
         <Text
           style={{
-            marginTop: theme.spacing.base,
-            ...theme.typography.preset.small,
-            color: theme.colors.text.tertiary,
-            textAlign: "center",
-            fontStyle: "italic",
-            opacity: 0.8,
+            ...theme.typography.preset.overline,
+            color: theme.colors.text.secondary,
           }}
         >
-          {t("profile.palais_gold_teaser")}
+          {negLabel}
         </Text>
-      ) : null}
-    </>
+        <Text
+          style={{
+            ...theme.typography.preset.overline,
+            color: theme.colors.text.secondary,
+          }}
+        >
+          {posLabel}
+        </Text>
+      </View>
+      <View
+        style={{
+          height: 6,
+          backgroundColor: theme.colors.border.subtle,
+          borderRadius: 3,
+          position: "relative",
+        }}
+      >
+        <View
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: -2,
+            width: 1,
+            height: 10,
+            backgroundColor: theme.colors.text.tertiary,
+            opacity: 0.5,
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            left: `${positionPercent}%`,
+            top: -4,
+            marginLeft: -7,
+            width: 14,
+            height: 14,
+            borderRadius: 7,
+            backgroundColor: theme.colors.brand.primary,
+          }}
+        />
+      </View>
+    </View>
   );
 }

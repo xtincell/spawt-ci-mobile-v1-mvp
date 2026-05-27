@@ -410,6 +410,8 @@
     "collection_title": "TES TITRES",
     "collection_empty": "Tes titres apparaîtront ici à chaque évolution.",
     "title_select_aria": "Afficher le titre {{title}}",
+    "title_default_label": "Titre par défaut",
+    "title_default_aria": "Revenir au titre par défaut du stade actuel",
     "palais_gold_teaser": "+3 axes débloqués avec Spawter Gold (bientôt)",
     "link_saved": "Mes favoris",
     "link_spawts": "Mes spawts",

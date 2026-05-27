@@ -239,6 +239,32 @@ function ReviewCard({
             {truncated}
           </Text>
         ) : null}
+        {review.photos.length > 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              gap: theme.spacing.xs,
+              marginTop: theme.spacing.sm,
+            }}
+          >
+            {review.photos.slice(0, 3).map((url, idx) => (
+              <Image
+                key={`${review.id}-photo-${idx}`}
+                source={{ uri: url }}
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.colors.surface.subtle,
+                }}
+                accessibilityIgnoresInvertColors
+                accessibilityLabel={t("place.review_photo_alt", {
+                  defaultValue: "Photo d'avis",
+                })}
+              />
+            ))}
+          </View>
+        ) : null}
       </View>
     </View>
   );

@@ -85,6 +85,10 @@ async function spawtN(n: number, startId = 0): Promise<void> {
 
 beforeEach(() => {
   mockStorage.clear();
+  // CR M7 — reset() clear le Set __celebrationInFlight module-level pour que
+  // chaque test reparte d'un état propre (sinon une célébration set par un test
+  // précédent reste in-flight et le test courant skip son propre celebration).
+  useSpawterStore.getState().reset();
   useSpawterStore.setState({
     hydrating: false,
     spawter: { ...SAMPLE_SPAWTER, total_spawts: 0, unique_spots: 0, stade: "touriste" },

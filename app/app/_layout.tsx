@@ -12,7 +12,10 @@ import { useAppFonts } from "../src/theme/useAppFonts";
 import { useSpawterStore } from "../src/store/spawter-store";
 import { flushPendingSignals } from "../src/lib/analytics";
 import { isSupabaseConfigured } from "../src/lib/data-source";
-import { maybeDevAutologin } from "../src/lib/dev-autologin";
+// CR finding M1 — import dynamique gated __DEV__ pour que le module + ses
+// credentials env vars NE soient PAS bundlés en prod. Le gate runtime interne
+// à maybeDevAutologin ne suffit pas : le `import` statique embarque le code
+// dans le bundle JS livré au spawter.
 // Story 4.1 — import side-effect : enregistre `TaskManager.defineTask` au
 // niveau module (invariant OS-kill Tecno/Infinix). Doit être importé une
 // seule fois au Root, avant tout mount des écrans.
@@ -67,8 +70,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     void (async () => {
-      // __DEV__ : tentative d'autologin avant hydrate, pour court-circuiter OTP Termii.
-      await maybeDevAutologin();
+      // CR finding M1 — gate __DEV__ AVANT l'import dynamique : le bundler
+      // Metro tree-shake l'import si la condition est statiquement falsy en prod.
+      if (__DEV__) {
+        const { maybeDevAutologin } = await import("../src/lib/dev-autologin");
+        await maybeDevAutologin();
+      }
       await hydrate();
     })();
   }, [hydrate]);
@@ -98,6 +105,11 @@ export default function RootLayout() {
   const consumePendingStadeCelebration = useSpawterStore(
     (s) => s.consumePendingStadeCelebration,
   );
+
+  // CR finding M9 — gate les overlays sur !hydrating pour empêcher leur mount
+  // pré-hydrate (sinon unlockTitle dans consumePendingBadge serait no-op à cause
+  // de `spawter === null` et le badge serait perdu à jamais).
+  const hydrating = useSpawterStore((s) => s.hydrating);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -160,14 +172,14 @@ export default function RootLayout() {
             />
           </Stack>
           <BadgePremierSpawt
-            visible={pendingBadge !== null}
+            visible={!hydrating && pendingBadge !== null}
             place_name={pendingBadge?.place_name}
             onDismiss={() => {
               void consumePendingBadge();
             }}
           />
           <StadeCelebration
-            visible={pendingStadeCelebration !== null}
+            visible={!hydrating && pendingStadeCelebration !== null}
             from_stade={pendingStadeCelebration?.from_stade}
             to_stade={pendingStadeCelebration?.to_stade}
             unique_spots={pendingStadeCelebration?.unique_spots}

@@ -37,3 +37,29 @@ export function isKnownTitleKey(key: string): boolean {
 export function defaultTitleKeyForStade(stade: Stade): string {
   return STADE_TITLE_KEYS[stade];
 }
+
+/** Ordre canonique des stades (PRD §5.2). Source unique pour les boucles
+ *  "stades entre X et Y" (Story 5.2 M8 — unlock intermédiaires sur saut). */
+export const STADE_ORDER: readonly Stade[] = [
+  "touriste",
+  "explorateur",
+  "detective",
+  "djidji",
+  "guide",
+] as const;
+
+/** Retourne les clés des titres de stades **strictement entre** prev et next
+ *  (next inclus, prev exclu). Si prev === next, retourne []. Garantit qu'un
+ *  user qui saute touriste → detective récupère bien `title.explorateur` +
+ *  `title.detective` dans sa collection. */
+export function stadeTitleKeysBetween(prev: Stade, next: Stade): string[] {
+  const prevIdx = STADE_ORDER.indexOf(prev);
+  const nextIdx = STADE_ORDER.indexOf(next);
+  if (prevIdx < 0 || nextIdx < 0 || nextIdx <= prevIdx) return [];
+  const out: string[] = [];
+  for (let i = prevIdx + 1; i <= nextIdx; i++) {
+    const s = STADE_ORDER[i];
+    if (s) out.push(STADE_TITLE_KEYS[s]);
+  }
+  return out;
+}
