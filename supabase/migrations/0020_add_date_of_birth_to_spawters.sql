@@ -24,5 +24,4 @@ ALTER TABLE spawters
 CREATE INDEX IF NOT EXISTS idx_spawters_dob ON spawters(date_of_birth);
 
 COMMENT ON COLUMN spawters.date_of_birth IS
-  'Date de naissance précise (Story 4.8). Nullable pour back-compat rows pré-4.8. ' ||
-  'Jamais émis dans analytics (PII brute). KPI funnel utilise age_range dérivé.';
+  'Date de naissance précise (Story 4.8). Nullable pour back-compat rows pré-4.8. Jamais émis dans analytics (PII brute). KPI funnel utilise age_range dérivé.';
