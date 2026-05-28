@@ -1,0 +1,90 @@
+name: EAS Build (preview APK)
+
+# Build natif APK depuis un runner GitHub — upstream datacenter rapide et
+# stable, contourne la connexion locale qui coupe (ECONNRESET) à l'upload du
+# tarball vers EAS. Produit un .apk sideloadable pour l'alpha Android.
+#
+# Pré-requis (one-time, côté repo GitHub) :
+#   Settings > Secrets and variables > Actions > New repository secret
+#     EXPO_TOKEN = <token expo.dev/accounts/xtincell/settings/access-tokens>
+#
+# Le keystore Android est managé côté EAS (Build Credentials existantes) —
+# aucun secret de signature n'est passé ni stocké ici.
+#
+# Le tarball uploadé est réduit par .easignore (repo root) à ~app/ uniquement.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Plateforme cible"
+        required: true
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      profile:
+        description: "Profil EAS (eas.json)"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - development
+          - production
+
+concurrency:
+  group: eas-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ inputs.profile }} (${{ inputs.platform }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # ── Triple gate (garde-fou bloquant avant tout build distribué) ───────
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Vocab audit (lint:vocab)
+        run: npm run lint:vocab
+
+      - name: i18n check
+        run: npm run i18n:check
+
+      - name: Tests (jest)
+        run: npm test -- --ci
+
+      # ── Auth EAS + build natif ────────────────────────────────────────────
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build APK
+        # Pas de --no-wait : on attend la fin pour que l'URL de l'artefact .apk
+        # apparaisse dans les logs du job (pratique pour récupérer le lien).
+        run: >-
+          eas build
+          --profile ${{ inputs.profile }}
+          --platform ${{ inputs.platform }}
+          --non-interactive
