@@ -5,8 +5,21 @@
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("../", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1");
+// fileURLToPath gère drive letter Windows + décodage %20 (espaces). L'ancienne
+// version laissait %20 non-décodé → ROOT inexistant sur Windows → no-op silencieux.
+const ROOT = fileURLToPath(new URL("../", import.meta.url));
+
+// Strip commentaires (// pleine ligne + blocs /* */), préserve les numéros de
+// ligne. Évite de flaguer des strings FR citées dans des commentaires.
+function stripComments(src) {
+  const noBlocks = src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+  return noBlocks
+    .split("\n")
+    .map((line) => (/^\s*\/\//.test(line) ? "" : line))
+    .join("\n");
+}
 
 const SCAN_DIRS = ["src/components", "app"];
 const EXTENSIONS = new Set([".tsx"]);
@@ -32,10 +45,14 @@ function walk(dir) {
 }
 
 function checkFile(path) {
-  const content = readFileSync(path, "utf8");
-  const relPath = path.replace(ROOT, "");
+  const content = stripComments(readFileSync(path, "utf8"));
+  // Normalise les séparateurs (\ Windows → /) — comportement identique CI Linux.
+  const relPath = path.replace(ROOT, "").replace(/\\/g, "/");
   // Skip files that are i18n setup themselves
   if (relPath.includes("i18n/")) return;
+  // Skip les fichiers de test : leurs fixtures FR sont des données de test
+  // légitimes (assertions sur le rendu), pas de la copy UI à extraire.
+  if (relPath.includes("__tests__/") || /\.(test|spec)\.tsx?$/.test(relPath)) return;
 
   FRENCH_LITERAL.lastIndex = 0;
   let match;

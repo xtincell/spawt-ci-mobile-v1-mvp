@@ -28,7 +28,7 @@ export const ADN_AXIS_LABELS: Record<AdnAxis, AdnAxisLabels> = {
     axis: "informel_etabli",
     negativePole: "Informel",
     positivePole: "Établi",
-    measures: "Maquis de rue vs restaurant structuré",
+    measures: "Maquis de rue vs établissement structuré",
   },
   budget_premium: {
     axis: "budget_premium",

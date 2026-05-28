@@ -79,11 +79,8 @@ export default function ReviewScreen() {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (perm.status !== "granted") {
         Alert.alert(
-          t("review.permission_title", { defaultValue: "Permission requise" }),
-          t("review.permission_body", {
-            defaultValue:
-              "Pour ajouter une photo, autorise l'accès à ta galerie.",
-          }),
+          t("review.permission_title"),
+          t("review.permission_body"),
         );
         return;
       }
@@ -208,7 +205,7 @@ export default function ReviewScreen() {
             marginBottom: theme.spacing.sm,
           }}
         >
-          {t("review.section_note", { defaultValue: "Ta note" })}
+          {t("review.section_note")}
         </Text>
         <View
           style={{
@@ -246,7 +243,7 @@ export default function ReviewScreen() {
             marginBottom: theme.spacing.sm,
           }}
         >
-          {t("review.section_tags", { defaultValue: "Mots-clés" })}
+          {t("review.section_tags")}
         </Text>
         <View
           style={{
@@ -275,7 +272,7 @@ export default function ReviewScreen() {
             marginBottom: theme.spacing.sm,
           }}
         >
-          {t("review.section_text", { defaultValue: "Ton mot" })}
+          {t("review.section_text")}
         </Text>
         <TextInput
           multiline

@@ -5,8 +5,23 @@
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("../", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1");
+// fileURLToPath gère drive letter Windows + décodage %20 (espaces dans le
+// chemin). L'ancienne version (.pathname + regex) laissait %20 non-décodé →
+// ROOT inexistant sur Windows → walk() ENOENT avalé → linter no-op silencieux.
+const ROOT = fileURLToPath(new URL("../", import.meta.url));
+
+// Strip les commentaires (// pleine ligne + blocs /* */) en préservant les
+// numéros de ligne. Un linter de vocab PRODUIT ne doit pas flaguer la
+// documentation interne qui nomme les règles interdites (ex: "pas de leaderboard").
+function stripComments(src) {
+  const noBlocks = src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+  return noBlocks
+    .split("\n")
+    .map((line) => (/^\s*\/\//.test(line) ? "" : line))
+    .join("\n");
+}
 
 const SCAN_DIRS = ["src", "app"];
 const EXTENSIONS = new Set([".ts", ".tsx"]);
@@ -55,8 +70,10 @@ function walk(dir) {
 }
 
 function checkFile(path) {
-  const content = readFileSync(path, "utf8");
-  const relPath = path.replace(ROOT, "");
+  const content = stripComments(readFileSync(path, "utf8"));
+  // Normalise les séparateurs (\ Windows → /) pour que les allowFiles et le
+  // comportement soient identiques local Windows et CI Linux.
+  const relPath = path.replace(ROOT, "").replace(/\\/g, "/");
   for (const rule of FORBIDDEN) {
     if (rule.allowFiles.some((a) => relPath.includes(a))) continue;
     rule.pattern.lastIndex = 0;

@@ -216,13 +216,11 @@ export default function SpawterTabScreen() {
           }}
           accessibilityRole="header"
         >
-          {t("fab.nearby_title", { defaultValue: "Tu es près de…" })}
+          {t("fab.nearby_title")}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t("fab.nearby_close_label", {
-            defaultValue: "Fermer",
-          })}
+          accessibilityLabel={t("fab.nearby_close_label")}
           onPress={() => router.back()}
           hitSlop={12}
           testID="spawter-tab-close"
@@ -250,9 +248,7 @@ export default function SpawterTabScreen() {
                 color: theme.colors.text.secondary,
               }}
             >
-              {t("fab.nearby_loading", {
-                defaultValue: "Localisation en cours…",
-              })}
+              {t("fab.nearby_loading")}
             </Text>
           </View>
         ) : null}
@@ -270,10 +266,7 @@ export default function SpawterTabScreen() {
                 marginBottom: theme.spacing.lg,
               }}
             >
-              {t("fab.nearby_perm_required", {
-                defaultValue:
-                  "Active la géoloc dans tes paramètres pour spawter depuis ici.",
-              })}
+              {t("fab.nearby_perm_required")}
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -296,9 +289,7 @@ export default function SpawterTabScreen() {
                   color: theme.colors.text.onBrand,
                 }}
               >
-                {t("fab.nearby_perm_open_settings", {
-                  defaultValue: "Ouvrir les réglages",
-                })}
+                {t("fab.nearby_perm_open_settings")}
               </Text>
             </Pressable>
           </View>
@@ -316,10 +307,7 @@ export default function SpawterTabScreen() {
                 textAlign: "center",
               }}
             >
-              {t("fab.nearby_empty", {
-                defaultValue:
-                  "Aucun lieu connu dans les 500 m. Élargis ta recherche.",
-              })}
+              {t("fab.nearby_empty")}
             </Text>
           </View>
         ) : null}
@@ -437,9 +425,7 @@ function NearbyCard({ item, onSpawt }: NearbyCardProps) {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t("fab.nearby_cta_spawt", {
-            defaultValue: "Spawter ici",
-          })}
+          accessibilityLabel={t("fab.nearby_cta_spawt")}
           testID={`spawter-tab-cta-${place.id}`}
           onPress={onSpawt}
           style={{
@@ -459,7 +445,7 @@ function NearbyCard({ item, onSpawt }: NearbyCardProps) {
               color: theme.colors.text.inverse,
             }}
           >
-            {t("fab.nearby_cta_spawt", { defaultValue: "Spawter ici" })}
+            {t("fab.nearby_cta_spawt")}
           </Text>
         </Pressable>
       </View>

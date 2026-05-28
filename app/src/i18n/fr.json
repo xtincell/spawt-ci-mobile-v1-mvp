@@ -72,7 +72,12 @@
     "cta_save": "Enregistrer mon avis",
     "cta_later": "Plus tard",
     "photo_add": "Ajouter une photo",
-    "submit_success_toast": "Ton avis a renforcé l'ADN de {{place_name}}."
+    "submit_success_toast": "Ton avis a renforcé l'ADN de {{place_name}}.",
+    "permission_title": "Permission requise",
+    "permission_body": "Pour ajouter une photo, autorise l'accès à ta galerie.",
+    "section_note": "Ta note",
+    "section_tags": "Mots-clés",
+    "section_text": "Ton mot"
   },
   "offline_queue": {
     "title": "En attente de synchronisation",
