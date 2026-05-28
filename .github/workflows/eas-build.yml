@@ -34,6 +34,13 @@ on:
           - preview
           - development
           - production
+  # Trigger par tag : pousser un tag `build-android-*` lance un build preview
+  # Android depuis la CI, SANS dépendre de la branche par défaut (workflow_dispatch
+  # exige la branche par défaut ; un push de tag exécute le workflow présent sur
+  # le commit taggé). Pratique pour builder depuis une branche feature.
+  push:
+    tags:
+      - "build-android-*"
 
 concurrency:
   group: eas-build-${{ github.ref }}
@@ -41,7 +48,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build ${{ inputs.profile }} (${{ inputs.platform }})
+    name: Build ${{ github.event.inputs.profile || 'preview' }} (${{ github.event.inputs.platform || 'android' }})
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -83,8 +90,9 @@ jobs:
       - name: Build APK
         # Pas de --no-wait : on attend la fin pour que l'URL de l'artefact .apk
         # apparaisse dans les logs du job (pratique pour récupérer le lien).
+        # Fallbacks android/preview pour le trigger par tag (pas d'inputs).
         run: >-
           eas build
-          --profile ${{ inputs.profile }}
-          --platform ${{ inputs.platform }}
+          --profile ${{ github.event.inputs.profile || 'preview' }}
+          --platform ${{ github.event.inputs.platform || 'android' }}
           --non-interactive
