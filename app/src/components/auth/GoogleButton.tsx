@@ -64,7 +64,17 @@ function generateSecureNonce(): string | null {
 export function GoogleButton({ onError }: Props) {
   // Mode démo (pas de Supabase) : pas d'auth possible → ne pas mount le hook
   // `Google.useAuthRequest` qui throw sans clientId configuré.
-  if (!isSupabaseConfigured) return null;
+  //
+  // FIX 2026-06-01 — crash post-consent observé en preview : un build où
+  // EXPO_PUBLIC_SUPABASE_URL était set mais où AUCUN EXPO_PUBLIC_GOOGLE_*_CLIENT_ID
+  // ne l'était passait l'ancienne garde et atteignait `Google.useAuthRequest({})`,
+  // qui throw → mount PhoneScreen plante. On élargit la garde aux clientIds Google.
+  const hasAnyGoogleClientId = Boolean(
+    readClientId("googleClientId") ||
+      readClientId("googleIosClientId") ||
+      readClientId("googleAndroidClientId"),
+  );
+  if (!isSupabaseConfigured || !hasAnyGoogleClientId) return null;
 
   const { t } = useTranslation();
   const theme = useTheme();
