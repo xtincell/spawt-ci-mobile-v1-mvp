@@ -238,6 +238,7 @@ claude-opus-4-8[1m] (Opus 4.8, 1M context) — dev-story workflow.
 - Triple gate conjointe (lot v2, avec 4.12) : `tsc --noEmit` exit 0 · `lint:vocab` ✓ · `i18n:check` ✓ · `jest` **353 passed / 4 skipped / 0 failed** (exit 0, +5 tests : BuildBadge 2 + releases 3).
 - `expo-application@55.0.15` déjà présent en transitif → ajouté à `package.json` (résolution immédiate, pas de `npm install` réseau requis).
 - `expo-clipboard` absent → copie via `Share.share` (déjà utilisé Story 3.7), pas de dépendance ajoutée.
+- **CORRECTION post-build (AC #1 erroné)** : ajouter `expo-application` au tableau `plugins` d'`app.json` **casse `expo config --json`** (le module n'a PAS de config plugin) → 1er build CI `build-android-2026-06-03-3` échoué à l'étape `eas build` (`expo/bin/cli config --json exited with non-zero code: 1`). Fix : `expo-application` retiré de `plugins`, gardé en **dépendance seule** (autolinké — l'API `Application.nativeBuildVersion` fonctionne sans entrée plugin). Vérifié : `npx expo config --json` exit 0. Build relancé sur le commit de fix.
 
 ### Completion Notes List
 
