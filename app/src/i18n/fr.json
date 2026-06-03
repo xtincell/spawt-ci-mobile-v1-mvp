@@ -425,7 +425,10 @@
     "link_spawts_stub": "Cet écran arrive au prochain sprint.",
     "link_avis_stub": "Cet écran arrive au prochain sprint.",
     "link_settings_stub": "Cet écran arrive au prochain sprint.",
-    "reset_demo": "Réinitialiser le compte (mode démo)"
+    "reset_demo": "Réinitialiser le compte (mode démo)",
+    "about_title": "À propos",
+    "build_format": "v{{version}} — build {{n}} ({{date}})",
+    "build_copied": "Touche pour copier le build dans un bug report"
   },
   "celebration": {
     "cta": "Continuer",
@@ -485,7 +488,17 @@
     "heart_hint": "Sauvegarde pour plus tard",
     "heart_active": "Sauvegardé",
     "founder_review_badge": "✨ Avis fondateur",
-    "coup_de_coeur_chip": "❤️ Coup de Cœur"
+    "coup_de_coeur_chip": "❤️ Coup de Cœur",
+    "reviews_all_title": "Tous les avis",
+    "gallery_title": "Photos",
+    "map_open_aria": "Ouvrir dans Maps",
+    "day_mon": "Lun",
+    "day_tue": "Mar",
+    "day_wed": "Mer",
+    "day_thu": "Jeu",
+    "day_fri": "Ven",
+    "day_sat": "Sam",
+    "day_sun": "Dim"
   },
   "list": {
     "remove_from_saved_aria": "Retirer ce spawt des favoris",

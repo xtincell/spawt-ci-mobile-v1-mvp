@@ -1,30 +1,22 @@
 // Story 4.9 — Section "Ce qu'en dit la bande" sur la fiche lieu.
+// Story 4.12 — AC #4 : lien « Voir tous les avis (N) » → écran dédié quand le
+// total réel dépasse les 5 affichés. Le rendu d'avis est partagé via ReviewCard.
 //
-// Affiche jusqu'à 5 avis spawters (incl. seeds badge « Avis fondateur »)
-// avec avatar + display_name + Stars + texte tronqué à 140 chars.
+// Affiche jusqu'à 5 avis spawters (incl. seeds badge « Avis fondateur »).
+// Fetch lazy au mount : `listReviewsForPlace(placeId, 5)` + `countReviewsForPlace`
+// en parallèle. Flag `cancelled` pour éviter une race si l'utilisateur quitte la
+// fiche avant le retour.
 //
-// Fetch lazy via `listReviewsForPlace(placeId, 5)` au mount, AbortController
-// pour éviter une race si l'utilisateur quitte la fiche avant le retour.
-// Pas de pagination V1 — le bouton « Voir tous les avis » est non-fonctionnel
-// (defer Sprint 2, screen full avis).
-//
-// Anti-patterns assumés (Dev Notes §5) : pas de like counter, pas de
-// leaderboard reviewers, pas de placeholder image — fallback initiales sur
-// cercle `brand.primary` (pattern SpawterCard Story 5.3).
+// Anti-patterns assumés : pas de like counter, pas de leaderboard reviewers.
 
 import { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { useTheme, type Theme } from "../theme/ThemeProvider";
-import { Stars } from "./primitives/Stars";
+import { useTheme } from "../theme/ThemeProvider";
+import { ReviewCard } from "./ReviewCard";
 import {
+  countReviewsForPlace,
   listReviewsForPlace,
   type PlaceReview,
 } from "../lib/data-source";
@@ -35,16 +27,18 @@ interface Props {
   limit?: number;
   /** Injection pour tests — bypass le data-source réel. */
   fetcher?: (placeId: string, limit: number) => Promise<PlaceReview[]>;
+  /** Injection pour tests — compte total des avis. */
+  counter?: (placeId: string) => Promise<number>;
+  /** Navigation « Voir tous les avis » (fiche → route reviews). */
+  onSeeAll?: () => void;
 }
-
-const TEXTE_TRUNCATE_AT = 140;
 
 type FetchState =
   | { kind: "loading" }
-  | { kind: "loaded"; reviews: PlaceReview[] }
+  | { kind: "loaded"; reviews: PlaceReview[]; total: number }
   | { kind: "error" };
 
-export function PlaceReviews({ placeId, limit = 5, fetcher }: Props) {
+export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [state, setState] = useState<FetchState>({ kind: "loading" });
@@ -55,17 +49,15 @@ export function PlaceReviews({ placeId, limit = 5, fetcher }: Props) {
   useEffect(() => {
     placeIdRef.current = placeId;
     let cancelled = false;
-    // AbortController : la fonction fetcher actuelle n'accepte pas de signal
-    // mais on bloque le setState post-unmount via flag — suffisant pour V1
-    // (1 round-trip court). Si Supabase SDK expose signal-aware en v3, on
-    // pourra propager.
     setState({ kind: "loading" });
 
-    const fetch = fetcher ?? listReviewsForPlace;
-    void fetch(placeId, limit)
-      .then((reviews) => {
+    const fetchReviews = fetcher ?? listReviewsForPlace;
+    const fetchCount = counter ?? countReviewsForPlace;
+
+    void Promise.all([fetchReviews(placeId, limit), fetchCount(placeId)])
+      .then(([reviews, total]) => {
         if (cancelled || placeIdRef.current !== placeId) return;
-        setState({ kind: "loaded", reviews });
+        setState({ kind: "loaded", reviews, total });
       })
       .catch((err: unknown) => {
         if (cancelled || placeIdRef.current !== placeId) return;
@@ -76,7 +68,7 @@ export function PlaceReviews({ placeId, limit = 5, fetcher }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [placeId, limit, fetcher]);
+  }, [placeId, limit, fetcher, counter]);
 
   return (
     <View
@@ -138,14 +130,15 @@ export function PlaceReviews({ placeId, limit = 5, fetcher }: Props) {
           {state.reviews.map((review) => (
             <ReviewCard key={review.id} review={review} theme={theme} />
           ))}
-          {state.reviews.length >= limit ? (
+          {/* AC #4 — bouton visible seulement si le total dépasse les avis
+              affichés (count > 5). Le label porte le VRAI N. */}
+          {state.total > state.reviews.length ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("place.reviews_see_all", {
-                count: state.reviews.length,
+                count: state.total,
               })}
-              // Non-fonctionnel V1 — defer Sprint 2 screen reviews full.
-              onPress={undefined}
+              onPress={onSeeAll}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.7 : 1,
                 paddingVertical: theme.spacing.sm,
@@ -158,167 +151,12 @@ export function PlaceReviews({ placeId, limit = 5, fetcher }: Props) {
                   textAlign: "center",
                 }}
               >
-                {t("place.reviews_see_all", { count: state.reviews.length })}
+                {t("place.reviews_see_all", { count: state.total })}
               </Text>
             </Pressable>
           ) : null}
         </View>
       ) : null}
-    </View>
-  );
-}
-
-function ReviewCard({
-  review,
-  theme,
-}: {
-  review: PlaceReview;
-  theme: Theme;
-}) {
-  const { t } = useTranslation();
-  const truncated =
-    review.texte_avis !== null && review.texte_avis.length > TEXTE_TRUNCATE_AT
-      ? `${review.texte_avis.slice(0, TEXTE_TRUNCATE_AT).trimEnd()}…`
-      : review.texte_avis;
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        gap: theme.spacing.sm,
-        paddingVertical: theme.spacing.sm,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.border.subtle,
-      }}
-    >
-      <Avatar
-        name={review.spawter_display_name}
-        url={review.spawter_avatar_url}
-        theme={theme}
-      />
-      <View style={{ flex: 1 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: theme.spacing.xs,
-            marginBottom: 2,
-          }}
-        >
-          <Text
-            style={{
-              ...theme.typography.preset.body,
-              color: theme.colors.text.primary,
-              fontWeight: "600",
-            }}
-          >
-            {review.spawter_display_name}
-          </Text>
-          {review.is_seed ? (
-            <Text
-              style={{
-                ...theme.typography.preset.overline,
-                color: theme.colors.brand.primary,
-              }}
-              accessibilityLabel={t("place.founder_review_badge")}
-            >
-              {t("place.founder_review_badge")}
-            </Text>
-          ) : null}
-        </View>
-        <Stars value={review.note_etoiles} size="sm" />
-        {truncated !== null ? (
-          <Text
-            style={{
-              ...theme.typography.preset.small,
-              color: theme.colors.text.secondary,
-              marginTop: 4,
-            }}
-          >
-            {truncated}
-          </Text>
-        ) : null}
-        {review.photos.length > 0 ? (
-          <View
-            style={{
-              flexDirection: "row",
-              gap: theme.spacing.xs,
-              marginTop: theme.spacing.sm,
-            }}
-          >
-            {review.photos.slice(0, 3).map((url, idx) => (
-              <Image
-                key={`${review.id}-photo-${idx}`}
-                source={{ uri: url }}
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: theme.radius.md,
-                  backgroundColor: theme.colors.surface.subtle,
-                }}
-                accessibilityIgnoresInvertColors
-                accessibilityLabel={t("place.review_photo_alt", {
-                  defaultValue: "Photo d'avis",
-                })}
-              />
-            ))}
-          </View>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-/**
- * Avatar circulaire 32x32 — fallback initiale sur cercle `brand.primary`
- * (pattern SpawterCard Story 5.3) si `url` null. Pas de placeholder image
- * (anti-pattern §5 — éviter le pixel pixelé).
- */
-function Avatar({
-  name,
-  url,
-  theme,
-}: {
-  name: string;
-  url: string | null;
-  theme: Theme;
-}) {
-  if (url !== null && url.length > 0) {
-    return (
-      <Image
-        source={{ uri: url }}
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          backgroundColor: theme.colors.surface.subtle,
-        }}
-        accessibilityIgnoresInvertColors
-      />
-    );
-  }
-  const initial = (name.charAt(0) || "S").toUpperCase();
-  return (
-    <View
-      style={{
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: theme.colors.brand.primary,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text
-        style={{
-          ...theme.typography.preset.body,
-          color: theme.colors.text.onBrand,
-          fontWeight: "700",
-        }}
-      >
-        {initial}
-      </Text>
     </View>
   );
 }

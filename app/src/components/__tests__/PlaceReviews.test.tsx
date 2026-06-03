@@ -48,12 +48,24 @@ async function flush(): Promise<void> {
   });
 }
 
-function renderWith(fetcher: (placeId: string, limit: number) => Promise<PlaceReview[]>): TestRendererInstanceLike {
+function renderWith(
+  fetcher: (placeId: string, limit: number) => Promise<PlaceReview[]>,
+  opts?: { counter?: (placeId: string) => Promise<number>; onSeeAll?: () => void },
+): TestRendererInstanceLike {
+  // Toujours passer des valeurs définies (exactOptionalPropertyTypes interdit
+  // d'assigner `undefined` à une prop optionnelle).
+  const counter = opts?.counter ?? (() => Promise.resolve(0));
+  const onSeeAll = opts?.onSeeAll ?? (() => {});
   let raw: TestRendererInstanceLike | null = null;
   TestRenderer.act(() => {
     raw = TestRenderer.create(
       <ThemeProvider>
-        <PlaceReviews placeId="place-1" fetcher={fetcher} />
+        <PlaceReviews
+          placeId="place-1"
+          fetcher={fetcher}
+          counter={counter}
+          onSeeAll={onSeeAll}
+        />
       </ThemeProvider>,
     ) as unknown as TestRendererInstanceLike;
   });
@@ -135,8 +147,8 @@ describe("<PlaceReviews /> — Story 4.9", () => {
     expect(fetcher).toHaveBeenCalledWith("place-1", 5);
   });
 
-  it("rend le CTA `reviews_see_all` quand on atteint le limit", async () => {
-    const reviews: PlaceReview[] = Array.from({ length: 5 }, (_, i) => ({
+  function fiveReviews(): PlaceReview[] {
+    return Array.from({ length: 5 }, (_, i) => ({
       id: `r${i}`,
       spawter_id: `s${i}`,
       spawter_display_name: `Spawter ${i}`,
@@ -147,12 +159,45 @@ describe("<PlaceReviews /> — Story 4.9", () => {
       created_at: "2025-12-01T10:00:00Z",
       is_seed: false,
     }));
-    const fetcher = jest.fn(() => Promise.resolve(reviews));
-    const instance = renderWith(fetcher);
+  }
+
+  it("rend le CTA `reviews_see_all` avec le VRAI total quand count > affichés", async () => {
+    const fetcher = jest.fn(() => Promise.resolve(fiveReviews()));
+    const counter = jest.fn(() => Promise.resolve(8));
+    const instance = renderWith(fetcher, { counter });
     await flush();
     const texts = gatherTexts(instance);
-    // mockTranslate retourne `${key}:${count}` quand count est fourni.
-    expect(texts).toContain("place.reviews_see_all:5");
+    // Story 4.12 — le label porte le total (8), pas le nombre affiché (5).
+    expect(texts).toContain("place.reviews_see_all:8");
+  });
+
+  it("ne rend PAS le CTA quand le total n'excède pas les avis affichés", async () => {
+    const fetcher = jest.fn(() => Promise.resolve(fiveReviews()));
+    const counter = jest.fn(() => Promise.resolve(5));
+    const instance = renderWith(fetcher, { counter });
+    await flush();
+    const texts = gatherTexts(instance);
+    expect(texts).not.toContain("place.reviews_see_all:5");
+  });
+
+  it("déclenche onSeeAll au tap du CTA", async () => {
+    const fetcher = jest.fn(() => Promise.resolve(fiveReviews()));
+    const counter = jest.fn(() => Promise.resolve(8));
+    const onSeeAll = jest.fn();
+    const instance = renderWith(fetcher, { counter, onSeeAll });
+    await flush();
+    const pressable = (instance.root as unknown as {
+      findAll: (p: (n: TestInstanceLike) => boolean) => TestInstanceLike[];
+    }).findAll(
+      (n) =>
+        typeof n.props.onPress === "function" &&
+        n.props.accessibilityLabel === "place.reviews_see_all:8",
+    );
+    expect(pressable).toHaveLength(1);
+    TestRenderer.act(() => {
+      (pressable[0]!.props.onPress as () => void)();
+    });
+    expect(onSeeAll).toHaveBeenCalledTimes(1);
   });
 
   it("ne setState pas après unmount (race protection)", async () => {

@@ -209,6 +209,24 @@ export async function listReviewsForPlace(
   return [];
 }
 
+/**
+ * Story 4.12 — Compte total des avis d'un lieu (même filtre que
+ * `listReviewsForPlace` : `note_etoiles IS NOT NULL`, seeds inclus). Sert à
+ * décider l'affichage du lien « Voir tous les avis (N) » avec le vrai N.
+ *
+ * Requête `head: true, count: 'exact'` → pas de transfert de lignes. Mode
+ * fallback : retourne 0 (aucun avis embarqué côté mobile en démo).
+ */
+export async function countReviewsForPlace(placeId: string): Promise<number> {
+  if (isSupabaseConfigured) {
+    const { countReviewsForPlaceFromSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return countReviewsForPlaceFromSupabase(placeId);
+  }
+  return 0;
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {

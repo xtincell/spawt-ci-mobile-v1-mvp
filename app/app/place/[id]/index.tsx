@@ -19,26 +19,32 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "../../src/theme/ThemeProvider";
-import { Ico } from "../../src/components/primitives/Ico";
-import { Chip } from "../../src/components/primitives/Chip";
-import { Stars } from "../../src/components/primitives/Stars";
-import { MatchScore } from "../../src/components/primitives/MatchScore";
-import { AdnTags } from "../../src/components/AdnTags";
-import { PlaceReviews } from "../../src/components/PlaceReviews";
-import { DataSourceBanner } from "../../src/components/DataSourceBanner";
-import { getPlace, type PlaceWithAdn } from "../../src/lib/data-source";
+import { useTheme } from "../../../src/theme/ThemeProvider";
+import { Ico } from "../../../src/components/primitives/Ico";
+import { Chip } from "../../../src/components/primitives/Chip";
+import { Stars } from "../../../src/components/primitives/Stars";
+import { MatchScore } from "../../../src/components/primitives/MatchScore";
+import { AdnTags } from "../../../src/components/AdnTags";
+import { PlaceReviews } from "../../../src/components/PlaceReviews";
+import { DataSourceBanner } from "../../../src/components/DataSourceBanner";
+import { getPlace, type PlaceWithAdn } from "../../../src/lib/data-source";
 import {
   computeRawScore,
   displayedScore,
   haversineKm,
-} from "../../src/lib/matching";
-import { useSpawterStore } from "../../src/store/spawter-store";
-import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
-import { track } from "../../src/lib/analytics";
-import { DEMO_LAT, DEMO_LNG } from "../../src/lib/demo-constants";
-import { buildManualSpawt } from "../../src/lib/guet";
-import type { DayOfWeek } from "../../src/types/place";
+} from "../../../src/lib/matching";
+import { useSpawterStore } from "../../../src/store/spawter-store";
+import { EMPTY_PALAIS } from "../../../src/data/seed/sample-spawter";
+import { track } from "../../../src/lib/analytics";
+import { DEMO_LAT, DEMO_LNG } from "../../../src/lib/demo-constants";
+import { buildManualSpawt } from "../../../src/lib/guet";
+import { OpeningHours } from "../../../src/components/OpeningHours";
+import { PlaceGallery } from "../../../src/components/PlaceGallery";
+import {
+  buildStaticMapUrl,
+  geoUrl,
+  appleMapsUrl,
+} from "../../../src/lib/static-map";
 
 const SIGNAL_LABELS: Record<string, string> = {
   coup_de_coeur: "❤️ Coup de Cœur",
@@ -55,16 +61,6 @@ const PRICE_TIER_LABELS: Record<1 | 2 | 3, string> = {
   2: "₣₣",
   3: "₣₣₣",
 };
-
-const DAY_KEYS: readonly DayOfWeek[] = [
-  "sun",
-  "mon",
-  "tue",
-  "wed",
-  "thu",
-  "fri",
-  "sat",
-];
 
 type Referrer = "feed" | "search" | "map" | "share" | "direct";
 const VALID_REFS: ReadonlyArray<Referrer> = [
@@ -239,10 +235,9 @@ export default function PlaceDetailScreen() {
   // place.schema.ts). On double-check côté UI pour les seeds qui passent off-schema.
   const coverUrl = place.cover_photo_url ?? "";
   const hasCover = coverUrl.length > 0 && !coverFailed;
-  // Jour courant pour les horaires : `Date.getDay()` retourne 0=dim, 1=lun, …
-  // Les horaires affichés correspondent au jour réel, pas à un Monday hardcodé.
-  const todayKey = DAY_KEYS[new Date().getDay()] ?? "mon";
-  const todayHours = place.hours[todayKey]?.[0] ?? null;
+  // Story 4.12 — carte statique sous l'adresse. `null` si pas de clé API ou
+  // coords nulles → on retombe sur l'adresse texte seule (AC #1 fallback).
+  const staticMapUrl = buildStaticMapUrl(place.location.lat, place.location.lng);
 
   // Voix-Off "En construction" : si le Palais du spawter est trop immature
   // (confidence < 0.3), le match_score serait un mensonge UX (project-context
@@ -322,6 +317,19 @@ export default function PlaceDetailScreen() {
         properties: { place_id: place.id },
       });
     });
+  };
+
+  // Story 4.12 — ouvre l'app cartes native. `geo:` côté Android ; iOS ne le
+  // gère pas toujours → fallback Apple Maps après test canOpenURL.
+  const onOpenMap = async () => {
+    const { lat, lng } = place.location;
+    const geo = geoUrl(lat, lng, place.name);
+    try {
+      const canGeo = await Linking.canOpenURL(geo);
+      await Linking.openURL(canGeo ? geo : appleMapsUrl(lat, lng, place.name));
+    } catch (err) {
+      if (__DEV__) console.warn("[place] open map failed", err);
+    }
   };
 
   const handleSpawt = async () => {
@@ -713,8 +721,20 @@ export default function PlaceDetailScreen() {
           </View>
 
           {/* Story 4.9 — Section reviews (avis spawter). Affichée entre ADN
-              et InfoLines pour donner le récit avant les infos pratiques. */}
-          <PlaceReviews placeId={place.id} />
+              et InfoLines pour donner le récit avant les infos pratiques.
+              Story 4.12 — « Voir tous les avis » navigue vers l'écran dédié. */}
+          <PlaceReviews
+            placeId={place.id}
+            onSeeAll={() =>
+              // `as never` : typedRoutes ne régénère pas toujours la route
+              // imbriquée hors dev-server (pattern repo, cf. profile.tsx
+              // router.push("/saved" as never)). Résout au runtime.
+              router.push(`/place/${place.id}/reviews` as never)
+            }
+          />
+
+          {/* Story 4.12 — galerie photos (≥3 slots, depuis gallery_urls). */}
+          <PlaceGallery urls={place.gallery_urls} />
 
           {/* InfoLines */}
           <View style={{ marginTop: theme.spacing.lg }}>
@@ -723,15 +743,49 @@ export default function PlaceDetailScreen() {
               value={place.location.descriptive_address}
               theme={theme}
             />
-            <InfoLine
-              label={t("place.info_hours")}
-              value={
-                todayHours
-                  ? `${todayHours.open} – ${todayHours.close}`
-                  : t("place.info_hours_closed")
-              }
-              theme={theme}
-            />
+            {/* Story 4.12 — carte statique tappable sous l'adresse. Fallback :
+                pas d'URL (clé absente / coords nulles) → rien de plus,
+                l'adresse texte ci-dessus suffit (AC #1). */}
+            {staticMapUrl ? (
+              <Pressable
+                onPress={() => {
+                  void onOpenMap();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t("place.map_open_aria")}
+                style={({ pressed }) => ({
+                  marginTop: theme.spacing.sm,
+                  borderRadius: theme.radius.lg,
+                  overflow: "hidden",
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <Image
+                  source={{ uri: staticMapUrl }}
+                  style={{
+                    width: "100%",
+                    height: 140,
+                    backgroundColor: theme.colors.surface.subtle,
+                  }}
+                  resizeMode="cover"
+                  accessibilityIgnoresInvertColors
+                />
+              </Pressable>
+            ) : null}
+            {/* Story 4.12 — horaires des 7 jours (remplace l'ancienne ligne
+                "jour courant" unique). */}
+            <View style={{ marginTop: theme.spacing.sm }}>
+              <Text
+                style={{
+                  ...theme.typography.preset.small,
+                  color: theme.colors.text.secondary,
+                  marginBottom: theme.spacing.xs,
+                }}
+              >
+                {t("place.info_hours")}
+              </Text>
+              <OpeningHours hours={place.hours} />
+            </View>
             {place.phone ? (
               <InfoLine
                 label={t("place.info_phone")}

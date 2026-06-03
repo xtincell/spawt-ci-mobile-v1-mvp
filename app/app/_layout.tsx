@@ -164,6 +164,10 @@ export default function RootLayout() {
             <Stack.Screen name="(onboarding)" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="place/[id]" options={{ presentation: "card" }} />
+            <Stack.Screen
+              name="place/[id]/reviews"
+              options={{ presentation: "card" }}
+            />
             <Stack.Screen name="search" options={{ presentation: "modal" }} />
             <Stack.Screen name="saved" options={{ presentation: "card" }} />
             <Stack.Screen

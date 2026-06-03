@@ -51,6 +51,7 @@
     "plugins": [
       "expo-router",
       "expo-localization",
+      "expo-application",
       "expo-apple-authentication",
       "expo-web-browser",
       [
@@ -70,7 +71,8 @@
       },
       "eas": {
         "projectId": "15ac2301-e901-4caa-a8c8-864c6621bcd0"
-      }
+      },
+      "buildDate": ""
     },
     "owner": "xtincell"
   }

@@ -52,7 +52,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-14
-last_updated: 2026-05-28T02:30:00Z
+last_updated: 2026-06-02T12:00:00Z  # dev-story lot v2 : 4-12 (fiche lieu v2) + 7-1 (release ops, Epic 7) livrées → review. Triple gate verte conjointe (tsc 0 · vocab ✓ · i18n ✓ · jest 353 passed/4 skipped). 0 migration. À stager au commit : rename place/[id].tsx→[id]/index.tsx + package-lock (expo-application). RESTE lot v2 : amendements ACs 2.4/2.5/2.6/3.3c/3.4-4.9 (édition stories existantes) puis dev. Stories v1 (5.3/4.5/4.10/3.8/4.11) toujours en attente dev-story. Sweep adversarial UNIQUE en fin de lot.
 project: Spawt mobile CI
 project_key: NOKEY
 tracking_system: file-system
@@ -107,6 +107,7 @@ development_status:
   4-8-refactor-date-of-birth-dynamique: review  # 2026-05-21 PASS 2 dev livrée : migration 0020 + helper age-range.ts (27 tests bornes 13/18/24/25/34/35/44/45/54/55 + isBirthdayToday) + DateTimePicker dans (onboarding)/profile.tsx + types Spawter+OnboardingDraft étendus (ISODateString + date_of_birth nullable + age_range conservé back-compat) + finalize derive age_range via ageRangeFromDateOfBirth + palais-reveal track derived age_range + i18n age_too_young/age_select_cta. Triple gate verte (271 passed/4 skipped + tsc 0 errors + lint:vocab + i18n:check).
   4-9-place-page-refonte-reviews-fetch: review  # 2026-05-21 PASS 2 dev livrée : listReviewsForPlace dispatcher + listReviewsForPlaceFromSupabase (join spawters!inner + normalisation array/objet) + composant PlaceReviews (loading/empty/loaded + avatar fallback initiales + truncation 140 chars + race protection) + Stars size prop (sm/md/lg) + refonte rating+price en h2 + heart hint/active + 14 tests passants. Triple gate verte (254 passed/4 skipped).
   4-10-onglet-spawter-geolocalise: review  # 2026-05-21 PASS 2 dev livrée : lib/nearby-places.ts (listNearbyPlaces + formatDistance) + (tabs)/spawter.tsx 5 états (~460L) + FAB Alert remplacé par navigate("spawter") + route hidden href:null + 2 events analytics (nearby_screen_opened + nearby_spawt_tapped) + 24 tests passants. Adversarial sweep 2026-05-21 fix C1 (coords USER vs lieu) + M1 (geolocation_source gps/manual coherent) + assertions test renforcées. Triple gate verte post-fix.
+  4-12-fiche-lieu-v2-carte-horaires-galerie-avis: review  # 2026-06-02 dev-story PASS livrée (lot v2). static-map.ts + OpeningHours + PlaceGallery + ReviewCard extrait + route place/[id]/reviews.tsx ([id].tsx déplacé en [id]/index.tsx) + countReviewsForPlace (vrai N). ZÉRO migration. Triple gate verte (348 passed). Attente DoD externe + sweep adversarial fin de lot. À stager au commit : rename [id].tsx→index.tsx.
   epic-4-retrospective: done  # 2026-05-28 epic-4-retro-2026-05-28.md livrée. Bilan PASS 1 + PASS 2 (10 stories) + Sprint Change Proposal 2026-05-21 + worktrees parallèles + OTA push C1+M1. Action items Sprint 2 tracés (AS2-EP4-01..06).
 
   # Epic 5: Identité du spawter — profil, Palais radar & stades
@@ -125,3 +126,7 @@ development_status:
   6-4-moderation-des-avis-gestion-des-comptes: review  # 2026-05-19 PASS 1 dev : migration 0019_alter_spawters_moderation (colonnes is_banned/banned_at/banned_reason/warning_count + soft-delete deleted_at sur spawt_checkin + 2 CHECK coherence + 2 index + 3 policies staff) + Edge Function moderate-spawter (ban/unban/warning atomique + signOut global + audit) + page moderation/index.tsx (file proactive + ReasonModal + Faux-Pas presets) + page comptes/index.tsx liste + comptes/show.tsx détail + ReasonModal.tsx réutilisable + patch otp-send rejet account_banned (AC #7).
   6-5-tableau-de-metriques-basiques: review  # 2026-05-19 PASS 1 dev : page metriques/index.tsx custom Refine + Recharts (LineChart spawts/jour + avis/jour) + 3 KPI cards (spawters total + spawts 30j + avis 30j) + groupByDay helper + auto-refresh 60s + query directe Supabase V1.
   epic-6-retrospective: done  # 2026-05-28 epic-6-retro-2026-05-28.md livrée. CR Chunk B bouclé (105 findings → 39 actionnables = 6 CRITIQUE + 17 MAJEUR + 16 MINEUR no-debt). Migrations 0017/0018/0019/0021/0023. 3 Edge Functions patchées (deploy manuel requis). spawt-admin tests 5→21. Action items Sprint 2 tracés (AS2-EP6-01..12).
+
+  # Epic 7: Release ops & versioning (NOUVEAU — Sprint Change Proposal v2 2026-06-02 §4.7)
+  epic-7: in-progress  # 2026-06-02 create-story — nouvel epic dédié release ops (les epics s'arrêtaient à 6.5). Permet aux testeurs de citer le build exact.
+  7-1-release-ops-versioning-releases-buildbadge: review  # 2026-06-02 dev-story PASS livrée (lot v2). expo-application ajouté + plugin + extra.buildDate ; étape CI inject versionCode/buildDate depuis tag ; RELEASES.md racine (2 backfills) ; BuildBadge primitif (Profil → À propos, copiable via Share) ; 3 clés i18n. Triple gate verte conjointe 4.12+7.1 (353 passed). Attente DoD externe + sweep adversarial fin de lot + revue infra workflow.

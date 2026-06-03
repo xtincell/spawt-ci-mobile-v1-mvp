@@ -368,6 +368,26 @@ export async function listReviewsForPlaceFromSupabase(
   return out;
 }
 
+/**
+ * Story 4.12 — Compte exact des avis d'un lieu (head request, 0 ligne
+ * transférée). Même filtre que `listReviewsForPlaceFromSupabase`.
+ */
+export async function countReviewsForPlaceFromSupabase(
+  placeId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("spawt_checkin")
+    .select("id", { count: "exact", head: true })
+    .eq("place_id", placeId)
+    .not("note_etoiles", "is", null);
+
+  if (error) {
+    if (__DEV__) console.warn("[data-source] countReviewsForPlace failed", error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
 export async function insertUserSignals(
   payloads: readonly {
     signal_type: string;

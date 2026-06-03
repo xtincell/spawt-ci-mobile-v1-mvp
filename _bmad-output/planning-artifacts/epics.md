@@ -367,6 +367,10 @@ Le spawter consulte son identité (carte spawter flip, radar Palais, collection 
 L'équipe SPAWT (`spawt_staff`) gère les lieux via un panel web (CRUD), pré-charge l'inventaire initial (50-100 lieux dont 20 Mission 1) et les avis fondateurs (`is_seed`), et consulte les métriques basiques. Codebase web séparée (React + Refine/AdminJS), auth distincte des spawters publics, actions critiques auditées. Dépend du schéma de l'Epic 1 **et** de la migration `places` / `place_adn` (Story 3.3a) — donc séquencé après l'Epic 3. Par ailleurs autonome (aucune dépendance aux features mobiles).
 **FRs covered:** FR-023, FR-032
 
+### Epic 7: Release ops & versioning (Sprint Change Proposal v2 — 2026-06-02)
+Outillage de release pour l'alpha : schéma de versioning (`v1.0.0 — build N`), journal `RELEASES.md` côté testeur (distinct de `CHANGELOG.md`), et surface in-app du build (`BuildBadge`) pour que les testeurs citent le build exact en bug report. Transverse infra + 1 primitif UI, aucune dépendance produit. Zéro migration.
+**FRs covered:** (release ops — hors FR produit)
+
 ## Epic 1: Fondation canonique & schéma de données
 
 Socle technique et visuel sur lequel toutes les features s'appuient : tokens design alignés sur le kit canonique `documentation/ux/`, polices Klinsman/Gotham, primitives `midfi-kit` portées en RN, schéma Supabase des entités de fondation (séparation B2C/staff, entités commerciales, signaux append-only, feature flags). Projet brownfield — chaque story ne crée que les tables dont elle a besoin ; `places`, `user_palais`, `spawt_checkin`, etc. sont créées dans leurs épics respectifs.
@@ -1050,6 +1054,26 @@ So that je n'aie pas à scroller le feed, ouvrir une fiche, descendre au sticky 
 **When** l'écran s'ouvre
 **Then** un message explicite + bouton Settings est affiché (jamais d'écran vide silencieux)
 
+### Story 4.12: Fiche lieu v2 — carte, horaires par jour, galerie & tous les avis (Sprint Change Proposal v2 — 2026-06-02 §4.6)
+
+As a spawter sur la fiche d'un lieu,
+I want voir la carte du lieu, ses horaires jour par jour, une galerie photos et accéder à tous les avis,
+So that je décide d'y aller sans deviner l'emplacement ni l'ouverture, et sans me limiter à 5 avis.
+
+**Acceptance Criteria** (détail figé dans `sprint-change-proposal-2026-06-02.md` §4.6 + story file `4-12-*.md`) :
+
+**Given** `place.location` (lat/lng)
+**When** la fiche est rendue
+**Then** une carte **statique** (image, pas de dep native) centrée sur le lieu s'affiche, tappable vers le deeplink `geo:` natif ; fallback adresse texte si pas de coords/réseau
+
+**Given** `place.hours` (JSONB déjà peuplé) et `place.gallery_urls` (TEXT[] déjà peuplé)
+**When** la fiche est rendue
+**Then** les 7 jours d'horaires sont affichés (jour courant mis en évidence, « Fermé » si vide) et une galerie d'au moins 3 slots est rendue (placeholders si < 3) — **zéro migration**
+
+**Given** un lieu avec plus de 5 avis
+**When** je tape « Voir tous les avis (N) »
+**Then** je navigue vers la nouvelle route `app/app/place/[id]/reviews.tsx` listant tous les avis (réutilise le rendu d'avis existant)
+
 ## Epic 5: Identité du spawter — profil, Palais radar & stades
 
 Le spawter consulte son identité (carte spawter flip, radar Palais, collection de titres permanente, titre affiché choisi librement), voit son Palais évoluer et monte de stade lors d'un moment quasi-rituel non gamifié. Identité avant utilité — moat de rétention. `spawter_progression` est créée en 5.1, `collection_titres` en 5.2.
@@ -1245,3 +1269,27 @@ So that l'équipe suit l'activité sans attendre les dashboards analytics comple
 **Given** les métriques affichées
 **When** elles sont calculées
 **Then** elles le sont sur les données Supabase courantes (pas un dashboard analytics tiers — celui-ci arrive avec Madame Sun)
+
+## Epic 7: Release ops & versioning (Sprint Change Proposal v2 — 2026-06-02)
+
+Outillage de release pour l'alpha : un schéma de versioning clair, un journal des builds publiés côté testeur, et la surface in-app du build courant. Objectif : un testeur doit pouvoir **citer le build exact** (`v1.0.0 — build 2`) dans un bug report, et l'équipe doit pouvoir tracer quel APK correspond. Transverse infra + 1 primitif UI ; aucune dépendance produit ; **zéro migration**.
+
+### Story 7.1: Versioning, RELEASES.md & BuildBadge in-app
+
+As a testeur alpha de SPAWT (et l'équipe qui traite ses bug reports),
+I want un schéma de version clair, un journal des builds publiés et le numéro de build visible dans l'app,
+So that je puisse citer le build exact en bug report et que l'équipe sache de quel APK je parle.
+
+**Acceptance Criteria** (détail figé dans `sprint-change-proposal-2026-06-02.md` §4.7 + story file `7-1-*.md`) :
+
+**Given** la config EAS/Expo
+**When** Story 7.1 est livrée
+**Then** le schéma est acté : `version` figée `1.0.0` ; `versionCode`/`buildNumber` = entier incrémental N par APK ; format `v1.0.0 — build N (YYYY-MM-DD)` ; tag CI `build-android-YYYY-MM-DD-N` ; source runtime `Application.nativeBuildVersion` (expo-application) + `EXPO_PUBLIC_BUILD_DATE`
+
+**Given** le repo
+**When** Story 7.1 est livrée
+**Then** un `RELEASES.md` racine (vue testeur, distinct de `CHANGELOG.md`) existe avec 2 entrées backfill (build 1 = `build-android-2026-05-28` commit b92fbf1 ; build 2 = `build-android-2026-06-01` commit 67851ec)
+
+**Given** un testeur dans l'app
+**When** il ouvre l'écran profil / « À propos »
+**Then** un `BuildBadge` affiche `v1.0.0 — build N (date)`, copiable, avec fallback gracieux (`build —`) si les valeurs natives manquent (dev/Expo Go)

@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { SpawterCard } from "../../src/components/SpawterCard";
+import { BuildBadge } from "../../src/components/primitives/BuildBadge";
 import { CollectionTitlesSection } from "../../src/components/profile/CollectionTitlesSection";
 import { OfflineQueueInspector } from "../../src/components/OfflineQueueInspector";
 import { useSpawterStore } from "../../src/store/spawter-store";
@@ -202,6 +203,9 @@ export default function ProfileScreen() {
             {t("profile.reset_demo")}
           </Text>
         </Pressable>
+
+        {/* Story 7.1 — surface in-app du build (À propos) pour bug reports. */}
+        <BuildBadge />
       </ScrollView>
       <OfflineQueueInspector
         visible={inspectorVisible}

@@ -80,6 +80,32 @@ jobs:
       - name: Tests (jest)
         run: npm test -- --ci
 
+      # ── Story 7.1 — versioning : injecte versionCode + build date ─────────
+      # Tag `build-android-YYYY-MM-DD-N` → versionCode/buildNumber = N,
+      # extra.buildDate = YYYY-MM-DD (lu in-app par BuildBadge via Constants).
+      # Fallback workflow_dispatch (sans tag) : date du jour CI, versionCode
+      # courant de app.json (incrément manuel en attendant — décision OTA/EAS
+      # remote non tranchée). N'altère aucun secret.
+      - name: Inject build metadata
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/build-android-* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            DATE=$(echo "$TAG" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
+            N=$(echo "$TAG" | grep -oE '[0-9]+$')
+            DAY=$(echo "$DATE" | grep -oE '[0-9]+$')
+            # Tag sans suffixe -N (ex. backfill build-android-2026-05-28) :
+            # le trailing match == le jour → on garde le versionCode courant.
+            if [ -z "$N" ] || [ "$N" = "$DAY" ]; then
+              N=$(node -p "require('./app.json').expo.android.versionCode")
+            fi
+          else
+            DATE=$(date -u +%Y-%m-%d)
+            N=$(node -p "require('./app.json').expo.android.versionCode")
+          fi
+          echo "build metadata → date=$DATE versionCode=$N"
+          N="$N" DATE="$DATE" node -e "const fs=require('fs');const p='./app.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.expo.android.versionCode=Number(process.env.N);j.expo.ios.buildNumber=String(process.env.N);j.expo.extra=j.expo.extra||{};j.expo.extra.buildDate=process.env.DATE;fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
+          echo "EXPO_PUBLIC_BUILD_DATE=$DATE" >> "$GITHUB_ENV"
+
       # ── Auth EAS + build natif ────────────────────────────────────────────
       - name: Setup EAS
         uses: expo/expo-github-action@v8
