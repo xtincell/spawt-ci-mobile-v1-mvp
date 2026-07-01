@@ -20,7 +20,12 @@ import { isSupabaseConfigured } from "../src/lib/data-source";
 // niveau module (invariant OS-kill Tecno/Infinix). Doit être importé une
 // seule fois au Root, avant tout mount des écrans.
 import "../src/lib/guet";
-import { ensureGuetChannel, setupGuetCategories } from "../src/lib/guet";
+import {
+  ensureGuetChannel,
+  setupGuetCategories,
+  bootGuet,
+  shutdownGuet,
+} from "../src/lib/guet";
 import { BadgePremierSpawt } from "../src/components/BadgePremierSpawt";
 import { StadeCelebration } from "../src/components/StadeCelebration";
 import {
@@ -86,6 +91,20 @@ export default function RootLayout() {
     void ensureGuetChannel();
     void setupGuetCategories();
   }, []);
+
+  // Câblage MVP — orchestrateur du Guet : dès qu'un spawter onboardé existe,
+  // boucle complète armement → geofence → notif 15min → confirm/passive.
+  // Au logout (spawter → null post-hydratation), tout est désarmé.
+  const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
+  const storeHydrating = useSpawterStore((s) => s.hydrating);
+  useEffect(() => {
+    if (storeHydrating) return;
+    if (spawterId) {
+      void bootGuet();
+    } else {
+      void shutdownGuet();
+    }
+  }, [spawterId, storeHydrating]);
 
   // Story 4.3 — branche NetInfo → flush des mutations spawt_checkin queue offline.
   // No-op en mode démo (pas de Supabase) et tolérant à l'absence de NetInfo (web).

@@ -117,6 +117,48 @@ export function computePassivePatch(
 }
 
 /**
+ * Câblage MVP — crée une row pending à l'entrée en zone geofence (Le Guet).
+ * `checked_in_at` reste null : la row sera fermée par computeConfirmPatch
+ * (réponse notif) ou computePassivePatch (fenêtre +30min écoulée).
+ * L'entrée geofence (rayon 10m) prouve la présence → is_verified true.
+ */
+export function buildPendingSpawt(
+  spawter_id: string,
+  place_id: string,
+  now: Date = new Date(),
+): SpawtCheckin {
+  const iso = now.toISOString();
+  return {
+    id: Crypto.randomUUID(),
+    spawter_id,
+    place_id,
+    arrived_at: iso,
+    notified_at: null,
+    snoozed_at: null,
+    snooze_count: 0,
+    checked_in_at: null,
+    left_at: null,
+    check_in_type: "active",
+    session_duration_minutes: null,
+    geolocation_lat: null,
+    geolocation_lng: null,
+    accuracy_meters: null,
+    geolocation_source: "gps",
+    distance_to_lieu_meters: ANTIFRAUD_RULES.GEOFENCE_RADIUS_METERS,
+    is_verified: true,
+    flag_reason: null,
+    note_etoiles: null,
+    texte_avis: null,
+    tags: [],
+    photos: [],
+    is_cancelled: false,
+    is_seed: false,
+    created_at: iso,
+    updated_at: iso,
+  };
+}
+
+/**
  * Mode démo (Expo Go / fallback) — crée une row SpawtCheckin manuelle complète
  * (pas pending — directement closed). Pas de Supabase, store local-first.
  */

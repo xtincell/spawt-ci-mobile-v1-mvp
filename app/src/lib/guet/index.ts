@@ -41,9 +41,18 @@ export {
   computeSnoozePatch,
   computePassivePatch,
   buildManualSpawt,
+  buildPendingSpawt,
   type GpsMeasurement,
   type ConfirmResult,
 } from "./guet-spawt-actions";
+
+export {
+  bootGuet,
+  shutdownGuet,
+  rearmGuet,
+  finalizeStalePending,
+  _resetOrchestratorForTest,
+} from "./guet-orchestrator";
 
 export type {
   ArmablePlace,
