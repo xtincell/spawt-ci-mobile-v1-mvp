@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd spawt-admin && npm ci --no-audit --no-fund && VITE_SUPABASE_URL=https://ucymjsxmnzdxvvupgaof.supabase.co VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjeW1qc3htbnpkeHZ2dXBnYW9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjIyNTEsImV4cCI6MjA5NDc5ODI1MX0.fYHm5CvSPIf7FF5Xos88_ejcwFEdIj0F509A72aZEwA npm run build",
+  "outputDirectory": "spawt-admin/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
