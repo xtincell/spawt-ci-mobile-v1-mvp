@@ -2,6 +2,30 @@
 
 Ce que la tech ne peut pas faire à votre place. Classé par urgence. Cochez et datez.
 
+## ⚠️ URGENT — Migration base de données vers Coolify (annoncée 2026-07-01)
+
+L'équipe indique que la base est désormais sur Coolify et que le projet
+Supabase cloud est déprécié. **Tout le code (app, admin, auth OTP, RLS,
+26 migrations, 4 Edge Functions) est construit sur Supabase** — l'impact
+dépend entièrement de ce qui tourne sur Coolify :
+
+- [ ] **Confirmer le scénario** :
+  - **Supabase self-hosted sur Coolify** (service one-click) → aucun changement
+    de code. À faire : pointer `EXPO_PUBLIC_SUPABASE_URL`/`_ANON_KEY` (+ ceux de
+    spawt-admin) vers l'instance, rejouer les migrations 0001→0026, redéployer
+    les 4 Edge Functions, reconfigurer les secrets (TERMII, MOCK_TERMII,
+    ALLOWED_ORIGINS).
+  - **PostgreSQL nu** → chantier majeur à planifier (remplacer Supabase Auth,
+    PostgREST, RLS/auth.uid(), Edge Functions par une couche API custom).
+    NE PAS entamer sans décision d'équipe formelle.
+- [ ] **Fournir l'URL du dashboard Coolify** (le token API seul ne suffit pas ;
+  l'IP répond 404 — le dashboard est servi par nom de domaine).
+- [ ] **Révoquer/faire tourner le token API root** partagé en clair dans le chat
+  du 2026-07-01 (hygiène : un token root expose toute l'infra).
+- [ ] En attendant la confirmation, le projet Supabase cloud
+  `ucymjsxmnzdxvvupgaof` reste la cible des env vars — ne pas le supprimer
+  avant la migration effective des données.
+
 ## Bloquant pour les builds iOS
 
 - [ ] **Compte Apple Developer Program** (99 USD/an) — sans lui : aucun build device iOS, pas de TestFlight. Une fois créé : Team ID + créer l'app `com.upgraders.spawt` dans App Store Connect (ascAppId) + clé API App Store Connect pour EAS submit. Renseigner dans `app/eas.json` (`submit.production.ios`).
