@@ -33,6 +33,31 @@ Format d'une entrée :
 
 ---
 
+## v1.0.0 — build 4 — 2026-07-01
+
+**APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/793fba86-ea29-4508-b355-6863e977aee1 · **Déclenchement** : workflow_dispatch (proxy git de session refusait les tags) · **Commit** : 8f67759
+
+### Nouveau
+- **Le Guet fonctionne** : geofencing armé automatiquement post-onboarding, notif "Le Guet a sonné" après 15 min dans un lieu, confirm/snooze/spawt passif — LA feature à tester en priorité (nécessite backend actif + permission localisation "Toujours")
+- Icône, splash screen et adaptive icon officiels (brandbook)
+- Position GPS réelle dans le feed/recherche/fiche lieu (fin des coordonnées Cocody codées en dur)
+- Favoris synchronisés cross-device
+- Bouton « Signaler » sur les avis → file de modération admin
+- Crash reporting Sentry prêt (inactif tant que le DSN n'est pas posé)
+
+### À tester en priorité
+1. Boucle du Guet complète (aller dans un des lieux seedés, attendre 15 min, répondre à la notif)
+2. Onboarding complet OTP (mode démo : code 123456 si Termii non configuré)
+3. Avis avec photo → vérifier que l'ADN du lieu bouge (recalcul serveur nouveau)
+4. Signaler un avis → vérifier son arrivée dans le portail admin (page Signalements)
+
+### Limitations connues
+- Backend requis : projet Supabase `ucymjsxmnzdxvvupgaof` (réactivé le 2026-07-01, migrations 0024-0027 appliquées, flag guet-geofence ON tous scopes)
+- SMS OTP réels : secrets Termii non configurés (mode mock)
+- Onglets Carte et Meute : stubs assumés (V1.5)
+
+---
+
 ## v1.0.0 — build 3 — 2026-06-03
 
 **APK** : n/a (récupérable dans les logs du job EAS Build) · **Tag CI** : `build-android-2026-06-03-3` · **Commit** : (lot v2 dev — voir `git log`)
