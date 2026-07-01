@@ -128,17 +128,17 @@ export async function recomputeAndPersistPlaceAdn(
       return;
     }
     const newAdn = applyReviewToAdn(place.adn, input.review);
-    // Defer V2 : Edge Function `recompute-place-adn` server-authoritative.
+    // Câblage MVP — la persistance serveur est assurée par le trigger SQL
+    // `recompute_place_adn_on_review` (migration 0025), déclenché à l'insert/
+    // update de l'avis. Ce compute local ne sert qu'à la fraîcheur UI
+    // immédiate (fiche lieu re-fetch au prochain mount = valeur serveur).
     if (__DEV__) {
       console.info(
-        "[place-adn-update] local recompute OK",
+        "[place-adn-update] local recompute OK (serveur: trigger 0025)",
         input.place_id,
         newAdn.weighted_rating,
       );
     }
-    // V1 n'a pas de Edge Function ni de RLS UPDATE pour client direct — on s'en
-    // tient au compute local. Le caller (fiche lieu) re-fetch via `getPlace`
-    // au prochain mount. Sprint 2 = Edge Function + persist serveur.
   } catch (err) {
     if (__DEV__) console.warn("[place-adn-update] recompute failed", err);
   }
