@@ -4,6 +4,35 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.5.0 — Finalisation MVP iOS/Android : câblages + release readiness (2026-07-01)
+
+**Mandat carte blanche « version finale iOS & Android ». 11 chantiers livrés — les mécaniques laissées débranchées en Sprint 1 sont fermées, la chaîne de build des deux plateformes est complète. Triple gate verte (363 tests mobile, 26 vitest admin). Plan : `_bmad-output/planning-artifacts/mvp-finalisation-plan.md`, part humaine : `HUMAN_TODO.md`.**
+
+### Le Guet bout-en-bout (le gap PASS 2 fermé)
+- `feat(spawt)` `guet-orchestrator.ts` : `armGuet()` (jamais appelé) désormais orchestré — boot post-onboarding, ENTER → row pending persistée (`guet-pending.ts`, survit OS-kill) + notif 15 min, EXIT <15 min annule (anti-fraude), confirm/snooze/passif → `registerSpawt` + queue offline + modal avis, finalisation passive au foreground, re-arm throttlé AppState, `shutdownGuet` au logout. `buildPendingSpawt` ajouté. 10 tests machine à états.
+- `feat(infra)` flag `guet-geofence` beta → true dans le seed (UPDATE live documenté).
+
+### Câblages data
+- `feat(spawt)` `use-spawter-position.ts` : position GPS réelle (fin des DEMO_LAT/LNG) sur feed, recherche, fiche lieu — sans prompt OS additionnel.
+- `feat(infra)` migration `0024_create_saved_places` : favoris cross-device (RLS owner-only), sync fire-and-forget + union-merge à l'hydrate.
+- `feat(infra)` migration `0025_place_adn_server_recompute` : port PL/pgSQL fidèle de place-adn-update.ts en trigger SECURITY DEFINER — l'ADN communautaire s'accumule enfin côté serveur. 6 scénarios de tests SQL.
+- `feat(spawt)` migration `0026_create_review_reports` + bouton « Signaler » (ReportReviewSheet, motifs Faux-Pas, doublon géré) + event `review_reported`.
+
+### Portail admin
+- `feat(admin)` page **Signalements** : file pending/résolus, jointures avis+lieu+auteur+signaleur, actions garder/supprimer (soft-delete C1)/avertir (moderate-spawter), audit log étendu (`report_*`), 6 tests vitest.
+
+### Release readiness
+- `feat(infra)` assets brandbook : icône 1024 (fond noir), adaptive icon, splash lockup vertical, favicon, icône notification blanche — couleurs canoniques recomposées depuis les SVG (style perdu à l'export identifié par rendu de contrôle).
+- `feat(infra)` `app.json` : icon/adaptiveIcon/web.favicon + plugins expo-splash-screen, expo-notifications.
+- `feat(infra)` chaîne iOS : tag CI `build-ios-YYYY-MM-DD-N` (profil production), profil EAS `preview-ios-device`, squelettes `submit.production` iOS/Android, `app/secrets/` gitignoré.
+- `feat(infra)` Sentry env-gated (`monitoring.ts`, no-op sans `EXPO_PUBLIC_SENTRY_DSN`, sendDefaultPii false). Push token serveur → V1.5 (décision documentée).
+- `chore(release)` versionCode/buildNumber → 4.
+
+### Fondations agent & docs
+- `docs` `CLAUDE.md` racine + skills `.claude/skills/spawt-{context,dev,release,guet}` + `HUMAN_TODO.md` (Apple Developer, Termii, juriste, ⚠️ migration Coolify annoncée à clarifier).
+
+---
+
 ## v1.4.0 — Epic 4 dev-story PASS 1 : 7 stories livrées en review (2026-05-19)
 
 **Epic 4 « Le Spawt » livré en une seule passe dev-story (feedback `adversarial_timing` : adversarial review reportée à la fin de tous les epics). Stories 4.1 → 4.7 toutes passées de `ready-for-dev` à `review`. Code livré sans dette technique critique. Triple gate verte (`tsc --noEmit` 0 erreur, `lint:vocab` ✓, `i18n:check` ✓, **211 tests passed / 4 skipped / 0 failed** — +58 vs Epic 3). Attente DoD externe.**
