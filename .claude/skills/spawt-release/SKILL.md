@@ -48,6 +48,15 @@ Le suivi se fait sur expo.dev (compte xtincell) — le workflow CI logue l'URL d
 - Taille APK cible < 50 Mo (NFR PRD).
 - Avant soumission stores : CGU/CGV + politique de confidentialité hébergée (juriste — humain), Data Safety Android, privacy manifest iOS (généré par Expo, à vérifier), target API Android (défaut SDK 55).
 
+## Portail admin — déploiement Coolify (VPS, depuis 2026-07-01)
+
+- URL : https://spawt-admin.76-13-128-23.sslip.io (HTTPS Let's Encrypt via sslip.io)
+- Coolify : projet SPAWT, app `spawt-admin` (uuid culwmw8rbc5zcs2t0wf3vwpm), instance https://76-13-128-23.sslip.io (API v1, token requis)
+- Build : nixpacks, base `/spawt-admin`, publish `/dist` (relatif au contexte — PAS /spawt-admin/dist), nginx custom base64 avec fallback SPA try_files
+- Env build-time : VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (champ API `is_buildtime`)
+- Auto-redéploiement sur push GitHub (GitHub App Coolify installée) ; manuel : POST /api/v1/deploy?uuid=<app>&force=true
+- Le VPS héberge aussi `spawt-postgres-shared` (Postgres nu — cible potentielle de migration Sprint 2, cf. HUMAN_TODO)
+
 ## Ce qui reste côté humain
 
 Voir `HUMAN_TODO.md` à la racine : compte Apple Developer, service account Play Console, secrets Supabase (MOCK_TERMII/ALLOWED_ORIGINS/TERMII_API_KEY), DSN Sentry, juriste, sign-offs, merge vers main.
