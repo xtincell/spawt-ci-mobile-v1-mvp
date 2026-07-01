@@ -37,7 +37,7 @@ import {
   clearRecentSearches,
 } from "../src/lib/storage";
 import { track } from "../src/lib/analytics";
-import { DEMO_LAT, DEMO_LNG } from "../src/lib/demo-constants";
+import { useSpawterPosition } from "../src/lib/use-spawter-position";
 
 const SEARCH_DEBOUNCE_MS = 800;
 
@@ -82,9 +82,10 @@ export default function SearchScreen() {
     };
   }, []);
 
+  const position = useSpawterPosition();
   const ctx = useMemo(
-    () => ({ spawter_lat: DEMO_LAT, spawter_lng: DEMO_LNG }),
-    [],
+    () => ({ spawter_lat: position.lat, spawter_lng: position.lng }),
+    [position],
   );
 
   const results = useMemo(

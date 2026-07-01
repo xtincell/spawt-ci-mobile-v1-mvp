@@ -30,7 +30,7 @@ import { rankPlaces, type PlaceWithScore } from "../../src/lib/matching";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 import { track } from "../../src/lib/analytics";
-import { DEMO_LAT, DEMO_LNG } from "../../src/lib/demo-constants";
+import { useSpawterPosition } from "../../src/lib/use-spawter-position";
 
 const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 
@@ -100,16 +100,17 @@ export default function HomeD() {
     [spawts],
   );
 
+  const position = useSpawterPosition();
   const ctx = useMemo(
     () => ({
       spawter_palais: palais,
-      spawter_lat: DEMO_LAT,
-      spawter_lng: DEMO_LNG,
+      spawter_lat: position.lat,
+      spawter_lng: position.lng,
       visited_place_ids: visited,
       saved_place_ids: savedPlaceIds,
       now: new Date(),
     }),
-    [palais, visited, savedPlaceIds],
+    [palais, position, visited, savedPlaceIds],
   );
 
   const ranked = useMemo(() => {

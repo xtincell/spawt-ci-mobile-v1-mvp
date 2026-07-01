@@ -36,7 +36,7 @@ import {
 import { useSpawterStore } from "../../../src/store/spawter-store";
 import { EMPTY_PALAIS } from "../../../src/data/seed/sample-spawter";
 import { track } from "../../../src/lib/analytics";
-import { DEMO_LAT, DEMO_LNG } from "../../../src/lib/demo-constants";
+import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
 import { buildManualSpawt } from "../../../src/lib/guet";
 import { OpeningHours } from "../../../src/components/OpeningHours";
 import { PlaceGallery } from "../../../src/components/PlaceGallery";
@@ -115,13 +115,15 @@ export default function PlaceDetailScreen() {
     [spawts],
   );
 
+  const position = useSpawterPosition();
+
   const matchScore = useMemo(() => {
     if (!place) return null;
     const raw = computeRawScore(
       {
         spawter_palais: palais,
-        spawter_lat: DEMO_LAT,
-        spawter_lng: DEMO_LNG,
+        spawter_lat: position.lat,
+        spawter_lng: position.lng,
         visited_place_ids: visited,
         saved_place_ids: savedPlaceIds,
         now: new Date(),
@@ -129,17 +131,17 @@ export default function PlaceDetailScreen() {
       { place, adn: place.adn, last_spawt_at: null },
     );
     return displayedScore(raw);
-  }, [place, palais, visited, savedPlaceIds]);
+  }, [place, palais, position, visited, savedPlaceIds]);
 
   const distanceKm = useMemo(() => {
     if (!place) return 0;
     return haversineKm(
-      DEMO_LAT,
-      DEMO_LNG,
+      position.lat,
+      position.lng,
       place.location.lat,
       place.location.lng,
     );
-  }, [place]);
+  }, [place, position]);
 
   // place_viewed — 1 émission par mount
   useEffect(() => {
