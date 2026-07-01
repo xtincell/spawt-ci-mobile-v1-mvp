@@ -21,7 +21,10 @@ export type AdminAction =
   | "spawter_warning"
   | "spawter_ban"
   | "spawter_unban"
-  | "seed_inventory_run";
+  | "seed_inventory_run"
+  | "report_kept"
+  | "report_removed"
+  | "report_warned";
 
 export type AdminEntityType =
   | "place"
@@ -29,7 +32,8 @@ export type AdminEntityType =
   | "spawt_checkin"
   | "spawter"
   | "session"
-  | "seed_batch";
+  | "seed_batch"
+  | "review_reports";
 
 export interface AuditEntry {
   action: AdminAction;

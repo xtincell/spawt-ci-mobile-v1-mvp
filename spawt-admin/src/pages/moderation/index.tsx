@@ -174,8 +174,9 @@ export const ModerationList = () => {
     <div>
       <h1>Modération</h1>
       <p style={{ background: "var(--bg-warm)", padding: 12, borderRadius: 6 }}>
-        ⓘ Modération <strong>proactive</strong> V1 — le bouton « Signaler » côté mobile (FR-017)
-        arrive Sprint 2. Cette file affiche les avis récents et les avis flagged anti-fraude.
+        ⓘ Modération <strong>proactive</strong> — avis récents et flagged anti-fraude.
+        Les signalements envoyés par la Meute (bouton « Signaler » mobile, FR-017 livré)
+        ont leur propre file : page <strong>Signalements</strong>.
       </p>
       {toast ? (
         <div

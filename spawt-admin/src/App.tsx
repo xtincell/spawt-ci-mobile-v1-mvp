@@ -11,6 +11,7 @@ import { LieuxList } from "./pages/lieux";
 import { LieuCreate } from "./pages/lieux/create";
 import { LieuEdit } from "./pages/lieux/edit";
 import { ModerationList } from "./pages/moderation";
+import { SignalementsList } from "./pages/signalements";
 import { ComptesList } from "./pages/comptes";
 import { CompteShow } from "./pages/comptes/show";
 import { MetriquesDashboard } from "./pages/metriques";
@@ -50,6 +51,7 @@ export const App = () => (
           meta: { label: "ADN lieu", hide: true },
         },
         { name: "spawt_checkin", list: "/moderation", meta: { label: "Modération" } },
+      { name: "review_reports", list: "/signalements", meta: { label: "Signalements" } },
         {
           name: "spawters",
           list: "/comptes",
@@ -71,6 +73,7 @@ export const App = () => (
           <Route path="/lieux/create" element={<LieuCreate />} />
           <Route path="/lieux/edit/:id" element={<LieuEdit />} />
           <Route path="/moderation" element={<ModerationList />} />
+          <Route path="/signalements" element={<SignalementsList />} />
           <Route path="/comptes" element={<ComptesList />} />
           <Route path="/comptes/show/:id" element={<CompteShow />} />
           <Route path="/metriques" element={<MetriquesDashboard />} />
