@@ -64,3 +64,6 @@ _bmad-output/implementation-artifacts/.review-*.patch
 # ━━━ Misc ━━━
 nul
 *.tmp
+
+# ━━━ Claude Code agent worktrees ━━━
+.claude/worktrees/
