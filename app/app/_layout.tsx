@@ -32,7 +32,11 @@ import {
   bootOfflineQueue,
   shutdownOfflineQueue,
 } from "../src/lib/offline-queue-init";
+import { initMonitoring } from "../src/lib/monitoring";
 import "../src/i18n";
+
+// Câblage MVP — crash reporting le plus tôt possible (no-op sans DSN).
+initMonitoring();
 
 // Garder le splash natif Expo jusqu'à ce que useAppFonts ait fini (loaded || error).
 // `.catch(() => {})` neutralise l'erreur "already hidden" en Fast Refresh.
