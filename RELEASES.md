@@ -13,9 +13,13 @@ build dans un bug report, recopie la ligne affichée dans l'app (écran Profil �
 - **Version app** : `1.0.0`, figée jusqu'à la beta publique.
 - **`android.versionCode` / `ios.buildNumber`** : entier **N**, incrémenté à chaque APK publié.
 - **Format d'affichage canonique** : `v1.0.0 — build N (YYYY-MM-DD)`.
-- **Tag CI** : `build-android-YYYY-MM-DD-N` (N = `versionCode`). Pousser ce tag
+- **Tag CI Android** : `build-android-YYYY-MM-DD-N` (N = `versionCode`). Pousser ce tag
   déclenche le build EAS (`.github/workflows/eas-build.yml`), qui injecte
   `versionCode = N` et `extra.buildDate = YYYY-MM-DD` avant le build.
+- **Tag CI iOS** : `build-ios-YYYY-MM-DD-N` (N = `buildNumber`). Même workflow,
+  profil `production` (.ipa store-ready pour TestFlight via `eas submit`).
+  Prérequis : credentials Apple configurés côté EAS (cf. `HUMAN_TODO.md`) —
+  sans eux le build échoue à l'étape signing, la triple gate tourne quand même.
 - **Source de vérité runtime** : `Application.nativeBuildVersion` (expo-application)
   + `extra.buildDate` (Constants) / `EXPO_PUBLIC_BUILD_DATE`.
 

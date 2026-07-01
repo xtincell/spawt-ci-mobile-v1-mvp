@@ -26,9 +26,27 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "preview-ios-device": {
+      "extends": "preview",
+      "distribution": "internal",
+      "channel": "preview",
+      "ios": {
+        "simulator": false
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "REMPLACER_ASC_APP_ID",
+        "appleTeamId": "REMPLACER_APPLE_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./secrets/play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

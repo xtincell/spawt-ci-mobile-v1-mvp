@@ -67,3 +67,6 @@ nul
 
 # ━━━ Claude Code agent worktrees ━━━
 .claude/worktrees/
+
+# ━━━ Credentials de soumission stores (jamais versionnés) ━━━
+app/secrets/

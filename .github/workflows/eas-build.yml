@@ -1,4 +1,4 @@
-name: EAS Build (preview APK)
+name: EAS Build
 
 # Build natif APK depuis un runner GitHub — upstream datacenter rapide et
 # stable, contourne la connexion locale qui coupe (ECONNRESET) à l'upload du
@@ -41,6 +41,10 @@ on:
   push:
     tags:
       - "build-android-*"
+      # Tag `build-ios-YYYY-MM-DD-N` → build iOS profil production (.ipa
+      # store-ready pour TestFlight via `eas submit`). Nécessite les
+      # credentials Apple côté EAS (HUMAN_TODO.md).
+      - "build-ios-*"
 
 concurrency:
   group: eas-build-${{ github.ref }}
@@ -48,7 +52,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build ${{ github.event.inputs.profile || 'preview' }} (${{ github.event.inputs.platform || 'android' }})
+    name: Build ${{ github.ref_name }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -88,7 +92,7 @@ jobs:
       # remote non tranchée). N'altère aucun secret.
       - name: Inject build metadata
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/build-android-* ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/build-* ]]; then
             TAG="${GITHUB_REF_NAME}"
             DATE=$(echo "$TAG" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
             N=$(echo "$TAG" | grep -oE '[0-9]+$')
@@ -113,12 +117,27 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Resolve platform/profile
+        # Tag build-ios-* → ios/production ; build-android-* → android/preview ;
+        # workflow_dispatch → inputs.
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/build-ios-* ]]; then
+            echo "BUILD_PLATFORM=ios" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=production" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_REF" == refs/tags/build-android-* ]]; then
+            echo "BUILD_PLATFORM=android" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=preview" >> "$GITHUB_ENV"
+          else
+            echo "BUILD_PLATFORM=${{ github.event.inputs.platform || 'android' }}" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_ENV"
+          fi
+
       - name: Build APK
         # Pas de --no-wait : on attend la fin pour que l'URL de l'artefact .apk
         # apparaisse dans les logs du job (pratique pour récupérer le lien).
         # Fallbacks android/preview pour le trigger par tag (pas d'inputs).
         run: >-
           eas build
-          --profile ${{ github.event.inputs.profile || 'preview' }}
-          --platform ${{ github.event.inputs.platform || 'android' }}
+          --profile ${{ env.BUILD_PROFILE }}
+          --platform ${{ env.BUILD_PLATFORM }}
           --non-interactive
