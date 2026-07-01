@@ -1,6 +1,9 @@
 # Plan de finalisation MVP — SPAWT iOS & Android
 
 Date : 2026-07-01 · Auteur : Claude (mandat carte blanche) · Statut : EN COURS
+⚠️ 2026-07-01 : migration DB vers Coolify annoncée par l'équipe en cours de
+chantier — voir HUMAN_TODO.md §URGENT. Les migrations/le code restent valides
+dans le scénario Supabase self-hosted (le plus probable).
 Branche : `claude/ios-android-final-version-5vad3n` (base `spawt/v1-bmad`)
 
 ## Objectif
@@ -27,15 +30,16 @@ Branche : `claude/ios-android-final-version-5vad3n` (base `spawt/v1-bmad`)
 | # | Chantier | Statut |
 |---|---|---|
 | 1 | Fondations : CLAUDE.md, skills spawt-*, ce plan, HUMAN_TODO | fait |
-| 2 | Icône + splash iOS/Android (brandbook) | à faire |
-| 3 | Le Guet bout-en-bout | à faire |
-| 4 | Géolocalisation réelle | à faire |
-| 5 | Favoris Supabase (migration 0024) | à faire |
-| 6 | ADN serveur (migration + trigger) | à faire |
-| 7 | Signaler un avis (app → file modération) | à faire |
-| 8 | Sentry + push token | à faire |
-| 9 | EAS iOS + submit + CI | à faire |
-| 10 | Sweep final (gates, review adversariale, docs, PR) | à faire |
+| 2 | Icône + splash iOS/Android (brandbook) | fait |
+| 3 | Le Guet bout-en-bout (orchestrateur + 10 tests) | fait |
+| 4 | Géolocalisation réelle (useSpawterPosition) | fait |
+| 5 | Favoris Supabase (migration 0024) | fait |
+| 6 | ADN serveur (migration 0025 + trigger + tests SQL) | fait |
+| 7 | Signaler un avis (migration 0026 + UI app) | fait |
+| 8 | Sentry env-gated (push token → V1.5, décision documentée) | fait |
+| 9 | EAS iOS : tag CI build-ios-*, profil device, submit squelettes | fait |
+| 10 | Sweep final (gates, review adversariale, docs, PR) | en cours |
+| 11 | Portail admin : page Signalements + readiness | en cours |
 
 Ordre d'exécution : 2 et 9 (indépendants, débloquent les builds) peuvent avancer en parallèle de 3-4 (cœur produit) ; 5-6-7-8 ensuite ; 10 ferme.
 
