@@ -404,3 +404,41 @@ export async function insertUserSignals(
   }
   return true;
 }
+
+// ─── Câblage MVP — favoris cross-device (migration 0024) ────────────────────
+
+export async function listSavedPlaceIdsFromSupabase(
+  spawter_id: string,
+): Promise<string[] | null> {
+  const { data, error } = await supabase
+    .from("saved_places")
+    .select("place_id")
+    .eq("spawter_id", spawter_id);
+  if (error) {
+    if (__DEV__) console.warn("[data-source] listSavedPlaceIds failed", error);
+    return null;
+  }
+  return (data ?? []).map((r) => (r as { place_id: string }).place_id);
+}
+
+export async function insertSavedPlaceToSupabase(
+  spawter_id: string,
+  place_id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("saved_places")
+    .upsert({ spawter_id, place_id }, { onConflict: "spawter_id,place_id" });
+  if (error && __DEV__) console.warn("[data-source] insertSavedPlace failed", error);
+}
+
+export async function deleteSavedPlaceFromSupabase(
+  spawter_id: string,
+  place_id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("saved_places")
+    .delete()
+    .eq("spawter_id", spawter_id)
+    .eq("place_id", place_id);
+  if (error && __DEV__) console.warn("[data-source] deleteSavedPlace failed", error);
+}

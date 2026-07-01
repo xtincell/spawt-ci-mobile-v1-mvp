@@ -227,6 +227,29 @@ export async function countReviewsForPlace(placeId: string): Promise<number> {
   return 0;
 }
 
+/**
+ * Câblage MVP — favoris cross-device (Story 3.6 Option A, migration 0024).
+ * Retourne null si Supabase indisponible ou fetch en échec (le caller garde
+ * alors le cache local sans merge).
+ */
+export async function listSavedPlaceIds(spawter_id: string): Promise<string[] | null> {
+  if (!isSupabaseConfigured) return null;
+  const { listSavedPlaceIdsFromSupabase } = await import("./data-source.supabase");
+  return listSavedPlaceIdsFromSupabase(spawter_id);
+}
+
+export async function saveSavedPlace(spawter_id: string, place_id: string): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { insertSavedPlaceToSupabase } = await import("./data-source.supabase");
+  await insertSavedPlaceToSupabase(spawter_id, place_id);
+}
+
+export async function deleteSavedPlace(spawter_id: string, place_id: string): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { deleteSavedPlaceFromSupabase } = await import("./data-source.supabase");
+  await deleteSavedPlaceFromSupabase(spawter_id, place_id);
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {

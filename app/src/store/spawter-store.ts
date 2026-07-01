@@ -29,6 +29,9 @@ import {
   upsertProgression,
   insertTitre,
   setDisplayedTitre,
+  listSavedPlaceIds,
+  saveSavedPlace,
+  deleteSavedPlace,
 } from "../lib/data-source";
 import {
   isKnownTitleKey,
@@ -297,6 +300,30 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       loadCollectionTitres(),
     ]);
     set({ spawter, palais, spawts, savedPlaceIds, collectionTitres, hydrating: false });
+
+    // Câblage MVP — favoris cross-device : union-merge local ∪ remote en
+    // arrière-plan (local-first, jamais bloquant). Les favoris locaux absents
+    // du remote sont poussés (rattrapage offline). Une suppression faite sur
+    // un autre device pendant que celui-ci était offline peut ressusciter —
+    // arbitrage V1 assumé (pas de tombstones), cf. migration 0024.
+    if (spawter) {
+      void (async () => {
+        const remote = await listSavedPlaceIds(spawter.id);
+        if (remote === null) return;
+        const local = get().savedPlaceIds;
+        const merged = new Set([...local, ...remote]);
+        const remoteSet = new Set(remote);
+        for (const id of local) {
+          if (!remoteSet.has(id)) void saveSavedPlace(spawter.id, id);
+        }
+        if (merged.size !== local.size) {
+          const ok = await saveSavedLocal(merged);
+          if (ok) set({ savedPlaceIds: merged });
+        }
+      })().catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] saved sync failed", err);
+      });
+    }
   },
 
   toggleSaved: async (place_id: string) => {
@@ -316,7 +343,16 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     const ok = await saveSavedLocal(next);
     if (!ok) return get().savedPlaceIds.has(place_id);
     set({ savedPlaceIds: next });
-    // Supabase sync différé Sprint 2 (Option A — cf. Story 3.6 Dev Notes §1).
+    // Câblage MVP — sync remote fire-and-forget (union-merge au prochain
+    // hydrate en cas d'échec réseau ici).
+    const spawter = get().spawter;
+    if (spawter) {
+      if (wasAdded) {
+        void saveSavedPlace(spawter.id, place_id);
+      } else {
+        void deleteSavedPlace(spawter.id, place_id);
+      }
+    }
     return wasAdded;
   },
 
