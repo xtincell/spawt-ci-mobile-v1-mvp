@@ -4,6 +4,7 @@
     "slug": "spawt-mobile-ci",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "spawt",
     "platforms": [
       "ios",
@@ -41,6 +42,10 @@
     "android": {
       "package": "com.upgraders.spawt",
       "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -59,8 +64,27 @@
           "locationAlwaysAndWhenInUsePermission": "Pour détecter tes spawts en arrière-plan."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#FAFAF8"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#C8A44E"
+        }
+      ]
     ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
     "experiments": {
       "typedRoutes": true
     },
