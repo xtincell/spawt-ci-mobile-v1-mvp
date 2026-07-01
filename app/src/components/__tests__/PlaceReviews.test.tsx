@@ -16,6 +16,12 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockTranslate }),
 }));
 
+// Câblage MVP — ReviewCard importe désormais spawter-store (bouton Signaler) :
+// mock AsyncStorage (module natif absent en environnement jest).
+jest.mock("@react-native-async-storage/async-storage", () =>
+  require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+);
+
 import { ThemeProvider } from "../../theme/ThemeProvider";
 import { PlaceReviews } from "../PlaceReviews";
 import type { PlaceReview } from "../../lib/data-source";

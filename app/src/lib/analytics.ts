@@ -163,6 +163,7 @@ type EventName =
   | "nearby_screen_opened" | "nearby_spawt_tapped"
   // 7. Avis
   | "review_started" | "review_submitted" | "review_photo_added" | "review_abandoned"
+  | "review_reported"
   // 8. Coup de Cœur
   | "coup_de_coeur_attempted" | "coup_de_coeur_posted" | "coup_de_coeur_quota_exhausted"
   // 9. Stade & Palais & Identité
@@ -217,6 +218,7 @@ const EVENT_TO_SIGNAL = {
   nearby_screen_opened: "view", nearby_spawt_tapped: "click",
   // review
   review_started: "review", review_submitted: "review",
+  review_reported: "click",
   review_photo_added: "review",
   coup_de_coeur_attempted: "review", coup_de_coeur_posted: "review",
   coup_de_coeur_quota_exhausted: "review",

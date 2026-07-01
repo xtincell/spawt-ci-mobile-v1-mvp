@@ -101,11 +101,26 @@
     "suggestions_title": "Voici mes 3 suggestions du jour."
   },
   "modes": {
-    "traine": { "label": "Chiller", "sub": "Détente" },
-    "decouvre": { "label": "Découvrir", "sub": "Nouveau" },
-    "tribu": { "label": "En groupe", "sub": "Entre amis" },
-    "chic": { "label": "Pour une date", "sub": "Soir spécial" },
-    "vite": { "label": "Vite fait", "sub": "Rapide" }
+    "traine": {
+      "label": "Chiller",
+      "sub": "Détente"
+    },
+    "decouvre": {
+      "label": "Découvrir",
+      "sub": "Nouveau"
+    },
+    "tribu": {
+      "label": "En groupe",
+      "sub": "Entre amis"
+    },
+    "chic": {
+      "label": "Pour une date",
+      "sub": "Soir spécial"
+    },
+    "vite": {
+      "label": "Vite fait",
+      "sub": "Rapide"
+    }
   },
   "search": {
     "placeholder": "Cherche un spawt, un plat, une zone…",
@@ -515,5 +530,18 @@
     "matchScore": "Score {{score}}%",
     "stars_one": "{{count}} étoile sur {{max}}",
     "stars_other": "{{count}} étoiles sur {{max}}"
+  },
+  "report": {
+    "button": "Signaler",
+    "title": "Signaler cet avis",
+    "subtitle": "Dis au Chat ce qui cloche. La Meute vérifie.",
+    "reason_fake_review": "Avis suspect ou faux",
+    "reason_hater": "Méchanceté gratuite",
+    "reason_gatekeeping": "Fausses infos volontaires",
+    "reason_autre": "Autre chose",
+    "success": "C'est noté. La Meute veille.",
+    "duplicate": "Tu l'as déjà signalé — c'est dans les pattes du Chat.",
+    "error": "Ça n'a pas marché. Réessaie plus tard.",
+    "cancel": "Annuler"
   }
 }

@@ -250,6 +250,22 @@ export async function deleteSavedPlace(spawter_id: string, place_id: string): Pr
   await deleteSavedPlaceFromSupabase(spawter_id, place_id);
 }
 
+/**
+ * Câblage MVP — signalement d'avis (Feature 17, migration 0026).
+ * "duplicate" = déjà signalé par ce spawter (contrainte UNIQUE).
+ * Mode démo → "unavailable" (le bouton est masqué en amont).
+ */
+export async function reportReview(input: {
+  spawt_checkin_id: string;
+  reporter_spawter_id: string;
+  reason_code: "fake_review" | "hater" | "gatekeeping" | "autre";
+  commentaire?: string;
+}): Promise<"ok" | "duplicate" | "error" | "unavailable"> {
+  if (!isSupabaseConfigured) return "unavailable";
+  const { reportReviewToSupabase } = await import("./data-source.supabase");
+  return reportReviewToSupabase(input);
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {

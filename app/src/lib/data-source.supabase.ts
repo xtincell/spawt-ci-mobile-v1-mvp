@@ -442,3 +442,24 @@ export async function deleteSavedPlaceFromSupabase(
     .eq("place_id", place_id);
   if (error && __DEV__) console.warn("[data-source] deleteSavedPlace failed", error);
 }
+
+// ─── Câblage MVP — signalement d'avis (migration 0026) ──────────────────────
+
+export async function reportReviewToSupabase(input: {
+  spawt_checkin_id: string;
+  reporter_spawter_id: string;
+  reason_code: "fake_review" | "hater" | "gatekeeping" | "autre";
+  commentaire?: string;
+}): Promise<"ok" | "duplicate" | "error" | "unavailable"> {
+  const { error } = await supabase.from("review_reports").insert({
+    spawt_checkin_id: input.spawt_checkin_id,
+    reporter_spawter_id: input.reporter_spawter_id,
+    reason_code: input.reason_code,
+    ...(input.commentaire ? { commentaire: input.commentaire } : {}),
+  });
+  if (!error) return "ok";
+  // 23505 = unique_violation (déjà signalé par ce spawter).
+  if (error.code === "23505") return "duplicate";
+  if (__DEV__) console.warn("[data-source] reportReview failed", error);
+  return "error";
+}

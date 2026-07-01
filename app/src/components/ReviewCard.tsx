@@ -7,12 +7,15 @@
 // (pattern SpawterCard Story 5.3) si `url` null. Pas de placeholder image
 // (anti-pattern : éviter le pixel pixelé).
 
-import { Image, Text, View } from "react-native";
+import { useState } from "react";
+import { Image, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useTheme, type Theme } from "../theme/ThemeProvider";
 import { Stars } from "./primitives/Stars";
-import type { PlaceReview } from "../lib/data-source";
+import { isSupabaseConfigured, type PlaceReview } from "../lib/data-source";
+import { useSpawterStore } from "../store/spawter-store";
+import { ReportReviewSheet } from "./ReportReviewSheet";
 
 const TEXTE_TRUNCATE_AT = 140;
 
@@ -24,6 +27,12 @@ export function ReviewCard({
   theme: Theme;
 }) {
   const { t } = useTranslation();
+  const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
+  const [reportOpen, setReportOpen] = useState(false);
+  // Signaler : uniquement en mode Supabase (la file 0026 n'existe pas en démo)
+  // et jamais sur ses propres avis ni les seeds fondateurs.
+  const canReport =
+    isSupabaseConfigured && !review.is_seed && spawterId !== null && spawterId !== review.spawter_id;
   const truncated =
     review.texte_avis !== null && review.texte_avis.length > TEXTE_TRUNCATE_AT
       ? `${review.texte_avis.slice(0, TEXTE_TRUNCATE_AT).trimEnd()}…`
@@ -112,6 +121,32 @@ export function ReviewCard({
               />
             ))}
           </View>
+        ) : null}
+        {canReport ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              testID={`report-review-${review.id}`}
+              onPress={() => setReportOpen(true)}
+              hitSlop={8}
+              style={{ alignSelf: "flex-start", marginTop: theme.spacing.xs }}
+            >
+              <Text
+                style={{
+                  ...theme.typography.preset.caption,
+                  color: theme.colors.text.secondary,
+                  textDecorationLine: "underline",
+                }}
+              >
+                {t("report.button")}
+              </Text>
+            </Pressable>
+            <ReportReviewSheet
+              visible={reportOpen}
+              review_id={review.id}
+              onClose={() => setReportOpen(false)}
+            />
+          </>
         ) : null}
       </View>
     </View>
