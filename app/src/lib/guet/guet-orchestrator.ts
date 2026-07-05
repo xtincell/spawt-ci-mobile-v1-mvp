@@ -23,6 +23,7 @@
 // uniquement (aucun nag) ; Expo Go → pas de geofencing background (documenté).
 
 import { AppState, type AppStateStatus } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 
@@ -68,6 +69,8 @@ const WINDOW_MS = ANTIFRAUD_RULES.POST_LEAVE_WINDOW_MINUTES * 60_000;
 const STALE_MS = 24 * 60 * 60_000;
 /** Throttle du re-arm au foreground — le set de lieux proches bouge lentement. */
 const REARM_MIN_INTERVAL_MS = 5 * 60_000;
+/** Opt-out device-level du Guet (écran Paramètres) — persiste au relaunch. */
+const GUET_OPTOUT_KEY = "spawt:guet:optout";
 
 let booted = false;
 let unsubNotif: (() => void) | null = null;
@@ -82,6 +85,7 @@ const placeNames = new Map<string, string>();
  */
 export async function bootGuet(): Promise<void> {
   if (booted) return;
+  if (await isGuetOptedOut()) return;
   booted = true;
 
   const spawter = useSpawterStore.getState().spawter;
@@ -359,6 +363,29 @@ function navigateToReview(spawt_id: string, attempt = 0): void {
   } catch {
     if (attempt >= 20) return;
     setTimeout(() => navigateToReview(spawt_id, attempt + 1), 500);
+  }
+}
+
+/** Opt-out device-level (Paramètres) : true = Le Guet ne s'arme plus. */
+export async function isGuetOptedOut(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(GUET_OPTOUT_KEY)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export async function setGuetOptOut(optOut: boolean): Promise<void> {
+  try {
+    if (optOut) {
+      await AsyncStorage.setItem(GUET_OPTOUT_KEY, "1");
+      await shutdownGuet();
+    } else {
+      await AsyncStorage.removeItem(GUET_OPTOUT_KEY);
+      await bootGuet();
+    }
+  } catch (err) {
+    if (__DEV__) console.warn("[guet-orchestrator] setGuetOptOut failed", err);
   }
 }
 

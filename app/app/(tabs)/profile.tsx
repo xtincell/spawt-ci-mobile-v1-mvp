@@ -156,7 +156,7 @@ export default function ProfileScreen() {
           />
           <QuickLink
             label={t("profile.link_settings")}
-            onPress={() => Alert.alert(t("profile.link_settings_stub"))}
+            onPress={() => router.push("/settings" as never)}
           />
         </View>
 

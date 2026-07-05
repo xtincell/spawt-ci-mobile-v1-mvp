@@ -291,6 +291,13 @@ export async function countCoupsDeCoeurThisMonth(
   return countCoupsDeCoeurFromSupabase(place_id);
 }
 
+/** Phase 2 — suppression de compte self-service (migration 0029, ARTCI). */
+export async function requestAccountDeletion(): Promise<boolean> {
+  if (!isSupabaseConfigured) return true; // démo : reset local suffit
+  const { requestAccountDeletionFromSupabase } = await import("./data-source.supabase");
+  return requestAccountDeletionFromSupabase();
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {

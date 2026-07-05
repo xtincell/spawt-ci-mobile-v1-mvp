@@ -491,3 +491,14 @@ export async function countCoupsDeCoeurFromSupabase(
   }
   return typeof data === "number" ? data : 0;
 }
+
+// ─── Phase 2 — suppression de compte (migration 0029) ───────────────────────
+
+export async function requestAccountDeletionFromSupabase(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("request_account_deletion");
+  if (error) {
+    if (__DEV__) console.warn("[data-source] requestAccountDeletion failed", error);
+    return false;
+  }
+  return Boolean((data as { ok?: boolean } | null)?.ok);
+}

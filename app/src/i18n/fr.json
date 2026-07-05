@@ -564,5 +564,24 @@
     "upsell_body": "Ta zone gratuite fait 3 km. Avec Spawter Gold, le Chat te guide dans toute la ville — {{price}}.",
     "upsell_soon": "Bientôt disponible — le Chat prépare la suite.",
     "upsell_close": "Plus tard"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "section_guet": "LE GUET",
+    "guet_optout_label": "Mettre Le Guet en pause sur cet appareil",
+    "guet_optout_hint": "Le Chat arrête de guetter tes spawts automatiques. Le spawt manuel reste possible.",
+    "system_settings": "Réglages système (localisation, notifications)",
+    "section_legal": "LÉGAL",
+    "cgu": "Conditions générales",
+    "privacy": "Politique de confidentialité",
+    "section_account": "COMPTE",
+    "logout": "Se déconnecter",
+    "delete_title": "Supprimer mon compte",
+    "delete_confirm_body": "Ton profil est anonymisé tout de suite et effacé définitivement sous 30 jours (Loi 2013-450). Tes titres, ton Palais, tes spawts : tout part. C'est sans retour.",
+    "delete_confirm_cta": "Supprimer définitivement",
+    "delete_cancel": "Annuler",
+    "delete_in_progress": "Suppression…",
+    "delete_failed": "La suppression a échoué. Réessaie ou écris-nous.",
+    "delete_legal_note": "Conformément à la Loi ivoirienne 2013-450, ton compte est anonymisé immédiatement puis purgé sous 30 jours."
   }
 }

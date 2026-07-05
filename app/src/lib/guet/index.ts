@@ -51,6 +51,8 @@ export {
   shutdownGuet,
   rearmGuet,
   finalizeStalePending,
+  isGuetOptedOut,
+  setGuetOptOut,
   _resetOrchestratorForTest,
 } from "./guet-orchestrator";
 
