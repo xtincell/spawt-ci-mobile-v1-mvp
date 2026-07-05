@@ -298,6 +298,27 @@ export async function requestAccountDeletion(): Promise<boolean> {
   return requestAccountDeletionFromSupabase();
 }
 
+/** Phase 2 — fil d'activité de la Meute (onglet Meute). */
+export interface MeuteActivityItem {
+  kind: "review" | "coup";
+  id: string;
+  created_at: string;
+  spawter_display_name: string;
+  spawter_avatar_url: string | null;
+  place_id: string;
+  place_name: string;
+  place_neighborhood: string;
+  /** Renseigné pour kind="review". */
+  note_etoiles?: number;
+  texte_avis?: string | null;
+}
+
+export async function listMeuteActivity(limit = 30): Promise<MeuteActivityItem[]> {
+  if (!isSupabaseConfigured) return [];
+  const { listMeuteActivityFromSupabase } = await import("./data-source.supabase");
+  return listMeuteActivityFromSupabase(limit);
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {

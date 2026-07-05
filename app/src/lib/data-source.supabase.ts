@@ -502,3 +502,77 @@ export async function requestAccountDeletionFromSupabase(): Promise<boolean> {
   }
   return Boolean((data as { ok?: boolean } | null)?.ok);
 }
+
+// ─── Phase 2 — fil d'activité de la Meute ────────────────────────────────────
+
+export async function listMeuteActivityFromSupabase(
+  limit: number,
+): Promise<import("./data-source").MeuteActivityItem[]> {
+  const half = Math.ceil(limit / 2);
+
+  const [reviews, coups] = await Promise.all([
+    supabase
+      .from("spawt_checkin")
+      .select(
+        "id, created_at, note_etoiles, texte_avis, place_id, places!inner(name, neighborhood), spawters_public!inner(display_name, avatar_url)",
+      )
+      .not("note_etoiles", "is", null)
+      .is("deleted_at", null)
+      .eq("is_seed", false)
+      .order("created_at", { ascending: false })
+      .limit(half),
+    supabase
+      .from("coups_de_coeur")
+      .select(
+        "id, created_at, place_id, places!inner(name, neighborhood), spawters_public:spawters!inner(display_name, avatar_url)",
+      )
+      .order("created_at", { ascending: false })
+      .limit(half),
+  ]);
+
+  const items: import("./data-source").MeuteActivityItem[] = [];
+
+  if (reviews.error) {
+    if (__DEV__) console.warn("[data-source] meute reviews failed", reviews.error);
+  } else {
+    for (const r of (reviews.data ?? []) as unknown as Array<Record<string, unknown>>) {
+      const place = r.places as { name?: string; neighborhood?: string } | null;
+      const sp = r.spawters_public as { display_name?: string; avatar_url?: string | null } | null;
+      items.push({
+        kind: "review",
+        id: String(r.id),
+        created_at: String(r.created_at),
+        spawter_display_name: sp?.display_name ?? "Spawter",
+        spawter_avatar_url: sp?.avatar_url ?? null,
+        place_id: String(r.place_id),
+        place_name: place?.name ?? "?",
+        place_neighborhood: place?.neighborhood ?? "",
+        note_etoiles: Number(r.note_etoiles),
+        texte_avis: (r.texte_avis as string | null) ?? null,
+      });
+    }
+  }
+
+  if (coups.error) {
+    if (__DEV__) console.warn("[data-source] meute coups failed", coups.error);
+  } else {
+    for (const c of (coups.data ?? []) as unknown as Array<Record<string, unknown>>) {
+      const place = c.places as { name?: string; neighborhood?: string } | null;
+      const sp = c.spawters_public as { display_name?: string; avatar_url?: string | null } | null;
+      items.push({
+        kind: "coup",
+        id: String(c.id),
+        created_at: String(c.created_at),
+        spawter_display_name: sp?.display_name ?? "Spawter",
+        spawter_avatar_url: sp?.avatar_url ?? null,
+        place_id: String(c.place_id),
+        place_name: place?.name ?? "?",
+        place_neighborhood: place?.neighborhood ?? "",
+      });
+    }
+  }
+
+  return items
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .slice(0, limit);
+}

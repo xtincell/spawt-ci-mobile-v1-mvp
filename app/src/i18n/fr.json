@@ -583,5 +583,11 @@
     "delete_in_progress": "Suppression…",
     "delete_failed": "La suppression a échoué. Réessaie ou écris-nous.",
     "delete_legal_note": "Conformément à la Loi ivoirienne 2013-450, ton compte est anonymisé immédiatement puis purgé sous 30 jours."
+  },
+  "meute": {
+    "title": "La Meute",
+    "empty_body": "La Meute chasse en silence pour l'instant. Les avis et Coups de Cœur des spawters apparaîtront ici.",
+    "item_review": "{{spawter}} a laissé un avis sur {{place}}",
+    "item_coup": "{{spawter}} a donné son Coup de Cœur à {{place}}"
   }
 }
