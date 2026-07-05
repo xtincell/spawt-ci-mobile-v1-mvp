@@ -31,6 +31,10 @@ import { useSpawterStore } from "../../src/store/spawter-store";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 import { track } from "../../src/lib/analytics";
 import { useSpawterPosition } from "../../src/lib/use-spawter-position";
+import { isPlaceLocked } from "../../src/lib/paywall-geo";
+import { isGoldSpawter } from "../../src/lib/spawter-gold";
+import { useFlag } from "../../src/store/feature-flags";
+import { GoldUpsellSheet } from "../../src/components/GoldUpsellSheet";
 
 const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 
@@ -171,7 +175,32 @@ export default function HomeD() {
       });
   }, [loading, spawter, ranked]);
 
+  // Phase 2 F14 — paywall géographique (nudge, flag OFF par défaut) :
+  // un lieu hors zone gratuite ouvre l'upsell Gold au lieu de la fiche.
+  const paywallEnabled = useFlag("paywall-geo");
+  const isGold = spawter ? isGoldSpawter(spawter) : false;
+  const [upsellVisible, setUpsellVisible] = useState(false);
+
+  const isLocked = (item: PlaceWithScore) =>
+    isPlaceLocked({
+      paywallEnabled,
+      isGold,
+      positionSource: position.source,
+      spawterLat: position.lat,
+      spawterLng: position.lng,
+      placeLat: item.place.location.lat,
+      placeLng: item.place.location.lng,
+    });
+
   const onUnePress = (item: PlaceWithScore) => {
+    if (isLocked(item)) {
+      track({
+        name: "paywall_shown",
+        properties: { place_id: item.place.id, surface: "feed" },
+      });
+      setUpsellVisible(true);
+      return;
+    }
     track({
       name: "feed_card_clicked",
       properties: {
@@ -329,6 +358,10 @@ export default function HomeD() {
           </View>
         ) : null}
       </ScrollView>
+      <GoldUpsellSheet
+        visible={upsellVisible}
+        onClose={() => setUpsellVisible(false)}
+      />
     </SafeAreaView>
   );
 }

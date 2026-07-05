@@ -38,6 +38,10 @@ import {
 } from "../src/lib/storage";
 import { track } from "../src/lib/analytics";
 import { useSpawterPosition } from "../src/lib/use-spawter-position";
+import { isPlaceLocked } from "../src/lib/paywall-geo";
+import { isGoldSpawter } from "../src/lib/spawter-gold";
+import { useFlag } from "../src/store/feature-flags";
+import { GoldUpsellSheet } from "../src/components/GoldUpsellSheet";
 
 const SEARCH_DEBOUNCE_MS = 800;
 
@@ -151,7 +155,30 @@ export default function SearchScreen() {
     });
   };
 
+  // Phase 2 F14 — paywall géographique (nudge, flag OFF par défaut).
+  const paywallEnabled = useFlag("paywall-geo");
+  const isGold = spawter ? isGoldSpawter(spawter) : false;
+  const [upsellVisible, setUpsellVisible] = useState(false);
+
   const onResultPress = (place: PlaceWithAdn) => {
+    if (
+      isPlaceLocked({
+        paywallEnabled,
+        isGold,
+        positionSource: position.source,
+        spawterLat: position.lat,
+        spawterLng: position.lng,
+        placeLat: place.location.lat,
+        placeLng: place.location.lng,
+      })
+    ) {
+      track({
+        name: "paywall_shown",
+        properties: { place_id: place.id, surface: "search" },
+      });
+      setUpsellVisible(true);
+      return;
+    }
     void addRecentSearch(query).then(async () => {
       const r = await getRecentSearches();
       setRecents(r);
@@ -348,6 +375,10 @@ export default function SearchScreen() {
           });
         }}
         onClose={() => setSheetVisible(false)}
+      />
+      <GoldUpsellSheet
+        visible={upsellVisible}
+        onClose={() => setUpsellVisible(false)}
       />
     </SafeAreaView>
   );

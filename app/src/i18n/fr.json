@@ -556,5 +556,13 @@
     "already_given": "Tu l'as déjà donné à ce spot ce mois-ci.",
     "quota_exhausted": "Quota du mois épuisé ({{quota}}). Le Chat ne distribue pas les cœurs à la volée.",
     "error": "Ça n'a pas marché. Réessaie plus tard."
+  },
+  "paywall": {
+    "locked_badge": "PREMIUM",
+    "locked_hint": "Hors de ta zone — {{price}} · Tout Abidjan",
+    "upsell_title": "Tout Abidjan t'attend",
+    "upsell_body": "Ta zone gratuite fait 3 km. Avec Spawter Gold, le Chat te guide dans toute la ville — {{price}}.",
+    "upsell_soon": "Bientôt disponible — le Chat prépare la suite.",
+    "upsell_close": "Plus tard"
   }
 }
