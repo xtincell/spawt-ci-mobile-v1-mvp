@@ -266,6 +266,31 @@ export async function reportReview(input: {
   return reportReviewToSupabase(input);
 }
 
+/** Phase 2 F12 — Coup de Cœur via RPC quota (migration 0028). */
+export interface CoupDeCoeurResult {
+  ok: boolean;
+  code: "given" | "already_given" | "quota_exhausted" | "not_authenticated" | string;
+  quota?: number;
+  used?: number;
+  remaining?: number;
+}
+
+export async function giveCoupDeCoeur(
+  place_id: string,
+): Promise<CoupDeCoeurResult | null> {
+  if (!isSupabaseConfigured) return null;
+  const { giveCoupDeCoeurToSupabase } = await import("./data-source.supabase");
+  return giveCoupDeCoeurToSupabase(place_id);
+}
+
+export async function countCoupsDeCoeurThisMonth(
+  place_id: string,
+): Promise<number | null> {
+  if (!isSupabaseConfigured) return null;
+  const { countCoupsDeCoeurFromSupabase } = await import("./data-source.supabase");
+  return countCoupsDeCoeurFromSupabase(place_id);
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {

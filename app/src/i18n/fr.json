@@ -546,5 +546,15 @@
   },
   "carte": {
     "module_unavailable": "La carte a besoin d'un vrai build (APK/TestFlight) — Expo Go ne l'embarque pas. Le Chat patiente."
+  },
+  "cdc": {
+    "button": "❤️ Mon Coup de Cœur",
+    "button_given": "❤️ Coup de Cœur donné",
+    "month_count": "{{count}} ce mois-ci",
+    "given_remaining": "C'est dit. Il t'en reste {{count}} ce mois-ci — choisis bien.",
+    "given_last": "C'est dit. C'était ton dernier du mois — la rareté fait la valeur.",
+    "already_given": "Tu l'as déjà donné à ce spot ce mois-ci.",
+    "quota_exhausted": "Quota du mois épuisé ({{quota}}). Le Chat ne distribue pas les cœurs à la volée.",
+    "error": "Ça n'a pas marché. Réessaie plus tard."
   }
 }

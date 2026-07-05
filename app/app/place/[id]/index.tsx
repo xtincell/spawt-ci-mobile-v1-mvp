@@ -39,6 +39,7 @@ import { track } from "../../../src/lib/analytics";
 import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
 import { buildManualSpawt } from "../../../src/lib/guet";
 import { OpeningHours } from "../../../src/components/OpeningHours";
+import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
 import { PlaceGallery } from "../../../src/components/PlaceGallery";
 import {
   buildStaticMapUrl,
@@ -657,6 +658,9 @@ export default function PlaceDetailScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Phase 2 F12 — Coup de Cœur actionnable (quota mensuel par stade) */}
+          <CoupDeCoeurButton place_id={place.id} />
 
           {/* Signaux */}
           {place.signals.length > 0 && (

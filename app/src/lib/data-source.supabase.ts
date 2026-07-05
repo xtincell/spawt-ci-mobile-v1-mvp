@@ -463,3 +463,31 @@ export async function reportReviewToSupabase(input: {
   if (__DEV__) console.warn("[data-source] reportReview failed", error);
   return "error";
 }
+
+// ─── Phase 2 F12 — Coup de Cœur (migration 0028) ────────────────────────────
+
+export async function giveCoupDeCoeurToSupabase(
+  place_id: string,
+): Promise<import("./data-source").CoupDeCoeurResult | null> {
+  const { data, error } = await supabase.rpc("give_coup_de_coeur", {
+    p_place_id: place_id,
+  });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] giveCoupDeCoeur failed", error);
+    return null;
+  }
+  return data as import("./data-source").CoupDeCoeurResult;
+}
+
+export async function countCoupsDeCoeurFromSupabase(
+  place_id: string,
+): Promise<number | null> {
+  const { data, error } = await supabase.rpc("count_coups_de_coeur", {
+    p_place_id: place_id,
+  });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] countCoupsDeCoeur failed", error);
+    return null;
+  }
+  return typeof data === "number" ? data : 0;
+}
