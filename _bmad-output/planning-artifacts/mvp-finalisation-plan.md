@@ -56,3 +56,28 @@ Ordre d'exécution : 2 et 9 (indépendants, débloquent les builds) peuvent avan
 ## Suivi
 
 Mettre à jour la colonne Statut de ce fichier à chaque chantier terminé. Journal détaillé : header de `sprint-status.yaml`. En cas de reprise par un autre modèle/session : lire `CLAUDE.md` puis les skills `spawt-*`, puis ce plan, puis `TaskList`.
+
+
+## PHASE 2 — Version finale Android (mandat étendu 2026-07-02 : « pas juste le MVP »)
+
+Périmètre : le produit complet du PRD (MVP 19 features + post-MVP V1.5/V2 réalisables
+sans dépendance externe bloquante). Même méthode : chantier par chantier, triple gate,
+builds de validation réguliers (5, 6, 7…), retours testeurs du build 4 prioritaires.
+
+| # | Chantier (tâches session #12-#21) | Statut |
+|---|---|---|
+| 12 | Carte interactive native (fin du stub) | à faire |
+| 13 | Coup de Cœur — quota par stade, migration + RPC | à faire |
+| 14 | Paywall géographique 3 km (nudge, sans paiement) | à faire |
+| 15 | Onglet Meute — fil d'activité communautaire | à faire |
+| 16 | Paramètres & compte (suppression ARTCI — exigence Play Store) | à faire |
+| 17 | Mode Rapide (swipe) + Mode Explore (magazine) | à faire |
+| 18 | Mode Crew (vote temps réel, Supabase Realtime) | à faire |
+| 19 | Identité complète : 13 archétypes, badges thématiques, share card | à faire |
+| 20 | Monétisation sandbox-ready : IPaymentProvider + CinetPay + Gold | à faire |
+| 21 | Durcissement continu + builds de validation | continu |
+
+Ordre : 12→16 (socle visible + conformité store), puis 17→19 (expérience),
+puis 20 (monétisation mock), 18 en dernier des features (complexité realtime).
+Hors périmètre code (humain) : compte CinetPay réel, Termii, Play Console,
+juriste, contenu éditorial curaté, multi-villes, ML.
