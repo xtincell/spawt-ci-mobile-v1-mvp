@@ -2,7 +2,14 @@
 
 Ce que la tech ne peut pas faire à votre place. Classé par urgence. Cochez et datez.
 
-## ⚠️ URGENT — Migration base de données vers Coolify (annoncée 2026-07-01)
+## ⚠️ Migration Coolify — PLAN PRÊT (voir MIGRATION_COOLIFY.md)
+
+Le runbook complet (backend Supabase self-hosted, bascule des clients,
+landings, décommission Vercel, system design cible) est dans
+**`MIGRATION_COOLIFY.md`**. Service `spawt-supabase` créé sur Coolify,
+NON démarré. Étape humaine bloquante : vérifier la RAM du VPS (§2.0 GO/NO-GO).
+
+## (Historique) Migration base de données vers Coolify (annoncée 2026-07-01)
 
 L'équipe indique que la base est désormais sur Coolify et que le projet
 Supabase cloud est déprécié. **Tout le code (app, admin, auth OTP, RLS,
