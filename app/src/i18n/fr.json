@@ -543,5 +543,8 @@
     "duplicate": "Tu l'as déjà signalé — c'est dans les pattes du Chat.",
     "error": "Ça n'a pas marché. Réessaie plus tard.",
     "cancel": "Annuler"
+  },
+  "carte": {
+    "module_unavailable": "La carte a besoin d'un vrai build (APK/TestFlight) — Expo Go ne l'embarque pas. Le Chat patiente."
   }
 }

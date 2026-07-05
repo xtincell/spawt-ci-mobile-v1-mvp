@@ -80,7 +80,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#C8A44E"
         }
-      ]
+      ],
+      "@maplibre/maplibre-react-native"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
