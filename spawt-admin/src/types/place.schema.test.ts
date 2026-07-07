@@ -43,4 +43,24 @@ describe("PlaceFormSchema — Story 6.2", () => {
     const r = PlaceFormSchema.safeParse({ ...base, phone: "0102030405" });
     expect(r.success).toBe(false);
   });
+
+  // menu_urls — même sémantique que gallery_urls (places.menu_urls TEXT[] DEFAULT '{}').
+  it("menu_urls absent → défaut []", () => {
+    const r = PlaceFormSchema.safeParse(base);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.menu_urls).toEqual([]);
+  });
+
+  it("accepte menu_urls avec URLs valides", () => {
+    const r = PlaceFormSchema.safeParse({
+      ...base,
+      menu_urls: ["https://cdn.spawt.example/menus/page-1.jpg", "https://cdn.spawt.example/menus/page-2.jpg"],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejette menu_urls avec une entrée non-URL", () => {
+    const r = PlaceFormSchema.safeParse({ ...base, menu_urls: ["pas-une-url"] });
+    expect(r.success).toBe(false);
+  });
 });

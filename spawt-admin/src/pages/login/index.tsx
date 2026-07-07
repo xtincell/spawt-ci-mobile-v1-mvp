@@ -4,6 +4,9 @@
 import { useState } from "react";
 import { useLogin } from "@refinedev/core";
 
+// Moka en PNG (règle DS : jamais de chat vectoriel/SVG).
+import mokaSalut from "../../assets/mascots/moka-salut.png";
+
 export const LoginPage = () => {
   const { mutate: login, isPending } = useLogin<{ email: string; password: string }>();
   const [email, setEmail] = useState("");
@@ -23,10 +26,32 @@ export const LoginPage = () => {
             },
           );
         }}
-        style={{ width: 360, background: "var(--bg-card)", padding: 32, borderRadius: 8 }}
+        style={{
+          width: 360,
+          background: "var(--bg-card)",
+          padding: 32,
+          borderRadius: 12,
+          border: "1px solid var(--line)",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.06)",
+        }}
       >
-        <h1 style={{ marginTop: 0, color: "var(--gold)" }}>SPAWT admin</h1>
-        <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>
+        <img
+          src={mokaSalut}
+          alt="Moka"
+          style={{ display: "block", width: 104, height: "auto", margin: "0 auto 12px" }}
+        />
+        <h1
+          style={{
+            margin: "0 0 4px",
+            textAlign: "center",
+            fontFamily: "var(--font-display)",
+            fontSize: 30,
+            letterSpacing: "0.02em",
+          }}
+        >
+          SPAWT <span style={{ color: "var(--spawt-gold-deep)" }}>admin</span>
+        </h1>
+        <p style={{ color: "var(--ink-soft)", fontSize: 13, textAlign: "center", marginTop: 0 }}>
           Connexion réservée à l'équipe interne (spawt_staff).
         </p>
         <label style={{ display: "block", marginTop: 16 }}>

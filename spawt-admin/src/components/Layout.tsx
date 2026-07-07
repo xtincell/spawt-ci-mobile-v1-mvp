@@ -15,7 +15,11 @@ export const Layout = () => {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <h1>SPAWT admin</h1>
+        {/* Wordmark texte en Klinsman — jamais de chat vectoriel (règle DS : Moka = PNG only). */}
+        <h1 className="brand">
+          <span className="brand-wordmark">SPAWT</span>
+          <span className="brand-sub">admin</span>
+        </h1>
         <nav>
           <NavLink to="/lieux" className={({ isActive }) => (isActive ? "active" : "")}>
             Lieux

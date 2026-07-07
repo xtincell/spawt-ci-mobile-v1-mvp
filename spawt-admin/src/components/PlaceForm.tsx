@@ -44,9 +44,18 @@ const emptyForm: PlaceFormValues = {
   whatsapp: null,
   cover_photo_url: null,
   gallery_urls: [],
+  menu_urls: [],
   signals: [],
   is_published: false,
 };
+
+// menu_urls (array) édité via textarea « une URL par ligne » — parse symétrique.
+function parseUrlLines(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 export const PlaceForm = ({ mode, id }: Props) => {
   const navigate = useNavigate();
@@ -71,6 +80,9 @@ export const PlaceForm = ({ mode, id }: Props) => {
   const hydratedOnce = useRef(false);
 
   const [values, setValues] = useState<PlaceFormValues>(emptyForm);
+  // Miroir texte du champ menu_urls (une URL par ligne) — évite que le
+  // roundtrip join/split avale la ligne vide en cours de saisie.
+  const [menuUrlsText, setMenuUrlsText] = useState("");
   const [adn, setAdn] = useState({
     axe_local_international: 0,
     axe_informel_etabli: 0,
@@ -107,9 +119,11 @@ export const PlaceForm = ({ mode, id }: Props) => {
         whatsapp: (row.whatsapp as string) ?? null,
         cover_photo_url: (row.cover_photo_url as string) ?? null,
         gallery_urls: (row.gallery_urls as string[]) ?? [],
+        menu_urls: (row.menu_urls as string[]) ?? [],
         signals: (row.signals as PlaceFormValues["signals"]) ?? [],
         is_published: Boolean(row.is_published),
       });
+      setMenuUrlsText(((row.menu_urls as string[]) ?? []).join("\n"));
       if (row.place_adn) {
         const pa = row.place_adn as Record<string, unknown>;
         setAdn({
@@ -154,6 +168,7 @@ export const PlaceForm = ({ mode, id }: Props) => {
       whatsapp: parsed.data.whatsapp ?? null,
       cover_photo_url: parsed.data.cover_photo_url ?? null,
       gallery_urls: parsed.data.gallery_urls,
+      menu_urls: parsed.data.menu_urls,
       signals: parsed.data.signals,
       is_published: parsed.data.is_published,
     };
@@ -224,7 +239,7 @@ export const PlaceForm = ({ mode, id }: Props) => {
       // M11 — disable upload en create mode : sans placeId valide, le path
       // serait `places/draft-<ts>/` ce qui (1) viole la policy RLS storage
       // qui exige un UUID dans foldername[2], (2) crée des orphans Storage
-      // jamais nettoyés. Force le user à créer le place d'abord puis éditer.
+      // jamais nettoyés. Force l'admin à créer le lieu d'abord puis éditer.
       setUploadError("Crée d'abord le lieu (bouton « Créer »), puis viens éditer pour ajouter la photo de couverture.");
       return;
     }
@@ -331,7 +346,7 @@ export const PlaceForm = ({ mode, id }: Props) => {
       <fieldset>
         <legend>Photo de couverture</legend>
         {mode === "create" ? (
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 8px 0" }}>
+          <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 8px 0" }}>
             La photo s'ajoute après création du lieu (édition).
           </p>
         ) : (
@@ -345,6 +360,26 @@ export const PlaceForm = ({ mode, id }: Props) => {
           <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>{uploadError}</p>
         ) : null}
         {values.cover_photo_url ? <p style={{ fontSize: 11 }}>{values.cover_photo_url}</p> : null}
+      </fieldset>
+
+      <fieldset>
+        <legend>Photos du menu</legend>
+        <label>Photos du menu (URLs)
+          <textarea
+            value={menuUrlsText}
+            rows={4}
+            placeholder={"https://…/menu-page-1.jpg\nhttps://…/menu-page-2.jpg"}
+            onChange={(e) => {
+              const text = e.target.value;
+              setMenuUrlsText(text);
+              setValues((v) => ({ ...v, menu_urls: parseUrlLines(text) }));
+            }}
+            style={{ width: "100%", marginTop: 4 }}
+          />
+        </label>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "6px 0 0" }}>
+          Une URL par ligne (même sémantique que la galerie du lieu).
+        </p>
       </fieldset>
 
       <fieldset>

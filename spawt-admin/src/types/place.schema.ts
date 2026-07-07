@@ -42,6 +42,9 @@ export const PlaceFormSchema = z.object({
   whatsapp: z.string().regex(/^\+[1-9]\d{1,14}$/).nullable().optional(),
   cover_photo_url: z.string().url().nullable().optional(),
   gallery_urls: z.array(z.string().url()).default([]),
+  // Photos du menu — colonne places.menu_urls TEXT[] NOT NULL DEFAULT '{}'
+  // (même sémantique que gallery_urls).
+  menu_urls: z.array(z.string().url()).default([]),
   signals: z
     .array(
       z.enum([
