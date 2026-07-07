@@ -4,6 +4,31 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.6.0 — MAJ consolidée MVP V1 : retours build 04/06 + alignement DS (2026-07-07)
+
+**Note consolidée Stephanie Bidje (rédaction Alexandre Djengue, data Kidam Balle) : correctifs R1→R21 + décisions Q1→Q3 appliqués, design system aligné sur les 3 surfaces (app, admin, quiz). Branche `spawt/v1-maj-consolidee`. Quadruple gate verte (403 tests mobile, 29 vitest admin, 20 tests Deno Edge).**
+
+### P0 — Authentification OTP (#V07)
+- `fix(otp)` mode MOCK par défaut sur `otp-send`/`otp-verify` (aucun secret requis : mock sauf `MOCK_TERMII=false`+`TERMII_API_KEY`), code de test universel **12345678** (8 chiffres), OTP_RE 6-8. Écran OTP 8 cases fluides. Bascule SMS réel documentée. **Déployé et vérifié curl sur les 2 backends** (self-hosted Coolify + cloud `ucymjsxmnzdxvvupgaof` v3) : send → verify → session réelle (access+refresh tokens GoTrue).
+
+### Onboarding (R1-R4, R16)
+- `feat(onboarding)` primitive `Select` (Modal bottom-sheet, multi) ; commune d'Abidjan en liste déroulante (R1, P0) + aide (R2) ; pays résidence/origine en Select (R3, skip conservé) ; date de naissance jj/mm/aaaa + aide (R4) ; calibration cuisine en Select multi (R16).
+
+### Feed & Palais (R6-R9, R20)
+- `feat(feed)` modes définitifs Manger·Découvrir·En groupe·En duo + icônes fork/users (R6) ; bloc Chat « Voici mes 3 suggestions du jour. » avant le carrousel (R7) ; lieux OUVERTS priorisés — lib `opening-hours` créneaux nocturnes inclus (R20).
+- `feat(palais)` radar RETIRÉ du parcours utilisateur (R8, P0) : palais-reveal épuré titre + Moka celebration (R9), carte spawter en barres d'axes tous tiers.
+
+### Fiche lieu (R10-R12, R17-R19, R21, Q1-Q2)
+- `feat(place)` rang Appeler/WhatsApp supprimé (R10, P0), CTA « Spawt le ! » (R11), onglets **Média·Menu·Avis** + ordre carte/horaires/« Divers » (R17/R18/R19), prix moyen `~N F CFA` depuis `avg_ticket_xof` fallback ₣ (R21 — méthode de calcul = décision Q4 OUVERTE), galerie des spawters depuis les photos de spawts (Q1). Migration `0030_places_menu_urls` (+down) propagée type/Zod/data-source/seeds/admin.
+
+### Design system (3 surfaces) + thème (R13-R15)
+- `feat(ds)` **plus aucun chat vectoriel** : CatIcon supprimé, CatMark/CatMarkBadge PNG (26 poses Moka stagées), CatBubble/EmptyState/ChatBubble portés (mapping moment→pose). Splash ANIMÉ logo carte (primaire) → Moka salut (R15). Fond blanc `surface.base #FFFFFF` (R14). Copy sans « on » (R13). Q3 : compteurs « Spawts » (lieux) / « Favoris » clarifiés.
+- `feat(admin)` tokens blancs, Klinsman/Gotham embarquées, moka-salut au login, moka-erreur en ErrorBoundary, champ « Photos du menu ».
+- `feat(quiz)` (repo spawt-meute-quiz) `/api/health` réel (SELECT 1, 200/503) + vues opérateur Postgres ; fond blanc R14 sur landing + jeu. **Quiz LIVE sur base Postgres dédiée** (`spawt-quiz-db`), parcours complet vérifié (inscription, verrou anti-triche, parrainage).
+
+### Ouvert (décisions produit)
+- **Q4** : méthode de calcul du prix moyen (Kidam) ; **R3** : maintien « Pays d'origine » (Stephanie).
+
 ## v1.5.0 — Finalisation MVP iOS/Android : câblages + release readiness (2026-07-01)
 
 **Mandat carte blanche « version finale iOS & Android ». 11 chantiers livrés — les mécaniques laissées débranchées en Sprint 1 sont fermées, la chaîne de build des deux plateformes est complète. Triple gate verte (363 tests mobile, 26 vitest admin). Plan : `_bmad-output/planning-artifacts/mvp-finalisation-plan.md`, part humaine : `HUMAN_TODO.md`.**

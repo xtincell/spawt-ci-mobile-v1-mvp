@@ -33,6 +33,34 @@ Format d'une entrée :
 
 ---
 
+## v1.0.0 — build 6 — 2026-07-07
+
+**APK** : voir l'URL dans les logs du run CI · **Tag CI** : `build-android-2026-07-07-6` · **Branche** : `spawt/v1-maj-consolidee`
+
+**MAJ consolidée MVP V1** — retours du build 04/06 (note Stephanie Bidje / Alexandre Djengue) : les correctifs **R1→R21** et décisions **Q1→Q3** sont couverts, plus l'alignement design system (Moka PNG partout, fond blanc).
+
+### Corrigé (références de la note)
+- **#V07 (P0)** : la connexion marche — code de test **12345678** (8 cases), vraie session Supabase ouverte (vérifié sur les 2 backends).
+- **R1 (P0)** : « Ta commune » en liste déroulante (13 communes + Autre) · **R2** aide dédiée · **R3** pays de résidence/origine en listes · **R4** date de naissance jj/mm/aaaa + aide.
+- **R5 (P0)** : cadres sans quartier : Garbadrome, Foodtruck, Restaurant chic, Brunch · **R16** type de cuisine en liste déroulante.
+- **R6** : « Je sors pour… » → Manger · Découvrir · En groupe · En duo (nouvelles icônes) · **R7** : le Chat annonce « Voici mes 3 suggestions du jour. » AVANT la sélection.
+- **R8 (P0)** : le graphe radar du Palais est retiré du parcours (axes en barres sur la carte spawter) · **R9** : écran « Voici ton palais » épuré (Moka celebration).
+- **R10 (P0)** : bouton « Appeler » en doublon supprimé · **R11** CTA « Spawt le ! » · **R12** horaires 7 jours · **R17/R19** fiche lieu en onglets **Média · Menu · Avis** puis carte · **R18** contact en section « Divers » · **R21** prix moyen en **F CFA** (échelle ₣ en secours).
+- **R13** : plus aucun « on » dans les écrans (tutoiement) · **R14** : fond blanc (beige réservé aux accents) · **R15** : écran d'ouverture animé (logo carte → Moka) · **R20** : le feed remonte les lieux **ouverts**.
+- **Q1** : onglet Média = 3 photos de présentation + galerie des spawters · **Q2** : page « Tous les avis » (onglet Avis) · **Q3** : compteurs « Spawts » (lieux spawtés) vs « Favoris » clarifiés.
+
+### À tester en priorité (checklist login mock #V07)
+1. Splash animé → « Rejoindre la bande » → consentements → numéro CI (+225…) → « Recevoir mon code ».
+2. Saisir **12345678** → la session s'ouvre et l'onboarding continue (profil). Tester aussi : mauvais code (message d'erreur), « Renvoyer le code » (cooldown 30 s), triple erreur (panneau friction).
+3. Onboarding : commune/pays/cuisine en listes déroulantes, date jj/mm/aaaa.
+4. Fiche lieu : onglets, prix « ~N F CFA », « Spawt le ! », carte + Divers en bas.
+5. Feed : 4 modes, bloc Chat avant les 3 suggestions, lieux ouverts d'abord.
+
+### Limitations connues
+- La méthode de calcul du **prix moyen** (Q4) n'est pas tranchée — l'affichage lit `avg_ticket_xof`, à remplir côté data (checkpoint Kidam).
+- Le maintien du champ « Pays d'origine » (R3) reste à confirmer par la produit.
+- SMS réel (Termii) : phase suivante — bascule documentée (`TERMII_API_KEY` + `MOCK_TERMII=false`).
+
 ## v1.0.0 — build 4 — 2026-07-01
 
 **APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/793fba86-ea29-4508-b355-6863e977aee1 · **Déclenchement** : workflow_dispatch (proxy git de session refusait les tags) · **Commit** : 8f67759
