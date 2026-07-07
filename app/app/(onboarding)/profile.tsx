@@ -138,6 +138,37 @@ export default function ProfileScreen() {
   // uniquement on-demand ; iOS : pourra rester affiché inline).
   const [showDobPicker, setShowDobPicker] = useState(false);
 
+  // R4 (web) — @react-native-community/datetimepicker n'a PAS d'implémentation
+  // navigateur : sur la préversion web, le champ date est une saisie MASQUÉE
+  // jj/mm/aaaa (l'option « placeholder + masque » de la note produit). La date
+  // n'est écrite dans le draft que complète ET réelle ; sinon null (Continue
+  // reste gaté par dobValid comme sur natif).
+  const [dobText, setDobText] = useState<string>(() =>
+    draft.date_of_birth ? formatDob(draft.date_of_birth) : "",
+  );
+  const onDobTextChange = (v: string) => {
+    const digits = v.replace(/\D/g, "").slice(0, 8);
+    const masked =
+      digits.length > 4
+        ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+        : digits.length > 2
+          ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+          : digits;
+    setDobText(masked);
+    if (digits.length === 8) {
+      const d = Number(digits.slice(0, 2));
+      const m = Number(digits.slice(2, 4));
+      const y = Number(digits.slice(4));
+      const date = new Date(y, m - 1, d, 12, 0, 0);
+      const isRealDate =
+        date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+      const inBounds = date >= DOB_MIN_DATE && date <= new Date();
+      setField("date_of_birth", isRealDate && inBounds ? dateToISO(date) : null);
+    } else {
+      setField("date_of_birth", null);
+    }
+  };
+
   // R1 — options du Select commune (libellés i18n) + clé courante retrouvée
   // depuis le libellé stocké dans le draft (round-trip back-nav).
   const communeOptions = COMMUNE_KEYS.map((k) => ({
@@ -326,44 +357,74 @@ export default function ProfileScreen() {
           label={t("onboarding.age_title")}
           hint={t("onboarding.age_body")}
         >
-          <Pressable
-            onPress={() => setShowDobPicker(true)}
-            testID="profile-dob-trigger"
-            accessibilityRole="button"
-            accessibilityLabel={t("onboarding.age_select_cta")}
-            accessibilityState={{ selected: draft.date_of_birth !== null }}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              backgroundColor: theme.colors.surface.raised,
-              paddingHorizontal: theme.spacing.base,
-              paddingVertical: theme.spacing.sm,
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: dobTooYoung
-                ? theme.colors.state.danger
-                : draft.date_of_birth !== null
-                  ? theme.colors.brand.primary
-                  : theme.colors.border.subtle,
-              opacity: pressed ? 0.85 : 1,
-              justifyContent: "center",
-            })}
-          >
-            <Text
+          {Platform.OS === "web" ? (
+            /* R4 (web) — saisie masquée jj/mm/aaaa (pas de picker natif en
+               navigateur). Même gabarit, même validation via le draft. */
+            <TextInput
+              value={dobText}
+              onChangeText={onDobTextChange}
+              placeholder={t("onboarding.dob_placeholder")}
+              placeholderTextColor={theme.colors.text.tertiary}
+              keyboardType="number-pad"
+              maxLength={10}
+              testID="profile-dob-web"
+              accessibilityLabel={t("onboarding.age_select_cta")}
               style={{
-                color:
-                  draft.date_of_birth !== null
-                    ? theme.colors.text.primary
-                    : theme.colors.text.tertiary,
+                minHeight: 44,
+                backgroundColor: theme.colors.surface.raised,
+                paddingHorizontal: theme.spacing.base,
+                paddingVertical: theme.spacing.sm,
+                borderRadius: theme.radius.lg,
+                borderWidth: 1,
+                borderColor: dobTooYoung
+                  ? theme.colors.state.danger
+                  : draft.date_of_birth !== null
+                    ? theme.colors.brand.primary
+                    : theme.colors.border.subtle,
+                color: theme.colors.text.primary,
                 fontSize: theme.typography.size.base,
-                fontWeight: theme.typography.weight.medium,
               }}
+            />
+          ) : (
+            <Pressable
+              onPress={() => setShowDobPicker(true)}
+              testID="profile-dob-trigger"
+              accessibilityRole="button"
+              accessibilityLabel={t("onboarding.age_select_cta")}
+              accessibilityState={{ selected: draft.date_of_birth !== null }}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                backgroundColor: theme.colors.surface.raised,
+                paddingHorizontal: theme.spacing.base,
+                paddingVertical: theme.spacing.sm,
+                borderRadius: theme.radius.lg,
+                borderWidth: 1,
+                borderColor: dobTooYoung
+                  ? theme.colors.state.danger
+                  : draft.date_of_birth !== null
+                    ? theme.colors.brand.primary
+                    : theme.colors.border.subtle,
+                opacity: pressed ? 0.85 : 1,
+                justifyContent: "center",
+              })}
             >
-              {/* R4 — gabarit jj/mm/aaaa quand vide, date jj/mm/aaaa sinon. */}
-              {draft.date_of_birth !== null
-                ? formatDob(draft.date_of_birth)
-                : t("onboarding.dob_placeholder")}
-            </Text>
-          </Pressable>
+              <Text
+                style={{
+                  color:
+                    draft.date_of_birth !== null
+                      ? theme.colors.text.primary
+                      : theme.colors.text.tertiary,
+                  fontSize: theme.typography.size.base,
+                  fontWeight: theme.typography.weight.medium,
+                }}
+              >
+                {/* R4 — gabarit jj/mm/aaaa quand vide, date jj/mm/aaaa sinon. */}
+                {draft.date_of_birth !== null
+                  ? formatDob(draft.date_of_birth)
+                  : t("onboarding.dob_placeholder")}
+              </Text>
+            </Pressable>
+          )}
           {dobTooYoung ? (
             <Text
               testID="profile-dob-too-young"
