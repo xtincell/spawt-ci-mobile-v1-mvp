@@ -35,7 +35,7 @@ Format d'une entrée :
 
 ## v1.0.0 — build 7 — 2026-07-08
 
-**APK** : voir l'URL dans les logs du run CI · **Tag CI** : `build-android-2026-07-08-7` · **Branche** : `spawt/v1-maj-consolidee`
+**APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/eb0e4541-5ab8-41e7-a0c7-0d25403dcc01 · **Tag CI** : `build-android-2026-07-08-7` · **Branche** : `spawt/v1-maj-consolidee`
 
 **Complément au build 6** — les décisions produit Q4/R3 appliquées + ouverture animée.
 
