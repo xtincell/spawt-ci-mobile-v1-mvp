@@ -1,11 +1,20 @@
 // Étape Profile — Story 2.4 + Story 4.8 refactor date_of_birth (FR-002 + ARTCI DR-02)
-// Capture nom + quartier + 4 PII (country, origin_country, gender, date_of_birth).
+// Capture nom + commune + 4 PII (country, origin_country, gender, date_of_birth).
 // Persiste dans `useOnboardingDraft` (éphémère). La création du row spawters
 // se fait en Story 2.6 (`finalizeOnboarding`).
 //
-// Story 4.8 — La tranche d'âge `age_range` est supprimée du draft ; le user
+// Story 4.8 — La tranche d'âge `age_range` est supprimée du draft ; le spawter
 // saisit sa date de naissance complète via DateTimePicker natif. `age_range` est
 // dérivé au finalize via `ageRangeFromDateOfBirth()` (helper pur).
+//
+// Retours alpha R1-R4 :
+//   R1 — la saisie libre du quartier devient un `Select` des communes d'Abidjan
+//        (la valeur lisible, ex. « Cocody », s'écrit dans `draft.neighborhood`) ;
+//   R2 — texte d'aide sous « Ta commune » ;
+//   R3 — Pays de résidence & Pays d'origine passent des grilles de pastilles
+//        à des `Select` (option skip de Pays d'origine conservée) ;
+//   R4 — le champ date de naissance affiche le gabarit jj/mm/aaaa (vide) et la
+//        date au format jj/mm/aaaa (remplie), avec texte d'aide dédié.
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,6 +33,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
+import { Select } from "../../src/components/primitives/Select";
 import { track } from "../../src/lib/analytics";
 import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
 import type { CountryCode, Gender, ISODateString } from "../../src/types/spawter";
@@ -41,6 +51,31 @@ const COUNTRY_CODES: CountryCode[] = [
   "GH",
 ];
 
+// R1 — communes d'Abidjan (13 communes + Anyama/Bingerville/Songon du Grand
+// Abidjan déjà inclus) + échappatoire « Autre / hors Abidjan ». Clés i18n
+// `onboarding.commune.<slug>` ; la valeur écrite dans le draft est le libellé
+// lisible (ex. « Cocody ») — le champ `neighborhood` existant reste inchangé.
+const COMMUNE_KEYS = [
+  "abobo",
+  "adjame",
+  "anyama",
+  "attecoube",
+  "bingerville",
+  "cocody",
+  "koumassi",
+  "marcory",
+  "plateau",
+  "port_bouet",
+  "songon",
+  "treichville",
+  "yopougon",
+  "autre",
+] as const;
+
+// R3 — clé sentinelle de l'option « Préfère ne pas dire » du Select Pays
+// d'origine (jamais en collision avec un code pays ISO à 2 lettres).
+const ORIGIN_SKIP_KEY = "skip";
+
 const GENDERS: { id: Gender; labelKey: string }[] = [
   { id: "femme", labelKey: "onboarding.gender_femme" },
   { id: "homme", labelKey: "onboarding.gender_homme" },
@@ -53,25 +88,14 @@ const GENDERS: { id: Gender; labelKey: string }[] = [
 // minimumDate = cap à 100 ans (1924-01-01 par convention spec).
 const DOB_MIN_DATE = new Date(1924, 0, 1);
 
-// Formatteur fr-FR "DD MMMM YYYY" (locale française).
-function formatDobFr(iso: ISODateString): string {
+// R4 — affichage jj/mm/aaaa, aligné sur le gabarit du placeholder
+// (`onboarding.dob_placeholder`).
+function formatDob(iso: ISODateString): string {
   const parts = iso.split("-");
   if (parts.length !== 3) return iso;
-  const y = Number(parts[0]);
-  const m = Number(parts[1]);
-  const d = Number(parts[2]);
-  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return iso;
-  const date = new Date(y, m - 1, d);
-  try {
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }).format(date);
-  } catch {
-    // Fallback (Intl peut être indisponible en environnement de test).
-    return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
-  }
+  const [y, m, d] = parts;
+  if (!y || !m || !d) return iso;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
 }
 
 /** Convertit une `Date` JS en `YYYY-MM-DD` (timezone-agnostic, jour calendaire local). */
@@ -110,14 +134,34 @@ export default function ProfileScreen() {
   const setField = useOnboardingDraft((s) => s.setField);
 
   const [name, setName] = useState(draft.display_name);
-  const [neighborhood, setNeighborhood] = useState(draft.neighborhood);
   // Story 4.8 — état local d'ouverture du DateTimePicker (Android : visible
   // uniquement on-demand ; iOS : pourra rester affiché inline).
   const [showDobPicker, setShowDobPicker] = useState(false);
 
+  // R1 — options du Select commune (libellés i18n) + clé courante retrouvée
+  // depuis le libellé stocké dans le draft (round-trip back-nav).
+  const communeOptions = COMMUNE_KEYS.map((k) => ({
+    key: k,
+    label: t(`onboarding.commune.${k}`),
+  }));
+  const communeValue =
+    COMMUNE_KEYS.find((k) => t(`onboarding.commune.${k}`) === draft.neighborhood) ?? null;
+
+  // R3 — options des Select pays (mêmes listes/clés i18n que les anciennes
+  // grilles de pastilles). Pays d'origine : option skip en tête.
+  const countryOptions = COUNTRY_CODES.map((c) => ({
+    key: c,
+    label: t(`onboarding.country.${c}`),
+  }));
+  const originOptions = [
+    { key: ORIGIN_SKIP_KEY, label: t("onboarding.origin_country_skip") },
+    ...countryOptions,
+  ];
+
   // P25 — `country_code` et `gender` ne sont jamais null (types non-null,
   // defaults CI / `non_renseigne`). Validation gardée sur les 3 vrais champs
-  // exigés (display_name + neighborhood ≥ 2 chars `[\p{L}\p{N}]` + date_of_birth ≥ 13 ans).
+  // exigés (display_name ≥ 2 chars `[\p{L}\p{N}]` + commune choisie +
+  // date_of_birth ≥ 13 ans).
   // P26 — exige au moins 1 lettre/chiffre dans le trim pour bloquer un nom
   // composé uniquement d'emojis/symboles.
   // P-29 — NAME_RE testé sur `.trim()` (et non la valeur brute) pour rester
@@ -131,11 +175,11 @@ export default function ProfileScreen() {
   // restant tolérant aux apostrophes, traits d'union, espaces internationaux.
   const NAME_RE = /[\p{L}\p{N}]/u;
   const trimmedName = name.trim();
-  const trimmedNeighborhood = neighborhood.trim();
   const nameLen = Array.from(trimmedName).length;
-  const neighborhoodLen = Array.from(trimmedNeighborhood).length;
   const alphaCount = (s: string): number =>
     Array.from(s).filter((c) => NAME_RE.test(c)).length;
+  // R1 — la commune vient d'une liste fermée (Select) : « choisie » suffit.
+  const communeChosen = draft.neighborhood.trim().length > 0;
   // Story 4.8 — validation date_of_birth : doit être posée ET parser sur un
   // âge ≥ 13 ans (ageRangeFromDateOfBirth retourne `null` sinon).
   const dobAgeRange =
@@ -148,9 +192,7 @@ export default function ProfileScreen() {
     nameLen >= 2 &&
     nameLen <= 50 &&
     alphaCount(trimmedName) >= 2 &&
-    neighborhoodLen >= 2 &&
-    neighborhoodLen <= 50 &&
-    alphaCount(trimmedNeighborhood) >= 2 &&
+    communeChosen &&
     dobValid;
 
   const onContinue = () => {
@@ -213,19 +255,15 @@ export default function ProfileScreen() {
           label={t("onboarding.neighborhood_title")}
           hint={t("onboarding.neighborhood_body")}
         >
-          <TextInput
-            value={neighborhood}
-            onChangeText={(v) => {
-              // P-24 round 3 — cap symmétrique au champ display_name.
-              const capped = capGraphemes(v, DISPLAY_FIELD_MAX_GRAPHEMES);
-              setNeighborhood(capped);
-              setField("neighborhood", capped);
-            }}
-            maxLength={100}
+          {/* R1/R2 — Select des communes d'Abidjan ; écrit le libellé lisible
+              (ex. « Cocody ») dans le champ existant `draft.neighborhood`. */}
+          <Select
             placeholder={t("onboarding.neighborhood_placeholder")}
-            placeholderTextColor={theme.colors.text.tertiary}
-            testID="profile-neighborhood"
-            style={inputStyle(theme)}
+            value={communeValue}
+            options={communeOptions}
+            onChange={(key) => setField("neighborhood", t(`onboarding.commune.${key}`))}
+            testID="profile-commune"
+            accessibilityLabel={t("onboarding.neighborhood_title")}
           />
         </Field>
 
@@ -233,40 +271,38 @@ export default function ProfileScreen() {
           label={t("onboarding.country_title")}
           hint={t("onboarding.country_body")}
         >
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
-            {COUNTRY_CODES.map((c) => (
-              <Choice
-                key={c}
-                label={t(`onboarding.country.${c}`)}
-                selected={draft.country_code === c}
-                onPress={() => setField("country_code", c)}
-                testID={`profile-country-${c}`}
-              />
-            ))}
-          </View>
+          {/* R3 — grille de pastilles → Select (mêmes pays, mêmes clés i18n). */}
+          <Select
+            placeholder={t("onboarding.country_placeholder")}
+            value={draft.country_code}
+            options={countryOptions}
+            onChange={(key) => {
+              const code = COUNTRY_CODES.find((c) => c === key);
+              if (code) setField("country_code", code);
+            }}
+            testID="profile-country"
+            accessibilityLabel={t("onboarding.country_title")}
+          />
         </Field>
 
         <Field
           label={t("onboarding.origin_country_title")}
           hint={t("onboarding.origin_country_body")}
         >
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
-            <Choice
-              label={t("onboarding.origin_country_skip")}
-              selected={draft.origin_country_code === null}
-              onPress={() => setField("origin_country_code", null)}
-              testID="profile-origin-skip"
-            />
-            {COUNTRY_CODES.map((c) => (
-              <Choice
-                key={c}
-                label={t(`onboarding.country.${c}`)}
-                selected={draft.origin_country_code === c}
-                onPress={() => setField("origin_country_code", c)}
-                testID={`profile-origin-${c}`}
-              />
-            ))}
-          </View>
+          {/* R3 — Select avec option skip conservée (clé sentinelle → null).
+              Champ maintenu tel quel — question produit ouverte signalée
+              ailleurs. */}
+          <Select
+            placeholder={t("onboarding.country_placeholder")}
+            value={draft.origin_country_code ?? ORIGIN_SKIP_KEY}
+            options={originOptions}
+            onChange={(key) => {
+              const code = COUNTRY_CODES.find((c) => c === key) ?? null;
+              setField("origin_country_code", code);
+            }}
+            testID="profile-origin"
+            accessibilityLabel={t("onboarding.origin_country_title")}
+          />
         </Field>
 
         <Field
@@ -322,9 +358,10 @@ export default function ProfileScreen() {
                 fontWeight: theme.typography.weight.medium,
               }}
             >
+              {/* R4 — gabarit jj/mm/aaaa quand vide, date jj/mm/aaaa sinon. */}
               {draft.date_of_birth !== null
-                ? formatDobFr(draft.date_of_birth)
-                : t("onboarding.age_select_cta")}
+                ? formatDob(draft.date_of_birth)
+                : t("onboarding.dob_placeholder")}
             </Text>
           </Pressable>
           {dobTooYoung ? (

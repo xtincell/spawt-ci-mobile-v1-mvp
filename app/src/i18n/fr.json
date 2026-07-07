@@ -187,7 +187,7 @@
     "profile_title": "Présente-toi",
     "profile_body": "6 trucs rapides pour mieux te connaître. Tu choisis ce que tu partages.",
     "phone_title": "Ton numéro",
-    "phone_body": "On envoie un code par SMS. Pas de mot de passe.",
+    "phone_body": "Je t'envoie un code par SMS. Pas de mot de passe.",
     "phone_placeholder": "+225 ...",
     "otp_title": "Le code reçu",
     "otp_body": "Tape les 6 chiffres reçus par SMS.",
@@ -226,7 +226,7 @@
     "gender_non_renseigne": "Préfère ne pas dire",
     "age_title": "Ta date de naissance",
     "age_body": "Pour te souhaiter Joyeux anniversaire, promis. (Et ça restera secret)",
-    "age_too_young": "Spawt arrive bientôt pour toi — on se retrouve à tes 13 ans.",
+    "age_too_young": "Spawt arrive bientôt pour toi — rendez-vous à tes 13 ans.",
     "age_select_cta": "Choisir ma date",
     "dob_placeholder": "jj/mm/aaaa",
     "dob_pick": "Choisir une date",
@@ -342,7 +342,7 @@
   },
   "chat": {
     "touriste": {
-      "welcome_first_open": "Bienvenue. Ton Palais est vierge. Chaque spawt le dessine un peu plus. On y va ?",
+      "welcome_first_open": "Bienvenue. Ton Palais est vierge. Chaque spawt le dessine un peu plus. C'est parti ?",
       "welcome_back": "Re. T'as faim ?",
       "post_calibration": "Premier coup d'œil sur ton Palais. Encore très flou — c'est normal. Va spawter, je précise au fur et à mesure.",
       "first_spawt_invite": "Le premier spawt te débloque l'app. Choisis un lieu et lance-toi.",
@@ -352,7 +352,7 @@
       "stade_up_djidji": "",
       "stade_up_guide": "",
       "geoloc_consent_request": "Parlons de tes données personnelles.",
-      "demographics_consent_request": "Quelques infos sur toi pour qu'on connaisse mieux la bande. Toujours optionnel.",
+      "demographics_consent_request": "Quelques infos sur toi pour que le Chat connaisse mieux sa bande. Toujours optionnel.",
       "home_edito": "Aujourd'hui je te propose 3 spawts à ton goût. Trie ton choix.",
       "search_suggestions": "Essaie : maquis, café, à 2 km",
       "guet_prompt": ""

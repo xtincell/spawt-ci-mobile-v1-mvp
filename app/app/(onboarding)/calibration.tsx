@@ -3,6 +3,11 @@
 // le moteur pur `calibration-mapping`, delta écrit dans `useOnboardingDraft`,
 // event analytics `calibration_answered` émis. La 5e question pushe vers
 // `palais-reveal` (Story 2.6) — la création row spawters reste Story 2.6.
+//
+// Retour alpha R16 — la 1re question (axe `racines_horizons`, type de cuisine)
+// se rend en `Select` multi au lieu de la grille de cartes ; mêmes options,
+// mêmes indexes → `resolveDirection` et les events analytics sont inchangés.
+// Les 4 autres questions gardent leurs cartes. (Visuels de cuisine à venir.)
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,9 +21,13 @@ import {
 } from "../../src/lib/calibration-mapping";
 import { ChatBubble } from "../../src/components/ChatBubble";
 import { OnbCard } from "../../src/components/primitives/OnbCard";
+import { Select } from "../../src/components/primitives/Select";
 import { track } from "../../src/lib/analytics";
 
 const TOTAL = CALIBRATION_QUESTIONS.length;
+
+// R16 — seul cet axe se rend en Select multi (type de cuisine).
+const SELECT_AXIS = "racines_horizons";
 
 export default function CalibrationScreen() {
   const { t } = useTranslation();
@@ -104,26 +113,52 @@ export default function CalibrationScreen() {
         {t(`calibration.q_${question.axis}.question` as const)}
       </Text>
 
-      <View
-        testID="calibration-grid"
-        style={{
-          marginTop: theme.spacing.lg,
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: theme.spacing.sm,
-        }}
-      >
-        {question.cards.map((card, idx) => (
-          <View key={card.altKey} style={{ width: "47%" }}>
-            <OnbCard
-              label={t(card.labelKey)}
-              selected={selected.includes(idx)}
-              onToggle={() => toggleCard(idx)}
-              testID={`calibration-card-${question.axis}-${card.altKey}`}
-            />
-          </View>
-        ))}
-      </View>
+      {question.axis === SELECT_AXIS ? (
+        // R16 — Select multi : `values` = altKeys des cartes sélectionnées,
+        // toggle re-mappé vers l'index de carte pour que `selected` (indexes)
+        // et donc `resolveDirection` restent inchangés.
+        <View style={{ marginTop: theme.spacing.lg }}>
+          <Select
+            multi
+            placeholder={t("calibration.q_racines_horizons.select_placeholder")}
+            values={selected
+              .map((idx) => question.cards[idx]?.altKey)
+              .filter((k): k is string => k !== undefined)}
+            options={question.cards.map((card) => ({
+              key: card.altKey,
+              label: t(card.labelKey),
+            }))}
+            onToggle={(key) => {
+              const idx = question.cards.findIndex((card) => card.altKey === key);
+              if (idx >= 0) toggleCard(idx);
+            }}
+            doneLabel={t("calibration.q_racines_horizons.select_done")}
+            testID={`calibration-select-${question.axis}`}
+            accessibilityLabel={t("calibration.q_racines_horizons.question")}
+          />
+        </View>
+      ) : (
+        <View
+          testID="calibration-grid"
+          style={{
+            marginTop: theme.spacing.lg,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: theme.spacing.sm,
+          }}
+        >
+          {question.cards.map((card, idx) => (
+            <View key={card.altKey} style={{ width: "47%" }}>
+              <OnbCard
+                label={t(card.labelKey)}
+                selected={selected.includes(idx)}
+                onToggle={() => toggleCard(idx)}
+                testID={`calibration-card-${question.axis}-${card.altKey}`}
+              />
+            </View>
+          ))}
+        </View>
+      )}
 
       <Pressable
         onPress={onNext}

@@ -1,4 +1,6 @@
 // Story 2.5 — AC #7 : CalibrationScreen séquence 5 questions + push palais-reveal.
+// Retour alpha R16 — Q1 (racines_horizons) se rend en Select multi, Q2-Q5
+// gardent la grille de cartes.
 
 import { type ReactNode } from "react";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -9,6 +11,20 @@ const mockTranslate = jest.fn((key: string) => key);
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockTranslate }),
 }));
+
+// SafeAreaView (sheet du Select R16) : pas besoin de provider, on stube en
+// View pure pour éviter le warning et garder le render simple.
+jest.mock("react-native-safe-area-context", () => {
+  const ReactMock = jest.requireActual("react") as typeof import("react");
+  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  return {
+    SafeAreaView: ({ children }: { children: ReactNode }) =>
+      ReactMock.createElement(RNMock.View, null, children),
+    SafeAreaProvider: ({ children }: { children: ReactNode }) =>
+      ReactMock.createElement(RNMock.View, null, children),
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  };
+});
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
@@ -53,6 +69,13 @@ function render(): TestRendererInstanceLike {
   return raw;
 }
 
+// Le testID est propagé du composant wrapper (Select) vers la Pressable
+// interne : on cible le nœud qui expose un `onPress` (la Pressable elle-même).
+function findPressable(instance: TestRendererInstanceLike, testID: string): FoundProps {
+  const all = instance.root.findAllByProps({ testID });
+  return all.find((n) => typeof n.props.onPress === "function") ?? all[0]!;
+}
+
 describe("<CalibrationScreen /> — Story 2.5", () => {
   beforeEach(() => {
     mockTranslate.mockClear();
@@ -61,11 +84,28 @@ describe("<CalibrationScreen /> — Story 2.5", () => {
     mockSetCalibration.mockClear();
   });
 
-  it("au mount : grille rendue pour la 1re question", () => {
+  it("R16 — au mount : Q1 (racines_horizons) rendue en Select multi, pas en grille", () => {
     const instance = render();
-    expect(instance.root.findByProps({ testID: "calibration-grid" })).toBeTruthy();
+    expect(
+      instance.root.findAllByProps({ testID: "calibration-select-racines_horizons" }).length,
+    ).toBeGreaterThan(0);
+    expect(instance.root.findAllByProps({ testID: "calibration-grid" })).toHaveLength(0);
     const next = instance.root.findByProps({ testID: "calibration-next" });
     expect(next).toBeTruthy();
+  });
+
+  it("R16 — Q2 garde la grille de cartes après avoir passé Q1", () => {
+    const instance = render();
+    TestRenderer.act(() => {
+      const next = instance.root.findByProps({ testID: "calibration-next" });
+      (next.props.onPress as () => void)();
+    });
+    expect(
+      instance.root.findAllByProps({ testID: "calibration-grid" }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      instance.root.findAllByProps({ testID: "calibration-select-racines_horizons" }),
+    ).toHaveLength(0);
   });
 
   it("5 taps Next sans sélection → 5 events neutral + push palais-reveal au 5e", () => {
@@ -126,17 +166,24 @@ describe("<CalibrationScreen /> — Story 2.5", () => {
     );
   });
 
-  it("sélection 2 cartes neg sur Q1 puis Next → event direction=neg value=-0.4", () => {
+  it("R16 — sélection 2 options neg dans le Select Q1 puis Next → direction=neg value=-0.4", () => {
     const instance = render();
     const q1 = CALIBRATION_QUESTIONS[0]!;
     const negCards = q1.cards.filter((c) => c.polarity === "neg").slice(0, 2);
 
+    // Ouvre la sheet du Select multi.
+    const trigger = findPressable(instance, `calibration-select-${q1.axis}`);
+    TestRenderer.act(() => {
+      (trigger.props.onPress as () => void)();
+    });
+
     for (const card of negCards) {
-      const cardEl = instance.root.findByProps({
-        testID: `calibration-card-${q1.axis}-${card.altKey}`,
-      });
+      const optionEl = findPressable(
+        instance,
+        `calibration-select-${q1.axis}-option-${card.altKey}`,
+      );
       TestRenderer.act(() => {
-        (cardEl.props.onToggle as () => void)();
+        (optionEl.props.onPress as () => void)();
       });
     }
 
@@ -152,6 +199,37 @@ describe("<CalibrationScreen /> — Story 2.5", () => {
     expect((answered?.[0] as { properties: { direction: string; value: number } }).properties).toMatchObject({
       direction: "neg",
       value: -0.4,
+    });
+  });
+
+  it("R16 — le toggle d'une option du Select coche/décoche (checkbox a11y)", () => {
+    const instance = render();
+    const q1 = CALIBRATION_QUESTIONS[0]!;
+    const first = q1.cards[0]!;
+    const optionTestID = `calibration-select-${q1.axis}-option-${first.altKey}`;
+
+    const trigger = findPressable(instance, `calibration-select-${q1.axis}`);
+    TestRenderer.act(() => {
+      (trigger.props.onPress as () => void)();
+    });
+
+    expect(findPressable(instance, optionTestID).props.accessibilityRole).toBe("checkbox");
+    expect(findPressable(instance, optionTestID).props.accessibilityState).toMatchObject({
+      checked: false,
+    });
+
+    TestRenderer.act(() => {
+      (findPressable(instance, optionTestID).props.onPress as () => void)();
+    });
+    expect(findPressable(instance, optionTestID).props.accessibilityState).toMatchObject({
+      checked: true,
+    });
+
+    TestRenderer.act(() => {
+      (findPressable(instance, optionTestID).props.onPress as () => void)();
+    });
+    expect(findPressable(instance, optionTestID).props.accessibilityState).toMatchObject({
+      checked: false,
     });
   });
 });
