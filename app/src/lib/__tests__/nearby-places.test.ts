@@ -39,6 +39,7 @@ function makePlace(
     whatsapp: null,
     cover_photo_url: null,
     gallery_urls: [],
+    menu_urls: [],
     signals: [],
     is_published,
     created_at: "2026-05-01T00:00:00Z",

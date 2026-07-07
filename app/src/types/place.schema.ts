@@ -51,6 +51,10 @@ export const PlaceSchema = z.object({
     .nullable()
     .transform((v) => (v === null || v.length === 0 ? null : v)),
   gallery_urls: z.array(z.string()),
+  // `.default([])` : résilience à la frontière — une row live antérieure à la
+  // migration 0030 (colonne absente → undefined) ne doit pas faire dropper le
+  // lieu entier ; elle parse avec un menu vide (onglet Menu en état vide).
+  menu_urls: z.array(z.string()).default([]),
   signals: z.array(z.string()),
   is_published: z.boolean(),
   created_at: z.string(),

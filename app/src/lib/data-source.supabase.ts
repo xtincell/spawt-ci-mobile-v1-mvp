@@ -79,6 +79,9 @@ function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
       whatsapp: r.whatsapp ?? null,
       cover_photo_url: r.cover_photo_url ?? null,
       gallery_urls: r.gallery_urls,
+      // Refonte fiche lieu (R17/R19, migration 0030). `?? []` : une DB live
+      // pas encore migrée renvoie undefined — le lieu doit parser quand même.
+      menu_urls: r.menu_urls ?? [],
       signals: r.signals,
       is_published: r.is_published,
       created_at: r.created_at,
@@ -386,6 +389,50 @@ export async function countReviewsForPlaceFromSupabase(
     return 0;
   }
   return count ?? 0;
+}
+
+/**
+ * Refonte fiche lieu (R17/Q1) — photos des spawts d'un lieu (« galerie des
+ * spawters », onglet Média). Champ `photos TEXT[]` de `spawt_checkin`
+ * (migration 0011), flatten côté client.
+ *
+ * Filtres alignés sur la RLS 0021 (`note_etoiles IS NOT NULL AND deleted_at
+ * IS NULL`) + `photos != '{}'` pour ne pas gaspiller la limite de rows sur
+ * des avis sans photo. Tri fraîcheur (created_at desc), cap `limit` photos.
+ */
+export async function listPlacePhotosFromSpawtsFromSupabase(
+  placeId: string,
+  limit: number,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("spawt_checkin")
+    .select("photos")
+    .eq("place_id", placeId)
+    .not("note_etoiles", "is", null)
+    .is("deleted_at", null)
+    .not("photos", "eq", "{}")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    if (__DEV__ && error) {
+      console.warn("[data-source] listPlacePhotosFromSpawts failed", error);
+    }
+    return [];
+  }
+
+  const out: string[] = [];
+  for (const row of data) {
+    const raw = (row as { photos?: unknown }).photos;
+    if (!Array.isArray(raw)) continue;
+    for (const p of raw) {
+      if (typeof p === "string" && p.length > 0) {
+        out.push(p);
+        if (out.length >= limit) return out;
+      }
+    }
+  }
+  return out;
 }
 
 export async function insertUserSignals(

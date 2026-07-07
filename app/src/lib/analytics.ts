@@ -153,6 +153,7 @@ type EventName =
   | "search_submitted" | "filter_applied"
   // 5. Fiche lieu & ADN
   | "place_viewed" | "place_call_tapped" | "place_whatsapp_tapped"
+  | "place_tab_viewed"
   | "place_saved" | "place_unsaved" | "adn_under_construction_seen"
   // 6. Le Guet
   | "guet_armed" | "guet_geofence_triggered" | "guet_threshold_reached"
@@ -202,6 +203,8 @@ const EVENT_TO_SIGNAL = {
   onboarding_started: "view", consent_screen_viewed: "view",
   feed_first_view: "view", place_first_view: "view", feed_viewed: "view",
   feed_card_impressed: "view", place_viewed: "view",
+  // Refonte fiche lieu (R17) — changement d'onglet Média · Menu · Avis.
+  place_tab_viewed: "view",
   adn_under_construction_seen: "view", paywall_shown: "view",
   // click
   onboarding_step_completed: "click", calibration_answered: "click",

@@ -228,6 +228,47 @@ export async function countReviewsForPlace(placeId: string): Promise<number> {
 }
 
 /**
+ * Refonte fiche lieu (R17/Q1) — photos des spawts d'un lieu, pour la
+ * « galerie des spawters » de l'onglet Média.
+ *
+ * Mode supabase : photos des avis publics du lieu (champ `photos TEXT[]` de
+ * `spawt_checkin`, migration 0011 — visibilité RLS 0021). Mode fallback
+ * (démo) : photos des spawts locaux du device (AsyncStorage) — dégradé
+ * acceptable, aucune photo communautaire embarquée côté mobile.
+ */
+export async function listPlacePhotosFromSpawts(
+  placeId: string,
+  limit = 30,
+): Promise<string[]> {
+  if (isSupabaseConfigured) {
+    const { listPlacePhotosFromSpawtsFromSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return listPlacePhotosFromSpawtsFromSupabase(placeId, limit);
+  }
+  try {
+    // Import dynamique — cohérent avec le pattern data-source ; évite de
+    // charger AsyncStorage pour les consumers qui n'appellent jamais ceci.
+    const { loadSpawts } = await import("./storage");
+    const spawts = await loadSpawts();
+    const photos: string[] = [];
+    for (const s of spawts) {
+      if (s.place_id !== placeId || s.is_cancelled) continue;
+      for (const p of s.photos ?? []) {
+        if (typeof p === "string" && p.length > 0) {
+          photos.push(p);
+          if (photos.length >= limit) return photos;
+        }
+      }
+    }
+    return photos;
+  } catch (err) {
+    if (__DEV__) console.warn("[data-source] listPlacePhotosFromSpawts (démo) failed", err);
+    return [];
+  }
+}
+
+/**
  * Câblage MVP — favoris cross-device (Story 3.6 Option A, migration 0024).
  * Retourne null si Supabase indisponible ou fetch en échec (le caller garde
  * alors le cache local sans merge).

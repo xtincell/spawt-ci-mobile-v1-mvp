@@ -72,6 +72,7 @@ Provider cible (PRD §12.1) : **PostHog ou Mixpanel**. Sprint 1 instrumente la c
 | Event | Quand | Propriétés |
 |---|---|---|
 | `place_viewed` | Ouverture d'une fiche lieu | `place_id`, `match_score`, `referrer` (feed \| search \| map \| share \| direct) |
+| `place_tab_viewed` | Changement d'onglet sur la fiche (refonte R17 : Média · Menu · Avis) | `place_id`, `tab` (media \| menu \| avis) |
 | `place_call_tapped` | Tap sur le téléphone | `place_id` |
 | `place_whatsapp_tapped` | Tap sur WhatsApp | `place_id` |
 | `place_saved` | Ajout aux favoris (PRD #9) | `place_id` |

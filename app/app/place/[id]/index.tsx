@@ -1,8 +1,17 @@
 // Story 3.4 — Fiche lieu canonique (UX spec §1127).
 // Story 3.6 — toggle favori (heart top-right) + signal matching +0.05.
 // Story 3.7 — bouton partager (share) + payload WhatsApp natif.
+// Refonte fiche lieu (retours produit R10-R21, Q1-Q2) :
+//   R10 — plus de rang de CTAs Appeler/WhatsApp proéminent (doublon InfoLines).
+//   R11 — CTA sticky « Spawt le ! ».
+//   R17+R19 — contenu éclaté en onglets Média · Menu · Avis (cet ordre) ;
+//             ordre global : hero → titre → note+prix → signaux → onglets →
+//             ADN → carte+adresse → horaires → « Divers ».
+//   R18 — contact (tel/wa.me) relégué dans la section « Divers » en bas.
+//   R21 — prix moyen en valeur F CFA (avg_ticket_xof), fallback échelle ₣.
 // Events analytics (events.md §5) : place_viewed, place_call_tapped,
-// place_whatsapp_tapped, adn_under_construction_seen, place_first_view.
+// place_whatsapp_tapped, place_tab_viewed, adn_under_construction_seen,
+// place_first_view.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -40,7 +49,10 @@ import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
 import { buildManualSpawt } from "../../../src/lib/guet";
 import { OpeningHours } from "../../../src/components/OpeningHours";
 import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
-import { PlaceGallery } from "../../../src/components/PlaceGallery";
+import { PlaceTabs } from "../../../src/components/place/PlaceTabs";
+import { PlaceMediaTab } from "../../../src/components/place/PlaceMediaTab";
+import { PlaceMenuTab } from "../../../src/components/place/PlaceMenuTab";
+import { formatXofAmount } from "../../../src/lib/format-price";
 import {
   buildStaticMapUrl,
   geoUrl,
@@ -72,6 +84,9 @@ const VALID_REFS: ReadonlyArray<Referrer> = [
   "direct",
 ];
 
+// R17 + R19 — onglets de la fiche, dans cet ordre produit (Média · Menu · Avis).
+type PlaceTabKey = "media" | "menu" | "avis";
+
 export default function PlaceDetailScreen() {
   const params = useLocalSearchParams<{ id: string; ref?: string }>();
   const id = params.id;
@@ -86,6 +101,7 @@ export default function PlaceDetailScreen() {
   const [place, setPlace] = useState<PlaceWithAdn | null>(null);
   const [loading, setLoading] = useState(true);
   const [coverFailed, setCoverFailed] = useState(false);
+  const [activeTab, setActiveTab] = useState<PlaceTabKey>("media");
 
   const registerSpawt = useSpawterStore((s) => s.registerSpawt);
   const spawter = useSpawterStore((s) => s.spawter);
@@ -247,6 +263,15 @@ export default function PlaceDetailScreen() {
   // §Edge cases : "confidence_score < 0.3 → afficher En construction").
   const palaisConfident = palais.confidence_score >= 0.3;
 
+  // R21 — prix moyen en valeur F CFA si `avg_ticket_xof` est renseigné
+  // (« ~8 000 F CFA », milliers en espace insécable), sinon fallback échelle ₣
+  // du tier. Aucun calcul côté client : la méthode du panier moyen est une
+  // décision produit/data ouverte — la colonne existante est la seule source.
+  const avgTicket = formatXofAmount(place.price.avg_ticket_xof);
+  const priceLabel = avgTicket
+    ? t("place.price_avg", { amount: avgTicket })
+    : PRICE_TIER_LABELS[place.price.tier];
+
   const onCallPress = () => {
     if (!place.phone) return;
     track({ name: "place_call_tapped", properties: { place_id: place.id } });
@@ -319,6 +344,16 @@ export default function PlaceDetailScreen() {
         name: wasAdded ? "place_saved" : "place_unsaved",
         properties: { place_id: place.id },
       });
+    });
+  };
+
+  // R17 — changement d'onglet. PlaceTabs ne déclenche `onChange` que sur un
+  // VRAI changement (jamais sur re-tap de l'onglet actif) → pas de dédup ici.
+  const onTabChange = (tab: PlaceTabKey) => {
+    setActiveTab(tab);
+    track({
+      name: "place_tab_viewed",
+      properties: { place_id: place.id, tab },
     });
   };
 
@@ -512,8 +547,9 @@ export default function PlaceDetailScreen() {
             {place.cuisine.length > 0 ? ` · ${place.cuisine.join(" · ")}` : ""}
           </Text>
 
-          {/* Story 4.9 — Rating principal + price tier en h2, visible à 1m.
-              Affiché sur la même ligne sous le nom du lieu. */}
+          {/* Story 4.9 — Rating principal + prix en h2, visible à 1m.
+              R21 — le prix affiche « ~N F CFA » si avg_ticket_xof est
+              renseigné, sinon l'échelle ₣ du tier. */}
           <View
             style={{
               flexDirection: "row",
@@ -548,84 +584,15 @@ export default function PlaceDetailScreen() {
                 color: theme.colors.text.primary,
                 marginLeft: theme.spacing.xs,
               }}
-              accessibilityLabel={`Budget ${PRICE_TIER_LABELS[place.price.tier]}`}
+              accessibilityLabel={t("place.price_aria", { value: priceLabel })}
             >
-              {PRICE_TIER_LABELS[place.price.tier]}
+              {priceLabel}
             </Text>
           </View>
 
-          {/* CTAs Appel + WhatsApp */}
-          {(place.phone || place.whatsapp) && (
-            <View
-              style={{
-                flexDirection: "row",
-                gap: theme.spacing.base,
-                marginBottom: theme.spacing.base,
-              }}
-            >
-              {place.phone ? (
-                <Pressable
-                  onPress={onCallPress}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("place.call")}
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.base,
-                    paddingVertical: theme.spacing.sm,
-                    borderRadius: theme.radius.full,
-                    borderWidth: 1,
-                    borderColor: theme.colors.border.strong,
-                    minHeight: 44,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Ico name="walk" size={18} />
-                  <Text
-                    style={{
-                      ...theme.typography.preset.body,
-                      color: theme.colors.text.primary,
-                    }}
-                  >
-                    {t("place.call")}
-                  </Text>
-                </Pressable>
-              ) : null}
-              {place.whatsapp ? (
-                <Pressable
-                  onPress={onWhatsAppPress}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("place.whatsapp")}
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.base,
-                    paddingVertical: theme.spacing.sm,
-                    borderRadius: theme.radius.full,
-                    borderWidth: 1,
-                    borderColor: theme.colors.border.strong,
-                    minHeight: 44,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  {/* Story 4.9 — Ico clock signale "réserver / planifier" (proxy
-                      calendrier — Ico primitif n'a pas encore "calendar" V1).
-                      Le label « Réserver via WhatsApp » porte le sens explicite. */}
-                  <Ico name="clock" size={18} />
-                  <Text
-                    style={{
-                      ...theme.typography.preset.body,
-                      color: theme.colors.text.primary,
-                    }}
-                  >
-                    {t("place.whatsapp")}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-          )}
+          {/* R10 — le rang de CTAs « Appeler » / « Réserver via WhatsApp » a
+              été supprimé (doublon : le téléphone réapparaissait en InfoLine).
+              Le contact vit désormais dans la section « Divers » en bas (R18). */}
 
           {/* MatchScore + Distance (Stars + price ont été remontés au-dessus). */}
           <View
@@ -678,6 +645,45 @@ export default function PlaceDetailScreen() {
             </View>
           )}
 
+          {/* R17 + R19 — Onglets Média · Menu · Avis (cet ordre). Seul le
+              contenu de l'onglet actif est monté : fetchs à la demande,
+              fiche légère. */}
+          <PlaceTabs<PlaceTabKey>
+            tabs={[
+              { key: "media", label: t("place.tab_media") },
+              { key: "menu", label: t("place.tab_menu") },
+              { key: "avis", label: t("place.tab_reviews") },
+            ]}
+            active={activeTab}
+            onChange={onTabChange}
+          />
+          <View style={{ marginBottom: theme.spacing.sm }}>
+            {activeTab === "media" ? (
+              /* Q1 — photos de présentation (gallery_urls, jusqu'à 3) puis
+                 galerie des spawters (photos des spawts du lieu). */
+              <PlaceMediaTab
+                placeId={place.id}
+                galleryUrls={place.gallery_urls}
+              />
+            ) : null}
+            {activeTab === "menu" ? (
+              <PlaceMenuTab urls={place.menu_urls} />
+            ) : null}
+            {activeTab === "avis" ? (
+              /* Q2 — PlaceReviews porte « Voir tous les avis (N) » → l'écran
+                 dédié reviews.tsx. */
+              <PlaceReviews
+                placeId={place.id}
+                onSeeAll={() =>
+                  // `as never` : typedRoutes ne régénère pas toujours la route
+                  // imbriquée hors dev-server (pattern repo, cf. profile.tsx
+                  // router.push("/saved" as never)). Résout au runtime.
+                  router.push(`/place/${place.id}/reviews` as never)
+                }
+              />
+            ) : null}
+          </View>
+
           {/* Section ADN */}
           <View
             style={{
@@ -726,23 +732,8 @@ export default function PlaceDetailScreen() {
             )}
           </View>
 
-          {/* Story 4.9 — Section reviews (avis spawter). Affichée entre ADN
-              et InfoLines pour donner le récit avant les infos pratiques.
-              Story 4.12 — « Voir tous les avis » navigue vers l'écran dédié. */}
-          <PlaceReviews
-            placeId={place.id}
-            onSeeAll={() =>
-              // `as never` : typedRoutes ne régénère pas toujours la route
-              // imbriquée hors dev-server (pattern repo, cf. profile.tsx
-              // router.push("/saved" as never)). Résout au runtime.
-              router.push(`/place/${place.id}/reviews` as never)
-            }
-          />
-
-          {/* Story 4.12 — galerie photos (≥3 slots, depuis gallery_urls). */}
-          <PlaceGallery urls={place.gallery_urls} />
-
-          {/* InfoLines */}
+          {/* R19 — Carte + adresse : la carte statique descend ici, sous les
+              onglets et l'ADN. Puis horaires (R12 — OpeningHours, 7 jours). */}
           <View style={{ marginTop: theme.spacing.lg }}>
             <InfoLine
               label={t("place.info_address")}
@@ -792,27 +783,45 @@ export default function PlaceDetailScreen() {
               </Text>
               <OpeningHours hours={place.hours} />
             </View>
-            {place.phone ? (
-              <InfoLine
-                label={t("place.info_phone")}
-                value={place.phone}
-                theme={theme}
-                onPress={onCallPress}
-              />
-            ) : null}
-            {place.whatsapp ? (
-              <InfoLine
-                label={t("place.info_whatsapp")}
-                value={place.whatsapp}
-                theme={theme}
-                onPress={onWhatsAppPress}
-              />
-            ) : null}
           </View>
+
+          {/* R18 — Section « Divers » tout en bas : contact relégué en
+              InfoLines simples (tel:/wa.me conservés). Intention produit :
+              pousser la réservation in-app plus tard — pas de bouton
+              proéminent (R10). */}
+          {place.phone || place.whatsapp ? (
+            <View style={{ marginTop: theme.spacing.lg }}>
+              <Text
+                style={{
+                  ...theme.typography.preset.h3,
+                  color: theme.colors.text.primary,
+                  marginBottom: theme.spacing.sm,
+                }}
+              >
+                {t("place.divers_title")}
+              </Text>
+              {place.phone ? (
+                <InfoLine
+                  label={t("place.info_phone")}
+                  value={place.phone}
+                  theme={theme}
+                  onPress={onCallPress}
+                />
+              ) : null}
+              {place.whatsapp ? (
+                <InfoLine
+                  label={t("place.info_whatsapp")}
+                  value={place.whatsapp}
+                  theme={theme}
+                  onPress={onWhatsAppPress}
+                />
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
-      {/* Sticky CTA bas — "Je spawt ici (mode démo)" */}
+      {/* R11 — Sticky CTA bas « Spawt le ! » (texte produit définitif). */}
       <View
         style={{
           position: "absolute",
@@ -832,7 +841,7 @@ export default function PlaceDetailScreen() {
             void handleSpawt();
           }}
           accessibilityRole="button"
-          accessibilityLabel={t("place.spawt_cta_demo")}
+          accessibilityLabel={t("place.spawt_cta")}
           style={({ pressed }) => ({
             backgroundColor: theme.colors.brand.accent,
             paddingVertical: theme.spacing.base,
@@ -850,7 +859,7 @@ export default function PlaceDetailScreen() {
               textTransform: "none",
             }}
           >
-            {t("place.spawt_cta_demo")}
+            {t("place.spawt_cta")}
           </Text>
         </Pressable>
       </View>

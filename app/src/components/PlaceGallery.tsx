@@ -18,11 +18,14 @@ const TILE = 120;
 
 interface Props {
   urls: readonly string[];
-  /** Override du minimum de slots (tests). */
+  /** Override du minimum de slots (tests + galerie des spawters : 0). */
   minSlots?: number;
+  /** Titre de section override (défaut : t("place.gallery_title")). Permet la
+      réutilisation dans l'onglet Média (R17) — présentation vs spawters. */
+  title?: string;
 }
 
-export function PlaceGallery({ urls, minSlots = MIN_SLOTS }: Props) {
+export function PlaceGallery({ urls, minSlots = MIN_SLOTS, title }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -38,7 +41,7 @@ export function PlaceGallery({ urls, minSlots = MIN_SLOTS }: Props) {
           marginBottom: theme.spacing.sm,
         }}
       >
-        {t("place.gallery_title")}
+        {title ?? t("place.gallery_title")}
       </Text>
       <ScrollView
         horizontal

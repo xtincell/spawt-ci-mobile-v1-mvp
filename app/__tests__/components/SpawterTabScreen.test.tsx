@@ -136,6 +136,7 @@ function makePlace(id: string, name: string, lat = 5.348, lng = -3.998): PlaceWi
     whatsapp: null,
     cover_photo_url: null,
     gallery_urls: [],
+    menu_urls: [],
     signals: [],
     is_published: true,
     created_at: "2026-05-01T00:00:00Z",

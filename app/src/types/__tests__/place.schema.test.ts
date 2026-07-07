@@ -76,6 +76,39 @@ describe("PlaceSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  // Refonte fiche lieu (R17, migration 0030) — menu_urls.
+  it("menu_urls absent (row live pré-0030) → défaut [] sans dropper la row", () => {
+    // VALID_PLACE ne porte pas menu_urls : la résilience à la frontière est
+    // volontaire (une DB pas encore migrée ne doit pas vider le feed).
+    const result = PlaceSchema.safeParse(VALID_PLACE);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.menu_urls).toEqual([]);
+    }
+  });
+
+  it("menu_urls renseigné → conservé tel quel", () => {
+    const result = PlaceSchema.safeParse({
+      ...VALID_PLACE,
+      menu_urls: ["https://x/menu-1.jpg", "https://x/menu-2.jpg"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.menu_urls).toEqual([
+        "https://x/menu-1.jpg",
+        "https://x/menu-2.jpg",
+      ]);
+    }
+  });
+
+  it("rejette menu_urls non-array de strings", () => {
+    const result = PlaceSchema.safeParse({
+      ...VALID_PLACE,
+      menu_urls: [42],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("PlaceAdnSchema", () => {

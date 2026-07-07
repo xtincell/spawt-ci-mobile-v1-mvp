@@ -100,6 +100,8 @@ export interface Place {
   whatsapp: string | null;
   cover_photo_url: string | null;
   gallery_urls: string[];
+  /** Photos du menu (onglet Menu de la fiche — R17/R19, migration 0030) */
+  menu_urls: string[];
   /** Signaux spéciaux affichés sur la fiche (PRD §6.3) */
   signals: PlaceSignal[];
   is_published: boolean;

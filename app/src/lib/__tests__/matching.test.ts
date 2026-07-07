@@ -70,6 +70,7 @@ function makePlace(overrides: Partial<Place> = {}): Place {
     whatsapp: null,
     cover_photo_url: null,
     gallery_urls: [],
+    menu_urls: [],
     signals: [],
     is_published: true,
     created_at: NOW.toISOString(),
