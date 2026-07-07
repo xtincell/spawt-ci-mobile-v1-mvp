@@ -35,7 +35,7 @@ Format d'une entrée :
 
 ## v1.0.0 — build 6 — 2026-07-07
 
-**APK** : voir l'URL dans les logs du run CI · **Tag CI** : `build-android-2026-07-07-6` · **Branche** : `spawt/v1-maj-consolidee`
+**APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/f0363d01-f171-4d40-ad73-a298cba44594 · **Tag CI** : `build-android-2026-07-07-6` · **Branche** : `spawt/v1-maj-consolidee`
 
 **MAJ consolidée MVP V1** — retours du build 04/06 (note Stephanie Bidje / Alexandre Djengue) : les correctifs **R1→R21** et décisions **Q1→Q3** sont couverts, plus l'alignement design system (Moka PNG partout, fond blanc).
 
