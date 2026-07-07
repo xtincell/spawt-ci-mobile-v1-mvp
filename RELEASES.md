@@ -33,6 +33,24 @@ Format d'une entrée :
 
 ---
 
+## v1.0.0 — build 7 — 2026-07-08
+
+**APK** : voir l'URL dans les logs du run CI · **Tag CI** : `build-android-2026-07-08-7` · **Branche** : `spawt/v1-maj-consolidee`
+
+**Complément au build 6** — les décisions produit Q4/R3 appliquées + ouverture animée.
+
+### Nouveau
+- **Prix moyen F CFA (Q4 appliqué)** : convention éditoriale type TheFork — repas type par personne, **boissons non comprises** (mention affichée sous le prix). Chiffre saisi par l'équipe dans l'admin (champ « Ticket moyen », convention rappelée sous le champ).
+- **« Pays d'origine » (R3 appliqué)** : conservé avec l'angle nostalgie — « Pour te retrouver les goûts de chez toi. (Optionnel, promis) ».
+- **Pilotage sans redéploiement** : les deux fonctionnalités sont togglables depuis le dashboard admin → page **Fonctionnalités** (interrupteurs par scope). Flags : `place-avg-price`, `onboarding-origin-country` — seedés ON sur les 2 backends.
+- **Ouverture animée vectorielle** : le logo carte se TRACE (pin blanc cassé sur fond nuit, route en S, soleil d'or, étoiles) puis laisse place à Moka. Sur APK comme sur web.
+
+### À tester en priorité
+1. Ouverture : l'animation du logo (tracé → soleil → étoiles → Moka).
+2. Fiche lieu : « ~N F CFA » + la mention « boissons non comprises » dessous.
+3. Admin → Fonctionnalités : couper « Prix moyen » → la fiche repasse en ₣₣ (au relancement de l'app).
+4. Inscription : la question « Pays d'origine » avec sa nouvelle aide ; la couper depuis l'admin → elle disparaît du parcours.
+
 ## v1.0.0 — build 6 — 2026-07-07
 
 **APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/f0363d01-f171-4d40-ad73-a298cba44594 · **Tag CI** : `build-android-2026-07-07-6` · **Branche** : `spawt/v1-maj-consolidee`
