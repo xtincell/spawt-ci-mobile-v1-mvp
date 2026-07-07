@@ -38,11 +38,11 @@ dépend entièrement de ce qui tourne sur Coolify :
 - [ ] **Compte Apple Developer Program** (99 USD/an) — sans lui : aucun build device iOS, pas de TestFlight. Une fois créé : Team ID + créer l'app `com.upgraders.spawt` dans App Store Connect (ascAppId) + clé API App Store Connect pour EAS submit. Renseigner dans `app/eas.json` (`submit.production.ios`).
 - [ ] Vérifier que le compte Expo `xtincell` a accès aux credentials iOS (EAS gérera certificats/profils automatiquement une fois le compte Apple lié : `eas credentials`).
 
-## Bloquant pour un OTP réel (inscription par SMS)
+## Bloquant pour un OTP réel (inscription par SMS) — phase suivante
 
+- [x] ~~Configurer MOCK_TERMII~~ → **plus nécessaire pour le mock** : depuis la MAJ consolidée (07/2026), les Edge Functions tournent en mock PAR DÉFAUT sans aucun secret. Code de test : **`12345678`** (vérifié sur cloud + self-hosted).
 - [ ] **Compte Termii** (provider SMS local) → récupérer `TERMII_API_KEY`.
-- [ ] Configurer les secrets Supabase (projet `ucymjsxmnzdxvvupgaof`) : `TERMII_API_KEY`, `MOCK_TERMII=false` (ou `true` pour beta fermée sans SMS réels), `ALLOWED_ORIGINS`.
-- [ ] En attendant : mode démo OTP = code `123456` (fonctionne déjà).
+- [ ] À la bascule SMS réel : secrets `TERMII_API_KEY` + `MOCK_TERMII=false` (+ `ALLOWED_ORIGINS`) sur le backend actif, et repasser `CELL_COUNT` à 6 dans `app/app/(onboarding)/otp.tsx` (pin Termii = 6 chiffres).
 
 ## Bloquant pour la soumission aux stores (pas pour les builds)
 

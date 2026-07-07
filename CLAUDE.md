@@ -38,7 +38,7 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 
 ## État déployé (2026-05-28, cf. header sprint-status.yaml)
 
-- Supabase live : projet `ucymjsxmnzdxvvupgaof` — migrations 0001→0023 appliquées, Edge Functions `otp-send` (verify_jwt=false), `otp-verify`, `moderate-spawter`, `seed-inventory` ACTIVE. Secrets `MOCK_TERMII`/`ALLOWED_ORIGINS` **non configurés** (OTP en 500 attendu ; mode démo OTP = `123456`).
+- Supabase live : projet `ucymjsxmnzdxvvupgaof` — migrations 0001→0023 + `places_menu_urls` (0030) appliquées, Edge Functions ACTIVE : `otp-send` v3 + `otp-verify` v3 (⚠️ verify_jwt=true depuis le redeploy MCP du 07/07 — OK, l'app envoie Bearer anon), `moderate-spawter`, `seed-inventory`. **OTP en MOCK PAR DÉFAUT** (aucun secret requis) : code de test `12345678` — session réelle vérifiée le 07/07. Bascule SMS réel : `TERMII_API_KEY` + `MOCK_TERMII=false`. Un backend self-hosted (Coolify VPS) tourne en parallèle avec les mêmes fonctions (cutover envisagé, cf. sprint-status).
 - EAS : projet `15ac2301-e901-4caa-a8c8-864c6621bcd0`, owner `xtincell`, keystore Android managé EAS. 3 APK alpha livrés (cf. `RELEASES.md`).
 - CI : `.github/workflows/eas-build.yml` (tag `build-android-YYYY-MM-DD-N` → triple gate → APK preview), `eas-update.yml` (OTA manuel). Secret GitHub requis : `EXPO_TOKEN`.
 - Git : tout le Sprint 1 (42 stories, epics 1-7) vit sur `spawt/v1-bmad` en statut "review" ; `main` est en retard. Branche de travail MVP : `claude/ios-android-final-version-5vad3n` (part de `spawt/v1-bmad`).

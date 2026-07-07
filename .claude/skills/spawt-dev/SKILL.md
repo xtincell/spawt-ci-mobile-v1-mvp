@@ -48,7 +48,7 @@ Toute string visible passe par `app/src/i18n/` (i18next). `i18n:check` casse la 
 
 ## Modes de données (adaptateur)
 
-`app/src/lib/data-source.ts` bascule démo (fixtures locales `app/src/data/`) vs Supabase selon `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Toute nouvelle feature data doit fonctionner dans les deux modes (démo = fallback dégradé acceptable mais pas de crash). OTP mode démo : code `123456`.
+`app/src/lib/data-source.ts` bascule démo (fixtures locales `app/src/data/`) vs Supabase selon `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Toute nouvelle feature data doit fonctionner dans les deux modes (démo = fallback dégradé acceptable mais pas de crash). OTP : code de test `12345678` (8 chiffres, #V07 MAJ 07/2026) — vaut pour le mode démo local ET le mock serveur (Edge Functions mock par défaut sans clé Termii).
 
 ## Env vars connues
 
