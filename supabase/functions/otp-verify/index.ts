@@ -2,6 +2,11 @@
 // Runtime : Deno (Supabase Edge). Bridge Termii verify + ouverture session
 // Supabase Auth bout-en-bout.
 //
+// Phase courante (#V07, MAJ consolidée 07/2026) : MODE MOCK par défaut —
+// aucun compte Termii requis, code universel `12345678`, mais la session
+// Supabase émise est réelle. Bascule SMS réel (phase suivante) :
+// `supabase secrets set TERMII_API_KEY=... MOCK_TERMII=false`.
+//
 // Flow :
 //   1. Lookup le `pin_id` Termii via `otp_attempts.request_id` (envoi le plus récent).
 //   2. Appelle Termii `/api/sms/otp/verify` avec `pin_id` + code saisi.
@@ -40,7 +45,20 @@ interface VerifyPayload {
 
 // P8 — aligné avec migration 0009 (^\+[1-9]\d{8,14}$).
 const PHONE_RE = /^\+[1-9]\d{8,14}$/;
-const OTP_RE = /^\d{6}$/;
+// 6 chiffres = pin Termii live ; 8 chiffres = code mock de la phase courante.
+const OTP_RE = /^\d{6,8}$/;
+
+// #V07 (MAJ consolidée 07/2026) — code de test universel du mode mock.
+// Doit rester aligné avec DEMO_CODE côté app (app/app/(onboarding)/otp.tsx).
+const MOCK_OTP_CODE = "12345678";
+
+// #V07 — même sémantique que otp-send : mock par défaut sans clé Termii.
+function isMockMode(): boolean {
+  const flag = Deno.env.get("MOCK_TERMII");
+  if (flag === "true") return true;
+  if (flag === "false") return false;
+  return !Deno.env.get("TERMII_API_KEY");
+}
 
 // P-11 — CORS restreint : la liste blanche est lue depuis `ALLOWED_ORIGINS`
 // (CSV). Si vide, on échoue closed (deny). Reflète exactement l'origine de la
@@ -120,9 +138,11 @@ export async function handleRequest(req: Request): Promise<Response> {
   const pinId = attempts?.[0]?.request_id;
   if (!pinId) return json({ error: "no_pending_otp" }, req, 400);
 
-  // Mock mode pour CI/tests : skip Termii API, accepte 123456 universel.
-  if (Deno.env.get("MOCK_TERMII") === "true") {
-    if (payload.otp_code !== "123456") return json({ error: "invalid_otp" }, req, 401);
+  // Mock mode (défaut de cette phase) : skip Termii API, accepte le code
+  // de test universel 12345678. La session Supabase émise derrière est RÉELLE
+  // (generateLink + verifyOtp) — seul le SMS est mocké.
+  if (isMockMode()) {
+    if (payload.otp_code !== MOCK_OTP_CODE) return json({ error: "invalid_otp" }, req, 401);
   } else {
     const termiiKey = Deno.env.get("TERMII_API_KEY");
     if (!termiiKey) return json({ error: "edge_misconfigured" }, req, 500);

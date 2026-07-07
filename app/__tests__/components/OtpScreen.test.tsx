@@ -1,4 +1,5 @@
-// Story 2.3 + 2.3a — AC #8-2 : <OtpScreen /> en mode démo accepte `123456`
+// Story 2.3 + 2.3a — AC #8-2 : <OtpScreen /> en mode démo accepte `12345678`
+// (#V07 — code mock 8 chiffres de la phase MAJ consolidée 07/2026)
 // et émet auth_otp_validated + auth_signed_in + onboarding_step_completed.
 // Couvre aussi : friction panel (3 essais → Resend + Change phone DANS le panneau).
 
@@ -88,17 +89,17 @@ describe("<OtpScreen /> — Story 2.3 + 2.3a (mode démo)", () => {
     mockParams = { phone: "+22507000000", demo: "1" };
   });
 
-  it("6 cases rendues + cell-0 a autoFocus true", () => {
+  it("8 cases rendues + cell-0 a autoFocus true", () => {
     const instance = render();
     const cell0 = instance.root.findByProps({ testID: "otp-cell-0" });
     expect(cell0.props.autoFocus).toBe(true);
-    const cell5 = instance.root.findByProps({ testID: "otp-cell-5" });
-    expect(cell5).toBeTruthy();
+    const cell7 = instance.root.findByProps({ testID: "otp-cell-7" });
+    expect(cell7).toBeTruthy();
   });
 
-  it("saisie de 123456 → auto-submit → 3 events dans l'ordre + setField + push profile", async () => {
+  it("saisie de 12345678 → auto-submit → 3 events dans l'ordre + setField + push profile", async () => {
     const instance = render();
-    await typeCode(instance, "123456");
+    await typeCode(instance, "12345678");
 
     const order = mockTrack.mock.calls.map(([e]) => (e as { name: string; properties?: Record<string, unknown> }).name);
     expect(order).toEqual([
@@ -112,13 +113,13 @@ describe("<OtpScreen /> — Story 2.3 + 2.3a (mode démo)", () => {
 
   it("démo : setSession n'est jamais appelé (pas de session live)", async () => {
     const instance = render();
-    await typeCode(instance, "123456");
+    await typeCode(instance, "12345678");
     expect(mockSetSession).not.toHaveBeenCalled();
   });
 
   it("saisie code invalide en démo → error + no nav + attempts incrémente", async () => {
     const instance = render();
-    await typeCode(instance, "111111");
+    await typeCode(instance, "11111111");
 
     const validatedCalls = mockTrack.mock.calls.filter(
       ([e]) => (e as { name: string }).name === "auth_otp_validated",
@@ -141,7 +142,7 @@ describe("<OtpScreen /> — Story 2.3 + 2.3a (mode démo)", () => {
   it("3 essais ratés → friction panel + Resend + Change phone DANS le panneau", async () => {
     const instance = render();
     for (let i = 0; i < 3; i++) {
-      await typeCode(instance, "111111");
+      await typeCode(instance, "11111111");
     }
     // Le panneau friction est rendu.
     const friction = instance.root.findByProps({ testID: "otp-friction" });

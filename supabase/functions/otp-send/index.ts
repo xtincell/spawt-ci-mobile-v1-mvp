@@ -9,12 +9,18 @@
 //   SUPABASE_URL         — injecté par défaut
 //   SUPABASE_SERVICE_ROLE_KEY — injecté par défaut
 //
-// Mode test : si env `MOCK_TERMII=true`, retourne `{success:true, request_id:"mock-..."}`.
-// Utile en CI sans frapper l'API Termii réelle (cohérent défer Story 2.3 #5).
+// Mode MOCK (phase MAJ consolidée 07/2026 — décision produit #V07) :
+// cette phase tourne SANS compte Termii. Le mode mock est actif si
+// `MOCK_TERMII=true`, OU par défaut quand ni `MOCK_TERMII` ni `TERMII_API_KEY`
+// ne sont configurés — un déploiement sans secrets fonctionne donc en mock.
+// En mock : retourne `{success:true, request_id:"mock-..."}` sans SMS ; le code
+// attendu côté otp-verify est `12345678`.
+//
+// Bascule SMS réel (phase suivante, NE PAS câbler maintenant) :
+//   supabase secrets set TERMII_API_KEY=... MOCK_TERMII=false
 //
 // Déploiement :
 //   supabase functions deploy otp-send
-//   supabase secrets set TERMII_API_KEY=...
 
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -30,6 +36,16 @@ interface SendPayload {
 const PHONE_RE = /^\+[1-9]\d{8,14}$/;
 const RATE_LIMIT_PHONE_PER_HOUR = 5;
 const RATE_LIMIT_IP_PER_HOUR = 20;
+
+// #V07 — mock par défaut tant que le SMS réel n'est pas configuré :
+// `MOCK_TERMII=true` force le mock, `MOCK_TERMII=false` force le live,
+// non défini → mock si aucune clé Termii n'existe.
+function isMockMode(): boolean {
+  const flag = Deno.env.get("MOCK_TERMII");
+  if (flag === "true") return true;
+  if (flag === "false") return false;
+  return !Deno.env.get("TERMII_API_KEY");
+}
 
 // P-11 — CORS restreint via `ALLOWED_ORIGINS` (CSV). Pas de wildcard `*` car
 // `authorization` est dans `allow-headers` et un browser tier pourrait alors
@@ -152,8 +168,8 @@ export async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  // Mock mode pour CI/tests sans appeler Termii.
-  if (Deno.env.get("MOCK_TERMII") === "true") {
+  // Mock mode (défaut de cette phase) — aucun SMS, aucun appel Termii.
+  if (isMockMode()) {
     const mockId = `mock-${Date.now()}`;
     // P-10 — check insertError, sinon SMS sent / DB row absent silencieusement.
     const { error: insertError } = await admin

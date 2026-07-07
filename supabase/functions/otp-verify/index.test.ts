@@ -97,6 +97,25 @@ Deno.test("otp-verify: otp_code non-numeric returns 400 invalid_otp", async () =
   assertEquals(body.error, "invalid_otp");
 });
 
+// #V07 — le code mock 8 chiffres passe la validation de frontière (la suite
+// requiert les env vars Supabase → 500 edge_misconfigured dans ce harness).
+Deno.test("otp-verify: 8-digit mock code passes boundary validation", async () => {
+  resetEnv();
+  const req = makeRequest({ phone_e164: "+2250707000000", otp_code: "12345678" });
+  const resp = await handleRequest(req);
+  assertEquals(resp.status, 500);
+  const body = await resp.json();
+  assertEquals(body.error, "edge_misconfigured");
+});
+
+Deno.test("otp-verify: 9-digit otp_code returns 400 invalid_otp", async () => {
+  const req = makeRequest({ phone_e164: "+2250707000000", otp_code: "123456789" });
+  const resp = await handleRequest(req);
+  assertEquals(resp.status, 400);
+  const body = await resp.json();
+  assertEquals(body.error, "invalid_otp");
+});
+
 Deno.test("otp-verify: missing SUPABASE_ANON_KEY env → 500 edge_misconfigured", async () => {
   resetEnv();
   // @ts-expect-error — Deno global
