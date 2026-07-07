@@ -36,7 +36,9 @@ export type IconName =
   | "walk"
   | "sliders"
   | "bell"
-  | "check";
+  | "check"
+  | "fork"
+  | "users";
 
 interface Props {
   name: IconName;
@@ -228,6 +230,23 @@ export function Ico({ name, size = 20, color, filled = false }: Props) {
       );
     case "check":
       return svg(<Path {...common} d="M5 12 L10 17 L19 7" />);
+    case "fork":
+      // R6 — mode « Manger » : fourchette + couteau.
+      return svg(
+        <>
+          <Path {...common} d="M5.5 3 V8 A2.5 2.5 0 0 0 10.5 8 V3 M8 3 V8 M8 10.5 V21" />
+          <Path {...common} d="M17 3 C15 6.5 15 10 17 13 V21 M17 3 V13" />
+        </>,
+      );
+    case "users":
+      // R6 — mode « En groupe » : deux silhouettes.
+      return svg(
+        <>
+          <Circle cx={9} cy={8} r={3.5} {...common} fill={fill} />
+          <Path {...common} d="M2.5 20 C2.5 16 5.5 14 9 14 C12.5 14 15.5 16 15.5 20" fill={fill} />
+          <Path {...common} d="M15.5 4.8 A3.5 3.5 0 0 1 15.5 11.2 M17.5 14.3 C20 15.2 21.5 17.2 21.5 20" />
+        </>,
+      );
     default:
       // Le default du kit JSX rend un cercle simple. Garde-fou si on étend
       // IconName mais oublie une case (TS attrape la plupart des oublis).

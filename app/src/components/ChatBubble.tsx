@@ -14,9 +14,28 @@
 import { Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { CatBubble, type CatBubbleVariant } from "./primitives/CatBubble";
+import type { MokaPose } from "./brand/CatMark";
 import { useTheme } from "../theme/ThemeProvider";
 import type { Stade } from "../types/stade";
 import { chatKey, isChatSilent, type ChatMoment } from "../lib/chat-voice";
+
+// MAJ DS 07/2026 — une pose Moka (PNG) par scénario de la voix du Chat.
+const MOMENT_POSE: Record<ChatMoment, MokaPose> = {
+  welcome_first_open: "salut",
+  welcome_back: "salut",
+  post_calibration: "celebration",
+  first_spawt_invite: "curieux",
+  post_first_spawt: "merci",
+  stade_up_explorateur: "celebration",
+  stade_up_detective: "celebration",
+  stade_up_djidji: "celebration",
+  stade_up_guide: "gold",
+  geoloc_consent_request: "carte",
+  demographics_consent_request: "confiance",
+  home_edito: "recommande",
+  search_suggestions: "cherche",
+  guet_prompt: "notification",
+};
 
 interface Props {
   stade: Stade;
@@ -43,7 +62,7 @@ export function ChatBubble({ stade, moment, overrideText, variant = "bubble" }: 
       : {};
 
   return (
-    <CatBubble stage={stade} variant={variant}>
+    <CatBubble stage={stade} variant={variant} pose={MOMENT_POSE[moment]}>
       <Text
         {...textProps}
         style={{

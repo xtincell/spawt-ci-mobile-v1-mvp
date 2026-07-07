@@ -1,7 +1,11 @@
 // Story 5.3 — Carte spawter flip 3D (PRD §3.1 FR-008 + §20.1).
-// Recto gr-night (identité) ↔ verso bg-warm (Palais radar 5 axes).
+// Recto gr-night (identité) ↔ verso bg-warm (axes du Palais en barres).
 // Reanimated 4 useSharedValue + interpolate rotateY (UI thread, 60 FPS).
 // Pas de gamification — identité avant utilité.
+//
+// R8 (MAJ consolidée 07/2026, P0) — le graphe RADAR est retiré du parcours
+// utilisateur (réservé exploitation interne) : le verso rend les axes en
+// barres horizontales (AxisBar) pour tous les tiers.
 
 import { useCallback, useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -18,7 +22,6 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme, type Theme } from "../theme/ThemeProvider";
 import { gradient } from "../theme/tokens";
-import { AxisRadar } from "./AxisRadar";
 import { STADE_DESCRIPTORS } from "../types/stade";
 import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
@@ -29,10 +32,12 @@ interface Props {
   palais: UserPalais;
   /** Clé i18n du titre affiché (Story 5.2). Fallback = titre du stade actuel. */
   displayedTitleKey: string;
-  /** Gate radar (V1 = false par défaut, hook prêt pour V1.5 Gold). */
+  /** Gate axes Gold (V1 = false par défaut, hook prêt pour V1.5 Gold). */
   isGold: boolean;
-  totalSpawts: number;
+  /** Q3 — « Spawts » = nombre d'ÉTABLISSEMENTS spawtés (lieux distincts). */
   uniqueSpots: number;
+  /** Q3 — « Favoris » = nombre de lieux sauvegardés (saved_places). */
+  savedCount: number;
   reviewsCount: number;
 }
 
@@ -43,8 +48,8 @@ export function SpawterCard({
   palais,
   displayedTitleKey,
   isGold,
-  totalSpawts,
   uniqueSpots,
+  savedCount,
   reviewsCount,
 }: Props) {
   const { t } = useTranslation();
@@ -168,9 +173,11 @@ export function SpawterCard({
             </Text>
           </View>
 
+          {/* Q3 — compteurs clarifiés : « Spawts » = établissements spawtés,
+              « Favoris » = lieux sauvegardés. Fini l'ambigu « Spawts uniques ». */}
           <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
-            <StatBlock label={t("profile.stat_spawts")} value={totalSpawts} theme={theme} />
-            <StatBlock label={t("profile.stat_spots")} value={uniqueSpots} theme={theme} />
+            <StatBlock label={t("profile.stat_spawts")} value={uniqueSpots} theme={theme} />
+            <StatBlock label={t("profile.stat_favoris")} value={savedCount} theme={theme} />
             <StatBlock label={t("profile.stat_avis")} value={reviewsCount} theme={theme} />
           </View>
 
@@ -202,7 +209,7 @@ export function SpawterCard({
             justifyContent: "center",
           }}
         >
-          <PalaisRadarGated
+          <PalaisAxesGated
             palais={palais}
             visibleAxesCount={isGold ? 5 : 2}
             underConstruction={!adnReady}
@@ -235,14 +242,14 @@ function StatBlock({
 }
 
 /**
- * CR finding D2 — Vrai gate Gold sur le Palais (PRD §3.1 FR-008 + epics.md L1113).
- * Free spawter : 2 axes fondamentaux affichés en barres horizontales lisibles
- * (racines/horizons + tanière/nomade — les axes d'identité culinaire de base).
- * Gold spawter : radar 5 axes complet via AxisRadar.
- * Sous-construction (confidence < 0.3) : radar "En construction" même free
- * (cohérent UX, on ne floute pas un Palais déjà non-fiable).
+ * CR finding D2 + R8 — Gate Gold sur le Palais (PRD §3.1 FR-008), rendu 100 %
+ * en barres horizontales (le graphe radar est réservé à l'exploitation
+ * interne, retour produit R8) :
+ * - En construction (confidence < 0.3) : 2 axes de base estompés + mention.
+ * - Free : 2 axes fondamentaux + teaser Gold.
+ * - Gold : les 5 axes en barres.
  */
-function PalaisRadarGated({
+function PalaisAxesGated({
   palais,
   visibleAxesCount,
   underConstruction,
@@ -254,71 +261,57 @@ function PalaisRadarGated({
   const { t } = useTranslation();
   const theme = useTheme();
 
-  // Cas 1 — Palais en construction : radar dim "En construction" pour tous,
-  // pas de gate Gold (on ne cache pas un Palais déjà invisible).
-  if (underConstruction) {
-    return (
-      <AxisRadar
-        axes={[
-          { value: palais.axe_racines_horizons, negLabel: t("axis.racines"), posLabel: t("axis.horizons") },
-          { value: palais.axe_taniere_nomade, negLabel: t("axis.taniere"), posLabel: t("axis.nomade") },
-          { value: palais.axe_exigeant_enthousiaste, negLabel: t("axis.exigeant"), posLabel: t("axis.enthousiaste") },
-          { value: palais.axe_foule_secret, negLabel: t("axis.foule"), posLabel: t("axis.secret") },
-          { value: palais.axe_maquis_table, negLabel: t("axis.maquis"), posLabel: t("axis.table") },
-        ]}
-        size={220}
-        underConstruction
-        underConstructionLabel={t("palais.underConstruction")}
-      />
-    );
-  }
+  const baseAxes = [
+    { value: palais.axe_racines_horizons, negLabel: t("axis.racines"), posLabel: t("axis.horizons") },
+    { value: palais.axe_taniere_nomade, negLabel: t("axis.taniere"), posLabel: t("axis.nomade") },
+  ];
+  const goldAxes = [
+    { value: palais.axe_exigeant_enthousiaste, negLabel: t("axis.exigeant"), posLabel: t("axis.enthousiaste") },
+    { value: palais.axe_foule_secret, negLabel: t("axis.foule"), posLabel: t("axis.secret") },
+    { value: palais.axe_maquis_table, negLabel: t("axis.maquis"), posLabel: t("axis.table") },
+  ];
+  const axes = visibleAxesCount === 5 ? [...baseAxes, ...goldAxes] : baseAxes;
 
-  // Cas 2 — Gold : radar 5 axes plein, accès complet.
-  if (visibleAxesCount === 5) {
-    return (
-      <AxisRadar
-        axes={[
-          { value: palais.axe_racines_horizons, negLabel: t("axis.racines"), posLabel: t("axis.horizons") },
-          { value: palais.axe_taniere_nomade, negLabel: t("axis.taniere"), posLabel: t("axis.nomade") },
-          { value: palais.axe_exigeant_enthousiaste, negLabel: t("axis.exigeant"), posLabel: t("axis.enthousiaste") },
-          { value: palais.axe_foule_secret, negLabel: t("axis.foule"), posLabel: t("axis.secret") },
-          { value: palais.axe_maquis_table, negLabel: t("axis.maquis"), posLabel: t("axis.table") },
-        ]}
-        size={220}
-        underConstruction={false}
-        underConstructionLabel={t("palais.underConstruction")}
-      />
-    );
-  }
-
-  // Cas 3 — Free : 2 axes fondamentaux en barres horizontales + teaser Gold
-  // pour les 3 axes restants. Honnête vs PRD : on cache vraiment ce qui n'est
-  // pas accessible (anti-mensonge), au lieu d'afficher un radar 5 axes complet.
   return (
-    <View style={{ width: "100%", paddingHorizontal: theme.spacing.lg }}>
-      <AxisBar
-        value={palais.axe_racines_horizons}
-        negLabel={t("axis.racines")}
-        posLabel={t("axis.horizons")}
-      />
-      <View style={{ height: theme.spacing.lg }} />
-      <AxisBar
-        value={palais.axe_taniere_nomade}
-        negLabel={t("axis.taniere")}
-        posLabel={t("axis.nomade")}
-      />
-      <Text
-        style={{
-          marginTop: theme.spacing.xl,
-          ...theme.typography.preset.small,
-          color: theme.colors.text.tertiary,
-          textAlign: "center",
-          fontStyle: "italic",
-          opacity: 0.8,
-        }}
-      >
-        {t("profile.palais_gold_teaser")}
-      </Text>
+    <View
+      style={{
+        width: "100%",
+        paddingHorizontal: theme.spacing.lg,
+        opacity: underConstruction ? 0.45 : 1,
+      }}
+    >
+      {axes.map((axis, i) => (
+        <View key={axis.negLabel} style={{ marginTop: i === 0 ? 0 : theme.spacing.lg }}>
+          <AxisBar value={axis.value} negLabel={axis.negLabel} posLabel={axis.posLabel} />
+        </View>
+      ))}
+      {underConstruction ? (
+        <Text
+          style={{
+            marginTop: theme.spacing.xl,
+            ...theme.typography.preset.small,
+            color: theme.colors.text.tertiary,
+            textAlign: "center",
+            fontStyle: "italic",
+          }}
+        >
+          {t("palais.underConstruction")}
+        </Text>
+      ) : null}
+      {!underConstruction && visibleAxesCount === 2 ? (
+        <Text
+          style={{
+            marginTop: theme.spacing.xl,
+            ...theme.typography.preset.small,
+            color: theme.colors.text.tertiary,
+            textAlign: "center",
+            fontStyle: "italic",
+            opacity: 0.8,
+          }}
+        >
+          {t("profile.palais_gold_teaser")}
+        </Text>
+      ) : null}
     </View>
   );
 }

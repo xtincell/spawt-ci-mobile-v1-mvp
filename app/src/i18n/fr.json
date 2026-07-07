@@ -102,8 +102,8 @@
   },
   "modes": {
     "traine": {
-      "label": "Chiller",
-      "sub": "Détente"
+      "label": "Manger",
+      "sub": "Faim"
     },
     "decouvre": {
       "label": "Découvrir",
@@ -114,8 +114,8 @@
       "sub": "Entre amis"
     },
     "chic": {
-      "label": "Pour une date",
-      "sub": "Soir spécial"
+      "label": "En duo",
+      "sub": "À deux"
     },
     "vite": {
       "label": "Vite fait",
@@ -194,10 +194,27 @@
     "name_title": "Nom et prénom",
     "name_placeholder": "Ton prénom",
     "neighborhood_title": "Ta commune",
-    "neighborhood_body": "Cocody, Yopougon, Marcory… On t'affichera des lieux proches.",
-    "neighborhood_placeholder": "Cocody, Yopougon, Marcory…",
+    "neighborhood_body": "Pour t'afficher des lieux proches de toi.",
+    "neighborhood_placeholder": "Choisis ta commune",
+    "commune": {
+      "abobo": "Abobo",
+      "adjame": "Adjamé",
+      "anyama": "Anyama",
+      "attecoube": "Attécoubé",
+      "bingerville": "Bingerville",
+      "cocody": "Cocody",
+      "koumassi": "Koumassi",
+      "marcory": "Marcory",
+      "plateau": "Plateau",
+      "port_bouet": "Port-Bouët",
+      "songon": "Songon",
+      "treichville": "Treichville",
+      "yopougon": "Yopougon",
+      "autre": "Autre / hors Abidjan"
+    },
     "country_title": "Pays de résidence",
     "country_body": "Pour t'afficher les lieux du bon pays.",
+    "country_placeholder": "Choisis ton pays",
     "origin_country_title": "Pays d'origine",
     "origin_country_body": "Savoir d'où tu viens aide à te proposer ce que tu pourrais aimer.",
     "origin_country_skip": "Préfère ne pas dire",
@@ -208,10 +225,10 @@
     "gender_autre": "Autre",
     "gender_non_renseigne": "Préfère ne pas dire",
     "age_title": "Ta date de naissance",
-    "age_body": "On te souhaitera ton anniversaire, promis. (Et on garde ça discret.)",
+    "age_body": "Pour te souhaiter Joyeux anniversaire, promis. (Et ça restera secret)",
     "age_too_young": "Spawt arrive bientôt pour toi — on se retrouve à tes 13 ans.",
     "age_select_cta": "Choisir ma date",
-    "dob_placeholder": "JJ/MM/AAAA",
+    "dob_placeholder": "jj/mm/aaaa",
     "dob_pick": "Choisir une date",
     "country": {
       "CI": "Côte d'Ivoire",
@@ -260,6 +277,8 @@
     "cta_skip": "Pas d'avis",
     "q_racines_horizons": {
       "question": "Quand tu as faim, tu penses à quoi en premier ?",
+      "select_placeholder": "Choisis un ou plusieurs plats",
+      "select_done": "Valider",
       "option_neg": "Garba, placali, poulet braisé — les classiques",
       "option_pos": "Burger, ramen, pâtisseries — le monde dans l'assiette",
       "option_neutral": "Pas d'avis",
@@ -314,10 +333,10 @@
       "option_pos": "Nappe, menu carte, serveur en tablier",
       "option_neutral": "Pas d'avis",
       "card": {
-        "maquis_garba": "Maquis garba",
-        "foodtruck": "Foodtruck Riviera",
-        "restaurant_chic": "Restaurant chic Plateau",
-        "brunch_cocody": "Brunch Cocody"
+        "maquis_garba": "Garbadrome",
+        "foodtruck": "Foodtruck",
+        "restaurant_chic": "Restaurant chic",
+        "brunch_cocody": "Brunch"
       }
     }
   },
@@ -424,7 +443,7 @@
     "card_id_prefix": "SPAWTER",
     "card_flip_aria": "Retourner la carte pour voir le Palais",
     "stat_spawts": "Spawts",
-    "stat_spots": "Spawts uniques",
+    "stat_favoris": "Favoris",
     "stat_avis": "Avis",
     "stade_section_title": "TON STADE",
     "collection_title": "TES TITRES",

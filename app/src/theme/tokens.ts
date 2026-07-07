@@ -43,7 +43,9 @@ export const tokens = {
     accent: palette.greenChat, // Vert Chat #2D6B4F — CTAs / success
   },
   surface: {
-    base: palette.blancCasse, // --bg : fond principal de l'app
+    // R14 (MAJ consolidée 07/2026) — fond beige → blanc pur ; le blanc cassé
+    // et la crème sable restent des ACCENTS (texte inversé, encarts chauds).
+    base: palette.pureWhite, // --bg : fond principal de l'app
     inverse: palette.black, // moments gr-night (luxe / identité)
     raised: palette.pureWhite, // --bg-card : cartes, surfaces élevées
     subtle: palette.cremeSable, // --bg-warm : encarts, cartes douces

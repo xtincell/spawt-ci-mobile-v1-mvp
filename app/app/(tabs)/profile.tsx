@@ -95,8 +95,8 @@ export default function ProfileScreen() {
           palais={palais}
           displayedTitleKey={displayedTitleKey}
           isGold={isGold}
-          totalSpawts={spawter.total_spawts}
           uniqueSpots={spawter.unique_spots}
+          savedCount={savedPlaceIds.size}
           reviewsCount={reviewsCount}
         />
 

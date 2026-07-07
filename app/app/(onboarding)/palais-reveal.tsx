@@ -1,11 +1,15 @@
 // Palais Reveal — Story 2.6 (FR-002/003 + KPI activation SC-ACT-01)
-// Dernier écran d'Epic 2 : présente le Palais initial + premier titre dans un
-// moment-rituel `gr-night`. Au tap CTA :
+// Dernier écran d'Epic 2 : moment-rituel `gr-night`. Au tap CTA :
 //   1. `finalizeOnboarding` (lit auth.uid + persist spawter + user_palais)
 //   2. Émet `onboarding_completed` (P-22 : APRÈS finalize success)
 //   3. `router.replace("/(tabs)")`
+//
+// R8 (MAJ consolidée 07/2026, P0) — le graphe radar du Palais est RETIRÉ du
+// parcours utilisateur (réservé à l'exploitation interne). R9 — le bloc de
+// texte du haut (ChatBubble) est supprimé : l'écran garde le titre « Voici
+// ton palais », avec la pose Moka celebration en héros.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, useRouter } from "expo-router";
 import { BackHandler, Pressable, Text, View, StyleSheet } from "react-native";
@@ -13,22 +17,12 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { gradient } from "../../src/theme/tokens";
-import { ChatBubble } from "../../src/components/ChatBubble";
-import { PalaisRadar } from "../../src/components/primitives/PalaisRadar";
+import { CatMark } from "../../src/components/brand/CatMark";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { useSpawterStore } from "../../src/store/spawter-store";
-import { computeConfidence, dominantAxes } from "../../src/lib/palais-engine";
+import { dominantAxes } from "../../src/lib/palais-engine";
 import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
 import { track } from "../../src/lib/analytics";
-
-// Calibration delta range is [-0.4, +0.4] (cf. calibration-mapping.ts).
-// Map to radar value [0, 1] : (v + 0.4) / 0.8.
-// P-27 — clamp pour valeurs corrompues (NaN, hors plage) + P-33 null → 0.5
-// (neutre sur le radar quand le spawter a explicitement skip).
-function toRadar(v: number | null): number {
-  if (v === null || !Number.isFinite(v)) return 0.5;
-  return Math.max(0, Math.min(1, (v + 0.4) / 0.8));
-}
 
 export default function PalaisRevealScreen() {
   const { t } = useTranslation();
@@ -51,19 +45,6 @@ export default function PalaisRevealScreen() {
   }, []);
 
   const ans = draft.calibration_answers;
-  // DN-5 round 3 — filter strict `v !== null` : seul le skip explicite
-  // (sentinel `null`, P-33) est exclu du count. Le `value=0` (« neutral
-  // résolu » : user a coché à la fois des cartes posa et néga → signal
-  // délibéré et équilibré) compte comme une vraie réponse. Le confidence
-  // mesure le nombre de questions auxquelles le user a engagé une réponse,
-  // peu importe la direction. La force directionnelle est calculée séparément
-  // via `dominantAxes(ax)` qui pondère par l'amplitude.
-  const answeredCount = useMemo(
-    () => Object.values(ans).filter((v): v is number => v !== null).length,
-    [ans],
-  );
-  const confidence = useMemo(() => computeConfidence(answeredCount), [answeredCount]);
-  const underConstruction = confidence < 0.3;
 
   // P-23 — `submittingRef` mis à jour dans un effet pour éviter la stale
   // closure capturée par le BackHandler listener. Sans ça, un back-press
@@ -82,14 +63,6 @@ export default function PalaisRevealScreen() {
     );
     return () => sub.remove();
   }, []);
-
-  const radarValues: readonly [number, number, number, number, number] = [
-    toRadar(ans.taniere_nomade),
-    toRadar(ans.foule_secret),
-    toRadar(ans.maquis_table),
-    toRadar(ans.exigeant_enthousiaste),
-    toRadar(ans.racines_horizons),
-  ];
 
   const onContinue = async () => {
     if (submitting) return;
@@ -155,17 +128,9 @@ export default function PalaisRevealScreen() {
           couvre Android). Conjointement, finalize ne peut être bypassé. */}
       <Stack.Screen options={{ gestureEnabled: !submitting }} />
       <View style={[styles.content, { padding: theme.spacing.lg }]}>
-        <View style={{ marginBottom: theme.spacing.lg }}>
-          <ChatBubble stade="touriste" moment="post_calibration" variant="edito" />
-        </View>
-
+        {/* R8 — le radar est retiré du parcours ; Moka célèbre le moment. */}
         <View style={{ alignItems: "center", marginVertical: theme.spacing.xl }}>
-          <PalaisRadar
-            values={radarValues}
-            underConstruction={underConstruction}
-            underConstructionLabel={t("palais.underConstruction")}
-            size={240}
-          />
+          <CatMark pose="celebration" size={200} />
         </View>
 
         <Text

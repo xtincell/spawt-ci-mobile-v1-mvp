@@ -5,7 +5,7 @@
 import { View, Text, Pressable } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { Ico, type IconName } from "./primitives/Ico";
-import { CatIcon } from "./primitives/CatIcon";
+import { CatMark } from "./brand/CatMark";
 
 interface CTAProps {
   label: string;
@@ -13,7 +13,7 @@ interface CTAProps {
 }
 
 export interface EmptyStateProps {
-  /** Icône optionnelle (un `IconName` du set Ico). Si absent → CatIcon par défaut. */
+  /** Icône optionnelle (un `IconName` du set Ico). Si absent → pose Moka « cherche ». */
   icon?: IconName;
   title: string;
   body: string;
@@ -37,7 +37,7 @@ export function EmptyState({ icon, title, body, cta }: EmptyStateProps) {
         {icon ? (
           <Ico name={icon} size={64} color={theme.colors.brand.primary} />
         ) : (
-          <CatIcon size={64} color={theme.colors.brand.primary} />
+          <CatMark pose="cherche" size={112} />
         )}
       </View>
       <Text

@@ -1,19 +1,23 @@
 // Bulle de la voix du Chat — fond noir, coin asymétrique (16 16 16 4).
-// Cf. midfi-kit.jsx ligne 52 + ux-design-spec § "CatBubble".
+// Cf. ux-design-spec § "CatBubble" + composant CatBubble.jsx du DS CANON.
+//
+// MAJ design system 07/2026 : la tête du Chat est désormais la POSE MOKA EN
+// PNG dans un cercle or (CatMarkBadge) — le chat vectoriel (CatIcon) est
+// retiré, règle stricte du DS. La pose est paramétrable par le caller
+// (`pose`), défaut « salut ».
 //
 // CONTRAINTE CALLER : le children est une string déjà i18n via t() + chat-voice.ts
 // — la primitive ne dépend pas de i18n directement (consumer-agnostic).
-// La voix du Chat passe par chat-voice.ts → clé i18n, jamais littéral inline.
 //
 // Trois variants (Story 2.1) :
 // - `bubble`     : bulle de feed / profil (coin asymétrique, contexte conversationnel)
 // - `lockscreen` : notification système simulée (coin uniforme, compact, max 2 lignes)
-// - `edito`      : pavé baseline éditorial (UneCarousel, icône en tête)
+// - `edito`      : pavé baseline éditorial (UneCarousel, tête en exergue)
 
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import type { ViewStyle } from "react-native";
-import { CatIcon } from "./CatIcon";
+import { CatMarkBadge, type MokaPose } from "../brand/CatMark";
 import { useTheme } from "../../theme/ThemeProvider";
 
 type Stage = "touriste" | "explorateur" | "detective" | "djidji" | "guide";
@@ -26,9 +30,16 @@ interface Props {
   // dans cette story (décision Alexandre 2026-05-16). Préparé pour Epic 5
   // (theme.colors.chat.<stage>).
   stage?: Stage;
+  /** Pose Moka de l'avatar (une pose par scénario — défaut « salut »). */
+  pose?: MokaPose;
 }
 
-export function CatBubble({ children, variant = "bubble", stage = "explorateur" }: Props) {
+export function CatBubble({
+  children,
+  variant = "bubble",
+  stage = "explorateur",
+  pose = "salut",
+}: Props) {
   const theme = useTheme();
   void stage; // accepté en signature, réservé pour Epic 5.
 
@@ -43,7 +54,7 @@ export function CatBubble({ children, variant = "bubble", stage = "explorateur" 
     };
     return (
       <View style={containerStyle}>
-        <CatIcon size={14} color={theme.colors.brand.primary} />
+        <CatMarkBadge pose={pose} size={20} />
         <View style={{ flex: 1 }}>{children}</View>
       </View>
     );
@@ -60,7 +71,7 @@ export function CatBubble({ children, variant = "bubble", stage = "explorateur" 
     };
     return (
       <View style={containerStyle}>
-        <CatIcon size={22} color={theme.colors.brand.primary} />
+        <CatMarkBadge pose={pose} size={34} />
         <View>{children}</View>
       </View>
     );
@@ -80,7 +91,7 @@ export function CatBubble({ children, variant = "bubble", stage = "explorateur" 
         gap: theme.spacing.sm,
       }}
     >
-      <CatIcon size={18} color={theme.colors.brand.primary} />
+      <CatMarkBadge pose={pose} size={28} />
       <View style={{ flex: 1, paddingTop: 2 }}>{children}</View>
     </View>
   );

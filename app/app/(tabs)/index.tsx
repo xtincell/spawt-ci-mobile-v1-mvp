@@ -27,6 +27,7 @@ import { FeuilletonRow } from "../../src/components/FeuilletonRow";
 import { Ico } from "../../src/components/primitives/Ico";
 import { listPlaces, type PlaceWithAdn } from "../../src/lib/data-source";
 import { rankPlaces, type PlaceWithScore } from "../../src/lib/matching";
+import { partitionOpenFirst } from "../../src/lib/opening-hours";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 import { track } from "../../src/lib/analytics";
@@ -119,10 +120,13 @@ export default function HomeD() {
 
   const ranked = useMemo(() => {
     const candidates = applyModeFilter(places, selectedMode);
-    return rankPlaces(
+    const scored = rankPlaces(
       ctx,
       candidates.map((p) => ({ place: p, adn: p.adn, last_spawt_at: null })),
     );
+    // R20 — les lieux OUVERTS maintenant remontent en tête (l'ordre match est
+    // préservé dans chaque groupe — tri stable, cf. opening-hours.ts).
+    return partitionOpenFirst(scored, (item) => item.place.hours, ctx.now);
   }, [places, selectedMode, ctx]);
 
   const top3 = useMemo(() => ranked.slice(0, 3), [ranked]);
@@ -329,6 +333,24 @@ export default function HomeD() {
           />
         </View>
 
+        {/* R7 — le bloc mascotte précède la sélection des 3 suggestions,
+            avec la copy définitive « Voici mes 3 suggestions du jour. » */}
+        {top3.length > 0 ? (
+          <View
+            style={{
+              paddingHorizontal: theme.spacing.lg,
+              marginTop: theme.spacing.lg,
+            }}
+          >
+            <ChatBubble
+              stade={stade}
+              moment="home_edito"
+              variant="edito"
+              overrideText={t("home.suggestions_title")}
+            />
+          </View>
+        ) : null}
+
         {top3.length > 0 ? (
           <View style={{ marginTop: theme.spacing.lg }}>
             <UneCarousel
@@ -342,15 +364,6 @@ export default function HomeD() {
             />
           </View>
         ) : null}
-
-        <View
-          style={{
-            paddingHorizontal: theme.spacing.lg,
-            marginTop: theme.spacing.lg,
-          }}
-        >
-          <ChatBubble stade={stade} moment="home_edito" variant="edito" />
-        </View>
 
         {feuilleton.length > 0 ? (
           <View style={{ marginTop: theme.spacing.lg }}>

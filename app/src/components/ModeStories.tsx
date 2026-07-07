@@ -1,5 +1,8 @@
 // Story 3.3c — ModeStories : radiogroup horizontal de chips circulaires
-// « JE SORS POUR… » (UX spec §1294). 5 modes V1 : traîne, découvre, tribu, chic, vite.
+// « Je sors pour… » (UX spec §1294).
+// R6 (MAJ consolidée 07/2026) — 4 modes affichés, libellés définitifs :
+// Manger · Découvrir · En groupe · En duo (icônes fork/compass/users/heart).
+// `vite` reste dans ModeKey (filtre conservé) mais n'est plus proposé en chip.
 
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -14,14 +17,10 @@ interface ModeSpec {
 }
 
 const MODES: readonly ModeSpec[] = [
-  { key: "traine", icon: "walk" },
+  { key: "traine", icon: "fork" },
   { key: "decouvre", icon: "compass" },
-  // `tribu` = mode "groupe / amis" — distinct visuellement de `decouvre`
-  // (qui partageait `compass`). `user` est l'icône la plus parlante du set
-  // pour évoquer un compagnon / une tribu, sans dupliquer `compass`.
-  { key: "tribu", icon: "user" },
-  { key: "chic", icon: "crown" },
-  { key: "vite", icon: "clock" },
+  { key: "tribu", icon: "users" },
+  { key: "chic", icon: "heart" },
 ];
 
 interface Props {
