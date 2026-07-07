@@ -1,5 +1,13 @@
 # SPAWT — 2 décisions produit à trancher (MAJ consolidée, 07/07/2026)
 
+> **MAJ 08/07 — décisions APPLIQUÉES en mode réversible (build 7).** Les recos
+> ci-dessous sont câblées : Q4 = prix éditorial « repas/pers. hors boissons »
+> (mention affichée, convention rappelée dans l'admin) ; R3 = champ conservé
+> avec l'angle nostalgie (« les goûts de chez toi »). **Les deux sont
+> togglables sans redéploiement : dashboard admin → Fonctionnalités**
+> (`place-avg-price`, `onboarding-origin-country`). Kidam et Stephanie
+> gardent le dernier mot — un interrupteur suffit pour trancher autrement.
+
 Ces deux points sont **implémentés mais paramétrables** : le build 6 tourne, mais
 la « bonne réponse » relève du produit/data, pas du code. Rien ne bloque le
 build ; on a juste besoin de la décision pour figer le comportement final.
