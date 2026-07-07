@@ -1,5 +1,10 @@
 // Story 2.2 — AC #7-5 : <SplashScreen /> rend les éléments wordmark + tagline
 // + CTA et émet onboarding_started avant la nav.
+//
+// R15 — le splash est ANIMÉ (Animated.sequence au mount) : la suite tourne en
+// fake timers ET démonte chaque renderer (le cleanup du useEffect appelle
+// sequence.stop()). Sans ça, les timers de l'animation fuient au-delà de la
+// suite et font échouer d'autres suites aléatoirement (flakiness observée).
 
 import { type ReactNode } from "react";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -41,7 +46,10 @@ interface TestRendererInstanceLike {
     findByProps: (props: Record<string, unknown>) => TestInstanceLike;
   };
   toJSON: () => unknown;
+  unmount: () => void;
 }
+
+let renderers: TestRendererInstanceLike[] = [];
 
 function render(): TestRendererInstanceLike {
   let raw: TestRendererInstanceLike | null = null;
@@ -49,14 +57,28 @@ function render(): TestRendererInstanceLike {
     raw = TestRenderer.create(<SplashScreen />) as unknown as TestRendererInstanceLike;
   });
   if (!raw) throw new Error("renderer did not initialize");
+  renderers.push(raw);
   return raw;
 }
 
 describe("<SplashScreen /> — Story 2.2 (gr-night + onboarding_started)", () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     mockTranslate.mockClear();
     mockPush.mockClear();
     mockTrack.mockClear();
+  });
+
+  afterEach(() => {
+    // Démonte AVANT de purger les timers : le cleanup stoppe la séquence R15.
+    TestRenderer.act(() => {
+      for (const r of renderers) r.unmount();
+    });
+    renderers = [];
+    TestRenderer.act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
   });
 
   it("rend le tree (wordmark + tagline + CTA via clés i18n)", () => {

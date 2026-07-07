@@ -189,8 +189,6 @@
     "phone_title": "Ton numéro",
     "phone_body": "Je t'envoie un code par SMS. Pas de mot de passe.",
     "phone_placeholder": "+225 ...",
-    "otp_title": "Le code reçu",
-    "otp_body": "Tape les 6 chiffres reçus par SMS.",
     "name_title": "Nom et prénom",
     "name_placeholder": "Ton prénom",
     "neighborhood_title": "Ta commune",
