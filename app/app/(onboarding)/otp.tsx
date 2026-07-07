@@ -379,8 +379,11 @@ export default function OtpScreen() {
               testID={`otp-cell-${i}`}
               // 8 cases doivent tenir sur un écran 360dp : cases fluides
               // (flex) bornées à 44dp, au lieu d'une largeur fixe.
+              // minWidth 0 : sur web, min-width:auto des flex items bloque le
+              // rétrécissement des <input> → débordement ; sans effet sur Yoga.
               style={{
                 flex: 1,
+                minWidth: 0,
                 maxWidth: 44,
                 height: 52,
                 borderWidth: 1,
