@@ -162,6 +162,38 @@ button.btn-primary { background: var(--gold); color: var(--ink); border-color: v
 button.btn-destructive { background: var(--danger); color: white; border-color: var(--danger); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Interrupteur sobre — page Fonctionnalités (feature flags). Vert chat = ON
+   (état "live"), gris ligne = OFF. Aucune lib : bouton role="switch" + knob. */
+.flag-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background 120ms ease;
+  vertical-align: middle;
+}
+
+.flag-switch .flag-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pure-white);
+  box-shadow: 0 1px 2px rgba(10, 10, 10, 0.25);
+  transition: transform 120ms ease;
+}
+
+.flag-switch.on { background: var(--green); }
+.flag-switch.on .flag-switch-knob { transform: translateX(18px); }
+.flag-switch:disabled { cursor: progress; }
+.flag-switch:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
 .modal-overlay {
   position: fixed;
   inset: 0;

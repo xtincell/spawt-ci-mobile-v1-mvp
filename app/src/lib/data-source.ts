@@ -151,17 +151,38 @@ export async function listTitresForSpawter(
   return listTitresFromSupabase(spawter_id);
 }
 
+// Flags PRODUIT actifs par défaut en mode démo (fallback sans Supabase, ex.
+// préversion web) : prix moyen F CFA + question « Pays d'origine ». Les flags
+// d'infra (guet-geofence, paywall-geo) restent absents en démo — comportement
+// historique conservé. En mode live, la table feature_flags (togglable depuis
+// le dashboard admin, page Fonctionnalités) fait foi.
+const DEMO_EPOCH = "2026-07-07T00:00:00Z";
+const DEMO_FEATURE_FLAGS: FeatureFlag[] = (
+  ["place-avg-price", "onboarding-origin-country"] as const
+).flatMap((flag_code) =>
+  (["internal", "alpha", "beta", "prod"] as const).map((scope) => ({
+    id: `demo-${flag_code}-${scope}`,
+    flag_code,
+    scope,
+    enabled: true,
+    spawter_id: null,
+    expires_at: null,
+    created_at: DEMO_EPOCH,
+    updated_at: DEMO_EPOCH,
+  })),
+);
+
 /**
  * Liste les feature flags pertinents pour un spawter.
  * - Mode supabase : flags globaux (`spawter_id IS NULL`) + overrides du spawter.
- * - Mode fallback : tableau vide (aucun flag en démo).
+ * - Mode fallback : flags produit par défaut (DEMO_FEATURE_FLAGS).
  */
 export async function listFeatureFlags(spawter_id: string | null): Promise<FeatureFlag[]> {
   if (isSupabaseConfigured) {
     const { listFeatureFlagsFromSupabase } = await import("./data-source.supabase");
     return listFeatureFlagsFromSupabase(spawter_id);
   }
-  return [];
+  return DEMO_FEATURE_FLAGS;
 }
 
 // ─── Story 4.9 — reviews d'un lieu ──────────────

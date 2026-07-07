@@ -33,6 +33,9 @@ export const Layout = () => {
           <NavLink to="/metriques" className={({ isActive }) => (isActive ? "active" : "")}>
             Métriques
           </NavLink>
+          <NavLink to="/fonctionnalites" className={({ isActive }) => (isActive ? "active" : "")}>
+            Fonctionnalités
+          </NavLink>
         </nav>
       </aside>
       <main className="main">

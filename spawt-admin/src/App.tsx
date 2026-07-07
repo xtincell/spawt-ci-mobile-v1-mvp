@@ -15,6 +15,7 @@ import { SignalementsList } from "./pages/signalements";
 import { ComptesList } from "./pages/comptes";
 import { CompteShow } from "./pages/comptes/show";
 import { MetriquesDashboard } from "./pages/metriques";
+import { FonctionnalitesList } from "./pages/fonctionnalites";
 
 // CR Chunk B C6 — Guard d'auth wrapper. Refine v5 `<Authenticated>` redirige
 // vers `/login` si l'utilisateur n'est pas authentifié OU si le check()
@@ -59,6 +60,10 @@ export const App = () => (
           meta: { label: "Comptes" },
         },
         { name: "metriques", list: "/metriques", meta: { label: "Métriques" } },
+        // MAJ consolidée 07/2026 — page Fonctionnalités (feature flags produit).
+        // Query directe Supabase comme metriques ; la resource n'existe que
+        // pour la cohérence menu/breadcrumb Refine.
+        { name: "feature_flags", list: "/fonctionnalites", meta: { label: "Fonctionnalités" } },
       ]}
       options={{
         syncWithLocation: true,
@@ -77,6 +82,7 @@ export const App = () => (
           <Route path="/comptes" element={<ComptesList />} />
           <Route path="/comptes/show/:id" element={<CompteShow />} />
           <Route path="/metriques" element={<MetriquesDashboard />} />
+          <Route path="/fonctionnalites" element={<FonctionnalitesList />} />
         </Route>
       </Routes>
     </Refine>

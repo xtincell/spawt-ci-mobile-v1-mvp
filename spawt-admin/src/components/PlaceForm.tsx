@@ -331,6 +331,12 @@ export const PlaceForm = ({ mode, id }: Props) => {
           <input type="number" value={values.price.avg_ticket_xof ?? ""}
             onChange={(e) => setValues({ ...values, price: { ...values.price, avg_ticket_xof: e.target.value ? Number(e.target.value) : null } })} />
         </label>
+        {/* Décision Q4 (MAJ consolidée 07/2026) — convention éditoriale du prix
+            moyen affiché « ~N F CFA » sur la fiche lieu (flag place-avg-price). */}
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "6px 0 0" }}>
+          Convention : repas type par personne (plat + accompagnement), boissons non comprises —
+          méthode éditoriale, saisie depuis le menu du lieu.
+        </p>
       </fieldset>
 
       <fieldset>

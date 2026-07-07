@@ -43,6 +43,7 @@ import {
   haversineKm,
 } from "../../../src/lib/matching";
 import { useSpawterStore } from "../../../src/store/spawter-store";
+import { useFlag } from "../../../src/store/feature-flags";
 import { EMPTY_PALAIS } from "../../../src/data/seed/sample-spawter";
 import { track } from "../../../src/lib/analytics";
 import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
@@ -263,11 +264,14 @@ export default function PlaceDetailScreen() {
   // §Edge cases : "confidence_score < 0.3 → afficher En construction").
   const palaisConfident = palais.confidence_score >= 0.3;
 
-  // R21 — prix moyen en valeur F CFA si `avg_ticket_xof` est renseigné
-  // (« ~8 000 F CFA », milliers en espace insécable), sinon fallback échelle ₣
-  // du tier. Aucun calcul côté client : la méthode du panier moyen est une
-  // décision produit/data ouverte — la colonne existante est la seule source.
-  const avgTicket = formatXofAmount(place.price.avg_ticket_xof);
+  // R21 + Q4 (décision produit 07/2026) — prix moyen en valeur F CFA si
+  // `avg_ticket_xof` est renseigné (« ~8 000 F CFA »), sinon fallback échelle ₣
+  // du tier. Convention éditoriale (méthode TheFork) : repas type par personne,
+  // HORS BOISSONS — chiffre saisi par l'équipe dans le dashboard admin, aucun
+  // calcul côté client. Togglable via le flag `place-avg-price` (dashboard
+  // admin → Fonctionnalités) ; OFF → échelle ₣ historique.
+  const avgPriceEnabled = useFlag("place-avg-price");
+  const avgTicket = avgPriceEnabled ? formatXofAmount(place.price.avg_ticket_xof) : null;
   const priceLabel = avgTicket
     ? t("place.price_avg", { amount: avgTicket })
     : PRICE_TIER_LABELS[place.price.tier];
@@ -589,6 +593,21 @@ export default function PlaceDetailScreen() {
               {priceLabel}
             </Text>
           </View>
+
+          {/* Q4 — convention du prix moyen affichée (honnêteté du chiffre) :
+              repas type par personne, boissons non comprises. */}
+          {avgTicket ? (
+            <Text
+              style={{
+                ...theme.typography.preset.small,
+                color: theme.colors.text.tertiary,
+                marginTop: -theme.spacing.sm,
+                marginBottom: theme.spacing.base,
+              }}
+            >
+              {t("place.price_avg_note")}
+            </Text>
+          ) : null}
 
           {/* R10 — le rang de CTAs « Appeler » / « Réserver via WhatsApp » a
               été supprimé (doublon : le téléphone réapparaissait en InfoLine).

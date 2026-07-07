@@ -1,33 +1,35 @@
 // Splash / écran d'accueil (premier contact) — Story 2.2 (FR-040 + UX spec gr-night)
 // Moment d'identité gr-night : fond LinearGradient (palette.black → bleu nuit).
-// R15 (MAJ consolidée 07/2026) — démarrage ANIMÉ : le logo PRIMAIRE (pin
-// carte, S de routes — le pin calico est le logo secondaire) apparaît, puis
-// laisse place au splash art (pose Moka « salut »), tagline et CTA.
-// Assets PNG de marque (app/assets/brand) — aucun chat vectoriel.
-// CTA « Rejoindre la bande » → émet onboarding_started avant nav.
+// R15 (MAJ consolidée 07/2026) — démarrage ANIMÉ : le logo PRIMAIRE VECTORISÉ
+// (AnimatedLogoMark — le pin carte se trace, la route en S se dessine, le
+// soleil d'or éclot, les étoiles scintillent) puis crossfade vers le splash
+// art (pose Moka « salut » en PNG — la mascotte reste PNG, règle DS), tagline
+// et CTA. CTA « Rejoindre la bande » → émet onboarding_started avant nav.
 
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
-import { Animated, Image, Pressable, Text, View, StyleSheet } from "react-native";
+import { Animated, Pressable, Text, View, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { gradient } from "../src/theme/tokens";
 import { CatMark } from "../src/components/brand/CatMark";
+import { AnimatedLogoMark } from "../src/components/brand/AnimatedLogoMark";
 import { track } from "../src/lib/analytics";
 import { useOnboardingDraft } from "../src/store/onboarding-draft";
 
-const PIN_LOGO = require("../assets/brand/logo-map-icon.png");
 const ART_SIZE = 200;
+// Durée de la séquence interne d'AnimatedLogoMark (~1,6 s) + un temps de
+// lecture avant le passage au splash art.
+const LOGO_SEQUENCE_MS = 1900;
 
 export default function SplashScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
 
-  // R15 — séquence : logo (pin + wordmark) → splash art (Moka salut).
-  const pinOpacity = useRef(new Animated.Value(0)).current;
-  const pinScale = useRef(new Animated.Value(0.85)).current;
+  // R15 — séquence : logo vectorisé qui se dessine → splash art (Moka salut).
+  const pinOpacity = useRef(new Animated.Value(1)).current;
   const brandOpacity = useRef(new Animated.Value(0)).current;
   const mokaOpacity = useRef(new Animated.Value(0)).current;
   const taglineOpacity = useRef(new Animated.Value(0)).current;
@@ -36,14 +38,10 @@ export default function SplashScreen() {
 
   useEffect(() => {
     const sequence = Animated.sequence([
-      // 1. Le logo entre (pin Moka + wordmark or).
-      Animated.parallel([
-        Animated.timing(pinOpacity, { toValue: 1, duration: 450, useNativeDriver: true }),
-        Animated.timing(pinScale, { toValue: 1, duration: 450, useNativeDriver: true }),
-        Animated.timing(brandOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ]),
-      Animated.delay(350),
-      // 2. Le splash art prend le relais (crossfade pin → pose salut),
+      // 1. Le wordmark s'installe pendant que le logo se trace (composant).
+      Animated.timing(brandOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.delay(Math.max(0, LOGO_SEQUENCE_MS - 700)),
+      // 2. Le splash art prend le relais (crossfade logo → pose salut),
       //    tagline + CTA arrivent.
       Animated.parallel([
         Animated.timing(pinOpacity, { toValue: 0, duration: 350, useNativeDriver: true }),
@@ -55,7 +53,7 @@ export default function SplashScreen() {
     ]);
     sequence.start();
     return () => sequence.stop();
-  }, [pinOpacity, pinScale, brandOpacity, mokaOpacity, taglineOpacity, ctaOpacity, ctaTranslate]);
+  }, [pinOpacity, brandOpacity, mokaOpacity, taglineOpacity, ctaOpacity, ctaTranslate]);
 
   const onStart = () => {
     // P18 — idempotent : ne pas écraser un started_at déjà posé si l'utilisateur
@@ -73,18 +71,8 @@ export default function SplashScreen() {
       <View style={styles.content}>
         {/* Pile de crossfade logo → splash art (même emprise, pas de saut). */}
         <View style={{ width: ART_SIZE, height: ART_SIZE, marginBottom: theme.spacing.lg }}>
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFillObject,
-              { opacity: pinOpacity, transform: [{ scale: pinScale }] },
-            ]}
-          >
-            <Image
-              source={PIN_LOGO}
-              style={{ width: ART_SIZE, height: ART_SIZE }}
-              resizeMode="contain"
-              accessible={false}
-            />
+          <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: pinOpacity }]}>
+            <AnimatedLogoMark size={ART_SIZE} delayMs={150} />
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: mokaOpacity }]}>
             <CatMark pose="salut" size={ART_SIZE} />

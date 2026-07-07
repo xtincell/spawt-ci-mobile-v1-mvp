@@ -16,7 +16,7 @@
 //   R4 — le champ date de naissance affiche le gabarit jj/mm/aaaa (vide) et la
 //        date au format jj/mm/aaaa (remplie), avec texte d'aide dédié.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import {
@@ -33,6 +33,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
+import { useFeatureFlagsStore, useFlag } from "../../src/store/feature-flags";
 import { Select } from "../../src/components/primitives/Select";
 import { track } from "../../src/lib/analytics";
 import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
@@ -137,6 +138,17 @@ export default function ProfileScreen() {
   // Story 4.8 — état local d'ouverture du DateTimePicker (Android : visible
   // uniquement on-demand ; iOS : pourra rester affiché inline).
   const [showDobPicker, setShowDobPicker] = useState(false);
+
+  // R3 — flag produit `onboarding-origin-country` (hydratation best-effort :
+  // le store garde ses valeurs en cas d'échec réseau, useFlag défaut false).
+  // Pas de spawter à ce stade (onboarding) → flags globaux uniquement.
+  useEffect(() => {
+    void useFeatureFlagsStore
+      .getState()
+      .hydrate(null)
+      .catch(() => {});
+  }, []);
+  const originCountryEnabled = useFlag("onboarding-origin-country");
 
   // R4 (web) — @react-native-community/datetimepicker n'a PAS d'implémentation
   // navigateur : sur la préversion web, le champ date est une saisie MASQUÉE
@@ -316,25 +328,29 @@ export default function ProfileScreen() {
           />
         </Field>
 
-        <Field
-          label={t("onboarding.origin_country_title")}
-          hint={t("onboarding.origin_country_body")}
-        >
-          {/* R3 — Select avec option skip conservée (clé sentinelle → null).
-              Champ maintenu tel quel — question produit ouverte signalée
-              ailleurs. */}
-          <Select
-            placeholder={t("onboarding.country_placeholder")}
-            value={draft.origin_country_code ?? ORIGIN_SKIP_KEY}
-            options={originOptions}
-            onChange={(key) => {
-              const code = COUNTRY_CODES.find((c) => c === key) ?? null;
-              setField("origin_country_code", code);
-            }}
-            testID="profile-origin"
-            accessibilityLabel={t("onboarding.origin_country_title")}
-          />
-        </Field>
+        {/* R3 (décision produit 07/2026) — la question « Pays d'origine » est
+            CONSERVÉE avec l'angle nostalgie (« les goûts de chez toi »), mais
+            togglable via le flag `onboarding-origin-country` (dashboard admin
+            → Fonctionnalités) : si l'activation en souffre, la produit peut la
+            couper sans redéployer. Toujours optionnelle (skip par défaut). */}
+        {originCountryEnabled ? (
+          <Field
+            label={t("onboarding.origin_country_title")}
+            hint={t("onboarding.origin_country_body")}
+          >
+            <Select
+              placeholder={t("onboarding.country_placeholder")}
+              value={draft.origin_country_code ?? ORIGIN_SKIP_KEY}
+              options={originOptions}
+              onChange={(key) => {
+                const code = COUNTRY_CODES.find((c) => c === key) ?? null;
+                setField("origin_country_code", code);
+              }}
+              testID="profile-origin"
+              accessibilityLabel={t("onboarding.origin_country_title")}
+            />
+          </Field>
+        ) : null}
 
         <Field
           label={t("onboarding.gender_title")}
