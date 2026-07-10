@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -26,6 +26,7 @@ import {
   bootGuet,
   shutdownGuet,
 } from "../src/lib/guet";
+import { AppOpening } from "../src/components/brand/AppOpening";
 import { BadgePremierSpawt } from "../src/components/BadgePremierSpawt";
 import { StadeCelebration } from "../src/components/StadeCelebration";
 import {
@@ -134,6 +135,12 @@ export default function RootLayout() {
   // de `spawter === null` et le badge serait perdu à jamais).
   const hydrating = useSpawterStore((s) => s.hydrating);
 
+  // R23 (build 8) — ouverture animée à CHAQUE lancement (logo → Moka, ~2 s,
+  // skippable au tap). Overlay au-dessus du Stack : l'app hydrate derrière,
+  // jamais bloquante. Le splash NATIF Expo (statique) est masqué dès que les
+  // fonts sont prêtes → l'overlay prend le relais sans trou blanc.
+  const [openingVisible, setOpeningVisible] = useState(true);
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync().catch((err: unknown) => {
@@ -215,6 +222,11 @@ export default function RootLayout() {
               void consumePendingStadeCelebration();
             }}
           />
+          {/* R23 — l'ouverture animée est le DERNIER enfant : elle recouvre
+              tout (Stack + overlays) jusqu'à sa fin ou un tap. */}
+          {openingVisible ? (
+            <AppOpening onFinished={() => setOpeningVisible(false)} />
+          ) : null}
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
