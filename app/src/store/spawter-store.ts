@@ -139,6 +139,12 @@ interface SpawterStore {
    * Stéphanie (l'invariant set-once protège l'auditabilité ARTCI du timestamp).
    */
   recordConsent: (kind: "cgv" | "geoloc", accepted: boolean) => Promise<boolean>;
+  /**
+   * R27 (build 8) — Met à jour la photo de profil (`avatar_url`, URL publique
+   * du bucket `avatars` ou URI locale en mode démo). Local-first + push
+   * Supabase fire-and-forget, même pattern que recordConsent.
+   */
+  updateAvatar: (avatar_url: string) => Promise<void>;
   finalizeOnboarding: (draft: OnboardingDraft) => Promise<void>;
   registerSpawt: (s: SpawtCheckin) => Promise<void>;
   /**
@@ -394,6 +400,21 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     // P-26 round 3 — pas de spawter encore créé → consent stocké local-only
     // via setConsentLocal ci-dessus, considéré comme write effectif.
     return true;
+  },
+
+  updateAvatar: async (avatar_url) => {
+    const current = get().spawter;
+    if (!current) return;
+    const updated: Spawter = {
+      ...current,
+      avatar_url,
+      updated_at: new Date().toISOString(),
+    };
+    await saveSpawterLocal(updated);
+    void saveSpawter(updated).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] saveSpawter avatar failed", err);
+    });
+    set({ spawter: updated });
   },
 
   finalizeOnboarding: async (draft) => {

@@ -8,7 +8,7 @@
 // barres horizontales (AxisBar) pour tous les tiers.
 
 import { useCallback, useEffect } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
@@ -21,6 +21,7 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 
 import { useTheme, type Theme } from "../theme/ThemeProvider";
+import { Ico } from "./primitives/Ico";
 import { gradient } from "../theme/tokens";
 import { STADE_DESCRIPTORS } from "../types/stade";
 import type { Spawter } from "../types/spawter";
@@ -39,6 +40,9 @@ interface Props {
   /** Q3 — « Favoris » = nombre de lieux sauvegardés (saved_places). */
   savedCount: number;
   reviewsCount: number;
+  /** R27 — tap sur l'avatar (changer la photo de profil). Optionnel : sans
+   *  handler, l'avatar reste purement décoratif (le tap flippe la carte). */
+  onAvatarPress?: () => void;
 }
 
 const FLIP_DURATION_MS = 600;
@@ -51,6 +55,7 @@ export function SpawterCard({
   uniqueSpots,
   savedCount,
   reviewsCount,
+  onAvatarPress,
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -131,28 +136,72 @@ export function SpawterCard({
           </View>
 
           <View style={{ alignItems: "center" }}>
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: theme.colors.brand.primary,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: theme.spacing.base,
-              }}
+            {/* R27 — avatar : photo de profil si posée, sinon lettre. Tap →
+                changer la photo (galerie/caméra) si le caller passe le
+                handler ; le badge caméra signale l'affordance. */}
+            <Pressable
+              onPress={onAvatarPress}
+              disabled={!onAvatarPress}
+              accessibilityRole={onAvatarPress ? "button" : "image"}
+              accessibilityLabel={
+                onAvatarPress ? t("profile.avatar_change_aria") : undefined
+              }
+              hitSlop={onAvatarPress ? 8 : undefined}
+              testID="spawtercard-avatar"
+              style={{ marginBottom: theme.spacing.base }}
             >
-              <Text
+              <View
                 style={{
-                  ...theme.typography.preset.display,
-                  color: theme.colors.text.onBrand,
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: theme.colors.brand.primary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
                 }}
               >
-                {/* CR finding m1 — trim + fallback explicite "S" pour bloquer
-                    le cas display_name vide (DB default ""), sinon avatar lettre vide. */}
-                {(spawter.display_name?.trim().charAt(0) || "S").toUpperCase()}
-              </Text>
-            </View>
+                {spawter.avatar_url ? (
+                  <Image
+                    source={{ uri: spawter.avatar_url }}
+                    style={{ width: 80, height: 80, borderRadius: 40 }}
+                    resizeMode="cover"
+                    accessible={false}
+                    testID="spawtercard-avatar-photo"
+                  />
+                ) : (
+                  <Text
+                    style={{
+                      ...theme.typography.preset.display,
+                      color: theme.colors.text.onBrand,
+                    }}
+                  >
+                    {/* CR finding m1 — trim + fallback explicite "S" pour bloquer
+                        le cas display_name vide (DB default ""), sinon avatar lettre vide. */}
+                    {(spawter.display_name?.trim().charAt(0) || "S").toUpperCase()}
+                  </Text>
+                )}
+              </View>
+              {onAvatarPress ? (
+                <View
+                  style={{
+                    position: "absolute",
+                    right: -2,
+                    bottom: -2,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: theme.colors.surface.base,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: theme.colors.border.subtle,
+                  }}
+                >
+                  <Ico name="camera" size={14} color={theme.colors.text.primary} />
+                </View>
+              ) : null}
+            </Pressable>
             <Text
               style={{
                 ...theme.typography.preset.h1,

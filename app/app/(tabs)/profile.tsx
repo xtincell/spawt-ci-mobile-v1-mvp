@@ -17,6 +17,8 @@ import { STADE_DESCRIPTORS } from "../../src/types/stade";
 import { resetAll } from "../../src/lib/storage";
 import { inspect } from "../../src/lib/offline-queue";
 import { isGoldSpawter } from "../../src/lib/spawter-gold";
+import { compressAvatar, uploadAvatar } from "../../src/lib/storage-avatars";
+import { isSupabaseConfigured } from "../../src/lib/data-source";
 import { defaultTitleKeyForStade } from "../../src/lib/titres-catalogue";
 import { track } from "../../src/lib/analytics";
 
@@ -32,6 +34,7 @@ export default function ProfileScreen() {
   const collectionTitres = useSpawterStore((s) => s.collectionTitres);
   const setDisplayedTitle = useSpawterStore((s) => s.setDisplayedTitle);
   const clearDisplayedTitle = useSpawterStore((s) => s.clearDisplayedTitle);
+  const updateAvatar = useSpawterStore((s) => s.updateAvatar);
   const reset = useSpawterStore((s) => s.reset);
 
   const [queueSize, setQueueSize] = useState(0);
@@ -73,6 +76,70 @@ export default function ProfileScreen() {
 
   const reviewsCount = spawts.filter((s) => s.note_etoiles !== null).length;
   const isGold = isGoldSpawter(spawter);
+
+  // R27 — changement de photo de profil : galerie OU caméra (expo-image-picker),
+  // crop carré natif (allowsEditing 1:1, affichage circulaire côté UI),
+  // compression 512px, upload bucket Storage `avatars` (migration 0031),
+  // update `spawters.avatar_url` local-first. Mode démo (pas de Supabase) :
+  // l'URI locale compressée sert d'avatar.
+  const pickAvatarFrom = async (source: "gallery" | "camera") => {
+    try {
+      const mod = await import("expo-image-picker");
+      const ImagePicker = mod.default ?? mod;
+      const perm =
+        source === "camera"
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== "granted") {
+        Alert.alert(
+          t("profile.avatar_permission_title"),
+          t("profile.avatar_permission_body"),
+        );
+        return;
+      }
+      const pickerOptions = {
+        allowsEditing: true,
+        aspect: [1, 1] as [number, number],
+        quality: 1,
+      };
+      const result =
+        source === "camera"
+          ? await ImagePicker.launchCameraAsync(pickerOptions)
+          : await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      if (result.canceled || !result.assets?.[0]) return;
+      const compressed = await compressAvatar(result.assets[0].uri);
+      const url = isSupabaseConfigured
+        ? await uploadAvatar(compressed, spawter.id)
+        : compressed;
+      if (!url) {
+        Alert.alert(t("profile.avatar_upload_failed"));
+        return;
+      }
+      await updateAvatar(url);
+      track({ name: "avatar_updated", properties: { source } });
+    } catch (err) {
+      if (__DEV__) console.warn("[profile] avatar change failed", err);
+      Alert.alert(t("profile.avatar_upload_failed"));
+    }
+  };
+
+  const onAvatarPress = () => {
+    Alert.alert(t("profile.avatar_change_title"), undefined, [
+      {
+        text: t("profile.avatar_change_camera"),
+        onPress: () => {
+          void pickAvatarFrom("camera");
+        },
+      },
+      {
+        text: t("profile.avatar_change_gallery"),
+        onPress: () => {
+          void pickAvatarFrom("gallery");
+        },
+      },
+      { text: t("common.cancel"), style: "cancel" },
+    ]);
+  };
   const displayedRow = collectionTitres.find((r) => r.is_displayed);
   const displayedTitleKey = displayedRow?.title_key ?? defaultTitleKeyForStade(spawter.stade);
 
@@ -98,6 +165,7 @@ export default function ProfileScreen() {
           uniqueSpots={spawter.unique_spots}
           savedCount={savedPlaceIds.size}
           reviewsCount={reviewsCount}
+          onAvatarPress={onAvatarPress}
         />
 
         <View
