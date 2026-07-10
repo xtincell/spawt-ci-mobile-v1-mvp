@@ -295,10 +295,10 @@
       "option_pos": "Un endroit que je n'ai jamais testé",
       "option_neutral": "Pas d'avis",
       "card": {
-        "spot_pref": "Mon spawt préféré toutes les semaines",
-        "deux_trois": "Deux-trois spawts qui tournent",
-        "nouvelle_adresse": "Une nouvelle adresse à chaque fois",
-        "teste_tout": "Je mange où c'est bon"
+        "spot_pref": "🏠 Mon spawt préféré toutes les semaines",
+        "deux_trois": "🔁 Deux-trois spawts qui tournent",
+        "nouvelle_adresse": "✨ Une nouvelle adresse à chaque fois",
+        "teste_tout": "🧭 Je mange où c'est bon"
       }
     },
     "q_exigeant_enthousiaste": {
@@ -307,10 +307,10 @@
       "option_pos": "C'est pas grave, l'ambiance compense",
       "option_neutral": "Pas d'avis",
       "card": {
-        "service_compte": "La qualité du service avant tout",
-        "bon_pardonne": "Si c'est bon, je pardonne tout",
-        "ambiance_fait": "Le cadre fait l'expérience",
-        "note_tout": "Je note tout"
+        "service_compte": "🤵 La qualité du service avant tout",
+        "bon_pardonne": "😋 Si c'est bon, je pardonne tout",
+        "ambiance_fait": "🎶 Le cadre fait l'expérience",
+        "note_tout": "📝 Je note tout"
       }
     },
     "q_foule_secret": {
@@ -319,10 +319,10 @@
       "option_pos": "Vide. Mon secret. Mon trésor.",
       "option_neutral": "Pas d'avis",
       "card": {
-        "maquis_bonde": "Un maquis bondé — tout pour le show",
-        "spot_anime": "Un nouveau spawt — tout pour la hype",
-        "spot_cache": "Un spawt que personne ne connaît — tout pour l'intimité",
-        "table_intime": "Un spawt testé et approuvé — tout pour la bonne bouffe"
+        "maquis_bonde": "🎉 Un maquis bondé — tout pour le show",
+        "spot_anime": "🔥 Un nouveau spawt — tout pour la hype",
+        "spot_cache": "🤫 Un spawt que personne ne connaît — tout pour l'intimité",
+        "table_intime": "💎 Un spawt testé et approuvé — tout pour la bonne bouffe"
       }
     },
     "q_maquis_table": {
@@ -331,10 +331,10 @@
       "option_pos": "Nappe, menu carte, serveur en tablier",
       "option_neutral": "Pas d'avis",
       "card": {
-        "maquis_garba": "Garbadrome",
-        "foodtruck": "Foodtruck",
-        "restaurant_chic": "Restaurant chic",
-        "brunch_cocody": "Brunch"
+        "maquis_garba": "🍢 Garbadrome",
+        "foodtruck": "🚚 Foodtruck",
+        "restaurant_chic": "🍽️ Restaurant chic",
+        "brunch_cocody": "🥞 Brunch"
       }
     }
   },
