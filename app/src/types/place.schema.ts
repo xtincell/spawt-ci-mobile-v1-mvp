@@ -28,7 +28,12 @@ export const OpeningSlotSchema = z.object({
   close: z.string().regex(HHMM),
 });
 
-export const HoursSchema = z.record(
+// R22 (build 8) — `z.record(z.enum(...))` est EXHAUSTIF en Zod 4 : une row
+// dont le JSONB `hours` n'a pas les 7 jours échouait la parse → lieu droppé →
+// « lieu introuvable » sur inventaire partiel. `partialRecord` rend chaque
+// jour optionnel ; l'UI (OpeningHours) affiche déjà « Fermé » pour un jour
+// absent.
+export const HoursSchema = z.partialRecord(
   z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]),
   z.array(OpeningSlotSchema),
 );

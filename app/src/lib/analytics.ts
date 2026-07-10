@@ -170,6 +170,7 @@ type EventName =
   // 9. Stade & Palais & Identité
   | "palais_updated" | "stade_unlocked" | "archetype_assigned" | "archetype_mue"
   | "title_displayed_changed" | "profile_opened" | "spawter_card_flipped"
+  | "avatar_updated"
   // 10. Partage
   | "share_initiated" | "share_completed" | "share_link_opened"
   // 11. Auth
@@ -231,6 +232,8 @@ const EVENT_TO_SIGNAL = {
   title_displayed_changed: "click",
   profile_opened: "view",
   spawter_card_flipped: "click",
+  // R27 (build 8) — changement de photo de profil.
+  avatar_updated: "click",
   // save
   place_saved: "save", place_unsaved: "save",
   // share
