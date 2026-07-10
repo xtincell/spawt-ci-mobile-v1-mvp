@@ -74,7 +74,6 @@ export default function ProfileScreen() {
     );
   }
 
-  const reviewsCount = spawts.filter((s) => s.note_etoiles !== null).length;
   const isGold = isGoldSpawter(spawter);
 
   // R27 — changement de photo de profil : galerie OU caméra (expo-image-picker),
@@ -162,9 +161,8 @@ export default function ProfileScreen() {
           palais={palais}
           displayedTitleKey={displayedTitleKey}
           isGold={isGold}
-          uniqueSpots={spawter.unique_spots}
+          spawtsCount={spawter.total_spawts}
           savedCount={savedPlaceIds.size}
-          reviewsCount={reviewsCount}
           onAvatarPress={onAvatarPress}
         />
 
@@ -216,11 +214,6 @@ export default function ProfileScreen() {
             label={t("profile.link_spawts")}
             count={spawter.total_spawts}
             onPress={() => Alert.alert(t("profile.link_spawts_stub"))}
-          />
-          <QuickLink
-            label={t("profile.link_avis")}
-            count={reviewsCount}
-            onPress={() => Alert.alert(t("profile.link_avis_stub"))}
           />
           <QuickLink
             label={t("profile.link_settings")}

@@ -35,11 +35,10 @@ interface Props {
   displayedTitleKey: string;
   /** Gate axes Gold (V1 = false par défaut, hook prêt pour V1.5 Gold). */
   isGold: boolean;
-  /** Q3 — « Spawts » = nombre d'ÉTABLISSEMENTS spawtés (lieux distincts). */
-  uniqueSpots: number;
+  /** R28 — « Spawts » = nombre de spawts de l'utilisateur (total_spawts). */
+  spawtsCount: number;
   /** Q3 — « Favoris » = nombre de lieux sauvegardés (saved_places). */
   savedCount: number;
-  reviewsCount: number;
   /** R27 — tap sur l'avatar (changer la photo de profil). Optionnel : sans
    *  handler, l'avatar reste purement décoratif (le tap flippe la carte). */
   onAvatarPress?: () => void;
@@ -52,9 +51,8 @@ export function SpawterCard({
   palais,
   displayedTitleKey,
   isGold,
-  uniqueSpots,
+  spawtsCount,
   savedCount,
-  reviewsCount,
   onAvatarPress,
 }: Props) {
   const { t } = useTranslation();
@@ -222,12 +220,12 @@ export function SpawterCard({
             </Text>
           </View>
 
-          {/* Q3 — compteurs clarifiés : « Spawts » = établissements spawtés,
-              « Favoris » = lieux sauvegardés. Fini l'ambigu « Spawts uniques ». */}
+          {/* R28 (build 8) — le compteur « Avis » est supprimé, remplacé par
+              « Spawts » = nombre de spawts de l'utilisateur (total_spawts).
+              « Favoris » = lieux sauvegardés (Q3). */}
           <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
-            <StatBlock label={t("profile.stat_spawts")} value={uniqueSpots} theme={theme} />
+            <StatBlock label={t("profile.stat_spawts")} value={spawtsCount} theme={theme} />
             <StatBlock label={t("profile.stat_favoris")} value={savedCount} theme={theme} />
-            <StatBlock label={t("profile.stat_avis")} value={reviewsCount} theme={theme} />
           </View>
 
           <Text
