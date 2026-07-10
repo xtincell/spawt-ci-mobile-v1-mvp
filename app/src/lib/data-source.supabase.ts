@@ -50,39 +50,67 @@ export async function getPlaceFromSupabase(id: string): Promise<PlaceWithAdn | n
   return parsed[0] ?? null;
 }
 
+/**
+ * R22 (build 8) — ADN par défaut quand la row `place_adn` manque (inventaire
+ * quasi vide côté data). Plutôt que de dropper le lieu (fiche « introuvable »),
+ * on synthétise un ADN neutre : la fiche rend « ADN en construction » +
+ * « Pas encore noté » — l'état vide élégant attendu.
+ */
+function defaultAdnForRow(r: Record<string, unknown>): Record<string, unknown> {
+  return {
+    place_id: r.id,
+    axe_local_international: 0,
+    axe_informel_etabli: 0,
+    axe_budget_premium: 0,
+    axe_populaire_prive: 0,
+    axe_decontracte_habille: 0,
+    confidence_score: 0,
+    total_reviews: 0,
+    weighted_rating: 0,
+    updated_at: r.updated_at ?? new Date().toISOString(),
+  };
+}
+
 function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
   const out: PlaceWithAdn[] = [];
   for (const row of rows) {
     const r = row as Record<string, unknown>;
-    const adn = r.place_adn as Record<string, unknown> | undefined;
-    if (!adn) {
-      if (__DEV__) console.warn("[data-source] place row dropped — missing place_adn", r.id);
-      continue;
+    // La relation `place_adn(*)` peut remonter en objet (FK unique) ou en
+    // array selon la version du SDK / le schéma — on normalise les deux, et
+    // on tolère l'absence (R22 : ADN neutre plutôt que lieu droppé).
+    const rawAdn = r.place_adn;
+    const adnCandidate = Array.isArray(rawAdn) ? rawAdn[0] : rawAdn;
+    const adn =
+      adnCandidate && typeof adnCandidate === "object"
+        ? (adnCandidate as Record<string, unknown>)
+        : defaultAdnForRow(r);
+    if (adnCandidate == null && __DEV__) {
+      console.warn("[data-source] place row without place_adn — default ADN used", r.id);
     }
     const candidate = {
       id: r.id,
       name: r.name,
-      cuisine: r.cuisine,
+      cuisine: r.cuisine ?? [],
       location: {
         lat: r.lat,
         lng: r.lng,
-        descriptive_address: r.descriptive_address,
-        neighborhood: r.neighborhood,
-        city: r.city,
+        descriptive_address: r.descriptive_address ?? "",
+        neighborhood: r.neighborhood ?? "",
+        city: r.city ?? "",
       },
       price: {
         tier: r.price_tier,
         avg_ticket_xof: r.avg_ticket_xof ?? null,
       },
-      hours: r.hours,
+      hours: r.hours ?? {},
       phone: r.phone ?? null,
       whatsapp: r.whatsapp ?? null,
       cover_photo_url: r.cover_photo_url ?? null,
-      gallery_urls: r.gallery_urls,
+      gallery_urls: r.gallery_urls ?? [],
       // Refonte fiche lieu (R17/R19, migration 0030). `?? []` : une DB live
       // pas encore migrée renvoie undefined — le lieu doit parser quand même.
       menu_urls: r.menu_urls ?? [],
-      signals: r.signals,
+      signals: r.signals ?? [],
       is_published: r.is_published,
       created_at: r.created_at,
       updated_at: r.updated_at,

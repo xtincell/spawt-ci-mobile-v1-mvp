@@ -135,6 +135,13 @@ export default function PlaceDetailScreen() {
 
   const position = useSpawterPosition();
 
+  // R21 + Q4 — flag produit du prix moyen. R22 (build 8) : ce hook DOIT être
+  // appelé AVANT les early returns loading/not-found ci-dessous. En build 7 il
+  // vivait après → premier render (loading) sans ce hook, second render (place
+  // chargée) avec → « Rendered more hooks than during the previous render » →
+  // crash systématique de TOUTES les fiches lieu à l'ouverture (rules of hooks).
+  const avgPriceEnabled = useFlag("place-avg-price");
+
   const matchScore = useMemo(() => {
     if (!place) return null;
     const raw = computeRawScore(
@@ -269,8 +276,8 @@ export default function PlaceDetailScreen() {
   // du tier. Convention éditoriale (méthode TheFork) : repas type par personne,
   // HORS BOISSONS — chiffre saisi par l'équipe dans le dashboard admin, aucun
   // calcul côté client. Togglable via le flag `place-avg-price` (dashboard
-  // admin → Fonctionnalités) ; OFF → échelle ₣ historique.
-  const avgPriceEnabled = useFlag("place-avg-price");
+  // admin → Fonctionnalités) ; OFF → échelle ₣ historique. (Le hook useFlag
+  // est appelé plus haut, avant les early returns — R22.)
   const avgTicket = avgPriceEnabled ? formatXofAmount(place.price.avg_ticket_xof) : null;
   const priceLabel = avgTicket
     ? t("place.price_avg", { amount: avgTicket })
