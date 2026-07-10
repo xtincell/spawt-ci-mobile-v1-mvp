@@ -91,9 +91,16 @@ export function CatMark({ pose = "salut", size = 24, style, testID }: CatMarkPro
   );
 }
 
+// R24 (build 8) — ratio de la pose DANS le cercle : fit CONTAIN + padding.
+// L'ancien cadrage (zoom 118 % + resizeMode cover + offsets) débordait ou
+// coupait mal selon la pose (chaque PNG cadre Moka différemment). Ici la pose
+// entière tient dans le cercle avec une marge respirante, centrée — cadrage
+// correct pour TOUTES les poses sans réglage au cas par cas.
+const BADGE_INNER_RATIO = 0.84;
+
 /**
- * Avatar « tête de Moka dans un cercle or » — le cadrage du CatBubble du DS :
- * pose zoomée à 118 % avec un léger décalage haut-gauche pour centrer la tête.
+ * Avatar « Moka dans un cercle or » — pose entière en fit contain, centrée,
+ * avec padding (~8 % par côté). R24 : plus de zoom/offset qui coupait la tête.
  */
 export function CatMarkBadge({ pose = "salut", size = 28, style, testID }: CatMarkProps) {
   const theme = useTheme();
@@ -119,12 +126,10 @@ export function CatMarkBadge({ pose = "salut", size = 28, style, testID }: CatMa
       <Image
         source={POSES[pose]}
         style={{
-          width: size * 1.18,
-          height: size * 1.18,
-          marginTop: -size * 0.02,
-          marginLeft: -size * 0.09,
+          width: size * BADGE_INNER_RATIO,
+          height: size * BADGE_INNER_RATIO,
         }}
-        resizeMode="cover"
+        resizeMode="contain"
         accessible={false}
       />
     </View>
