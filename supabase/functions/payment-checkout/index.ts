@@ -54,6 +54,22 @@ interface CheckoutPayload {
   return_url?: string;
 }
 
+// Sécurité D1 — un return_url n'est accepté que s'il est https ET sur le MÊME
+// hôte que le portail (PAYMENT_RETURN_BASE_URL). Empêche l'open-redirect : un
+// attaquant ne peut pas faire pointer le retour post-paiement vers un domaine
+// de phishing. URL invalide → refus.
+export function isAllowedReturnUrl(returnUrl: string, returnBase: string): boolean {
+  let u: URL;
+  let base: URL;
+  try {
+    u = new URL(returnUrl);
+    base = new URL(returnBase);
+  } catch {
+    return false;
+  }
+  return u.protocol === "https:" && u.host === base.host;
+}
+
 // ─── CORS — même pattern fail-closed que otp-send (P-11 / P-09) ─────────────
 
 function readAllowedOrigins(): string[] {
@@ -118,13 +134,15 @@ export async function handleRequest(req: Request): Promise<Response> {
   const plan = payload.plan;
   const isB2bCheckout = isB2bPlan(plan);
 
-  // return_url : optionnelle, https only (elle part chez CinetPay pour le
-  // redirect navigateur post-paiement). Défaut : portail /gold/retour (B2C)
-  // ou /pro/retour (B2B — espace lieux).
+  // return_url : optionnelle, https ET même hôte que le portail (elle part chez
+  // CinetPay pour le redirect navigateur post-paiement). Sécurité D1 — sans
+  // allowlist d'hôte, un `return_url` arbitraire ferait de cet endpoint un
+  // open-redirect (phishing post-paiement). On borne à l'hôte de
+  // PAYMENT_RETURN_BASE_URL (le portail).
   const returnBase = Deno.env.get("PAYMENT_RETURN_BASE_URL") ?? "https://spawt.online";
   const returnUrl =
     payload.return_url ?? `${returnBase}${isB2bCheckout ? "/pro/retour" : "/gold/retour"}`;
-  if (!/^https:\/\//.test(returnUrl)) {
+  if (!isAllowedReturnUrl(returnUrl, returnBase)) {
     return json({ error: "invalid_return_url" }, req, 400);
   }
 

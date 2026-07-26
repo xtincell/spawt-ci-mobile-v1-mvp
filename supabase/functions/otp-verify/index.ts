@@ -54,12 +54,15 @@ const OTP_RE = /^\d{6,8}$/;
 // Doit rester aligné avec DEMO_CODE côté app (app/app/(onboarding)/otp.tsx).
 const MOCK_OTP_CODE = "123456";
 
-// #V07 — même sémantique que otp-send : mock par défaut sans clé Termii.
+// Sécurité C1 — le mock exige un OPT-IN EXPLICITE `MOCK_TERMII=true`.
+// Avant, l'absence de `TERMII_API_KEY` activait le mock automatiquement : un
+// déploiement prod sans secret Termii acceptait alors le code universel
+// `123456` pour N'IMPORTE QUEL téléphone = usurpation de compte. Désormais un
+// prod mal configuré (ni MOCK_TERMII=true, ni TERMII_API_KEY) échoue FERMÉ
+// (edge_misconfigured 500, personne ne se connecte) au lieu d'un bypass
+// silencieux. Staging/CI : poser explicitement MOCK_TERMII=true.
 function isMockMode(): boolean {
-  const flag = Deno.env.get("MOCK_TERMII");
-  if (flag === "true") return true;
-  if (flag === "false") return false;
-  return !Deno.env.get("TERMII_API_KEY");
+  return Deno.env.get("MOCK_TERMII") === "true";
 }
 
 // Review stores (Apple/Google) — un numéro whitelisté + code fixe, actif même
@@ -207,9 +210,10 @@ export async function handleRequest(req: Request): Promise<Response> {
     pinId = attempts?.[0]?.request_id ?? null;
     if (!pinId) return json({ error: "no_pending_otp" }, req, 400);
 
-    // Mock mode (défaut de cette phase) : skip Termii API, accepte le code
-    // de test universel 123456. La session Supabase émise derrière est RÉELLE
-    // (generateLink + verifyOtp) — seul le SMS est mocké.
+    // Mock mode (opt-in explicite MOCK_TERMII=true, staging/CI) : skip Termii
+    // API, accepte le code universel 123456. La session Supabase émise derrière
+    // est RÉELLE (generateLink + verifyOtp) — seul le SMS est mocké. En prod
+    // sans MOCK_TERMII=true ni TERMII_API_KEY → branche else → 500 (fail-closed).
     if (isMockMode()) {
       if (payload.otp_code !== MOCK_OTP_CODE) return json({ error: "invalid_otp" }, req, 401);
     } else {

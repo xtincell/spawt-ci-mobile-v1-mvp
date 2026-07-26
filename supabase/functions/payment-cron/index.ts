@@ -36,6 +36,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { decideLifecycle } from "../_shared/payment/subscription-lifecycle.ts";
 import { isB2bPlan } from "../_shared/payment/types.ts";
+import { safeEqual } from "../_shared/safe-equal.ts";
 
 // @ts-expect-error — Deno global
 declare const Deno: {
@@ -159,9 +160,10 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
 
   // Garde cron : clé partagée en header. Fail-closed si CRON_SECRET absent.
+  // Sécurité D5 — comparaison à temps constant (safeEqual) contre le timing.
   const cronSecret = Deno.env.get("CRON_SECRET");
   const providedKey = req.headers.get("x-cron-key");
-  if (!cronSecret || !providedKey || providedKey !== cronSecret) {
+  if (!cronSecret || !providedKey || !safeEqual(providedKey, cronSecret)) {
     return json({ error: "unauthorized" }, 409);
   }
 

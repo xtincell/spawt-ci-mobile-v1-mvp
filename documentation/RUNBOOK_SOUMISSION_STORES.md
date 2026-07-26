@@ -205,7 +205,9 @@ se connecter **sans nous**. Trois options, de la plus recommandée à la moins b
      numéro d'équipe avec l'OTP réel reçu par SMS — impossible pour le reviewer
      (personne pour lui relayer le code), très bien pour nous.
 2. **À défaut — mock global documenté** : si Termii n'est pas encore actif au moment de
-   la soumission, laisser `MOCK_TERMII=true` (comportement par défaut du backend) et
+   la soumission, poser explicitement `MOCK_TERMII=true` (⚠️ sécurité C1 : le mock
+   n'est PLUS actif par défaut — sans `MOCK_TERMII=true` ni `TERMII_API_KEY`, l'OTP
+   échoue fermé au lieu d'accepter `123456`) et
    écrire dans les notes : « Demo/testing phase: any valid CI number, verification code
    **123456** ». Honnête tant que c'est écrit — mais cela signifie que TOUS les
    utilisateurs sont en OTP mock (acceptable pour une review/TestFlight, pas pour le

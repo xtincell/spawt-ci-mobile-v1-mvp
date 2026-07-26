@@ -66,6 +66,8 @@
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { safeEqual } from "../_shared/safe-equal.ts";
+
 // @ts-expect-error — Deno global
 declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Promise<Response> | Response) => void };
 
@@ -256,7 +258,8 @@ export async function handleRequest(req: Request): Promise<Response> {
   if (!bearer) return json({ error: "unauthenticated" }, req, 401);
 
   const admin = createClient(supabaseUrl, serviceRole);
-  const isInternal = bearer === serviceRole;
+  // Sécurité D5 — comparaison à temps constant du service-role.
+  const isInternal = safeEqual(bearer, serviceRole);
   let staffId: string | null = null;
 
   if (!isInternal) {

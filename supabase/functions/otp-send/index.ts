@@ -39,14 +39,11 @@ const PHONE_RE = /^\+[1-9]\d{8,14}$/;
 const RATE_LIMIT_PHONE_PER_HOUR = 5;
 const RATE_LIMIT_IP_PER_HOUR = 20;
 
-// #V07 — mock par défaut tant que le SMS réel n'est pas configuré :
-// `MOCK_TERMII=true` force le mock, `MOCK_TERMII=false` force le live,
-// non défini → mock si aucune clé Termii n'existe.
+// Sécurité C1 — mock sur OPT-IN EXPLICITE uniquement (`MOCK_TERMII=true`).
+// Aligné avec otp-verify : un prod sans MOCK_TERMII=true ni TERMII_API_KEY
+// échoue fermé (edge_misconfigured) plutôt que d'accepter le code universel.
 function isMockMode(): boolean {
-  const flag = Deno.env.get("MOCK_TERMII");
-  if (flag === "true") return true;
-  if (flag === "false") return false;
-  return !Deno.env.get("TERMII_API_KEY");
+  return Deno.env.get("MOCK_TERMII") === "true";
 }
 
 // Review stores — numéros whitelistés (env REVIEWER_PHONE_E164, CSV) : aucun
