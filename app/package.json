@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint:vocab": "node scripts/lint-vocab.mjs",
     "i18n:check": "node scripts/i18n-check.mjs",
-    "test": "jest"
+    "test": "jest --forceExit"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.11",
