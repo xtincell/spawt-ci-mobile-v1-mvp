@@ -163,6 +163,25 @@ Provider cible (PRD §12.1) : **PostHog ou Mixpanel**. Sprint 1 instrumente la c
 | `subscription_renewed` | Renouvellement | `plan_id`, `cycle_n` |
 | `subscription_lapsed` | Grace period dépassée → free | `plan_id`, `days_in_grace` |
 
+## 13. Mode Rapide — swipe de suggestions (post-MVP #1, migration 0046)
+
+> `signal_type` dédiés `swipe_like` / `swipe_pass` (0046) : le ML futur les distingue d'un `save`/`dismiss` classique — geste ambigu, poids différent.
+
+| Event | Quand | Propriétés | signal_type |
+|---|---|---|---|
+| `rapide_opened` | Ouverture de l'écran Mode Rapide | `deck_size` | `view` |
+| `rapide_swipe_like` | Swipe droite « Je le garde » (ou bouton ♥) | `place_id`, `match_score`, `deck_position` | `swipe_like` |
+| `rapide_swipe_pass` | Swipe gauche « Passe » (ou bouton ✕) | `place_id`, `match_score`, `deck_position` | `swipe_pass` |
+| `rapide_deck_ended` | Dernière carte swipée (deck épuisé) | `deck_size` | `view` |
+
+## 14. Mode Explore — collections éditoriales (post-MVP #3, migration 0045)
+
+| Event | Quand | Propriétés | signal_type |
+|---|---|---|---|
+| `explore_opened` | Ouverture de la liste des collections | `collections_count` | `view` |
+| `explore_collection_opened` | Ouverture d'une collection | `slug`, `items_count` | `view` |
+| `explore_item_clicked` | Tap sur un lieu d'une collection | `place_id`, `slug`, `position` | `click` |
+
 ---
 
 ## Métriques dérivées (formules à figer avec Madame Sun)

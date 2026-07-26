@@ -39,7 +39,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { CountryCode, Gender, AgeRange } from "../types/spawter";
 
-// ━━━ 9 signal_type agrégés (DB level) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ signal_type agrégés (DB level) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 9 catégories historiques (0003) + swipe_like/swipe_pass (Mode Rapide,
+// migration 0046). Le CHECK DB accepte aussi crew_vote/reservation — ajoutés
+// ici par leurs chantiers respectifs quand leurs events arrivent.
 export type SignalType =
   | "spawt"
   | "review"
@@ -49,7 +52,9 @@ export type SignalType =
   | "search"
   | "filter"
   | "click"
-  | "dismiss";
+  | "dismiss"
+  | "swipe_like"
+  | "swipe_pass";
 
 // ━━━ Discriminated union des events granulaires ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Les 5 events critiques funnel (PRD §16.1) sont strictement typés.
@@ -178,7 +183,12 @@ type EventName =
   | "account_reset" | "account_deletion_requested"
   // 12. Premium
   | "paywall_shown" | "subscription_initiated" | "payment_completed"
-  | "subscription_renewed" | "subscription_lapsed";
+  | "subscription_renewed" | "subscription_lapsed"
+  // 13. Mode Rapide (swipe de suggestions — migration 0046)
+  | "rapide_opened" | "rapide_swipe_like" | "rapide_swipe_pass"
+  | "rapide_deck_ended"
+  // 14. Mode Explore (collections éditoriales — migration 0045)
+  | "explore_opened" | "explore_collection_opened" | "explore_item_clicked";
 
 export type AnalyticsEvent =
   | AppFirstOpen | AppOpen
@@ -252,6 +262,13 @@ const EVENT_TO_SIGNAL = {
   auth_otp_sent: "click", auth_otp_validated: "click", auth_signed_in: "click",
   subscription_initiated: "click", payment_completed: "click",
   subscription_renewed: "click",
+  // Mode Rapide — les swipes ont leur signal_type dédié (0046) : le ML futur
+  // les distingue d'un save/dismiss classique (geste ambigu, poids différent).
+  rapide_opened: "view", rapide_deck_ended: "view",
+  rapide_swipe_like: "swipe_like", rapide_swipe_pass: "swipe_pass",
+  // Mode Explore — lecture éditoriale (0045).
+  explore_opened: "view", explore_collection_opened: "view",
+  explore_item_clicked: "click",
 } as const satisfies Record<EventName, SignalType>;
 
 // Regex UUID v4 (validation soft pour `place_id` avant insert — la column DB

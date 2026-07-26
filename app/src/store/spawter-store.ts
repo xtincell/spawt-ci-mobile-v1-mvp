@@ -5,6 +5,7 @@ import { create } from "zustand";
 
 import type { Spawter, OnboardingDraft } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
+import type { PlaceAdn } from "../types/place";
 import type { SpawtCheckin, ReviewTag } from "../types/spawt";
 import type { CalibrationDelta } from "../types/palais";
 import type { CollectionTitreRow } from "../types/collection-titres";
@@ -144,6 +145,17 @@ interface SpawterStore {
   toggleSaved: (place_id: string) => Promise<boolean>;
   /** Test d'appartenance — synchrone, no I/O. */
   isSaved: (place_id: string) => boolean;
+  /**
+   * Mode Rapide — applique le signal FAIBLE d'un swipe aux axes du Palais
+   * (like = ouverture vers le profil ADN du lieu, pass = léger négatif).
+   * Moteur pur : rapide-signals.applySwipeToPalais. Local-first + push
+   * Supabase fire-and-forget, même pattern que toggleSaved. No-op silencieux
+   * si palais/spawter absents ou ADN trop neutre pour signifier.
+   */
+  applySwipeSignal: (
+    adn: PlaceAdn,
+    direction: import("../lib/rapide-signals").SwipeDirection,
+  ) => Promise<void>;
   /**
    * Enregistre un consent (CGV ou géoloc).
    *
@@ -419,6 +431,29 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   },
 
   isSaved: (place_id: string) => get().savedPlaceIds.has(place_id),
+
+  applySwipeSignal: async (adn, direction) => {
+    const palais = get().palais;
+    const spawter = get().spawter;
+    if (!palais || !spawter) return;
+    // Import dynamique — le moteur swipe n'est chargé que si le Mode Rapide
+    // est réellement utilisé (flag `mode-rapide` OFF par défaut).
+    const { applySwipeToPalais } = await import("../lib/rapide-signals");
+    const { palais: next, didUpdate } = applySwipeToPalais({
+      current: palais,
+      unique_spots: spawter.unique_spots,
+      adn,
+      direction,
+    });
+    if (!didUpdate) return;
+    // Local-first : commit AsyncStorage AVANT le state (même invariant que
+    // toggleSaved — pas de divergence state/disque au prochain hydrate).
+    await savePalaisLocal(next);
+    void savePalais(next).catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] savePalais swipe failed", err);
+    });
+    set({ palais: next });
+  },
 
   recordConsent: async (kind, accepted) => {
     await setConsentLocal(kind, accepted);

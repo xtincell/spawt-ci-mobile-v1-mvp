@@ -120,7 +120,29 @@
     "vite": {
       "label": "Vite fait",
       "sub": "Rapide"
+    },
+    "entry_rapide": {
+      "label": "Rapide"
+    },
+    "entry_explore": {
+      "label": "Explore"
     }
+  },
+  "rapide": {
+    "title": "Mode Rapide",
+    "subtitle": "Garde ou passe. Ton nez décide.",
+    "keep_label": "Je le garde",
+    "pass_label": "Passe",
+    "keep_aria": "Garder ce spot dans tes favoris",
+    "pass_aria": "Passer ce spot",
+    "card_open_aria": "Ouvrir la fiche de {{name}}",
+    "kept_toast": "Dans tes favoris. Le Chat s'en souvient.",
+    "deck_end_title": "Tu as tout reniflé par ici.",
+    "deck_end_body": "Reviens plus tard — le Chat garde le nez ouvert.",
+    "deck_end_cta": "Retour au feed",
+    "empty_title": "Rien à renifler pour l'instant",
+    "empty_body": "Aucun spot à te proposer dans le coin. Repasse plus tard.",
+    "empty_cta": "Retour au feed"
   },
   "search": {
     "placeholder": "Cherche un spawt, un plat, une zone…",
