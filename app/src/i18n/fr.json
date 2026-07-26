@@ -913,7 +913,8 @@
     "delete_failed": "La suppression a échoué. Réessaie ou écris-nous.",
     "delete_legal_note": "Conformément à la Loi ivoirienne 2013-450, ton compte est anonymisé immédiatement puis purgé sous 30 jours.",
     "section_spots": "MES SPOTS",
-    "suggest_place": "Suggérer un lieu"
+    "suggest_place": "Suggérer un lieu",
+    "my_reservations": "Mes réservations"
   },
   "suggest": {
     "title": "Suggère un spot",
@@ -1161,5 +1162,29 @@
     "banner_title": "Ton Wrapped {{year}} est prêt",
     "banner_body": "Le Chat a compté tes tables. Viens voir ce que ton année raconte.",
     "banner_aria": "Ouvrir ton SPAWT Wrapped {{year}}"
+  },
+  "resa": {
+    "button": "Réserver",
+    "open_aria": "Réserver une table chez {{name}}",
+    "sheet_title": "Ta table chez {{name}}",
+    "party_label": "Vous serez combien ?",
+    "party_minus_aria": "Réduire la taille du groupe",
+    "party_plus_aria": "Augmenter la taille du groupe",
+    "slot_label": "Quand ?",
+    "slot_aria": "Choisir le créneau souhaité",
+    "slot_unset": "À préciser sur WhatsApp",
+    "slot_hint": "Optionnel — tu peux aussi caler l'heure directement avec le lieu.",
+    "cta": "Envoyer sur WhatsApp",
+    "wa_message": "Bonjour {{name}} ! C'est un spawter de la Meute SPAWT. Je voudrais réserver une table pour {{count}} — créneau souhaité : {{slot}}. C'est bon pour vous ?",
+    "wa_slot_open": "à caler ensemble",
+    "mine_title": "Mes résas",
+    "mine_empty_title": "Aucune résa pour l'instant",
+    "mine_empty_body": "Repère ton spot, tape « Réserver », le Chat ouvre le canal. La table t'attend.",
+    "place_unknown": "Lieu",
+    "line_party_one": "{{count}} personne",
+    "line_party_other": "{{count}} personnes",
+    "status_sent": "Envoyée",
+    "status_confirmed": "Confirmée",
+    "status_cancelled": "Annulée"
   }
 }

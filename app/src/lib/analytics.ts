@@ -55,7 +55,10 @@ export type SignalType =
   | "dismiss"
   | "swipe_like"
   | "swipe_pass"
-  | "crew_vote";
+  | "crew_vote"
+  // Résa 1-tap (0042 + 0046) — signal dédié : une intention de table pèse
+  // plus qu'un simple click pour le matching futur.
+  | "reservation";
 
 // ━━━ Discriminated union des events granulaires ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Les 5 events critiques funnel (PRD §16.1) sont strictement typés.
@@ -199,7 +202,9 @@ type EventName =
   // 17. Feature 18 — suggestion de lieu par la Meute (0039)
   | "place_suggestion_submitted"
   // 18. SPAWT Wrapped — rétrospective annuelle + share card
-  | "wrapped_opened" | "wrapped_shared";
+  | "wrapped_opened" | "wrapped_shared"
+  // 19. Résa 1-tap (0042)
+  | "reservation_requested";
 
 export type AnalyticsEvent =
   | AppFirstOpen | AppOpen
@@ -292,6 +297,8 @@ const EVENT_TO_SIGNAL = {
   place_suggestion_submitted: "click",
   // SPAWT Wrapped — ouverture + partage de la carte.
   wrapped_opened: "view", wrapped_shared: "share",
+  // Résa 1-tap — signal_type dédié `reservation` (0046).
+  reservation_requested: "reservation",
 } as const satisfies Record<EventName, SignalType>;
 
 // Regex UUID v4 (validation soft pour `place_id` avant insert — la column DB

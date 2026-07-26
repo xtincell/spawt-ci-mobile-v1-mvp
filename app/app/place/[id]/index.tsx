@@ -59,6 +59,12 @@ import {
   geoUrl,
   appleMapsUrl,
 } from "../../../src/lib/static-map";
+// Réservation 1-tap (0042) — bouton « Réserver » (flag reservation-1tap,
+// masqué sans numéro WhatsApp), sheet groupe+créneau, trace best-effort puis
+// WhatsApp pré-rempli.
+import { ReservationSheet } from "../../../src/components/place/ReservationSheet";
+import { createReservationRequest } from "../../../src/lib/data-source";
+import { buildWaMeUrl } from "../../../src/lib/reservations";
 
 const SIGNAL_LABELS: Record<string, string> = {
   coup_de_coeur: "❤️ Coup de Cœur",
@@ -141,6 +147,10 @@ export default function PlaceDetailScreen() {
   // chargée) avec → « Rendered more hooks than during the previous render » →
   // crash systématique de TOUTES les fiches lieu à l'ouverture (rules of hooks).
   const avgPriceEnabled = useFlag("place-avg-price");
+
+  // Réservation 1-tap — hooks AVANT les early returns (même leçon R22).
+  const resaEnabled = useFlag("reservation-1tap");
+  const [resaVisible, setResaVisible] = useState(false);
 
   const matchScore = useMemo(() => {
     if (!place) return null;
@@ -306,6 +316,52 @@ export default function PlaceDetailScreen() {
       properties: { place_id: place.id },
     });
     void Linking.openURL(`https://wa.me/${digits}`);
+  };
+
+  // Réservation 1-tap — visible si flag actif ET numéro WhatsApp exploitable.
+  const resaAvailable =
+    resaEnabled && (place.whatsapp ?? "").replace(/\D/g, "").length > 0;
+
+  const onReservationConfirm = (partySize: number, slotAt: string | null) => {
+    setResaVisible(false);
+    const slotText = slotAt
+      ? new Date(slotAt).toLocaleString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : t("resa.wa_slot_open");
+    const message = t("resa.wa_message", {
+      name: place.name,
+      count: partySize,
+      slot: slotText,
+    });
+    const url = buildWaMeUrl(place.whatsapp ?? "", message);
+    if (!url) return; // garde wa.me sans destinataire (même règle qu'InfoLine)
+
+    // Trace best-effort (0042) AVANT l'ouverture — mais jamais bloquante :
+    // fire-and-forget, WhatsApp s'ouvre quoi qu'il arrive.
+    if (spawter) {
+      void createReservationRequest(spawter.id, {
+        place_id: place.id,
+        place_name: place.name,
+        party_size: partySize,
+        slot_at: slotAt,
+        channel: "whatsapp",
+      }).catch(() => {});
+    }
+    track({
+      name: "reservation_requested",
+      properties: {
+        place_id: place.id,
+        party_size: partySize,
+        has_slot: slotAt !== null,
+        channel: "whatsapp",
+      },
+    });
+    void Linking.openURL(url);
   };
 
   const onSharePress = async () => {
@@ -655,6 +711,36 @@ export default function PlaceDetailScreen() {
           {/* Phase 2 F12 — Coup de Cœur actionnable (quota mensuel par stade) */}
           <CoupDeCoeurButton place_id={place.id} />
 
+          {/* Réservation 1-tap (0042) — flag reservation-1tap + WhatsApp requis. */}
+          {resaAvailable ? (
+            <Pressable
+              onPress={() => setResaVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t("resa.open_aria", { name: place.name })}
+              testID="place-reserve-button"
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: theme.spacing.sm,
+                borderWidth: 1,
+                borderColor: theme.colors.brand.primary,
+                borderRadius: theme.radius.lg,
+                paddingVertical: theme.spacing.base,
+                marginBottom: theme.spacing.base,
+                minHeight: 48,
+                opacity: pressed ? 0.8 : 1,
+              })}
+            >
+              <Ico name="clock" size={18} color={theme.colors.brand.primary} />
+              <Text
+                style={{ ...theme.typography.preset.h3, color: theme.colors.brand.primary }}
+              >
+                {t("resa.button")}
+              </Text>
+            </Pressable>
+          ) : null}
+
           {/* Signaux */}
           {place.signals.length > 0 && (
             <View
@@ -889,6 +975,14 @@ export default function PlaceDetailScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {/* Réservation 1-tap — sheet groupe + créneau. */}
+      <ReservationSheet
+        visible={resaVisible}
+        placeName={place.name}
+        onConfirm={onReservationConfirm}
+        onClose={() => setResaVisible(false)}
+      />
     </SafeAreaView>
   );
 }

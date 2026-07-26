@@ -35,6 +35,8 @@ export default function SettingsScreen() {
   const [guetOff, setGuetOff] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const suggestionsEnabled = useFlag("suggestions-lieux");
+  // Résa 1-tap — entrée « Mes réservations » (flag OFF par défaut → absente).
+  const resaEnabled = useFlag("reservation-1tap");
 
   useEffect(() => {
     void isGuetOptedOut().then(setGuetOff);
@@ -136,15 +138,24 @@ export default function SettingsScreen() {
           onPress={() => void Linking.openSettings()}
         />
 
-        {/* Feature 18 — Mes spots : suggérer un lieu à la Meute. */}
-        {suggestionsEnabled ? (
+        {/* Feature 18 + Résa 1-tap — Mes spots : suggérer un lieu / mes résas. */}
+        {suggestionsEnabled || resaEnabled ? (
           <>
             <SectionTitle theme={theme} label={t("settings.section_spots")} />
-            <LinkRow
-              theme={theme}
-              label={t("settings.suggest_place")}
-              onPress={() => router.push("/suggest-place" as never)}
-            />
+            {suggestionsEnabled ? (
+              <LinkRow
+                theme={theme}
+                label={t("settings.suggest_place")}
+                onPress={() => router.push("/suggest-place" as never)}
+              />
+            ) : null}
+            {resaEnabled ? (
+              <LinkRow
+                theme={theme}
+                label={t("settings.my_reservations")}
+                onPress={() => router.push("/reservations" as never)}
+              />
+            ) : null}
           </>
         ) : null}
 

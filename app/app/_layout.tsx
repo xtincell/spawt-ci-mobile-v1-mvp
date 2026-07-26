@@ -84,7 +84,9 @@ function RouteGuard() {
       // Feature 18 — suggestion de lieu (flag suggestions-lieux OFF par défaut).
       first === "suggest-place" ||
       // SPAWT Wrapped — rétrospective annuelle (flag wrapped OFF par défaut).
-      first === "wrapped";
+      first === "wrapped" ||
+      // Résa 1-tap — « mes résas » (flag reservation-1tap OFF par défaut).
+      first === "reservations";
     const inOnboarding = first === "(onboarding)";
     const onSplash = !first;
 
@@ -267,6 +269,8 @@ export default function RootLayout() {
             <Stack.Screen name="suggest-place" options={{ presentation: "modal" }} />
             {/* SPAWT Wrapped — rétrospective annuelle (flag wrapped). */}
             <Stack.Screen name="wrapped" options={{ presentation: "modal" }} />
+            {/* Résa 1-tap — « mes résas » (flag reservation-1tap). */}
+            <Stack.Screen name="reservations" options={{ presentation: "card" }} />
             {/* Mode Crew — écran de session (flag mode-crew, entrée via l'onglet Meute). */}
             <Stack.Screen name="crew/[id]" options={{ presentation: "card" }} />
             <Stack.Screen

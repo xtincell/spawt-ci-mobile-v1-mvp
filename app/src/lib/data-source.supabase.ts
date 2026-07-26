@@ -1466,3 +1466,86 @@ export async function getWrappedStatsFromSupabase(
     return null;
   }
 }
+
+// ─── Réservation 1-tap (migration 0042) ─────────────────────────────────────
+
+import type {
+  ReservationRequestInput,
+  ReservationRow,
+} from "./reservations";
+
+/**
+ * INSERT sous RLS `reservation_requests_insert_own`. Best-effort : toute
+ * erreur → null (warn __DEV__) — la trace ne bloque jamais WhatsApp.
+ */
+export async function createReservationRequestInSupabase(
+  spawter_id: string,
+  input: ReservationRequestInput,
+): Promise<ReservationRow | null> {
+  const { data, error } = await supabase
+    .from("reservation_requests")
+    .insert({
+      spawter_id,
+      place_id: input.place_id,
+      party_size: input.party_size,
+      slot_at: input.slot_at,
+      channel: input.channel,
+    })
+    .select("id, place_id, party_size, slot_at, channel, status, created_at")
+    .single();
+  if (error || !data) {
+    if (__DEV__ && error) {
+      console.warn("[data-source] createReservationRequest failed", error);
+    }
+    return null;
+  }
+  const row = data as Record<string, unknown>;
+  return {
+    id: String(row.id ?? ""),
+    place_id: String(row.place_id ?? input.place_id),
+    place_name: input.place_name,
+    party_size: typeof row.party_size === "number" ? row.party_size : input.party_size,
+    slot_at: typeof row.slot_at === "string" ? row.slot_at : null,
+    channel: (row.channel ?? input.channel) as ReservationRow["channel"],
+    status: (row.status ?? "sent") as ReservationRow["status"],
+    created_at: String(row.created_at ?? ""),
+  };
+}
+
+/** Demandes du spawter (join places pour le nom), plus récentes d'abord. */
+export async function listMyReservationsFromSupabase(
+  spawter_id: string,
+): Promise<ReservationRow[]> {
+  const { data, error } = await supabase
+    .from("reservation_requests")
+    .select("id, place_id, party_size, slot_at, channel, status, created_at, places(name)")
+    .eq("spawter_id", spawter_id)
+    .order("created_at", { ascending: false });
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] listMyReservations failed", error);
+    return [];
+  }
+  const out: ReservationRow[] = [];
+  for (const raw of data as unknown as Array<Record<string, unknown>>) {
+    if (typeof raw.id !== "string" && typeof raw.id !== "number") continue;
+    // La relation `places` peut remonter objet ou array selon le SDK.
+    const rel = raw.places;
+    const placeRaw = Array.isArray(rel) ? rel[0] : rel;
+    const placeName =
+      placeRaw && typeof placeRaw === "object" &&
+      typeof (placeRaw as { name?: unknown }).name === "string"
+        ? ((placeRaw as { name: string }).name)
+        : "";
+    out.push({
+      id: String(raw.id),
+      place_id: String(raw.place_id ?? ""),
+      place_name: placeName,
+      party_size: typeof raw.party_size === "number" ? raw.party_size : 1,
+      slot_at: typeof raw.slot_at === "string" ? raw.slot_at : null,
+      channel: (raw.channel ?? "whatsapp") as ReservationRow["channel"],
+      status: (raw.status ?? "sent") as ReservationRow["status"],
+      created_at: String(raw.created_at ?? ""),
+    });
+  }
+  return out;
+}

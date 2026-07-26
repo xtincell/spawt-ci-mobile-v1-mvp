@@ -196,11 +196,14 @@ const DEMO_FEATURE_FLAGS: FeatureFlag[] = (
   // en mode live, le seed feature_flags_v2.sql le laisse OFF partout.
   // suggestions-lieux : même doctrine — la preview fait vivre le formulaire
   // (stockage AsyncStorage) ; live OFF partout (seed v2).
+  // reservation-1tap : même doctrine — la preview fait vivre la résa
+  // (trace AsyncStorage, WhatsApp seed) ; live OFF partout (seed v2).
   [
     "place-avg-price",
     "onboarding-origin-country",
     "mode-crew",
     "suggestions-lieux",
+    "reservation-1tap",
   ] as const
 ).flatMap((flag_code) =>
   (["internal", "alpha", "beta", "prod"] as const).map((scope) => ({
@@ -867,4 +870,43 @@ export async function getWrappedStats(year?: number): Promise<WrappedResult | nu
     return getWrappedStatsFromSupabase(year);
   }
   return SEED_WRAPPED;
+}
+
+// ─── Réservation 1-tap (migration 0042) ─────────────────────────────────────
+// SPAWT ouvre le canal WhatsApp et TRACE la demande. Best-effort intégral :
+// une trace en échec ne bloque JAMAIS l'ouverture de WhatsApp.
+
+import {
+  createDemoReservationRequest,
+  listDemoReservations,
+  type ReservationRequestInput,
+  type ReservationRow,
+} from "./reservations";
+
+/**
+ * Trace une demande de réservation. Retourne la row créée, ou null en échec
+ * (réseau, RLS…) — le caller continue vers WhatsApp quoi qu'il arrive.
+ */
+export async function createReservationRequest(
+  spawter_id: string,
+  input: ReservationRequestInput,
+): Promise<ReservationRow | null> {
+  if (isSupabaseConfigured) {
+    const { createReservationRequestInSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return createReservationRequestInSupabase(spawter_id, input);
+  }
+  return createDemoReservationRequest(input);
+}
+
+/** Demandes du spawter (RLS select own), plus récentes d'abord. */
+export async function listMyReservations(
+  spawter_id: string,
+): Promise<ReservationRow[]> {
+  if (isSupabaseConfigured) {
+    const { listMyReservationsFromSupabase } = await import("./data-source.supabase");
+    return listMyReservationsFromSupabase(spawter_id);
+  }
+  return listDemoReservations();
 }
