@@ -4,26 +4,28 @@
 // Politique de permission : ce hook NE déclenche JAMAIS de prompt OS — il lit
 // l'état accordé. Les prompts sont demandés aux bons moments par ailleurs :
 // bootGuet (post-onboarding, gated consent ARTCI) et l'onglet Spawter (au
-// moment de spawter). Permission absente → fallback Cocody Riviera silencieux
-// (identique au comportement mode démo historique).
+// moment de spawter). Permission absente → fallback silencieux sur le point
+// de référence de la ville active (multi-villes, lib/city.ts — Abidjan en V1,
+// Dakar le jour venu sans toucher ce hook).
 
 import { useEffect, useState } from "react";
 import * as Location from "expo-location";
 
-import { DEMO_LAT, DEMO_LNG } from "./demo-constants";
+import { getActiveCity } from "./city";
 
 export interface SpawterPosition {
   lat: number;
   lng: number;
-  /** "gps" = position réelle ; "fallback" = point de référence Cocody Riviera. */
+  /** "gps" = position réelle ; "fallback" = point de référence de la ville active. */
   source: "gps" | "fallback";
 }
 
-export const FALLBACK_POSITION: SpawterPosition = {
-  lat: DEMO_LAT,
-  lng: DEMO_LNG,
-  source: "fallback",
-};
+/** Fallback dérivé de la ville active — recalculé à chaque mount du hook
+ *  (la config peut être rafraîchie depuis la table `cities` entre-temps). */
+export function getFallbackPosition(): SpawterPosition {
+  const city = getActiveCity();
+  return { lat: city.default_lat, lng: city.default_lng, source: "fallback" };
+}
 
 /**
  * Position du spawter, rafraîchie au mount. lastKnown d'abord (instantané,
@@ -31,7 +33,7 @@ export const FALLBACK_POSITION: SpawterPosition = {
  * module natif → fallback sans crash.
  */
 export function useSpawterPosition(): SpawterPosition {
-  const [position, setPosition] = useState<SpawterPosition>(FALLBACK_POSITION);
+  const [position, setPosition] = useState<SpawterPosition>(getFallbackPosition);
 
   useEffect(() => {
     let cancelled = false;

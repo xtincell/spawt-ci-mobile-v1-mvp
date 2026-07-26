@@ -8,6 +8,7 @@ import {
   type NearbyPlace,
 } from "../nearby-places";
 import type { PlaceWithAdn } from "../data-source";
+import { ABIDJAN_FALLBACK } from "../city";
 
 // Référence : spawter sur Cocody Plateau (proche centre Abidjan).
 const USER_LAT = 5.348;
@@ -144,6 +145,61 @@ describe("listNearbyPlaces — Story 4.10", () => {
   it("limit=0 retourne tableau vide", () => {
     const places = [makePlace("p-near", "Proche", USER_LAT + 0.0005, USER_LNG)];
     expect(listNearbyPlaces(places, USER_LAT, USER_LNG, 0)).toEqual([]);
+  });
+});
+
+describe("listNearbyPlaces — fallback ville quand la géoloc manque (multi-villes)", () => {
+  it("sans coordonnées → distances depuis le point de référence de la ville active", () => {
+    const places = [
+      makePlace(
+        "p-ref",
+        "Réf ville",
+        ABIDJAN_FALLBACK.default_lat + 0.0005,
+        ABIDJAN_FALLBACK.default_lng,
+      ),
+    ];
+    const result = listNearbyPlaces(places);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.is_within_spawt_range).toBe(true);
+  });
+
+  it("null explicites → même fallback ville", () => {
+    const places = [
+      makePlace(
+        "p-mid",
+        "Milieu",
+        ABIDJAN_FALLBACK.default_lat + 0.013,
+        ABIDJAN_FALLBACK.default_lng,
+      ),
+    ];
+    const result = listNearbyPlaces(places, null, null);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.is_within_spawt_range).toBe(false);
+  });
+
+  it("lieu hors rayon du point de référence → filtré sans géoloc", () => {
+    const places = [
+      makePlace(
+        "p-away",
+        "Loin",
+        ABIDJAN_FALLBACK.default_lat + 0.5,
+        ABIDJAN_FALLBACK.default_lng,
+      ),
+    ];
+    expect(listNearbyPlaces(places, null, null)).toEqual([]);
+  });
+
+  it("coordonnées explicites continuent de primer sur le fallback", () => {
+    // Lieu proche du point ville mais loin de USER_LAT/LNG explicites.
+    const places = [
+      makePlace(
+        "p-ville",
+        "Près du point ville",
+        ABIDJAN_FALLBACK.default_lat + 0.0005,
+        ABIDJAN_FALLBACK.default_lng,
+      ),
+    ];
+    expect(listNearbyPlaces(places, USER_LAT + 1, USER_LNG)).toEqual([]);
   });
 });
 

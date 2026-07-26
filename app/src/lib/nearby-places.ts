@@ -10,8 +10,11 @@
 // PASSIVE_CHECKIN_WEIGHT (PRD §7.2) pour les spawts hors-zone.
 //
 // Pure (no I/O), total (no throw), deterministic — testable unitairement.
+// Multi-villes : géoloc absente (null/undefined) → fallback sur le point de
+// référence de la ville active (`getActiveCity().default_*`, lib/city.ts).
 
 import type { PlaceWithAdn } from "./data-source";
+import { getActiveCity } from "./city";
 import { haversineKm } from "./matching";
 
 /** Rayon de recherche V1 — Story 4.10 spec §"Décisions héritées". */
@@ -36,22 +39,27 @@ export interface NearbyPlace {
  * Liste les lieux proches du spawter, triés par distance ascendante.
  *
  * @param places  Catalogue de lieux (filtré sur `is_published === true`).
- * @param userLat Latitude du spawter (degrés décimaux).
- * @param userLng Longitude du spawter (degrés décimaux).
+ * @param userLat Latitude du spawter (degrés décimaux). null/undefined →
+ *                fallback ville active (`getActiveCity().default_lat`).
+ * @param userLng Longitude du spawter (degrés décimaux). null/undefined →
+ *                fallback ville active (`getActiveCity().default_lng`).
  * @param limit   Cap de la liste retournée (5 par défaut — UX focalisée).
  */
 export function listNearbyPlaces(
   places: readonly PlaceWithAdn[],
-  userLat: number,
-  userLng: number,
+  userLat?: number | null,
+  userLng?: number | null,
   limit = 5,
 ): NearbyPlace[] {
+  const city = getActiveCity();
+  const lat = userLat ?? city.default_lat;
+  const lng = userLng ?? city.default_lng;
   return places
     .filter((p) => p.is_published)
     .map((place) => {
       const distance_km = haversineKm(
-        userLat,
-        userLng,
+        lat,
+        lng,
         place.location.lat,
         place.location.lng,
       );

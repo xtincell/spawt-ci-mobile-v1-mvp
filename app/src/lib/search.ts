@@ -4,6 +4,7 @@
 // V2 : full-text Supabase + index trigram si volume scale > 1000 lieux.
 
 import type { PlaceWithAdn } from "./data-source";
+import { getActiveCity } from "./city";
 import { haversineKm } from "./matching";
 
 export interface SearchFilters {
@@ -15,9 +16,14 @@ export interface SearchFilters {
   minRating: number | null;
 }
 
+/**
+ * Position du spawter pour le filtre distance. Multi-villes : null =
+ * géoloc indisponible → fallback sur le point de référence de la ville
+ * active (`getActiveCity().default_*`, lib/city.ts).
+ */
 export interface SearchContext {
-  spawter_lat: number;
-  spawter_lng: number;
+  spawter_lat: number | null;
+  spawter_lng: number | null;
 }
 
 export const EMPTY_FILTERS: SearchFilters = {
@@ -66,6 +72,11 @@ export function searchPlaces(
     return [];
   }
 
+  // Multi-villes — fallback géoloc : point de référence de la ville active.
+  const city = getActiveCity();
+  const spawterLat = ctx.spawter_lat ?? city.default_lat;
+  const spawterLng = ctx.spawter_lng ?? city.default_lng;
+
   const scored: Array<{ place: PlaceWithAdn; score: number }> = [];
 
   for (const place of candidates) {
@@ -89,8 +100,8 @@ export function searchPlaces(
     }
     if (filters.distanceKm !== null) {
       const km = haversineKm(
-        ctx.spawter_lat,
-        ctx.spawter_lng,
+        spawterLat,
+        spawterLng,
         place.location.lat,
         place.location.lng,
       );

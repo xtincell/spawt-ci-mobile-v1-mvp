@@ -6,6 +6,7 @@
 // de casser tout le feed.
 
 import { supabase } from "./supabase";
+import { getActiveCity } from "./city";
 import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
@@ -25,10 +26,21 @@ import { PlaceWithAdnSchema } from "../types/place.schema";
  * Si une row échoue le parse → dropée + warn __DEV__, la liste continue.
  */
 export async function listPlacesFromSupabase(): Promise<PlaceWithAdn[]> {
-  const { data: rows, error } = await supabase
+  // Multi-villes (0041) — seuls les lieux de la ville active remontent.
+  let { data: rows, error } = await supabase
     .from("places")
     .select("*, place_adn(*)")
-    .eq("is_published", true);
+    .eq("is_published", true)
+    .eq("city_code", getActiveCity().code);
+
+  // Défense : DB live pas encore migrée 0041 (colonne absente → 42703) —
+  // retry sans le filtre ville plutôt qu'un feed vide.
+  if (error && error.code === "42703") {
+    ({ data: rows, error } = await supabase
+      .from("places")
+      .select("*, place_adn(*)")
+      .eq("is_published", true));
+  }
 
   if (error) {
     if (__DEV__) console.warn("[data-source] listPlaces failed", error);
