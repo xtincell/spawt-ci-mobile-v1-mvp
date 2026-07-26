@@ -5,15 +5,26 @@
 //   M13 — limit + visibility-aware tick (m3) pour ne pas OOM browser à scale
 //   M14 — KPI manquants : places_published + flagged_reviews_total + new_spawters_30d chart
 //   Story 6.5 AC #2 — filter is_seed=false partout (Madame Sun ne veut pas les seeds)
+//
+// Console admin 07/2026 — KPIs AARRR (PRD §16) : MAU (spawters actifs 30j via
+// spawt_checkin), spawts/jour & avis/jour (moyenne 7j), abonnés Gold actifs +
+// MRR (subscriptions 0032, lecture admin), leads waitlist (vue
+// admin_waitlist_stats 0049 — agrégats only, la table meute_waitlist reste
+// deny-all). Ces blocs dégradent en « — » si la lecture échoue (rôle
+// non-admin, migration absente) sans casser les KPIs historiques.
 
 import { useCallback, useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabaseClient } from "../../utility/supabaseClient";
-
-interface DailyPoint {
-  date: string;
-  count: number;
-}
+import {
+  computeMrr,
+  countGoldActive,
+  dailyAverage,
+  distinctCount,
+  type DailyPoint,
+  type SubscriptionLite,
+  type WaitlistStats,
+} from "./logic";
 
 interface DashboardData {
   spawtersTotal: number;
@@ -23,6 +34,11 @@ interface DashboardData {
   spawtsDaily: DailyPoint[];
   reviewsDaily: DailyPoint[];
   spawtersDaily: DailyPoint[];
+  /** AARRR — null = lecture impossible (droits/migration), affiché « — ». */
+  mau: number | null;
+  goldActive: number | null;
+  mrr: number | null;
+  waitlist: WaitlistStats | null;
   refreshedAt: string;
 }
 
@@ -77,6 +93,32 @@ async function loadDashboard(): Promise<DashboardData> {
       .limit(FETCH_LIMIT),
   ]);
 
+  // ── KPIs AARRR (07/2026) — chaque bloc dégrade en null si erreur ──────────
+  const [mauRes, subsRes, waitlistRes] = await Promise.all([
+    // MAU : spawters distincts avec >= 1 spawt (seed exclu) sur 30j.
+    supabaseClient
+      .from("spawt_checkin")
+      .select("spawter_id")
+      .gte("created_at", sinceIso)
+      .eq("is_seed", false)
+      .is("deleted_at", null)
+      .limit(FETCH_LIMIT),
+    // Revenus : abonnements potentiellement actifs (le calcul fin — fenêtre
+    // de grâce — est fait client-side, miroir de active_entitlements).
+    supabaseClient
+      .from("subscriptions")
+      .select("plan, status, price_ht, customer_type, expires_at, grace_until")
+      .in("status", ["active", "grace"])
+      .limit(FETCH_LIMIT),
+    // Leads waitlist : vue agrégée 0049 (0 ligne si rôle non-admin).
+    supabaseClient
+      .from("admin_waitlist_stats")
+      .select("total_leads, leads_30d, leads_7d, leads_parraines")
+      .maybeSingle(),
+  ]);
+
+  const subs = subsRes.error ? null : ((subsRes.data ?? []) as SubscriptionLite[]);
+
   return {
     spawtersTotal: spawtersTotal ?? 0,
     spawtersActive: spawtersActive ?? 0,
@@ -85,6 +127,10 @@ async function loadDashboard(): Promise<DashboardData> {
     spawtsDaily: groupByDay(spawts.data ?? []),
     reviewsDaily: groupByDay(reviews.data ?? []),
     spawtersDaily: groupByDay(spawters30d.data ?? []),
+    mau: mauRes.error ? null : distinctCount((mauRes.data ?? []) as { spawter_id: string }[]),
+    goldActive: subs ? countGoldActive(subs) : null,
+    mrr: subs ? computeMrr(subs) : null,
+    waitlist: waitlistRes.error ? null : ((waitlistRes.data as WaitlistStats | null) ?? null),
     refreshedAt: new Date().toISOString(),
   };
 }
@@ -173,6 +219,30 @@ export const MetriquesDashboard = () => {
         <KpiCard label="Avis flagged (anti-fraude)" value={data.flaggedReviewsTotal} />
       </div>
 
+      {/* ── KPIs AARRR (PRD §16) ── */}
+      <h2 style={{ marginTop: 32 }}>KPIs AARRR (PRD §16)</h2>
+      <p style={{ color: "var(--ink-mute)", fontSize: 11 }}>
+        Revenus et waitlist : lecture réservée au rôle admin — « — » sinon.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 12 }}>
+        <KpiCard label="MAU (spawters actifs 30j)" value={data.mau ?? "—"} />
+        <KpiCard label="Spawts / jour (moy. 7j)" value={dailyAverage(data.spawtsDaily, 7)} />
+        <KpiCard label="Avis / jour (moy. 7j)" value={dailyAverage(data.reviewsDaily, 7)} />
+        <KpiCard label="Abonnés Gold actifs" value={data.goldActive ?? "—"} />
+        <KpiCard
+          label="MRR (F CFA HT, abts actifs)"
+          value={data.mrr !== null ? `${data.mrr.toLocaleString("fr-FR")} F` : "—"}
+        />
+        <KpiCard
+          label="Leads waitlist (total · 7j)"
+          value={
+            data.waitlist
+              ? `${data.waitlist.total_leads.toLocaleString("fr-FR")} · ${data.waitlist.leads_7d.toLocaleString("fr-FR")}`
+              : "—"
+          }
+        />
+      </div>
+
       <h2 style={{ marginTop: 32 }}>Nouveaux spawters par jour</h2>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data.spawtersDaily}>
@@ -206,11 +276,13 @@ export const MetriquesDashboard = () => {
   );
 };
 
-function KpiCard({ label, value }: { label: string; value: number }) {
+function KpiCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div style={{ background: "var(--bg-card)", padding: 24, borderRadius: 8, border: "1px solid var(--line)" }}>
       <p style={{ margin: 0, color: "var(--ink-mute)", fontSize: 12, textTransform: "uppercase" }}>{label}</p>
-      <p style={{ margin: "8px 0 0 0", fontSize: 36, fontWeight: 700, color: "var(--gold)" }}>{value.toLocaleString("fr-FR")}</p>
+      <p style={{ margin: "8px 0 0 0", fontSize: 36, fontWeight: 700, color: "var(--gold)" }}>
+        {typeof value === "number" ? value.toLocaleString("fr-FR") : value}
+      </p>
     </div>
   );
 }

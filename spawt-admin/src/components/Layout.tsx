@@ -24,11 +24,35 @@ export const Layout = () => {
           <NavLink to="/lieux" className={({ isActive }) => (isActive ? "active" : "")}>
             Lieux
           </NavLink>
+          <NavLink to="/evenements" className={({ isActive }) => (isActive ? "active" : "")}>
+            Événements
+          </NavLink>
+          <NavLink to="/promotions" className={({ isActive }) => (isActive ? "active" : "")}>
+            Promotions
+          </NavLink>
+          <NavLink to="/explore" className={({ isActive }) => (isActive ? "active" : "")}>
+            Explore
+          </NavLink>
+          <NavLink to="/defis" className={({ isActive }) => (isActive ? "active" : "")}>
+            Défis
+          </NavLink>
+          <NavLink to="/suggestions" className={({ isActive }) => (isActive ? "active" : "")}>
+            Suggestions
+          </NavLink>
           <NavLink to="/moderation" className={({ isActive }) => (isActive ? "active" : "")}>
             Modération
           </NavLink>
+          <NavLink to="/signalements" className={({ isActive }) => (isActive ? "active" : "")}>
+            Signalements
+          </NavLink>
           <NavLink to="/comptes" className={({ isActive }) => (isActive ? "active" : "")}>
             Comptes
+          </NavLink>
+          <NavLink to="/b2b" className={({ isActive }) => (isActive ? "active" : "")}>
+            Comptes B2B
+          </NavLink>
+          <NavLink to="/push" className={({ isActive }) => (isActive ? "active" : "")}>
+            Push
           </NavLink>
           <NavLink to="/metriques" className={({ isActive }) => (isActive ? "active" : "")}>
             Métriques

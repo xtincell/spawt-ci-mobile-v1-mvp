@@ -16,6 +16,14 @@ import { ComptesList } from "./pages/comptes";
 import { CompteShow } from "./pages/comptes/show";
 import { MetriquesDashboard } from "./pages/metriques";
 import { FonctionnalitesList } from "./pages/fonctionnalites";
+// Console admin complète 07/2026
+import { EvenementsList } from "./pages/evenements";
+import { PromotionsList } from "./pages/promotions";
+import { DefisList } from "./pages/defis";
+import { SuggestionsList } from "./pages/suggestions";
+import { B2bList } from "./pages/b2b";
+import { PushCampaigns } from "./pages/push";
+import { ExploreCuration } from "./pages/explore";
 
 // CR Chunk B C6 — Guard d'auth wrapper. Refine v5 `<Authenticated>` redirige
 // vers `/login` si l'utilisateur n'est pas authentifié OU si le check()
@@ -64,6 +72,17 @@ export const App = () => (
         // Query directe Supabase comme metriques ; la resource n'existe que
         // pour la cohérence menu/breadcrumb Refine.
         { name: "feature_flags", list: "/fonctionnalites", meta: { label: "Fonctionnalités" } },
+        // Console admin complète 07/2026 — événements/promos/défis/suggestions/
+        // B2B/push/Explore. Les pages en query directe Supabase déclarent la
+        // resource pour la cohérence menu/breadcrumb ; suggestions passe par
+        // useTable (dataProvider).
+        { name: "place_events", list: "/evenements", meta: { label: "Événements" } },
+        { name: "place_promotions", list: "/promotions", meta: { label: "Promotions" } },
+        { name: "challenges", list: "/defis", meta: { label: "Défis" } },
+        { name: "place_suggestions", list: "/suggestions", meta: { label: "Suggestions" } },
+        { name: "b2b_accounts", list: "/b2b", meta: { label: "Comptes B2B" } },
+        { name: "push_campaigns", list: "/push", meta: { label: "Push" } },
+        { name: "explore_collections", list: "/explore", meta: { label: "Explore" } },
       ]}
       options={{
         syncWithLocation: true,
@@ -83,6 +102,13 @@ export const App = () => (
           <Route path="/comptes/show/:id" element={<CompteShow />} />
           <Route path="/metriques" element={<MetriquesDashboard />} />
           <Route path="/fonctionnalites" element={<FonctionnalitesList />} />
+          <Route path="/evenements" element={<EvenementsList />} />
+          <Route path="/promotions" element={<PromotionsList />} />
+          <Route path="/defis" element={<DefisList />} />
+          <Route path="/suggestions" element={<SuggestionsList />} />
+          <Route path="/b2b" element={<B2bList />} />
+          <Route path="/push" element={<PushCampaigns />} />
+          <Route path="/explore" element={<ExploreCuration />} />
         </Route>
       </Routes>
     </Refine>
