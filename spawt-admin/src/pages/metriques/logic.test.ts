@@ -8,6 +8,7 @@ import {
   distinctCount,
   isSubscriptionActive,
   lastNDays,
+  planPeriodMonths,
   type SubscriptionLite,
 } from "./logic";
 
@@ -82,8 +83,22 @@ describe("MRR + Gold actifs (PRD §16)", () => {
     sub({ expires_at: "2026-07-01T00:00:00Z", price_ht: 88888 }),        // expiré, ignoré
   ];
 
-  it("MRR = somme price_ht des abonnements actifs b2c + b2b", () => {
-    expect(computeMrr(subs, NOW)).toBe(2500 + 25000 + 15000);
+  it("MRR mensuel : les annuels sont normalisés /12 (finding P2#9)", () => {
+    // gold_monthly 2500 + gold_annual 25000/12 + b2b_gold 15000.
+    expect(computeMrr(subs, NOW)).toBe(Math.round(2500 + 25000 / 12 + 15000));
+  });
+
+  it("planPeriodMonths : gold_annual = 12, autres = 1", () => {
+    expect(planPeriodMonths("gold_annual")).toBe(12);
+    expect(planPeriodMonths("gold_monthly")).toBe(1);
+    expect(planPeriodMonths("pro")).toBe(1);
+    expect(planPeriodMonths("b2b_gold")).toBe(1);
+  });
+
+  it("un abonné annuel seul ne gonfle pas le MRR (25000/an → ~2083/mois)", () => {
+    expect(computeMrr([sub({ plan: "gold_annual", price_ht: 25000 })], NOW)).toBe(
+      Math.round(25000 / 12),
+    );
   });
 
   it("Gold actifs = abonnés b2c gold uniquement (pas les comptes b2b)", () => {

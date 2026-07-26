@@ -66,11 +66,31 @@ export function countGoldActive(subs: SubscriptionLite[], now: Date = new Date()
   ).length;
 }
 
-/** MRR = somme price_ht des abonnements actifs b2c + b2b (XOF HT, PRD §16). */
+/**
+ * Nombre de mois couverts par le prix d'un plan (miroir de PLAN_PRICING côté
+ * Edge : gold_annual = 12 mois, tous les autres plans = 1 mois). Sert à
+ * normaliser un abonnement annuel en équivalent MENSUEL pour le MRR.
+ */
+export function planPeriodMonths(plan: string): number {
+  return plan === "gold_annual" ? 12 : 1;
+}
+
+/**
+ * MRR = revenu récurrent MENSUEL (XOF HT, PRD §16) des abonnements actifs
+ * b2c + b2b. finding P2#9 : un plan annuel (gold_annual, 25000/an) doit compter
+ * pour 25000/12 dans le MRR mensuel, pas 25000 — sinon MRR ×12 le réel. On
+ * normalise donc chaque prix par la période du plan, puis on arrondit (XOF sans
+ * décimale).
+ */
 export function computeMrr(subs: SubscriptionLite[], now: Date = new Date()): number {
-  return subs
+  const total = subs
     .filter((s) => isSubscriptionActive(s, now))
-    .reduce((acc, s) => acc + (Number.isFinite(s.price_ht) ? s.price_ht : 0), 0);
+    .reduce(
+      (acc, s) =>
+        acc + (Number.isFinite(s.price_ht) ? s.price_ht / planPeriodMonths(s.plan) : 0),
+      0,
+    );
+  return Math.round(total);
 }
 
 /** Agrégats de la vue admin_waitlist_stats (0049) — null si non-admin/indispo. */
