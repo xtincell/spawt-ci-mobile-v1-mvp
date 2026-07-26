@@ -2,6 +2,10 @@
 // Sources publiques (RLS) : avis publiés + Coups de Cœur du mois. Lecture
 // seule V1 — la communauté se regarde vivre avant d'interagir. Mode démo :
 // EmptyState (pas d'activité communautaire sans backend).
+//
+// Mode Crew (post-MVP #2) : bloc « Ton Crew » EN PLUS du fil, derrière le
+// flag `mode-crew` — flag off → l'onglet est strictement inchangé
+// (non-régression testée dans meute-crew-flag.test.tsx).
 
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
@@ -13,17 +17,20 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 import { DataSourceBanner } from "../../src/components/DataSourceBanner";
 import { EmptyState } from "../../src/components/EmptyState";
 import { Stars } from "../../src/components/primitives/Stars";
+import { CrewBlock } from "../../src/components/crew/CrewBlock";
 import {
   listMeuteActivity,
   isSupabaseConfigured,
   type MeuteActivityItem,
 } from "../../src/lib/data-source";
 import { track } from "../../src/lib/analytics";
+import { useFlag } from "../../src/store/feature-flags";
 
 export default function MeuteScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
+  const crewEnabled = useFlag("mode-crew");
 
   const [items, setItems] = useState<MeuteActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +66,7 @@ export default function MeuteScreen() {
       style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
     >
       <DataSourceBanner />
+      {crewEnabled ? <CrewBlock /> : null}
       {empty || !isSupabaseConfigured ? (
         <EmptyState
           icon="compass"

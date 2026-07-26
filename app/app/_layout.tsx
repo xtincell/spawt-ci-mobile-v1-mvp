@@ -71,7 +71,9 @@ function RouteGuard() {
       first === "saved" ||
       first === "settings" ||
       first === "rapide" ||
-      first === "explore";
+      first === "explore" ||
+      // Mode Crew — l'écran de session dépend du spawter (identité + votes).
+      first === "crew";
     const inOnboarding = first === "(onboarding)";
     const onSplash = !first;
 
@@ -237,6 +239,8 @@ export default function RootLayout() {
               options={{ presentation: "card" }}
             />
             <Stack.Screen name="settings" options={{ presentation: "card" }} />
+            {/* Mode Crew — écran de session (flag mode-crew, entrée via l'onglet Meute). */}
+            <Stack.Screen name="crew/[id]" options={{ presentation: "card" }} />
             <Stack.Screen
               name="review/[spawt_id]"
               options={{ presentation: "modal" }}
