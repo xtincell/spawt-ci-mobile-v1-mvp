@@ -143,6 +143,27 @@
     "empty_body": "Aucun spot à te proposer dans le coin. Repasse plus tard.",
     "empty_cta": "Retour au feed"
   },
+  "explore": {
+    "title": "Mode Explore",
+    "kicker": "LES CARNETS DU CHAT",
+    "subtitle": "Des sélections écrites à la patte.",
+    "empty_title": "Les carnets arrivent",
+    "empty_body": "Le Chat prépare ses premières sélections. Repasse bientôt.",
+    "not_found_title": "Ce carnet n'existe plus",
+    "not_found_body": "Cette sélection a été rangée. Retourne voir les autres.",
+    "back_to_collections": "Voir les carnets",
+    "items_count_one": "{{count}} adresse",
+    "items_count_other": "{{count}} adresses",
+    "collection_open_aria": "Ouvrir le carnet {{title}}",
+    "maquis-braise": {
+      "title": "Les maquis qui ont le feu",
+      "subtitle": "Braise, fumée et grandes assiettes — la tournée des vrais."
+    },
+    "sucre-cocody": {
+      "title": "Sucré comme Cocody",
+      "subtitle": "Cafés, douceurs et terrasses — pour les après-midis qui traînent."
+    }
+  },
   "search": {
     "placeholder": "Cherche un spawt, un plat, une zone…",
     "title": "Chercher",

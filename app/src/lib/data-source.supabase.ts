@@ -780,3 +780,108 @@ export async function fetchGoldEntitlementFromSupabase(): Promise<
     checked_at: checkedAt,
   };
 }
+
+// ━━━ Mode Explore (migration 0045) — lecture des collections publiées ━━━━━━━
+
+/**
+ * Liste les collections Explore publiées, ordonnées par sort_order.
+ * La RLS 0045 ne montre que les publiées aux spawters — le `.eq is_published`
+ * est une défense en profondeur (staff actif voit AUSSI les brouillons via sa
+ * policy dédiée, on ne veut jamais les rendre dans l'app).
+ */
+export async function listExploreCollectionsFromSupabase(): Promise<
+  import("./data-source").ExploreCollectionSummary[]
+> {
+  const { data, error } = await supabase
+    .from("explore_collections")
+    .select("id, slug, title_key, subtitle_key, cover_url, sort_order, city_code")
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] listExploreCollections failed", error);
+    return [];
+  }
+
+  const out: import("./data-source").ExploreCollectionSummary[] = [];
+  for (const row of data) {
+    const r = row as Record<string, unknown>;
+    if (typeof r.slug !== "string" || typeof r.title_key !== "string") {
+      if (__DEV__) console.warn("[data-source] explore collection dropped — row malformée", r.id);
+      continue;
+    }
+    out.push({
+      id: String(r.id),
+      slug: r.slug,
+      title_key: r.title_key,
+      subtitle_key: typeof r.subtitle_key === "string" ? r.subtitle_key : null,
+      cover_url: typeof r.cover_url === "string" && r.cover_url.length > 0 ? r.cover_url : null,
+      sort_order: typeof r.sort_order === "number" ? r.sort_order : 0,
+      city_code: typeof r.city_code === "string" ? r.city_code : "abidjan",
+    });
+  }
+  return out;
+}
+
+/**
+ * Détail d'une collection publiée : items joints aux places (+ place_adn) en
+ * UN round-trip (nested select). Chaque place passe par le MÊME pipeline Zod
+ * fail-safe que le feed (parseRows) — un lieu malformé ou dépublié droppe
+ * l'item, jamais tout le carnet. Tri sort_order côté client (l'ordre
+ * éditorial fait la narration).
+ */
+export async function getExploreCollectionFromSupabase(
+  slug: string,
+): Promise<import("./data-source").ExploreCollectionDetail | null> {
+  const { data, error } = await supabase
+    .from("explore_collections")
+    .select(
+      "id, slug, title_key, subtitle_key, cover_url, sort_order, city_code, " +
+        "explore_items(id, editorial_text, sort_order, places(*, place_adn(*)))",
+    )
+    .eq("slug", slug)
+    .eq("is_published", true)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] getExploreCollection failed", error);
+    return null;
+  }
+
+  const r = data as unknown as Record<string, unknown>;
+  if (typeof r.slug !== "string" || typeof r.title_key !== "string") return null;
+
+  const rawItems = Array.isArray(r.explore_items) ? r.explore_items : [];
+  const items: import("./data-source").ExploreItem[] = [];
+  for (const raw of rawItems) {
+    const it = raw as Record<string, unknown>;
+    // La relation `places` peut remonter objet (FK) ou array selon le SDK —
+    // même normalisation défensive que spawters_public dans les reviews.
+    const rawPlace = Array.isArray(it.places) ? it.places[0] : it.places;
+    if (!rawPlace || typeof rawPlace !== "object") {
+      if (__DEV__) console.warn("[data-source] explore item dropped — place manquante", it.id);
+      continue;
+    }
+    const parsed = parseRows([rawPlace]);
+    const place = parsed[0];
+    if (!place || !place.is_published) continue;
+    items.push({
+      id: String(it.id),
+      place,
+      editorial_text: typeof it.editorial_text === "string" ? it.editorial_text : null,
+      sort_order: typeof it.sort_order === "number" ? it.sort_order : 0,
+    });
+  }
+  items.sort((a, b) => a.sort_order - b.sort_order);
+
+  return {
+    id: String(r.id),
+    slug: r.slug,
+    title_key: r.title_key,
+    subtitle_key: typeof r.subtitle_key === "string" ? r.subtitle_key : null,
+    cover_url: typeof r.cover_url === "string" && r.cover_url.length > 0 ? r.cover_url : null,
+    sort_order: typeof r.sort_order === "number" ? r.sort_order : 0,
+    city_code: typeof r.city_code === "string" ? r.city_code : "abidjan",
+    items,
+  };
+}

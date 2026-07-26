@@ -17,6 +17,9 @@ import type { CollectionTitreRow } from "../types/collection-titres";
 import type { Stade } from "../types/stade";
 
 import { SEED_PLACES, type SeedPlace } from "../data/seed/places";
+// Mode Explore — fixtures statiques (même doctrine que SEED_PLACES : le mode
+// démo embarque ses données ; l'import dynamique ne passe pas sous Jest).
+import { SEED_EXPLORE_COLLECTIONS } from "../data/seed/explore";
 
 const SUPABASE_URL =
   Constants.expoConfig?.extra?.supabaseUrl ??
@@ -482,4 +485,79 @@ export async function fetchGoldEntitlement(): Promise<GoldEntitlement | null> {
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {
   const { adn, rating_display, total_spawts, ...place } = seed;
   return { ...place, adn, rating_display, total_spawts };
+}
+
+// ─── Mode Explore (migration 0045) — collections éditoriales ────────────────
+// LECTURE app uniquement : la curation (create/publish) vit dans le dashboard
+// admin (chantier séparé). Mode démo : fixtures seed/explore.ts (2 collections
+// publiées + 1 brouillon filtré). Mode supabase : RLS 0045 (publiées only
+// pour les spawters — le filtre client is_published est une défense en
+// profondeur, même doctrine que PlaceCard).
+
+export interface ExploreCollectionSummary {
+  id: string;
+  slug: string;
+  /** Clé i18n (`explore.<slug>.title`) — résolue côté écran via t(). */
+  title_key: string;
+  subtitle_key: string | null;
+  cover_url: string | null;
+  sort_order: number;
+  city_code: string;
+}
+
+export interface ExploreItem {
+  id: string;
+  place: PlaceWithAdn;
+  /** Le mot du Chat sur CE lieu dans CETTE collection (français direct). */
+  editorial_text: string | null;
+  sort_order: number;
+}
+
+export interface ExploreCollectionDetail extends ExploreCollectionSummary {
+  /** Lieux ordonnés par sort_order (l'ordre éditorial fait la narration). */
+  items: ExploreItem[];
+}
+
+/** Liste les collections publiées, ordonnées par sort_order. */
+export async function listExploreCollections(): Promise<ExploreCollectionSummary[]> {
+  if (isSupabaseConfigured) {
+    const { listExploreCollectionsFromSupabase } = await import("./data-source.supabase");
+    return listExploreCollectionsFromSupabase();
+  }
+  return SEED_EXPLORE_COLLECTIONS.filter((c) => c.is_published)
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(({ items: _items, is_published: _published, ...summary }) => summary);
+}
+
+/**
+ * Détail d'une collection publiée (items joints aux lieux, ordonnés).
+ * Retourne null si slug inconnu ou collection non publiée. Un item dont le
+ * lieu manque (fixture désalignée, place dépubliée) est droppé silencieusement.
+ */
+export async function getExploreCollection(
+  slug: string,
+): Promise<ExploreCollectionDetail | null> {
+  if (isSupabaseConfigured) {
+    const { getExploreCollectionFromSupabase } = await import("./data-source.supabase");
+    return getExploreCollectionFromSupabase(slug);
+  }
+  const seed = SEED_EXPLORE_COLLECTIONS.find(
+    (c) => c.slug === slug && c.is_published,
+  );
+  if (!seed) return null;
+  const items: ExploreItem[] = [];
+  const ordered = seed.items.slice().sort((a, b) => a.sort_order - b.sort_order);
+  for (const item of ordered) {
+    const place = SEED_PLACES.find((p) => p.id === item.place_id);
+    if (!place || !place.is_published) continue;
+    items.push({
+      id: `${seed.slug}:${item.place_id}`,
+      place: seedToPlaceWithAdn(place),
+      editorial_text: item.editorial_text,
+      sort_order: item.sort_order,
+    });
+  }
+  const { items: _items, is_published: _published, ...summary } = seed;
+  return { ...summary, items };
 }
