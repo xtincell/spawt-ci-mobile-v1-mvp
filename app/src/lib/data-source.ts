@@ -192,7 +192,9 @@ export async function listTitresForSpawter(
 // le dashboard admin, page Fonctionnalités) fait foi.
 const DEMO_EPOCH = "2026-07-07T00:00:00Z";
 const DEMO_FEATURE_FLAGS: FeatureFlag[] = (
-  ["place-avg-price", "onboarding-origin-country"] as const
+  // mode-crew : ON en démo (la preview doit faire vivre le vote de crew) —
+  // en mode live, le seed feature_flags_v2.sql le laisse OFF partout.
+  ["place-avg-price", "onboarding-origin-country", "mode-crew"] as const
 ).flatMap((flag_code) =>
   (["internal", "alpha", "beta", "prod"] as const).map((scope) => ({
     id: `demo-${flag_code}-${scope}`,
@@ -436,6 +438,112 @@ export async function listMeuteActivity(limit = 30): Promise<MeuteActivityItem[]
   if (!isSupabaseConfigured) return [];
   const { listMeuteActivityFromSupabase } = await import("./data-source.supabase");
   return listMeuteActivityFromSupabase(limit);
+}
+
+// ─── Mode Crew (migration 0038) — vote de groupe temps réel ─────────────────
+// Mode supabase : RPC create/join + INSERT propositions/votes sous RLS
+// (import dynamique, règle d'or du data layer). Mode démo : moteur local
+// crew-demo.ts — 2 bots qui rejoignent, proposent et votent après délai, la
+// feature vit en preview sans backend. Le moteur démo est importé STATIQUEMENT
+// (comme SEED_PLACES) : la branche démo doit marcher partout, y compris sous
+// jest où `import()` runtime n'est pas disponible.
+
+import type {
+  CrewJoinResult,
+  CrewMutationResult,
+  CrewSelf,
+  CrewSessionRef,
+  CrewSnapshot,
+} from "./crew/crew-types";
+import {
+  createDemoCrewSession,
+  joinDemoCrewSession,
+  fetchDemoCrewSnapshot,
+  proposeDemoCrewPlace,
+  voteDemoCrewProposal,
+  leaveDemoCrewSession,
+  resolveDemoCrewSession,
+} from "./crew/crew-demo";
+
+export async function createCrewSession(self: CrewSelf): Promise<CrewSessionRef | null> {
+  if (isSupabaseConfigured) {
+    const { createCrewSessionInSupabase } = await import("./data-source.supabase");
+    return createCrewSessionInSupabase(self.id);
+  }
+  return createDemoCrewSession(self);
+}
+
+export async function joinCrewSession(code: string, self: CrewSelf): Promise<CrewJoinResult> {
+  if (isSupabaseConfigured) {
+    const { joinCrewSessionInSupabase } = await import("./data-source.supabase");
+    return joinCrewSessionInSupabase(code, self.id);
+  }
+  return joinDemoCrewSession(code, self);
+}
+
+export async function fetchCrewSnapshot(
+  session_id: string,
+  self_id: string,
+): Promise<CrewSnapshot | null> {
+  if (isSupabaseConfigured) {
+    const { fetchCrewSnapshotFromSupabase } = await import("./data-source.supabase");
+    return fetchCrewSnapshotFromSupabase(session_id, self_id);
+  }
+  return fetchDemoCrewSnapshot(session_id);
+}
+
+/**
+ * Propose un lieu au crew. `place` porte la dénormalisation (name/neighborhood)
+ * dont le moteur démo a besoin — le mode supabase n'utilise que l'id (le
+ * snapshot re-joint `places` côté serveur).
+ */
+export async function proposeCrewPlace(
+  session_id: string,
+  place: { id: string; name: string; neighborhood: string },
+  proposed_by: string,
+): Promise<CrewMutationResult> {
+  if (isSupabaseConfigured) {
+    const { proposeCrewPlaceToSupabase } = await import("./data-source.supabase");
+    return proposeCrewPlaceToSupabase(session_id, place.id, proposed_by);
+  }
+  return proposeDemoCrewPlace(session_id, place, proposed_by);
+}
+
+export async function voteCrewProposal(
+  session_id: string,
+  proposal_id: string,
+  spawter_id: string,
+): Promise<CrewMutationResult> {
+  if (isSupabaseConfigured) {
+    const { voteCrewProposalToSupabase } = await import("./data-source.supabase");
+    return voteCrewProposalToSupabase(session_id, proposal_id, spawter_id);
+  }
+  return voteDemoCrewProposal(session_id, proposal_id);
+}
+
+export async function leaveCrewSession(session_id: string, spawter_id: string): Promise<void> {
+  if (isSupabaseConfigured) {
+    const { leaveCrewSessionInSupabase } = await import("./data-source.supabase");
+    await leaveCrewSessionInSupabase(session_id, spawter_id);
+    return;
+  }
+  leaveDemoCrewSession(session_id);
+}
+
+/**
+ * Persiste la résolution (best-effort en mode supabase — voir la limite RLS
+ * documentée dans data-source.supabase.ts ; la révélation aux membres passe
+ * par le broadcast de crew-realtime). Retourne true si l'écriture a pris.
+ */
+export async function resolveCrewSession(
+  session_id: string,
+  winning_place_id: string | null,
+): Promise<boolean> {
+  if (isSupabaseConfigured) {
+    const { resolveCrewSessionInSupabase } = await import("./data-source.supabase");
+    return resolveCrewSessionInSupabase(session_id, winning_place_id);
+  }
+  return resolveDemoCrewSession(session_id, winning_place_id);
 }
 
 // ─── Sprint 2 monétisation — entitlement Spawter Gold (migration 0032) ──────

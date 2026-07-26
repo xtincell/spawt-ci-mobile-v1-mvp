@@ -723,6 +723,227 @@ export async function listMeuteActivityFromSupabase(
     .slice(0, limit);
 }
 
+// ━━━ Mode Crew (migration 0038) — RPC + INSERT sous RLS ━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Mode Crew — crée une session via le RPC `create_crew_session` (0038).
+ * Le RPC enrôle l'hôte comme membre et gère les collisions de code.
+ */
+export async function createCrewSessionInSupabase(
+  host_id: string,
+): Promise<import("./crew/crew-types").CrewSessionRef | null> {
+  const { data, error } = await supabase.rpc("create_crew_session", {
+    p_host: host_id,
+  });
+  if (error || !data) {
+    if (__DEV__) console.warn("[data-source] createCrewSession failed", error);
+    return null;
+  }
+  const d = data as { ok?: boolean; session_id?: string; code?: string; expires_at?: string };
+  if (!d.ok || !d.session_id || !d.code || !d.expires_at) return null;
+  return { session_id: d.session_id, code: d.code, expires_at: d.expires_at };
+}
+
+/**
+ * Mode Crew — rejoint par code via `join_crew_session` (SECURITY DEFINER :
+ * le candidat n'est pas encore membre, la RLS ne lui montre pas la session).
+ */
+export async function joinCrewSessionInSupabase(
+  code: string,
+  spawter_id: string,
+): Promise<import("./crew/crew-types").CrewJoinResult> {
+  const { data, error } = await supabase.rpc("join_crew_session", {
+    p_code: code,
+    p_spawter: spawter_id,
+  });
+  if (error || !data) {
+    if (__DEV__) console.warn("[data-source] joinCrewSession failed", error);
+    return { ok: false, reason: "error" };
+  }
+  const d = data as { ok?: boolean; code?: string; session_id?: string; expires_at?: string };
+  if (!d.ok) {
+    return {
+      ok: false,
+      reason: d.code === "session_closed" ? "session_closed" : "session_not_found",
+    };
+  }
+  if (!d.session_id || !d.expires_at) return { ok: false, reason: "error" };
+  return {
+    ok: true,
+    ref: {
+      session_id: d.session_id,
+      code: code.trim().toUpperCase(),
+      expires_at: d.expires_at,
+    },
+  };
+}
+
+/**
+ * Mode Crew — snapshot complet d'une session (4 requêtes en parallèle,
+ * lecture membre-only sous RLS). Les votes sont agrégés côté client en
+ * compteurs ANONYMES (`votes` + `has_my_vote`) — jamais de liste de votants.
+ * L'ordre des propositions (ordre de fetch = ordre d'insertion physique)
+ * sert de départage ultime à crew-resolution — voir contrat CrewSnapshot.
+ */
+export async function fetchCrewSnapshotFromSupabase(
+  session_id: string,
+  self_id: string,
+): Promise<import("./crew/crew-types").CrewSnapshot | null> {
+  const [sessionQ, membersQ, proposalsQ, votesQ] = await Promise.all([
+    supabase.from("crew_sessions").select("*").eq("id", session_id).maybeSingle(),
+    supabase
+      .from("crew_members")
+      .select("session_id, spawter_id, joined_at, spawters_public!inner(display_name, avatar_url)")
+      .eq("session_id", session_id)
+      .order("joined_at", { ascending: true }),
+    supabase
+      .from("crew_proposals")
+      .select("id, session_id, place_id, proposed_by, places!inner(name, neighborhood)")
+      .eq("session_id", session_id),
+    supabase
+      .from("crew_votes")
+      .select("proposal_id, spawter_id")
+      .eq("session_id", session_id),
+  ]);
+
+  if (sessionQ.error || !sessionQ.data) {
+    if (__DEV__) console.warn("[data-source] fetchCrewSnapshot session failed", sessionQ.error);
+    return null;
+  }
+
+  const s = sessionQ.data as Record<string, unknown>;
+  const session: import("./crew/crew-types").CrewSession = {
+    id: String(s.id),
+    code: String(s.code),
+    host_id: (s.host_id as string | null) ?? null,
+    status: (s.status as import("./crew/crew-types").CrewSessionStatus) ?? "open",
+    winning_place_id: (s.winning_place_id as string | null) ?? null,
+    expires_at: String(s.expires_at),
+    created_at: String(s.created_at),
+  };
+
+  const members: import("./crew/crew-types").CrewMember[] = [];
+  for (const m of (membersQ.data ?? []) as unknown as Array<Record<string, unknown>>) {
+    const pub = m.spawters_public as { display_name?: string; avatar_url?: string | null } | null;
+    members.push({
+      session_id,
+      spawter_id: String(m.spawter_id),
+      display_name: pub?.display_name ?? "Spawter",
+      avatar_url: pub?.avatar_url ?? null,
+      joined_at: String(m.joined_at),
+    });
+  }
+
+  // Agrégat de votes : compteur par proposition + « ai-je voté ? ».
+  const counts = new Map<string, number>();
+  const mine = new Set<string>();
+  for (const v of (votesQ.data ?? []) as unknown as Array<Record<string, unknown>>) {
+    const pid = String(v.proposal_id);
+    counts.set(pid, (counts.get(pid) ?? 0) + 1);
+    if (String(v.spawter_id) === self_id) mine.add(pid);
+  }
+
+  const proposals: import("./crew/crew-types").CrewProposal[] = [];
+  for (const p of (proposalsQ.data ?? []) as unknown as Array<Record<string, unknown>>) {
+    const place = p.places as { name?: string; neighborhood?: string } | null;
+    const pid = String(p.id);
+    proposals.push({
+      id: pid,
+      session_id,
+      place_id: String(p.place_id),
+      proposed_by: (p.proposed_by as string | null) ?? null,
+      place_name: place?.name ?? "?",
+      place_neighborhood: place?.neighborhood ?? "",
+      votes: counts.get(pid) ?? 0,
+      has_my_vote: mine.has(pid),
+    });
+  }
+
+  return { session, members, proposals };
+}
+
+/**
+ * Mode Crew — propose un lieu (INSERT sous RLS : membre, en son nom, session
+ * ouverte). 23505 = UNIQUE (session, place) → "duplicate".
+ */
+export async function proposeCrewPlaceToSupabase(
+  session_id: string,
+  place_id: string,
+  proposed_by: string,
+): Promise<import("./crew/crew-types").CrewMutationResult> {
+  const { error } = await supabase
+    .from("crew_proposals")
+    .insert({ session_id, place_id, proposed_by });
+  if (!error) return "ok";
+  if (error.code === "23505") return "duplicate";
+  if (__DEV__) console.warn("[data-source] proposeCrewPlace failed", error);
+  return "error";
+}
+
+/**
+ * Mode Crew — vote une proposition (INSERT sous RLS). Le double vote est
+ * bloqué par la PK (proposal, spawter) → 23505 = "duplicate".
+ */
+export async function voteCrewProposalToSupabase(
+  session_id: string,
+  proposal_id: string,
+  spawter_id: string,
+): Promise<import("./crew/crew-types").CrewMutationResult> {
+  const { error } = await supabase
+    .from("crew_votes")
+    .insert({ session_id, proposal_id, spawter_id });
+  if (!error) return "ok";
+  if (error.code === "23505") return "duplicate";
+  if (__DEV__) console.warn("[data-source] voteCrewProposal failed", error);
+  return "error";
+}
+
+/** Mode Crew — quitte la session (DELETE self, policy crew_members_delete_self). */
+export async function leaveCrewSessionInSupabase(
+  session_id: string,
+  spawter_id: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("crew_members")
+    .delete()
+    .eq("session_id", session_id)
+    .eq("spawter_id", spawter_id);
+  if (error && __DEV__) console.warn("[data-source] leaveCrewSession failed", error);
+  return !error;
+}
+
+/**
+ * Mode Crew — persiste la résolution (status + winning_place_id).
+ *
+ * ⚠️ Limite connue : 0038 ne définit AUCUNE policy UPDATE sur crew_sessions
+ * (et pas de RPC de clôture) — sous RLS cet UPDATE touche 0 row. On tente
+ * quand même (best-effort : le jour où une policy/RPC arrive côté DB, la
+ * persistance marche sans changement client) et on retourne false si rien
+ * n'a été écrit. La révélation temps réel aux membres passe par le BROADCAST
+ * du channel (crew-realtime), qui ne dépend pas de cet UPDATE.
+ */
+export async function resolveCrewSessionInSupabase(
+  session_id: string,
+  winning_place_id: string | null,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("crew_sessions")
+    .update({ status: "resolved", winning_place_id })
+    .eq("id", session_id)
+    .select("id");
+  if (error) {
+    if (__DEV__) console.warn("[data-source] resolveCrewSession failed", error);
+    return false;
+  }
+  const persisted = Array.isArray(data) && data.length > 0;
+  if (!persisted && __DEV__) {
+    console.info(
+      "[data-source] resolveCrewSession : 0 row (pas de policy UPDATE côté 0038) — révélation via broadcast uniquement",
+    );
+  }
+  return persisted;
+}
+
 // ─── Sprint 2 monétisation — entitlement Gold (vue active_entitlements) ─────
 
 /**

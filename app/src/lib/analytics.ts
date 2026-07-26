@@ -40,9 +40,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { CountryCode, Gender, AgeRange } from "../types/spawter";
 
 // ━━━ signal_type agrégés (DB level) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 9 catégories historiques (0003) + swipe_like/swipe_pass (Mode Rapide,
-// migration 0046). Le CHECK DB accepte aussi crew_vote/reservation — ajoutés
-// ici par leurs chantiers respectifs quand leurs events arrivent.
+// 9 catégories historiques (0003) + swipe_like/swipe_pass (Mode Rapide) +
+// crew_vote (Mode Crew) — migration 0046. Le CHECK DB accepte aussi
+// reservation — ajouté ici par son chantier quand ses events arrivent.
 export type SignalType =
   | "spawt"
   | "review"
@@ -54,7 +54,8 @@ export type SignalType =
   | "click"
   | "dismiss"
   | "swipe_like"
-  | "swipe_pass";
+  | "swipe_pass"
+  | "crew_vote";
 
 // ━━━ Discriminated union des events granulaires ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Les 5 events critiques funnel (PRD §16.1) sont strictement typés.
@@ -188,7 +189,11 @@ type EventName =
   | "rapide_opened" | "rapide_swipe_like" | "rapide_swipe_pass"
   | "rapide_deck_ended"
   // 14. Mode Explore (collections éditoriales — migration 0045)
-  | "explore_opened" | "explore_collection_opened" | "explore_item_clicked";
+  | "explore_opened" | "explore_collection_opened" | "explore_item_clicked"
+  // 15. Mode Crew (vote de groupe — migrations 0038 + 0046)
+  | "crew_session_created" | "crew_session_joined" | "crew_place_proposed"
+  | "crew_vote_cast" | "crew_session_resolved"
+  | "crew_code_shared" | "crew_result_shared";
 
 export type AnalyticsEvent =
   | AppFirstOpen | AppOpen
@@ -269,6 +274,12 @@ const EVENT_TO_SIGNAL = {
   // Mode Explore — lecture éditoriale (0045).
   explore_opened: "view", explore_collection_opened: "view",
   explore_item_clicked: "click",
+  // Mode Crew — le vote a son signal_type dédié `crew_vote` (0046) : un vote
+  // de crew engage socialement, le ML le pèse autrement qu'un like solitaire.
+  crew_session_created: "click", crew_session_joined: "click",
+  crew_place_proposed: "click", crew_vote_cast: "crew_vote",
+  crew_session_resolved: "click",
+  crew_code_shared: "share", crew_result_shared: "share",
 } as const satisfies Record<EventName, SignalType>;
 
 // Regex UUID v4 (validation soft pour `place_id` avant insert — la column DB
