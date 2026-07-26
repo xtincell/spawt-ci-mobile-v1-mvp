@@ -4,6 +4,31 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Corrections boucle adversariale (2026-07-26)
+
+**Passe de chasse aux bugs vérifiée (file:line + scénario + correctif) — 10 findings corrigés, un par groupe logique. Branche `claude/app-finale-ios-android-f8ewrp`. Triple gate mobile verte (757 jest, tsc 0, vocab, i18n), gate admin verte (135 vitest, lint, build), migration 0051 + tests SQL validés sur Postgres local.**
+
+### `fix(db)` — migration `0051_fix_adversarial_findings` (+ .down)
+- **P0** — héritage « La Meute » jamais réclamable pour un nouveau spawter : `claim_meute_heritage` (0033) échouait toujours au 1er login (la ligne `spawters` n'existe qu'au finalizeOnboarding, après l'OTP) puis se verrouillait sur `quiz_archetype` posé localement → archétype quiz + n° Pionnier + parrainage perdus. Colonne dédiée `heritage_claimed_at` comme critère d'idempotence (plus `quiz_archetype`) ; ne verrouille rien si la ligne est absente (`spawter_pending` → l'app re-claim) ; réclamable par le propriétaire authentifié (téléphone dérivé de sa ligne, anti-usurpation) ou service_role. Backfill défensif.
+- **P2#6+#14** — Crew : `crew_proposals.created_at` (+ index) pour un départage « premier proposé » déterministe ; `crew_sessions` ajoutée à la publication realtime.
+- **P2#10** — RPC `claim_push_token` (SECURITY DEFINER) : réassigne le token du device courant à `auth.uid()` là où l'upsert client échouait sous la RLS owner-only (0034) après un logout non-propre.
+- Tests SQL : `meute_heritage_claim.sql`, `push_token_claim.sql` (+ non-régression `meute_heritage.sql`).
+
+### `fix(payment)` / `fix(otp)` — Edge Functions
+- **P1#2** — rappel J-0 (« ton Gold expire aujourd'hui ») inatteignable : `daysUntil` passait par `Math.ceil` (échéance 12:00, cron 08:00 → 1). Passage à `Math.floor` ; table de vérité J-3/J-2/J-1/J0/grâce/expiration vérifiée.
+- **P1#5** — le webhook réactivait une sub `expired`/`grace` sur re-notification d'une vieille transaction acceptée : n'active plus QUE depuis `pending`/`cancelled` (helper `isActivatableStatus` + garde atomique `.in(...)` sur l'UPDATE), sinon `noop_terminal_status`. Déduplication facture conservée.
+- **P2#11** — gate reviewer incohérent (otp-send skip-SMS sur numéro seul vs otp-verify exigeant `REVIEWER_OTP_CODE` bien formé → numéro brické en SMS réel) : source unique `_shared/reviewer.ts`, skip-SMS et login sur le MÊME prédicat (tout-ou-rien).
+
+### `fix(app)` — client React Native
+- **P0 (suite)** — rattrapage héritage au finalizeOnboarding (après l'upsert, RPC best-effort + `applyMeuteHeritage` écrase l'archétype local, pose `pionnier_seq`, couvre la réinstallation).
+- **P1#3** — `resolvePushExternalUrl` : le deep_link https du rappel Gold ouvre le portail (`Linking.openURL`, whitelist stricte `EXPO_PUBLIC_PORTAL_URL`) au lieu de n'ouvrir « rien ».
+- **P2#7** — `reset()` purge résas / suggestions / session Crew / token push + `useCrewStore.leave()` (fuite inter-comptes sur le même device).
+- **P2#12** — refiltre `isEventCurrent`/`isPromoActive` côté client : un compte staff ne voit plus les brouillons/passés/hors-fenêtre remontés par la RLS staff (0049/0050).
+- **P2#13** — course hydrate/reset de `progression-store` : le guard in-flight est invalidé au reset + comparaison `spawterId` avant le set → plus de fuite des données de A dans le store de B.
+
+### `fix(admin)`
+- **P2#9** — MRR faux pour les abonnements annuels : `computeMrr` sommait `price_ht` brut (un `gold_annual` 25000/an comptait ×12). Normalisation par la période du plan (`planPeriodMonths`, annual → /12).
+
 ## v1.7.0 — Les 13 archétypes + héritage quiz « La Meute » (2026-07-26)
 
 **PRD final §5.5 : l'app passe de 5 à 13 archétypes, avec la mue (constat neutre) et l'héritage du résultat quiz à la première connexion. Branche `claude/app-finale-ios-android-f8ewrp`. Triple gate verte (457 jest, tsc 0, vocab, i18n).**
