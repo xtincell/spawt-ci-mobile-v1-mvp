@@ -6,7 +6,9 @@ import { Image, Pressable, Text, View, useWindowDimensions } from "react-native"
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { Ico } from "./primitives/Ico";
+import { PlaceActivityPill } from "./PlaceActivityPill";
 import type { PlaceWithScore } from "../lib/matching";
+import type { PlaceActivityFlags } from "../lib/place-activity";
 
 interface Props {
   une: PlaceWithScore;
@@ -18,6 +20,11 @@ interface Props {
    * axes neutres, ce qui afficherait 75% trompeur).
    */
   showMatchScore?: boolean;
+  /** Pastille « Promo » / « Événement » (0049/0050) — chargée par LOT côté
+   *  feed (flag `evenements-promos`). Absente → carte strictement identique.
+   *  Étiquette d'affichage UNIQUEMENT : le rang de la Une vient du matching,
+   *  qui ignore tout des promos (Contrat SPAWT). */
+  activity?: PlaceActivityFlags | undefined;
 }
 
 // Clé i18n par signal premium pour le kicker (overline). Les clés vivent dans
@@ -34,7 +41,7 @@ const KICKER_I18N_KEY: Record<string, string> = {
 
 const PREMIUM_SIGNALS = new Set(["pepite_verifiee", "coup_de_coeur"]);
 
-export function UneCard({ une, onPress, showMatchScore = true }: Props) {
+export function UneCard({ une, onPress, showMatchScore = true, activity }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
   const [coverFailed, setCoverFailed] = useState(false);
@@ -88,6 +95,19 @@ export function UneCard({ une, onPress, showMatchScore = true }: Props) {
           <Ico name="pin" size={48} color={theme.colors.text.tertiary} />
         </View>
       )}
+
+      {/* Pastille discrète événements/promos top-left (0049/0050). */}
+      {activity && (activity.has_promo || activity.has_event) ? (
+        <View
+          style={{
+            position: "absolute",
+            top: theme.spacing.base,
+            left: theme.spacing.base,
+          }}
+        >
+          <PlaceActivityPill activity={activity} />
+        </View>
+      ) : null}
 
       {/* Médaille premium top-right */}
       {hasPremiumMedal ? (

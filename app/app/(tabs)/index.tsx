@@ -29,7 +29,15 @@ import {
 import { UneCarousel } from "../../src/components/UneCarousel";
 import { FeuilletonRow } from "../../src/components/FeuilletonRow";
 import { Ico } from "../../src/components/primitives/Ico";
-import { listPlaces, type PlaceWithAdn } from "../../src/lib/data-source";
+import {
+  listPlaces,
+  listPlaceActivity,
+  type PlaceWithAdn,
+} from "../../src/lib/data-source";
+// Événements & promos (0049/0050) — pastilles par LOT + rangée « Ça bouge
+// cette semaine ». Flag `evenements-promos` OFF → aucun fetch, feed identique.
+import { EventsWeekRow } from "../../src/components/EventsWeekRow";
+import type { PlaceActivityMap } from "../../src/lib/place-activity";
 import { rankPlaces, type PlaceWithScore } from "../../src/lib/matching";
 import { partitionOpenFirst } from "../../src/lib/opening-hours";
 import { useSpawterStore } from "../../src/store/spawter-store";
@@ -217,6 +225,31 @@ export default function HomeD() {
     }
     return entries;
   }, [rapideEnabled, exploreEnabled, router]);
+
+  // Événements & promos (0049/0050) — pastilles de cartes chargées par LOT :
+  // UN aller-retour pour tout le feed (jamais un fetch par carte). Flag OFF →
+  // map vide → les cartes rendent strictement comme avant (non-régression).
+  // Contrat SPAWT : ces données ÉTIQUETTENT l'affichage, l'ordre du feed
+  // (rankPlaces/matching) ne les voit jamais.
+  const activityEnabled = useFlag("evenements-promos");
+  const [activity, setActivity] = useState<PlaceActivityMap>({});
+  useEffect(() => {
+    if (!activityEnabled || places.length === 0) {
+      setActivity({});
+      return;
+    }
+    let cancelled = false;
+    void listPlaceActivity(places.map((p) => p.id))
+      .then((map) => {
+        if (!cancelled) setActivity(map);
+      })
+      .catch((err: unknown) => {
+        if (__DEV__) console.warn("[home] listPlaceActivity failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activityEnabled, places]);
 
   // Phase 2 F14 — paywall géographique (nudge, flag OFF par défaut) :
   // un lieu hors zone gratuite ouvre l'upsell Gold au lieu de la fiche.
@@ -412,13 +445,29 @@ export default function HomeD() {
               // produit qu'un score cosine pseudo-aléatoire qu'il ne faut pas
               // exposer en kicker éditorial.
               showMatchScore={palais.confidence_score >= 0.3}
+              activity={activity}
             />
           </View>
         ) : null}
 
+        {/* « Ça bouge cette semaine » — événements à venir (0049), auto-gatée
+            par le flag `evenements-promos` (OFF → null, aucun fetch). */}
+        <EventsWeekRow
+          onPlacePress={(placeId) =>
+            router.push({
+              pathname: "/place/[id]",
+              params: { id: placeId, ref: "feed" },
+            })
+          }
+        />
+
         {feuilleton.length > 0 ? (
           <View style={{ marginTop: theme.spacing.lg }}>
-            <FeuilletonRow places={feuilleton} onPlacePress={onUnePress} />
+            <FeuilletonRow
+              places={feuilleton}
+              onPlacePress={onUnePress}
+              activity={activity}
+            />
           </View>
         ) : null}
       </ScrollView>

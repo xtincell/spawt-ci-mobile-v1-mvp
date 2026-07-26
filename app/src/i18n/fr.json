@@ -838,6 +838,19 @@
     "day_sat": "Sam",
     "day_sun": "Dim"
   },
+  "place_activity": {
+    "section_title": "En ce moment",
+    "promo_tag": "PROMO",
+    "promo_aria": "Promotion : {{label}}",
+    "promo_dates_range": "Du {{from}} au {{to}}",
+    "promo_dates_until": "Jusqu'au {{to}}",
+    "promo_dates_from": "Dès le {{from}}",
+    "event_aria": "Événement : {{title}}",
+    "pill_promo": "Promo",
+    "pill_event": "Événement",
+    "week_title": "Ça bouge cette semaine",
+    "week_card_aria": "Ouvrir la fiche de {{name}}"
+  },
   "list": {
     "remove_from_saved_aria": "Retirer ce spawt des favoris",
     "selection_badge": "★ Sélection",

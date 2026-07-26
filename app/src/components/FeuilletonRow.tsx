@@ -5,6 +5,7 @@ import { Text, View } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { ListeCard } from "./ListeCard";
 import type { PlaceWithScore } from "../lib/matching";
+import type { PlaceActivityMap } from "../lib/place-activity";
 
 interface Props {
   places: readonly PlaceWithScore[];
@@ -12,9 +13,12 @@ interface Props {
   /** Décalage de numérotation (Story 3.3c — les 3 premiers sont dans le carrousel,
    *  le feuilleton commence à 04). */
   startIndex?: number;
+  /** Pastilles événements/promos par lieu (0049/0050), chargées par LOT en
+   *  amont. Absente/vide → rendu strictement identique (flag off). */
+  activity?: PlaceActivityMap | undefined;
 }
 
-export function FeuilletonRow({ places, onPlacePress, startIndex = 4 }: Props) {
+export function FeuilletonRow({ places, onPlacePress, startIndex = 4, activity }: Props) {
   const theme = useTheme();
   if (places.length === 0) return null;
   return (
@@ -57,6 +61,7 @@ export function FeuilletonRow({ places, onPlacePress, startIndex = 4 }: Props) {
                     (p.place as { total_spawts?: number }).total_spawts ?? 0,
                 }}
                 onPress={() => onPlacePress(p)}
+                activity={activity?.[p.place.id]}
               />
             </View>
           </View>

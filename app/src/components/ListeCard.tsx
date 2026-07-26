@@ -7,16 +7,21 @@ import { useTheme } from "../theme/ThemeProvider";
 import { Ico } from "./primitives/Ico";
 import { Stars } from "./primitives/Stars";
 import { Chip } from "./primitives/Chip";
+import { PlaceActivityPill } from "./PlaceActivityPill";
 import type { PlaceWithAdn } from "../lib/data-source";
+import type { PlaceActivityFlags } from "../lib/place-activity";
 
 interface Props {
   place: PlaceWithAdn;
   onPress: () => void;
   /** Si fourni, affiche un bouton "retirer des favoris" à droite. */
   onUnsave?: () => void;
+  /** Pastille « Promo » / « Événement » (0049/0050) — chargée par LOT côté
+   *  feed (flag `evenements-promos`). Absente → carte strictement identique. */
+  activity?: PlaceActivityFlags | undefined;
 }
 
-export function ListeCard({ place, onPress, onUnsave }: Props) {
+export function ListeCard({ place, onPress, onUnsave, activity }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
   const hasRating =
@@ -83,12 +88,21 @@ export function ListeCard({ place, onPress, onUnsave }: Props) {
           {place.location.neighborhood}
           {cuisineLabel ? ` · ${cuisineLabel}` : ""}
         </Text>
-        <View style={{ marginTop: theme.spacing.xs }}>
+        <View
+          style={{
+            marginTop: theme.spacing.xs,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: theme.spacing.sm,
+          }}
+        >
           {hasRating ? (
             <Stars value={place.rating_display} />
           ) : (
             <Chip label={t("place.notRatedYet")} variant="default" />
           )}
+          {/* Pastille discrète événements/promos — null si rien en cours. */}
+          <PlaceActivityPill activity={activity} />
         </View>
       </View>
       {onUnsave ? (

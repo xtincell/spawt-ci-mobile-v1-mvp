@@ -16,6 +16,7 @@ import {
 import { useTheme } from "../theme/ThemeProvider";
 import { UneCard } from "./UneCard";
 import type { PlaceWithScore } from "../lib/matching";
+import type { PlaceActivityMap } from "../lib/place-activity";
 
 interface Props {
   unes: readonly PlaceWithScore[];
@@ -24,6 +25,9 @@ interface Props {
   onImpression?: (place: PlaceWithScore, index: number) => void;
   /** Voir UneCard.props.showMatchScore — caché tant que palais "En construction". */
   showMatchScore?: boolean;
+  /** Pastilles événements/promos par lieu (0049/0050), chargées par LOT en
+   *  amont. Absente/vide → rendu strictement identique (flag off). */
+  activity?: PlaceActivityMap | undefined;
 }
 
 export function UneCarousel({
@@ -31,6 +35,7 @@ export function UneCarousel({
   onUnePress,
   onImpression,
   showMatchScore = true,
+  activity,
 }: Props) {
   const theme = useTheme();
   const { width: screenWidth } = useWindowDimensions();
@@ -91,6 +96,7 @@ export function UneCarousel({
             une={item}
             onPress={() => onUnePress(item)}
             showMatchScore={showMatchScore}
+            activity={activity?.[item.place.id]}
           />
         )}
         onViewableItemsChanged={onViewableItemsChanged}

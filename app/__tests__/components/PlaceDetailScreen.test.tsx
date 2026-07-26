@@ -59,6 +59,10 @@ jest.mock("../../src/lib/data-source", () => ({
   countReviewsForPlace: jest.fn(() => Promise.resolve(0)),
   giveCoupDeCoeur: jest.fn(() => Promise.resolve(null)),
   countCoupsDeCoeurThisMonth: jest.fn(() => Promise.resolve(0)),
+  // Événements & promos (0049/0050) — le useFlag mocké ci-dessous renvoie
+  // true, la section « En ce moment » fetch donc : vide = fiche inchangée.
+  listPlaceEvents: jest.fn(() => Promise.resolve([])),
+  listPlacePromotions: jest.fn(() => Promise.resolve([])),
 }));
 
 // Store spawter minimal — pas de spawter (pré-onboarding OK sur une fiche

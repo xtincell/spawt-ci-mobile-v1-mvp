@@ -65,6 +65,10 @@ import {
 import { ReservationSheet } from "../../../src/components/place/ReservationSheet";
 import { createReservationRequest } from "../../../src/lib/data-source";
 import { buildWaMeUrl } from "../../../src/lib/reservations";
+// Événements & promos (0049/0050) — section « En ce moment », auto-gatée par
+// le flag `evenements-promos` (OFF ou vide → null, fiche identique). La promo
+// est un affichage ÉTIQUETÉ — jamais dans la note ni le matching (Contrat).
+import { PlaceActivitySection } from "../../../src/components/place/PlaceActivitySection";
 
 const SIGNAL_LABELS: Record<string, string> = {
   coup_de_coeur: "❤️ Coup de Cœur",
@@ -756,6 +760,10 @@ export default function PlaceDetailScreen() {
               ))}
             </View>
           )}
+
+          {/* « En ce moment » (0049/0050) — bandeau promo étiqueté + cartes
+              événement. Rien si vide : aucun espace réservé. */}
+          <PlaceActivitySection placeId={place.id} />
 
           {/* R17 + R19 — Onglets Média · Menu · Avis (cet ordre). Seul le
               contenu de l'onglet actif est monté : fetchs à la demande,
