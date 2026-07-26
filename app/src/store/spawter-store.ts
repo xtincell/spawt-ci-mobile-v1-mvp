@@ -35,7 +35,17 @@ import {
   deleteSavedPlace,
   updateSpawterArchetype,
   fetchSpawterArchetype,
+  fetchGoldEntitlement,
+  type GoldEntitlement,
 } from "../lib/data-source";
+// Sprint 2 Gold — cache module synchrone (isGoldSpawter) + persistance locale.
+import {
+  GOLD_STORAGE_KEY,
+  loadGoldLocal,
+  saveGoldLocal,
+  setGoldEntitlementState,
+} from "../lib/spawter-gold";
+import { AppState } from "react-native";
 import {
   computeArchetypeFromPalais,
   isArchetypeKey,
@@ -97,6 +107,30 @@ const BADGE_CELEBRATED_KEY = "spawt:badge:premier_spawt_celebrated";
  */
 const __celebrationInFlight: Set<import("../types/stade").Stade> = new Set();
 
+// Sprint 2 Gold — guard in-flight : hydrate, foreground et paywall peuvent
+// déclencher refreshGold en rafale, on ne fait qu'une requête à la fois.
+let __goldRefreshInFlight: Promise<void> | null = null;
+
+// Sprint 2 Gold — listener foreground unique (module-level, jamais retiré :
+// même cycle de vie que celui d'analytics.ts). Au retour en avant-plan, on
+// revalide le droit — un abonnement pris sur le portail web pendant que
+// l'app était en arrière-plan devient visible sans relancer l'app.
+let __goldAppStateWired = false;
+function ensureGoldForegroundRefresh(): void {
+  if (__goldAppStateWired) return;
+  __goldAppStateWired = true;
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      void useSpawterStore
+        .getState()
+        .refreshGold()
+        .catch((err) => {
+          if (__DEV__) console.warn("[spawter-store] gold foreground refresh failed", err);
+        });
+    }
+  });
+}
+
 interface PendingBadge {
   place_id: string;
   place_name?: string;
@@ -110,6 +144,14 @@ interface SpawterStore {
   spawts: SpawtCheckin[];
   /** Story 3.6 — Set d'IDs des lieux sauvegardés. Toujours présent (vide = pas de favoris). */
   savedPlaceIds: Set<string>;
+  /** Sprint 2 — entitlement Spawter Gold (cache persisté, revalidé réseau). */
+  gold: GoldEntitlement | null;
+  /**
+   * Sprint 2 — revalide l'entitlement Gold via la vue active_entitlements.
+   * Déclencheurs : hydratation, retour foreground, ouverture du paywall.
+   * Un résultat indéterminé (réseau) conserve le dernier état connu.
+   */
+  refreshGold: () => Promise<void>;
   /** Story 4.2 — Badge "Premier Spawt" en attente d'affichage. Consommé par overlay root. */
   pendingBadge: PendingBadge | null;
   /** Story 5.2 — Collection de titres (append-only mémoire d'identité). */
@@ -206,6 +248,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   palais: null,
   spawts: [],
   savedPlaceIds: new Set(),
+  gold: null,
   pendingBadge: null,
   collectionTitres: [],
   pendingStadeCelebration: null,
@@ -341,6 +384,26 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     });
   },
 
+  refreshGold: async () => {
+    if (__goldRefreshInFlight) return __goldRefreshInFlight;
+    __goldRefreshInFlight = (async () => {
+      try {
+        const fresh = await fetchGoldEntitlement();
+        // `null` = indéterminé (réseau/erreur) : on GARDE le dernier état
+        // connu — on ne dégrade jamais un droit sur un échec transitoire.
+        if (fresh === null) return;
+        setGoldEntitlementState(fresh);
+        await saveGoldLocal(fresh);
+        set({ gold: fresh });
+      } catch (err) {
+        if (__DEV__) console.warn("[spawter-store] refreshGold failed", err);
+      } finally {
+        __goldRefreshInFlight = null;
+      }
+    })();
+    return __goldRefreshInFlight;
+  },
+
   hydrate: async () => {
     const [spawter, palais, spawts, savedPlaceIds, collectionTitres, pendingMue] =
       await Promise.all([
@@ -352,6 +415,21 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         loadPendingMue(),
       ]);
     set({ spawter, palais, spawts, savedPlaceIds, collectionTitres, pendingMue, hydrating: false });
+
+    // Sprint 2 Gold — cache local d'abord (offline-first : le badge doré ne
+    // clignote pas au boot), puis revalidation réseau fire-and-forget +
+    // armement du refresh au retour foreground. Jamais bloquant.
+    void (async () => {
+      const cachedGold = await loadGoldLocal();
+      if (cachedGold) {
+        setGoldEntitlementState(cachedGold);
+        set({ gold: cachedGold });
+      }
+      ensureGoldForegroundRefresh();
+      await get().refreshGold();
+    })().catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] gold hydrate failed", err);
+    });
 
     // Chantier 13 archétypes — rattrapage live : si le local n'a pas
     // d'archétype (row pré-chantier, réinstallation) mais que `spawters` en a
@@ -917,11 +995,16 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   },
 
   reset: () => {
+    // Sprint 2 Gold — purge du cache module synchrone (isGoldSpawter) AVANT
+    // le state : un nouveau compte sur le même device ne doit jamais hériter
+    // du droit Gold du précédent.
+    setGoldEntitlementState(null);
     set({
       spawter: null,
       palais: null,
       spawts: [],
       savedPlaceIds: new Set(),
+      gold: null,
       pendingBadge: null,
       collectionTitres: [],
       pendingStadeCelebration: null,
@@ -934,6 +1017,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     const keysToPurge = [
       "spawt:saved_places",
       "spawt:collection_titres",
+      // Sprint 2 Gold — l'entitlement est un droit de COMPTE (fuite cross-user
+      // sinon : le badge doré survivrait au changement de spawter).
+      GOLD_STORAGE_KEY,
       BADGE_CELEBRATED_KEY,
       // Chantier 13 archétypes — compteur d'inertie + constat de mue en attente
       // (fuite cross-user sinon, même logique que les flags de célébration).

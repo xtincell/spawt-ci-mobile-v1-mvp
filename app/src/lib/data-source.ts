@@ -435,6 +435,48 @@ export async function listMeuteActivity(limit = 30): Promise<MeuteActivityItem[]
   return listMeuteActivityFromSupabase(limit);
 }
 
+// ─── Sprint 2 monétisation — entitlement Spawter Gold (migration 0032) ──────
+
+/**
+ * Droit Gold résolu côté serveur (vue `active_entitlements`, RLS own rows).
+ * `checked_at` horodate la lecture — sert à juger la fraîcheur du cache
+ * persisté (le store revalide à l'hydratation, au foreground et à
+ * l'ouverture du paywall).
+ */
+export interface GoldEntitlement {
+  active: boolean;
+  plan: string | null;
+  status: string | null;
+  expires_at: string | null;
+  grace_until: string | null;
+  checked_at: string;
+}
+
+/**
+ * Lit l'entitlement Gold du spawter connecté.
+ * - Mode supabase : SELECT sur la vue `active_entitlements` (RLS own).
+ * - Mode démo : Gold = false, déterministe — l'achat vit sur le portail web,
+ *   rien à simuler localement. Flag dev : `EXPO_PUBLIC_DEMO_GOLD=1` force un
+ *   Gold local pour tester les surfaces premium sans backend.
+ * Retourne `null` si l'état est INDÉTERMINÉ (erreur réseau/serveur) — le
+ * caller conserve alors le dernier état connu au lieu de dégrader le droit.
+ */
+export async function fetchGoldEntitlement(): Promise<GoldEntitlement | null> {
+  if (!isSupabaseConfigured) {
+    const demoGold = process.env.EXPO_PUBLIC_DEMO_GOLD === "1";
+    return {
+      active: demoGold,
+      plan: demoGold ? "gold_monthly" : null,
+      status: demoGold ? "active" : null,
+      expires_at: null,
+      grace_until: null,
+      checked_at: new Date().toISOString(),
+    };
+  }
+  const { fetchGoldEntitlementFromSupabase } = await import("./data-source.supabase");
+  return fetchGoldEntitlementFromSupabase();
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {

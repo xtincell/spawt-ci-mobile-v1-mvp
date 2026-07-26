@@ -2,7 +2,7 @@
 // PRD §3.1 FR-008 + §20.1 — identité avant utilité. SpawterCard flip 3D au centre.
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -18,7 +18,7 @@ import { useSpawterStore } from "../../src/store/spawter-store";
 import { STADE_DESCRIPTORS } from "../../src/types/stade";
 import { resetAll } from "../../src/lib/storage";
 import { inspect } from "../../src/lib/offline-queue";
-import { isGoldSpawter } from "../../src/lib/spawter-gold";
+import { isEntitlementCurrentlyActive, portalAccountUrl } from "../../src/lib/spawter-gold";
 import { compressAvatar, uploadAvatar } from "../../src/lib/storage-avatars";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
 import { defaultTitleKeyForStade } from "../../src/lib/titres-catalogue";
@@ -44,6 +44,9 @@ export default function ProfileScreen() {
   // Chantier 13 archétypes — constat de mue en attente (neutre, PRD §5.5).
   const pendingMue = useSpawterStore((s) => s.pendingMue);
   const consumePendingMue = useSpawterStore((s) => s.consumePendingMue);
+  // Sprint 2 — entitlement Gold réactif (revalidé par le store : hydratation,
+  // foreground, paywall). Hook AVANT le early-return (rules of hooks).
+  const goldEntitlement = useSpawterStore((s) => s.gold);
 
   // Le Chat au stade Guide se tait (isChatSilent) : le constat ne sera jamais
   // affichable — on l'acquitte silencieusement pour ne pas le laisser traîner.
@@ -90,7 +93,7 @@ export default function ProfileScreen() {
     );
   }
 
-  const isGold = isGoldSpawter(spawter);
+  const isGold = isEntitlementCurrentlyActive(goldEntitlement);
 
   // R27 — changement de photo de profil : galerie OU caméra (expo-image-picker),
   // crop carré natif (allowsEditing 1:1, affichage circulaire côté UI),
@@ -280,6 +283,63 @@ export default function ProfileScreen() {
             void clearDisplayedTitle();
           }}
         />
+
+        {/* Sprint 2 — indicateur Gold discret (tokens or uniquement) + lien de
+            gestion vers le portail /compte. Apple 3.1.3 : aucun achat in-app,
+            aucun prix — l'abonnement se gère sur spawt.online. */}
+        {isGold ? (
+          <View
+            testID="profile-gold-indicator"
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingVertical: theme.spacing.sm,
+              paddingHorizontal: theme.spacing.base,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.brand.primary,
+            }}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}
+            >
+              <View
+                style={{
+                  width: theme.spacing.sm,
+                  height: theme.spacing.sm,
+                  borderRadius: theme.radius.full,
+                  backgroundColor: theme.colors.brand.primary,
+                }}
+              />
+              <Text
+                style={{
+                  ...theme.typography.preset.small,
+                  color: theme.colors.brand.primary,
+                }}
+              >
+                {t("profile.gold_indicator")}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("profile.gold_manage")}
+              onPress={() => {
+                void Linking.openURL(portalAccountUrl());
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <Text
+                style={{
+                  ...theme.typography.preset.small,
+                  color: theme.colors.text.secondary,
+                }}
+              >
+                {t("profile.gold_manage")}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={{ gap: theme.spacing.sm }}>
           <QuickLink

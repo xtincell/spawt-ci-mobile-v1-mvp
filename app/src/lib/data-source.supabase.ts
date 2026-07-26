@@ -722,3 +722,61 @@ export async function listMeuteActivityFromSupabase(
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
     .slice(0, limit);
 }
+
+// ─── Sprint 2 monétisation — entitlement Gold (vue active_entitlements) ─────
+
+/**
+ * SELECT sur la vue `active_entitlements` (migration 0032, security_invoker :
+ * la RLS de subscriptions/customers filtre — un spawter ne lit QUE ses
+ * droits). On ne remonte que les plans Gold B2C ; `is_active = true` porte
+ * déjà la fenêtre échéance/grâce côté SQL.
+ *
+ * Retour `null` = indéterminé (erreur) — le store garde le dernier état
+ * connu. Une réponse VIDE, elle, est un vrai « pas de droit » (active:false).
+ */
+export async function fetchGoldEntitlementFromSupabase(): Promise<
+  import("./data-source").GoldEntitlement | null
+> {
+  const checkedAt = new Date().toISOString();
+
+  // Sans session, la vue renverrait [] sous RLS — on économise l'aller-retour
+  // et on répond un « pas de droit » franc (session locale, pas de réseau).
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    return {
+      active: false,
+      plan: null,
+      status: null,
+      expires_at: null,
+      grace_until: null,
+      checked_at: checkedAt,
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("active_entitlements")
+    .select("plan, status, is_active, expires_at, grace_until")
+    .in("plan", ["gold_monthly", "gold_annual"])
+    .eq("is_active", true);
+
+  if (error) {
+    if (__DEV__) console.warn("[data-source] fetchGoldEntitlement failed", error);
+    return null; // indéterminé — ne pas dégrader le droit sur une erreur
+  }
+
+  const rows = (data ?? []) as Array<{
+    plan?: unknown;
+    status?: unknown;
+    expires_at?: unknown;
+    grace_until?: unknown;
+  }>;
+  const row = rows[0];
+  return {
+    active: rows.length > 0,
+    plan: typeof row?.plan === "string" ? row.plan : null,
+    status: typeof row?.status === "string" ? row.status : null,
+    expires_at: typeof row?.expires_at === "string" ? row.expires_at : null,
+    grace_until: typeof row?.grace_until === "string" ? row.grace_until : null,
+    checked_at: checkedAt,
+  };
+}

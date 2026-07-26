@@ -595,6 +595,9 @@
     "archetype_card_aria": "Carte d'archétype {{name}}",
     "pionnier_badge": "Pionnier n°{{n}}",
     "mue_ack": "C'est noté",
+    "gold_indicator": "Spawter Gold actif",
+    "gold_indicator_hint": "Tout Abidjan est à toi.",
+    "gold_manage": "Gérer mon abonnement",
     "reset_demo": "Réinitialiser le compte (mode démo)",
     "about_title": "À propos",
     "build_format": "v{{version}} — build {{n}} ({{date}})",
@@ -729,7 +732,13 @@
     "upsell_title": "Tout Abidjan t'attend",
     "upsell_body": "Ta zone gratuite fait 3 km. Avec Spawter Gold, le Chat te guide dans toute la ville — {{price}}.",
     "upsell_soon": "Bientôt disponible — le Chat prépare la suite.",
-    "upsell_close": "Plus tard"
+    "upsell_close": "Plus tard",
+    "upsell_body_portal": "Ta zone gratuite fait 3 km. Avec Spawter Gold, le Chat te guide dans tout Abidjan — et ton abonnement se gère sur le site.",
+    "upsell_cta_portal": "Passe Gold sur spawt.online",
+    "gold_badge": "GOLD",
+    "gold_active_title": "Tu es Gold",
+    "gold_active_body": "Tout Abidjan est à toi. Ton abonnement se gère sur spawt.online.",
+    "gold_manage_cta": "Gérer mon abonnement"
   },
   "settings": {
     "title": "Paramètres",
