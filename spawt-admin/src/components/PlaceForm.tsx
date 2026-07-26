@@ -7,6 +7,11 @@
 //   M10 — uploadPlacePhoto retourne UploadResult (avec error structuré)
 //   M9 — audit best-effort + UI feedback inline
 //   m7 — useEffect dirty wipe protégé par useRef hydratedOnce
+//
+// Console admin 07/2026 — mode « approbation de suggestion » (0039) :
+//   props prefill + suggestionId. Le formulaire arrive pré-rempli depuis la
+//   page Suggestions ; à la création réussie, la suggestion est liée
+//   (created_place_id + status approved) et auditée suggestion_approve.
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
@@ -16,7 +21,7 @@ import { PlaceFormSchema, PlaceAdnFormSchema, type PlaceForm as PlaceFormValues 
 import { logAuditActionBestEffort } from "../lib/audit";
 import { uploadPlacePhoto } from "../lib/storage";
 
-const ABIDJAN_NEIGHBORHOODS = [
+export const ABIDJAN_NEIGHBORHOODS = [
   "Cocody", "Plateau", "Marcory", "Treichville", "Yopougon", "Abobo",
   "Adjamé", "Attécoubé", "Koumassi", "Port-Bouët", "Bingerville", "Songon",
 ];
@@ -32,6 +37,10 @@ const PLACE_SIGNALS = ["institution", "coup_de_coeur", "pepite_verifiee", "hype"
 interface Props {
   mode: "create" | "edit";
   id?: string;
+  /** Pré-remplissage (approbation d'une suggestion de la Meute, 0039). */
+  prefill?: Partial<PlaceFormValues>;
+  /** Si posé : lier la suggestion (created_place_id + approved) à la création. */
+  suggestionId?: string;
 }
 
 const emptyForm: PlaceFormValues = {
@@ -57,7 +66,7 @@ function parseUrlLines(text: string): string[] {
     .filter(Boolean);
 }
 
-export const PlaceForm = ({ mode, id }: Props) => {
+export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
   const navigate = useNavigate();
   const { query: existingQuery } = useOne({
     resource: "places",
@@ -79,7 +88,20 @@ export const PlaceForm = ({ mode, id }: Props) => {
   // (sinon l'utilisateur perd ses changements unsaved à la prochaine query).
   const hydratedOnce = useRef(false);
 
-  const [values, setValues] = useState<PlaceFormValues>(emptyForm);
+  const { mutateAsync: updateSuggestion } = useUpdate();
+
+  // Merge défensif du prefill (suggestion) : les objets imbriqués sont fusionnés
+  // champ à champ pour ne jamais perdre les défauts (lazy init — une seule fois).
+  const [values, setValues] = useState<PlaceFormValues>(() =>
+    prefill
+      ? {
+          ...emptyForm,
+          ...prefill,
+          location: { ...emptyForm.location, ...(prefill.location ?? {}) },
+          price: { ...emptyForm.price, ...(prefill.price ?? {}) },
+        }
+      : emptyForm,
+  );
   // Miroir texte du champ menu_urls (une URL par ligne) — évite que le
   // roundtrip join/split avale la ligne vide en cours de saisie.
   const [menuUrlsText, setMenuUrlsText] = useState("");
@@ -200,6 +222,37 @@ export const PlaceForm = ({ mode, id }: Props) => {
           payload_before: null,
           payload_after: { ...dbRow, adn: parsedAdn.data },
         });
+        // Mode approbation de suggestion (0039) : lier la fiche créée à la
+        // suggestion (created_place_id + approved). reviewed_by/reviewed_at
+        // sont auto-populés par le trigger 0039. Si le lien échoue, le lieu
+        // existe déjà — on informe sans le détruire, la file Suggestions
+        // permet de retenter.
+        if (suggestionId) {
+          try {
+            await updateSuggestion({
+              resource: "place_suggestions",
+              id: suggestionId,
+              values: { status: "approved", created_place_id: placeId },
+            });
+            await logAuditActionBestEffort({
+              action: "suggestion_approve",
+              entity_type: "place_suggestion",
+              entity_id: suggestionId,
+              payload_before: { status: "pending" },
+              payload_after: { status: "approved", created_place_id: placeId },
+            });
+            navigate("/suggestions");
+            return;
+          } catch (linkErr) {
+            setErrors((prev) => [
+              ...prev,
+              `Lieu créé, mais la suggestion n'a pas pu être marquée approuvée : ${
+                linkErr instanceof Error ? linkErr.message : String(linkErr)
+              }. Retourne dans Suggestions pour la traiter.`,
+            ]);
+            return;
+          }
+        }
         navigate("/lieux");
       } else if (id) {
         await updatePlace({ resource: "places", id, values: dbRow });
@@ -264,6 +317,12 @@ export const PlaceForm = ({ mode, id }: Props) => {
   return (
     <form onSubmit={onSubmit} style={{ display: "grid", gap: 16, maxWidth: 720 }}>
       <h1>{mode === "create" ? "Nouveau lieu" : "Édition lieu"}</h1>
+      {suggestionId ? (
+        <p style={{ background: "var(--bg-warm)", padding: 10, borderRadius: 6, fontSize: 13 }}>
+          ⓘ Approbation d&apos;une suggestion de la Meute : le formulaire est pré-rempli.
+          À la création, la suggestion passera automatiquement en « approuvée ».
+        </p>
+      ) : null}
 
       {errors.length > 0 ? (
         <div style={{ background: "var(--bg-warm)", padding: 12, borderRadius: 6 }}>
@@ -353,7 +412,7 @@ export const PlaceForm = ({ mode, id }: Props) => {
         <legend>Photo de couverture</legend>
         {mode === "create" ? (
           <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 8px 0" }}>
-            La photo s'ajoute après création du lieu (édition).
+            La photo s&apos;ajoute après création du lieu (édition).
           </p>
         ) : (
           <input
