@@ -1,5 +1,7 @@
 # SPAWT — Livraison MAJ consolidée MVP V1 (2026-07-07)
 
+> **ERRATUM (version finale, 07/2026)** — Les mentions du code de connexion `12345678` ci-dessous étaient exactes au build 6. Le code mock a depuis été **unifié à `123456` (6 chiffres, aligné pin Termii réel)** : amendement PRD version finale, cf. `CLAUDE.md` et `documentation/AUDIT_NOTE_MAJ_R1-R28.md` (#V07). Ne pas « re-corriger » vers 8 chiffres.
+
 **Build de validation : `v1.0.0 — build 6 (2026-07-07)`** · Tag CI `build-android-2026-07-07-6` · Branche `spawt/v1-maj-consolidee`
 
 Message prêt pour le groupe WhatsApp « Suivi des maj du MVP » — tableau de couverture façon §8 de la note.
