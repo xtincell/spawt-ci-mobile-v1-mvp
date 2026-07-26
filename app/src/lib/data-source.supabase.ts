@@ -1549,3 +1549,167 @@ export async function listMyReservationsFromSupabase(
   }
   return out;
 }
+
+// ─── Événements & promotions de lieux (migrations 0049 + 0050) ──────────────
+// SELECT simples : la RLS filtre déjà (0049 : publiés à venir/en cours ;
+// 0050 : publiées actives en dates civiles). ⚠️ Contrat SPAWT : lecture pour
+// AFFICHAGE ÉTIQUETÉ uniquement — rien ici n'alimente matching ni note.
+
+import type {
+  PlaceActivityMap,
+  PlaceEvent,
+  PlacePromotion,
+  UpcomingEvent,
+} from "./place-activity";
+
+/** Row défensive → PlaceEvent. Null si les colonnes vitales manquent. */
+function parseEventRow(raw: unknown): PlaceEvent | null {
+  const r = raw as Record<string, unknown>;
+  if (typeof r.title !== "string" || typeof r.starts_at !== "string") return null;
+  return {
+    id: String(r.id ?? ""),
+    place_id: String(r.place_id ?? ""),
+    title: r.title,
+    description: typeof r.description === "string" ? r.description : null,
+    starts_at: r.starts_at,
+    ends_at: typeof r.ends_at === "string" ? r.ends_at : null,
+    image_url:
+      typeof r.image_url === "string" && r.image_url.length > 0 ? r.image_url : null,
+  };
+}
+
+/** Événements visibles d'un lieu, tri chronologique (RLS 0049 fait le filtre). */
+export async function listPlaceEventsFromSupabase(
+  placeId: string,
+): Promise<PlaceEvent[]> {
+  const { data, error } = await supabase
+    .from("place_events")
+    .select("id, place_id, title, description, starts_at, ends_at, image_url")
+    .eq("place_id", placeId)
+    .order("starts_at", { ascending: true });
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] listPlaceEvents failed", error);
+    return [];
+  }
+  const out: PlaceEvent[] = [];
+  for (const row of data) {
+    const event = parseEventRow(row);
+    if (event) out.push(event);
+  }
+  return out;
+}
+
+/** Promotions actives d'un lieu (RLS 0050 fait le filtre fenêtre civile). */
+export async function listPlacePromotionsFromSupabase(
+  placeId: string,
+): Promise<PlacePromotion[]> {
+  const { data, error } = await supabase
+    .from("place_promotions")
+    .select("id, place_id, label, description, starts_at, ends_at")
+    .eq("place_id", placeId)
+    .order("starts_at", { ascending: true, nullsFirst: true });
+  if (error || !data) {
+    if (__DEV__ && error) {
+      console.warn("[data-source] listPlacePromotions failed", error);
+    }
+    return [];
+  }
+  const out: PlacePromotion[] = [];
+  for (const row of data) {
+    const r = row as Record<string, unknown>;
+    if (typeof r.label !== "string") continue;
+    out.push({
+      id: String(r.id ?? ""),
+      place_id: String(r.place_id ?? ""),
+      label: r.label,
+      description: typeof r.description === "string" ? r.description : null,
+      starts_at: typeof r.starts_at === "string" ? r.starts_at : null,
+      ends_at: typeof r.ends_at === "string" ? r.ends_at : null,
+    });
+  }
+  return out;
+}
+
+/**
+ * Événements à venir toutes adresses (rangée « Ça bouge cette semaine ») —
+ * jointure place minimale `places!inner(name, neighborhood)` en un
+ * round-trip. L'inner join sous la RLS places (publiés only pour la Meute)
+ * droppe naturellement les événements d'un lieu dépublié.
+ */
+export async function listUpcomingEventsFromSupabase(
+  limit: number,
+): Promise<UpcomingEvent[]> {
+  const { data, error } = await supabase
+    .from("place_events")
+    .select(
+      "id, place_id, title, description, starts_at, ends_at, image_url, places!inner(name, neighborhood)",
+    )
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] listUpcomingEvents failed", error);
+    return [];
+  }
+  const out: UpcomingEvent[] = [];
+  for (const row of data) {
+    const event = parseEventRow(row);
+    if (!event) continue;
+    // La relation jointe peut remonter objet ou array selon le SDK — même
+    // normalisation défensive que spawters_public dans les reviews.
+    const rel = (row as Record<string, unknown>).places;
+    const place = (Array.isArray(rel) ? rel[0] : rel) as
+      | { name?: unknown; neighborhood?: unknown }
+      | null
+      | undefined;
+    if (!place || typeof place.name !== "string") {
+      if (__DEV__) console.warn("[data-source] upcoming event dropped — place join manquant", event.id);
+      continue;
+    }
+    out.push({
+      ...event,
+      place_name: place.name,
+      place_neighborhood:
+        typeof place.neighborhood === "string" ? place.neighborhood : "",
+    });
+  }
+  return out;
+}
+
+/**
+ * Pastilles feed par LOT : 2 SELECT `place_id` only en parallèle (aucune
+ * ligne de contenu transférée), jamais un fetch par carte. La RLS ne laisse
+ * remonter que l'actif/publié — la map reflète donc « en ce moment ».
+ */
+export async function listPlaceActivityFromSupabase(
+  placeIds: readonly string[],
+): Promise<PlaceActivityMap> {
+  const ids = [...placeIds];
+  const [eventsQ, promosQ] = await Promise.all([
+    supabase.from("place_events").select("place_id").in("place_id", ids),
+    supabase.from("place_promotions").select("place_id").in("place_id", ids),
+  ]);
+
+  const map: PlaceActivityMap = {};
+  const entry = (place_id: string) =>
+    (map[place_id] ??= { has_event: false, has_promo: false });
+
+  if (eventsQ.error) {
+    if (__DEV__) console.warn("[data-source] activity events failed", eventsQ.error);
+  } else {
+    for (const row of eventsQ.data ?? []) {
+      const pid = (row as { place_id?: unknown }).place_id;
+      if (typeof pid === "string") entry(pid).has_event = true;
+    }
+  }
+
+  if (promosQ.error) {
+    if (__DEV__) console.warn("[data-source] activity promos failed", promosQ.error);
+  } else {
+    for (const row of promosQ.data ?? []) {
+      const pid = (row as { place_id?: unknown }).place_id;
+      if (typeof pid === "string") entry(pid).has_promo = true;
+    }
+  }
+
+  return map;
+}

@@ -198,12 +198,15 @@ const DEMO_FEATURE_FLAGS: FeatureFlag[] = (
   // (stockage AsyncStorage) ; live OFF partout (seed v2).
   // reservation-1tap : même doctrine — la preview fait vivre la résa
   // (trace AsyncStorage, WhatsApp seed) ; live OFF partout (seed v2).
+  // evenements-promos : même doctrine — la preview montre l'événement et la
+  // promo vivants du seed (place-activity.ts) ; live OFF partout (seed v2).
   [
     "place-avg-price",
     "onboarding-origin-country",
     "mode-crew",
     "suggestions-lieux",
     "reservation-1tap",
+    "evenements-promos",
   ] as const
 ).flatMap((flag_code) =>
   (["internal", "alpha", "beta", "prod"] as const).map((scope) => ({
@@ -909,4 +912,117 @@ export async function listMyReservations(
     return listMyReservationsFromSupabase(spawter_id);
   }
   return listDemoReservations();
+}
+
+// ─── Événements & promotions de lieux (migrations 0049 + 0050) ──────────────
+// Dernier maillon du cycle admin → spawters : le staff publie dans la console,
+// l'app AFFICHE. ⚠️ Contrat SPAWT (0050) : une promotion est un affichage
+// ÉTIQUETÉ — elle n'entre JAMAIS dans le score de matching ni dans la note
+// (aucun poids dans matching.ts / weighted-rating.ts ; test-garde statique
+// matching-promo-guard.test.ts). Mode supabase : SELECT simples, la RLS
+// filtre déjà (publiés + à venir/en cours pour les événements, publiées +
+// fenêtre civile ouverte pour les promos). Mode démo : fixtures vivantes
+// (import statique, doctrine SEED_PLACES — la branche démo doit marcher
+// partout, y compris sous jest).
+
+import type {
+  PlaceActivityMap,
+  PlaceEvent,
+  PlacePromotion,
+  UpcomingEvent,
+} from "./place-activity";
+import {
+  isEventCurrent,
+  isPromoActive,
+  todayCivilDate,
+} from "./place-activity";
+import {
+  SEED_PLACE_EVENTS,
+  SEED_PLACE_PROMOTIONS,
+} from "../data/seed/place-activity";
+
+/** Événements visibles d'un lieu (fiche « En ce moment »), tri chronologique. */
+export async function listPlaceEvents(placeId: string): Promise<PlaceEvent[]> {
+  if (isSupabaseConfigured) {
+    const { listPlaceEventsFromSupabase } = await import("./data-source.supabase");
+    return listPlaceEventsFromSupabase(placeId);
+  }
+  const now = new Date();
+  return SEED_PLACE_EVENTS.filter(
+    (e) => e.place_id === placeId && e.is_published && isEventCurrent(e, now),
+  )
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    .map(({ is_published: _published, ...event }) => event);
+}
+
+/** Promotions actives d'un lieu (bandeau étiqueté « PROMO » de la fiche). */
+export async function listPlacePromotions(
+  placeId: string,
+): Promise<PlacePromotion[]> {
+  if (isSupabaseConfigured) {
+    const { listPlacePromotionsFromSupabase } = await import("./data-source.supabase");
+    return listPlacePromotionsFromSupabase(placeId);
+  }
+  const today = todayCivilDate(new Date());
+  return SEED_PLACE_PROMOTIONS.filter(
+    (p) => p.place_id === placeId && p.is_published && isPromoActive(p, today),
+  ).map(({ is_published: _published, ...promo }) => promo);
+}
+
+/**
+ * Événements à venir/en cours toutes adresses confondues (rangée feed
+ * « Ça bouge cette semaine ») — jointure place minimale (nom + quartier),
+ * les plus proches dans le temps d'abord.
+ */
+export async function listUpcomingEvents(limit = 10): Promise<UpcomingEvent[]> {
+  if (isSupabaseConfigured) {
+    const { listUpcomingEventsFromSupabase } = await import("./data-source.supabase");
+    return listUpcomingEventsFromSupabase(limit);
+  }
+  const now = new Date();
+  const out: UpcomingEvent[] = [];
+  for (const e of SEED_PLACE_EVENTS) {
+    if (!e.is_published || !isEventCurrent(e, now)) continue;
+    const place = SEED_PLACES.find((p) => p.id === e.place_id);
+    if (!place || !place.is_published) continue;
+    const { is_published: _published, ...event } = e;
+    out.push({
+      ...event,
+      place_name: place.name,
+      place_neighborhood: place.location.neighborhood,
+    });
+  }
+  return out.sort((a, b) => a.starts_at.localeCompare(b.starts_at)).slice(0, limit);
+}
+
+/**
+ * Pastilles feed par LOT : un seul aller-retour pour toutes les cartes
+ * affichées (jamais un fetch par carte). Retourne uniquement les lieux qui
+ * ont au moins une activité — un lieu absent de la map n'a rien en cours.
+ */
+export async function listPlaceActivity(
+  placeIds: readonly string[],
+): Promise<PlaceActivityMap> {
+  if (placeIds.length === 0) return {};
+  if (isSupabaseConfigured) {
+    const { listPlaceActivityFromSupabase } = await import("./data-source.supabase");
+    return listPlaceActivityFromSupabase(placeIds);
+  }
+  const now = new Date();
+  const today = todayCivilDate(now);
+  const wanted = new Set(placeIds);
+  const map: PlaceActivityMap = {};
+  const entry = (place_id: string) =>
+    (map[place_id] ??= { has_event: false, has_promo: false });
+  for (const e of SEED_PLACE_EVENTS) {
+    if (wanted.has(e.place_id) && e.is_published && isEventCurrent(e, now)) {
+      entry(e.place_id).has_event = true;
+    }
+  }
+  for (const p of SEED_PLACE_PROMOTIONS) {
+    if (wanted.has(p.place_id) && p.is_published && isPromoActive(p, today)) {
+      entry(p.place_id).has_promo = true;
+    }
+  }
+  return map;
 }

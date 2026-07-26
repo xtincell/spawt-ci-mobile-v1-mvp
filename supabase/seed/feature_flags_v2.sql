@@ -14,6 +14,7 @@
 --   defis-collectifs   → défis de la Meute + streaks privés (0040)
 --   suggestions-lieux  → la Meute propose des spots (0039)
 --   b2b-dashboards     → stats agrégées côté lieux (0043)
+--   evenements-promos  → événements & promotions sur fiche lieu + feed (0049/0050)
 --
 -- ⚠️ ON CONFLICT DO NOTHING : ne modifie rien sur une base déjà seedée.
 -- NE PAS toucher aux seeds existants (paywall, produit, guet).
@@ -63,5 +64,9 @@ VALUES
   ('b2b-dashboards', 'internal', false, NULL),
   ('b2b-dashboards', 'alpha', false, NULL),
   ('b2b-dashboards', 'beta', false, NULL),
-  ('b2b-dashboards', 'prod', false, NULL)
+  ('b2b-dashboards', 'prod', false, NULL),
+  ('evenements-promos', 'internal', false, NULL),
+  ('evenements-promos', 'alpha', false, NULL),
+  ('evenements-promos', 'beta', false, NULL),
+  ('evenements-promos', 'prod', false, NULL)
 ON CONFLICT DO NOTHING;

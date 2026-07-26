@@ -164,6 +164,9 @@ type EventName =
   | "place_viewed" | "place_call_tapped" | "place_whatsapp_tapped"
   | "place_tab_viewed"
   | "place_saved" | "place_unsaved" | "adn_under_construction_seen"
+  // Événements & promotions (0049 + 0050) — impression de la section « En ce
+  // moment » sur la fiche (1× par mount, jamais par item).
+  | "place_event_viewed" | "place_promo_viewed"
   // 6. Le Guet
   | "guet_armed" | "guet_geofence_triggered" | "guet_threshold_reached"
   | "guet_notification_sent" | "spawt_notification_opened" | "spawt_snoozed"
@@ -233,6 +236,8 @@ const EVENT_TO_SIGNAL = {
   // Refonte fiche lieu (R17) — changement d'onglet Média · Menu · Avis.
   place_tab_viewed: "view",
   adn_under_construction_seen: "view", paywall_shown: "view",
+  // Événements & promotions — impressions de section (affichage étiqueté).
+  place_event_viewed: "view", place_promo_viewed: "view",
   // click
   onboarding_step_completed: "click", calibration_answered: "click",
   onboarding_completed: "click", consent_recorded: "click",
