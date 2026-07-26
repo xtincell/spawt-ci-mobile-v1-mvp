@@ -2,6 +2,12 @@
 
 Ce que la tech ne peut pas faire à votre place. Classé par urgence. Cochez et datez.
 
+> **Nouveau (26/07/2026)** : les runbooks de soumission sont prêts —
+> **`documentation/RUNBOOK_SOUMISSION_STORES.md`** (pas-à-pas Apple + Google + FCM),
+> **`documentation/STORE_LISTING_FR.md`** (textes/screenshots prêts à coller),
+> **`documentation/DATA_SAFETY_PRIVACY.md`** (réponses exactes aux formulaires
+> de confidentialité). Les comptes Apple/Google arrivant, dérouler le runbook.
+
 ## ⚠️ Migration Coolify — PLAN PRÊT (voir MIGRATION_COOLIFY.md)
 
 Le runbook complet (backend Supabase self-hosted, bascule des clients,
@@ -19,8 +25,8 @@ dépend entièrement de ce qui tourne sur Coolify :
 - [ ] **Confirmer le scénario** :
   - **Supabase self-hosted sur Coolify** (service one-click) → aucun changement
     de code. À faire : pointer `EXPO_PUBLIC_SUPABASE_URL`/`_ANON_KEY` (+ ceux de
-    spawt-admin) vers l'instance, rejouer les migrations 0001→0026, redéployer
-    les 4 Edge Functions, reconfigurer les secrets (TERMII, MOCK_TERMII,
+    spawt-admin) vers l'instance, rejouer les migrations 0001→0034, redéployer
+    les Edge Functions, reconfigurer les secrets (TERMII, MOCK_TERMII,
     ALLOWED_ORIGINS).
   - **PostgreSQL nu** → chantier majeur à planifier (remplacer Supabase Auth,
     PostgREST, RLS/auth.uid(), Edge Functions par une couche API custom).
@@ -33,36 +39,118 @@ dépend entièrement de ce qui tourne sur Coolify :
   `ucymjsxmnzdxvvupgaof` reste la cible des env vars — ne pas le supprimer
   avant la migration effective des données.
 
-## Bloquant pour les builds iOS
+## Bloquant pour les builds iOS et la soumission
 
-- [ ] **Compte Apple Developer Program** (99 USD/an) — sans lui : aucun build device iOS, pas de TestFlight. Une fois créé : Team ID + créer l'app `com.upgraders.spawt` dans App Store Connect (ascAppId) + clé API App Store Connect pour EAS submit. Renseigner dans `app/eas.json` (`submit.production.ios`).
-- [ ] Vérifier que le compte Expo `xtincell` a accès aux credentials iOS (EAS gérera certificats/profils automatiquement une fois le compte Apple lié : `eas credentials`).
+→ Pas-à-pas complet : **`documentation/RUNBOOK_SOUMISSION_STORES.md`** (§2 Apple).
 
-## Bloquant pour un OTP réel (inscription par SMS) — phase suivante
+- [ ] **Compte Apple Developer Program** (99 USD/an) — sans lui : aucun build device
+  iOS, pas de TestFlight. Compte annoncé pour aujourd'hui (26/07) : dès réception,
+  récupérer le **Team ID**, créer l'app `com.upgraders.spawt` dans App Store Connect
+  (→ **ascAppId**), créer la **clé API App Store Connect** (runbook §2.4).
+- [ ] **Renseigner `app/eas.json`** : remplacer `REMPLACER_ASC_APP_ID` et
+  `REMPLACER_APPLE_TEAM_ID` par les vraies valeurs (diff exact dans le runbook §2.5),
+  puis commit.
+- [ ] `eas credentials` (iOS) : laisser EAS générer certificat de distribution,
+  provisioning profile et **clé push APNs** (runbook §2.6). Vérifier que le compte
+  Expo `xtincell` est bien celui qui est lié au compte Apple.
 
-- [x] ~~Configurer MOCK_TERMII~~ → **plus nécessaire pour le mock** : depuis la MAJ consolidée (07/2026), les Edge Functions tournent en mock PAR DÉFAUT sans aucun secret. Code de test : **`12345678`** (vérifié sur cloud + self-hosted).
+## Bloquant pour la soumission Google Play + push Android
+
+→ Pas-à-pas complet : **`documentation/RUNBOOK_SOUMISSION_STORES.md`** (§3 Google, §4 FCM).
+
+- [ ] **Google Play Console** (25 USD, une fois). ⚠️ Compte **Organisation** recommandé
+  (D-U-N-S) ; un compte Personnel impose un **test fermé 12 testeurs / 14 jours** avant
+  la production → si Personnel, lancer la piste fermée avec la beta waitlist dès J0
+  (runbook §3.1).
+- [ ] **Service account JSON** → à ranger dans `app/secrets/play-service-account.json`
+  (gitignoré, jamais commité) pour `eas submit -p android` (runbook §3.2).
+- [ ] **Formulaire Data Safety + classification du contenu** : recopier
+  `documentation/DATA_SAFETY_PRIVACY.md` (runbook §3.3). Nécessite l'URL publique de
+  demande de suppression de compte (page web à créer — voir doc).
+- [ ] **FCM (push Android)** : projet Firebase → `google-services.json` à commiter dans
+  `app/` + clé `"googleServicesFile": "./google-services.json"` dans `app.json` (diff
+  runbook §4) + **clé de service FCM V1 uploadée dans EAS** (`eas credentials`).
+  Sans ça : aucune notif du Guet sur Android (l'app dégrade proprement).
+
+## Bloquant pour un OTP réel (inscription par SMS)
+
 - [ ] **Compte Termii** (provider SMS local) → récupérer `TERMII_API_KEY`.
-- [ ] À la bascule SMS réel : secrets `TERMII_API_KEY` + `MOCK_TERMII=false` (+ `ALLOWED_ORIGINS`) sur le backend actif, et repasser `CELL_COUNT` à 6 dans `app/app/(onboarding)/otp.tsx` (pin Termii = 6 chiffres).
+- [ ] À la bascule SMS réel : secrets **`TERMII_API_KEY` + `MOCK_TERMII=false`**
+  (+ `ALLOWED_ORIGINS`) sur le backend actif (Coolify). Côté app : rien à changer —
+  l'OTP 6 chiffres est déjà unifié (version finale, voir « Fait » plus bas).
+- [ ] Décider la stratégie « compte démo reviewer » pour Apple/Google : numéro
+  whitelisté avec code fixe (recommandé, petite modif `otp-verify` à demander à la
+  tech) — options détaillées dans le runbook §2.8a.
+
+## Paiement web Spawter Gold (spawt.online/gold — hors app, conformité Apple 3.1.3)
+
+- [ ] **Compte marchand CinetPay** : ouvrir le compte, passer la validation KYC,
+  récupérer les clés **sandbox** puis **production** (`CINETPAY_API_KEY`,
+  `CINETPAY_SITE_ID`, `CINETPAY_SECRET_KEY`).
+- [ ] Poser ces clés en **secrets Coolify** du service concerné (sandbox d'abord,
+  bascule prod après un paiement de test réussi de bout en bout).
+- [ ] Rappel conformité : **aucun bouton d'achat ni lien vers spawt.online/gold dans
+  l'app** (argumentaire 3.1.3 prêt dans le runbook §2.8b).
+
+## Secrets & env de production (Coolify + EAS)
+
+- [ ] Backend Coolify : `TERMII_API_KEY`, `MOCK_TERMII=false`,
+  `CINETPAY_API_KEY` / `CINETPAY_SITE_ID` / `CINETPAY_SECRET_KEY`, `ALLOWED_ORIGINS`.
+- [ ] Env EAS profil `production` : **`EXPO_PUBLIC_SUPABASE_URL=https://api.spawt.online`**
+  + `EXPO_PUBLIC_SUPABASE_ANON_KEY` (anon self-hosted) + `EXPO_PUBLIC_SENTRY_DSN`.
+- [ ] Vérifier que le secret GitHub `EXPO_TOKEN` n'a pas expiré (la CI a déjà buildé).
 
 ## Bloquant pour la soumission aux stores (pas pour les builds)
 
-- [ ] **Juriste** : CGU/CGV + politique de confidentialité conformes Loi ivoirienne 2013-450 (ARTCI) — marquées `[pending juriste]` dans le PRD. Héberger la politique à une URL publique (exigence Apple + Google).
-- [ ] **Google Play Console** : compte développeur + service account JSON pour `eas submit` (piste interne d'abord) + formulaire Data Safety (l'app collecte : téléphone, position, photos).
-- [ ] **Fiches stores** : screenshots, descriptions FR, classification d'âge.
+- [ ] **Juriste** : politique de confidentialité + CGU + CGV conformes Loi ivoirienne
+  2013-450 (ARTCI), à mettre EN LIGNE sur **`spawt.online/legal/confidentialite`**,
+  **`/legal/cgu`**, **`/legal/cgv`** avant soumission (exigence Apple + Google).
+  Points à faire valider en priorité : transfert des données hors CI (VPS) + page
+  publique de suppression de compte — marqueurs `[À VALIDER PAR JURISTE]` dans
+  `documentation/DATA_SAFETY_PRIVACY.md`.
 - [ ] Déclaration ARTCI du service (Loi 2013-450).
+- [ ] **Fiches stores** : textes prêts dans `documentation/STORE_LISTING_FR.md` —
+  reste à produire les **screenshots** (plan + tailles dans le doc, §7) et à tout
+  coller dans les consoles.
+- [ ] **Exécuter les runbooks** :
+  - `documentation/RUNBOOK_SOUMISSION_STORES.md` (soumission Apple + Google,
+    checklist finale §6 : 20 lieux seedés, pages légales en ligne, Sentry, env prod) ;
+  - runbook **`BASCULE_DATABASE_URL`** du quiz (bascule de la base du quiz La Meute
+    vers la base dédiée — livré avec la version finale).
 
 ## Qualité / observabilité
 
-- [ ] **Sentry** : créer le projet → donner le DSN → le mettre en secret EAS (`EXPO_PUBLIC_SENTRY_DSN`). Le code est prêt et silencieux tant que le DSN est absent.
-- [ ] **Matrice 4 devices** : test physique (dont un Tecno/Infinix pour le kill background Android) — protocole dans `documentation/` + stories Epic 4.
-- [ ] **Triple sign-off** Stéphanie / Kidam / Alexandre sur le Sprint 1 (exigé par le DoD BMAD).
+- [ ] **Sentry** : créer le projet → donner le DSN → le mettre en secret EAS
+  (`EXPO_PUBLIC_SENTRY_DSN`). Le code est prêt et silencieux tant que le DSN est absent.
+- [ ] **Matrice 4 devices** : test physique (dont un Tecno/Infinix pour le kill
+  background Android) — protocole dans `documentation/` + stories Epic 4.
+- [ ] **Triple sign-off** Stéphanie / Kidam / Alexandre sur le Sprint 1 (exigé par le
+  DoD BMAD).
 
 ## Décisions git
 
-- [ ] Merger la PR de finalisation MVP (branche `claude/ios-android-final-version-5vad3n`) puis décider du merge `spawt/v1-bmad` → `main`.
+- [ ] Merger la PR de finalisation (branche `claude/app-finale-ios-android-f8ewrp`)
+  puis décider du merge `spawt/v1-bmad` → `main`.
+
+## Fait — version finale 07/2026 (pour mémoire, ne pas refaire)
+
+- [x] **OTP 6 chiffres unifié** (commit `c84399b`) : `CELL_COUNT` repassé à 6 dans
+  l'app (aligné pin Termii), code de test mock = **`123456`** (l'ancien `12345678`
+  à 8 chiffres est mort). Plus rien à changer côté app pour la bascule SMS réel.
+- [x] **Dépendances natives figées** (« enveloppe native finale », même commit) :
+  l'enveloppe du build store est stabilisée — ne pas ajouter de module natif sans
+  re-tester un build EAS complet.
+- [x] Mock OTP **par défaut sans aucun secret** sur les 2 backends (MAJ consolidée
+  07/2026) — `MOCK_TERMII` n'a plus besoin d'être posé pour le mode démo.
+- [x] Suppression de compte in-app (migration 0029) + push tokens (migration 0034).
+- [x] Version app passée à **1.1.0** (buildNumber/versionCode 8) — notes de version
+  stores prêtes dans `STORE_LISTING_FR.md` §8.
 
 ## Déjà en place (pour mémoire, ne pas refaire)
 
-- Supabase live : migrations 0001→0023 + 4 Edge Functions ACTIVE.
-- EAS Android : keystore managé, 3 APK alpha livrés (tags `build-android-*`).
+- Supabase live : migrations appliquées + 4 Edge Functions ACTIVE.
+- EAS Android : keystore managé, APK alpha livrés (tags `build-android-*`,
+  journal `RELEASES.md`).
 - Secret GitHub `EXPO_TOKEN` opérationnel (la CI a déjà buildé).
+- CI iOS prête : tag `build-ios-YYYY-MM-DD-N` → triple gate → .ipa production
+  (ne manquent que les credentials Apple).
