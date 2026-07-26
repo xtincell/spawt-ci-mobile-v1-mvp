@@ -27,3 +27,15 @@ ON CONFLICT (code) DO NOTHING;
 
 UPDATE public.plans SET price_ht = 25000
 WHERE code = 'gold_annual' AND price_ht = 22000;
+
+-- Plans B2B (lieux) — Sprint 2 : souscription en ligne via le portail /pro.
+-- Prix PRD (HT, convention d'affichage B2B : HT + TVA 18 % en sus) :
+--   pro      : 15 000 F HT/mois → 17 700 TTC
+--   b2b_gold : 65 000 F HT/mois → 76 700 TTC
+-- Codes alignés sur le CHECK subscriptions.plan (0032) et sur
+-- _shared/payment/types.ts (B2B_PLAN_PRICING, source de vérité runtime).
+INSERT INTO public.plans (code, label, price_ht, currency_code, country_code, period, is_active)
+VALUES
+  ('pro',      'Spawt Pro — lieu',  15000, 'XOF', 'CI', 'monthly', true),
+  ('b2b_gold', 'Spawt Gold — lieu', 65000, 'XOF', 'CI', 'monthly', true)
+ON CONFLICT (code) DO NOTHING;

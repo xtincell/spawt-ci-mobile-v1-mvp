@@ -3,7 +3,7 @@
 // Purs = testables en Deno sans mock : toute la logique de dates vit ici,
 // les Edge Functions (payment-webhook / payment-cron) ne font que l'appliquer.
 
-import { GOLD_PLAN_PRICING, type GoldPlan } from "./types.ts";
+import { PLAN_PRICING, type PaidPlan } from "./types.ts";
 
 /** Fenêtre de grâce post-échéance (SPEC 4 §4.5 étape 3 : J+0 → J+7). */
 export const GRACE_DAYS = 7;
@@ -40,9 +40,14 @@ export function addDays(from: Date, days: number): Date {
   return new Date(from.getTime() + days * DAY_MS);
 }
 
-/** Échéance d'un plan : +1 mois (gold_monthly) ou +12 mois (gold_annual). */
-export function computeExpiresAt(plan: GoldPlan, from: Date): Date {
-  return addMonthsUtc(from, GOLD_PLAN_PRICING[plan].months);
+/**
+ * Échéance d'un plan : +1 mois (gold_monthly, pro, b2b_gold) ou +12 mois
+ * (gold_annual). Le cycle rappels/grâce/expiration (decideLifecycle) est
+ * IDENTIQUE B2C et B2B — seule la coupure du rôle B2B diffère : elle n'est
+ * jamais automatique (acte humain, cf. payment-webhook).
+ */
+export function computeExpiresAt(plan: PaidPlan, from: Date): Date {
+  return addMonthsUtc(from, PLAN_PRICING[plan].months);
 }
 
 /**

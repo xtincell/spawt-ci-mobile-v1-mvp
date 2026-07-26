@@ -40,6 +40,55 @@ export function isGoldPlan(value: unknown): value is GoldPlan {
   return value === "gold_monthly" || value === "gold_annual";
 }
 
+/**
+ * Plans B2B (lieux) vendus via le portail /pro — schéma 0032 : plan IN
+ * ('gold_monthly','gold_annual','pro','b2b_gold'), customer_type 'b2b'.
+ * Prérequis métier au checkout : un compte b2b_accounts ACTIF (0043) — le
+ * rattachement lieu↔compte reste un acte admin (vérification du lieu par
+ * l'équipe), le PAIEMENT lui est 100 % en ligne.
+ * À l'activation, payment-webhook synchronise b2b_accounts.role
+ * (pro→'pro', b2b_gold→'gold') — cf. b2bRoleForPlan.
+ */
+export type B2bPlan = "pro" | "b2b_gold";
+
+/** Tout plan payable en ligne (catalogue complet du checkout). */
+export type PaidPlan = GoldPlan | B2bPlan;
+
+/**
+ * Tarifs B2B — montants HT en XOF entiers, mensuels (pas d'annuel B2B en V1).
+ * TVA CI 18 % : pro 15 000 HT → 17 700 TTC ; b2b_gold 65 000 HT → 76 700 TTC.
+ * Convention PRD : les prix B2B s'AFFICHENT HT + TVA (le TTC part au provider).
+ */
+export const B2B_PLAN_PRICING: Record<
+  B2bPlan,
+  { price_ht: number; months: number; description: string }
+> = {
+  pro: { price_ht: 15000, months: 1, description: "Spawt Pro — lieu, 1 mois" },
+  b2b_gold: { price_ht: 65000, months: 1, description: "Spawt Gold — lieu, 1 mois" },
+};
+
+/** Catalogue unique — source de vérité prix/durée du checkout ET du webhook. */
+export const PLAN_PRICING: Record<
+  PaidPlan,
+  { price_ht: number; months: number; description: string }
+> = {
+  ...GOLD_PLAN_PRICING,
+  ...B2B_PLAN_PRICING,
+};
+
+export function isB2bPlan(value: unknown): value is B2bPlan {
+  return value === "pro" || value === "b2b_gold";
+}
+
+export function isPaidPlan(value: unknown): value is PaidPlan {
+  return isGoldPlan(value) || isB2bPlan(value);
+}
+
+/** Rôle b2b_accounts (0043) qu'ouvre un plan B2B payé. */
+export function b2bRoleForPlan(plan: B2bPlan): "pro" | "gold" {
+  return plan === "pro" ? "pro" : "gold";
+}
+
 /** TTC = HT + TVA arrondie au franc (round half-up, aligné trigger invoices 0032). */
 export function computeTtc(priceHt: number, tvaRate: number = TVA_RATE): number {
   return priceHt + Math.round((priceHt * tvaRate) / 100);

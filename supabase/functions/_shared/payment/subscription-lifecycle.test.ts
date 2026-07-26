@@ -29,6 +29,12 @@ Deno.test("computeExpiresAt: gold_monthly +1 mois, gold_annual +12 mois", () => 
   assertEquals(computeExpiresAt("gold_annual", from).toISOString(), "2027-07-26T00:00:00.000Z");
 });
 
+Deno.test("computeExpiresAt: plans B2B mensuels — pro et b2b_gold +1 mois", () => {
+  const from = new Date("2026-07-26T00:00:00.000Z");
+  assertEquals(computeExpiresAt("pro", from).toISOString(), "2026-08-26T00:00:00.000Z");
+  assertEquals(computeExpiresAt("b2b_gold", from).toISOString(), "2026-08-26T00:00:00.000Z");
+});
+
 Deno.test("daysUntil: J-3 / J / dépassé", () => {
   const now = new Date("2026-07-26T08:00:00.000Z");
   assertEquals(daysUntil(now, new Date("2026-07-29T08:00:00.000Z")), 3);
