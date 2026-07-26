@@ -175,3 +175,52 @@ Deno.test("claimMeuteHeritage: succès → relaye le jsonb {claimed, archetype, 
   const out = await claimMeuteHeritage(admin, "00000000-0000-4000-8000-000000000000", "+2250707000000");
   assertEquals(out, payload);
 });
+
+// ── Review stores — chemin reviewer whitelisté ─────────────────────────────
+// isReviewerLogin : actif seulement si REVIEWER_PHONE_E164 ET
+// REVIEWER_OTP_CODE (6-8 chiffres) sont posés ; sinon comportement inchangé.
+
+import { isReviewerLogin } from "./index.ts";
+
+function resetReviewerEnv() {
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_PHONE_E164");
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_OTP_CODE");
+}
+
+Deno.test("isReviewerLogin: envs absentes → false", () => {
+  resetReviewerEnv();
+  assertEquals(isReviewerLogin("+2250700000001", "424242"), false);
+});
+
+Deno.test("isReviewerLogin: numéro + code exacts → true (CSV, espaces tolérés)", () => {
+  resetReviewerEnv();
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001, +2250700000002");
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_OTP_CODE", "424242");
+  assertEquals(isReviewerLogin("+2250700000002", "424242"), true);
+  resetReviewerEnv();
+});
+
+Deno.test("isReviewerLogin: mauvais code ou numéro hors liste → false (retombe sur flux normal)", () => {
+  resetReviewerEnv();
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001");
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_OTP_CODE", "424242");
+  assertEquals(isReviewerLogin("+2250700000001", "999999"), false);
+  assertEquals(isReviewerLogin("+2250799999999", "424242"), false);
+  resetReviewerEnv();
+});
+
+Deno.test("isReviewerLogin: code hors format OTP (trop court) → jamais actif", () => {
+  resetReviewerEnv();
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001");
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_OTP_CODE", "42");
+  assertEquals(isReviewerLogin("+2250700000001", "42"), false);
+  resetReviewerEnv();
+});

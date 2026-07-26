@@ -107,3 +107,22 @@ Deno.test("otp-send: response includes CORS headers on all paths", async () => {
   const resp = await handleRequest(req);
   assert(resp.headers.get("access-control-allow-origin") !== null);
 });
+
+// ── Review stores — numéros whitelistés (zéro SMS même en live) ────────────
+
+import { isReviewerPhone } from "./index.ts";
+
+Deno.test("isReviewerPhone: env absente → false", () => {
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_PHONE_E164");
+  if (isReviewerPhone("+2250700000001") !== false) throw new Error("attendu false");
+});
+
+Deno.test("isReviewerPhone: CSV avec espaces → match exact", () => {
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001 , +2250700000002");
+  if (isReviewerPhone("+2250700000002") !== true) throw new Error("attendu true");
+  if (isReviewerPhone("+2250700000009") !== false) throw new Error("attendu false");
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_PHONE_E164");
+});

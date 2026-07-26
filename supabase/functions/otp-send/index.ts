@@ -47,6 +47,18 @@ function isMockMode(): boolean {
   return !Deno.env.get("TERMII_API_KEY");
 }
 
+// Review stores — numéros whitelistés (env REVIEWER_PHONE_E164, CSV) : aucun
+// SMS envoyé même en mode live (le reviewer Apple/Google valide avec le code
+// fixe REVIEWER_OTP_CODE côté otp-verify). Les rate limits et l'audit
+// otp_attempts s'appliquent normalement.
+export function isReviewerPhone(phoneE164: string): boolean {
+  const phones = (Deno.env.get("REVIEWER_PHONE_E164") ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  return phones.includes(phoneE164);
+}
+
 // P-11 — CORS restreint via `ALLOWED_ORIGINS` (CSV). Pas de wildcard `*` car
 // `authorization` est dans `allow-headers` et un browser tier pourrait alors
 // brûler le quota SMS d'une victime.
@@ -166,6 +178,19 @@ export async function handleRequest(req: Request): Promise<Response> {
     if ((ipCount ?? 0) >= RATE_LIMIT_IP_PER_HOUR) {
       return json({ error: "rate_limited", scope: "ip", retry_after_seconds: 3600 }, req, 429);
     }
+  }
+
+  // Review stores — numéro whitelisté : audit normal, zéro SMS (même en live).
+  // La validation se fait côté otp-verify avec REVIEWER_OTP_CODE.
+  if (isReviewerPhone(payload.phone_e164)) {
+    const reviewerId = `reviewer-${Date.now()}`;
+    const { error: insertError } = await admin
+      .from("otp_attempts")
+      .insert({ phone_e164: payload.phone_e164, ip, request_id: reviewerId });
+    if (insertError) {
+      return json({ error: "audit_insert_failed", detail: insertError.message }, req, 500);
+    }
+    return json({ success: true, request_id: reviewerId }, req);
   }
 
   // Mock mode (défaut de cette phase) — aucun SMS, aucun appel Termii.

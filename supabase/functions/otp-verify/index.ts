@@ -60,6 +60,24 @@ function isMockMode(): boolean {
   return !Deno.env.get("TERMII_API_KEY");
 }
 
+// Review stores (Apple/Google) — un numéro whitelisté + code fixe, actif même
+// en SMS réel (MOCK_TERMII=false) : le reviewer n'a personne pour lui relayer
+// un vrai SMS. Envs : REVIEWER_PHONE_E164 (CSV de numéros E.164) et
+// REVIEWER_OTP_CODE (6-8 chiffres, ≠ 123456 recommandé, à retirer/roter après
+// la review — cf. documentation/RUNBOOK_SOUMISSION_STORES.md). Les DEUX envs
+// doivent être posées pour activer le chemin ; sinon comportement inchangé.
+// Un mauvais code sur un numéro whitelisté retombe sur le flux normal (le
+// numéro reste utilisable en SMS réel).
+export function isReviewerLogin(phoneE164: string, otpCode: string): boolean {
+  const phones = (Deno.env.get("REVIEWER_PHONE_E164") ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  const code = Deno.env.get("REVIEWER_OTP_CODE") ?? "";
+  if (phones.length === 0 || !OTP_RE.test(code)) return false;
+  return phones.includes(phoneE164) && otpCode === code;
+}
+
 // P-11 — CORS restreint : la liste blanche est lue depuis `ALLOWED_ORIGINS`
 // (CSV). Si vide, on échoue closed (deny). Reflète exactement l'origine de la
 // requête (jamais `*`) pour empêcher le bypass cross-origin avec credentials.
@@ -170,70 +188,80 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
   const admin = createClient(supabaseUrl, serviceRole);
 
-  // P3 — Lookup le pin_id Termii le plus récent NON ENCORE VÉRIFIÉ pour ce phone.
-  const { data: attempts } = await admin
-    .from("otp_attempts")
-    .select("request_id")
-    .eq("phone_e164", payload.phone_e164)
-    .is("verified_at", null)
-    .order("sent_at", { ascending: false })
-    .limit(1);
+  // Review stores — chemin whitelisté : pas de pin en attente exigé, pas de
+  // vérif Termii, pas de burn (rien à rejouer). Le provisioning et l'émission
+  // de session restent STRICTEMENT identiques au flux normal.
+  const reviewerLogin = isReviewerLogin(payload.phone_e164, payload.otp_code);
+  let pinId: string | null = null;
 
-  const pinId = attempts?.[0]?.request_id;
-  if (!pinId) return json({ error: "no_pending_otp" }, req, 400);
+  if (!reviewerLogin) {
+    // P3 — Lookup le pin_id Termii le plus récent NON ENCORE VÉRIFIÉ pour ce phone.
+    const { data: attempts } = await admin
+      .from("otp_attempts")
+      .select("request_id")
+      .eq("phone_e164", payload.phone_e164)
+      .is("verified_at", null)
+      .order("sent_at", { ascending: false })
+      .limit(1);
 
-  // Mock mode (défaut de cette phase) : skip Termii API, accepte le code
-  // de test universel 123456. La session Supabase émise derrière est RÉELLE
-  // (generateLink + verifyOtp) — seul le SMS est mocké.
-  if (isMockMode()) {
-    if (payload.otp_code !== MOCK_OTP_CODE) return json({ error: "invalid_otp" }, req, 401);
-  } else {
-    const termiiKey = Deno.env.get("TERMII_API_KEY");
-    if (!termiiKey) return json({ error: "edge_misconfigured" }, req, 500);
+    pinId = attempts?.[0]?.request_id ?? null;
+    if (!pinId) return json({ error: "no_pending_otp" }, req, 400);
 
-    // P-08 round 3 — Timeout 10s sur le fetch Termii verify : sans ça, l'Edge
-    // attend jusqu'au cap Supabase (60s) si Termii hang → user voit network
-    // error tardif et la fenêtre 5min OTP peut expirer entretemps.
-    const TERMII_TIMEOUT_MS = 10_000;
-    try {
-      const resp = await fetch("https://api.ng.termii.com/api/sms/otp/verify", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          api_key: termiiKey,
-          pin_id: pinId,
-          pin: payload.otp_code,
-        }),
-        signal: AbortSignal.timeout(TERMII_TIMEOUT_MS),
-      });
-      const body = (await resp.json()) as { verified?: boolean; status?: string };
-      if (!resp.ok || body.verified !== true) {
-        return json({ error: "invalid_otp" }, req, 401);
+    // Mock mode (défaut de cette phase) : skip Termii API, accepte le code
+    // de test universel 123456. La session Supabase émise derrière est RÉELLE
+    // (generateLink + verifyOtp) — seul le SMS est mocké.
+    if (isMockMode()) {
+      if (payload.otp_code !== MOCK_OTP_CODE) return json({ error: "invalid_otp" }, req, 401);
+    } else {
+      const termiiKey = Deno.env.get("TERMII_API_KEY");
+      if (!termiiKey) return json({ error: "edge_misconfigured" }, req, 500);
+
+      // P-08 round 3 — Timeout 10s sur le fetch Termii verify : sans ça, l'Edge
+      // attend jusqu'au cap Supabase (60s) si Termii hang → user voit network
+      // error tardif et la fenêtre 5min OTP peut expirer entretemps.
+      const TERMII_TIMEOUT_MS = 10_000;
+      try {
+        const resp = await fetch("https://api.ng.termii.com/api/sms/otp/verify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            api_key: termiiKey,
+            pin_id: pinId,
+            pin: payload.otp_code,
+          }),
+          signal: AbortSignal.timeout(TERMII_TIMEOUT_MS),
+        });
+        const body = (await resp.json()) as { verified?: boolean; status?: string };
+        if (!resp.ok || body.verified !== true) {
+          return json({ error: "invalid_otp" }, req, 401);
+        }
+      } catch (err) {
+        const isTimeout = (err as { name?: string }).name === "TimeoutError" || (err as { name?: string }).name === "AbortError";
+        return json(
+          { error: isTimeout ? "provider_timeout" : "provider_error" },
+          req,
+          isTimeout ? 504 : 500,
+        );
       }
-    } catch (err) {
-      const isTimeout = (err as { name?: string }).name === "TimeoutError" || (err as { name?: string }).name === "AbortError";
-      return json(
-        { error: isTimeout ? "provider_timeout" : "provider_error" },
-        req,
-        isTimeout ? 504 : 500,
-      );
+    }
+
+    // P3 — Burn atomique du pin pour anti-replay.
+    // P-07 — Si la suite (provisioning user / émission session) échoue, on
+    // un-burn pour permettre une nouvelle tentative sans relancer le SMS.
+    const { data: burned } = await admin
+      .from("otp_attempts")
+      .update({ verified_at: new Date().toISOString() })
+      .eq("request_id", pinId)
+      .is("verified_at", null)
+      .select("request_id");
+    if (!burned || burned.length === 0) {
+      return json({ error: "otp_already_used" }, req, 400);
     }
   }
 
-  // P3 — Burn atomique du pin pour anti-replay.
-  // P-07 — Si la suite (provisioning user / émission session) échoue, on
-  // un-burn pour permettre une nouvelle tentative sans relancer le SMS.
-  const { data: burned } = await admin
-    .from("otp_attempts")
-    .update({ verified_at: new Date().toISOString() })
-    .eq("request_id", pinId)
-    .is("verified_at", null)
-    .select("request_id");
-  if (!burned || burned.length === 0) {
-    return json({ error: "otp_already_used" }, req, 400);
-  }
-
   const unburn = async (): Promise<void> => {
+    // Chemin reviewer : aucun pin burné, rien à restaurer.
+    if (!pinId) return;
     // P-11 round 3 — Si l'un-burn échoue (Supabase transient, perm), le pinId
     // reste burned et le user est lock out sans rétroaction. On log au minimum
     // pour ne pas perdre le signal en cas d'incident.
