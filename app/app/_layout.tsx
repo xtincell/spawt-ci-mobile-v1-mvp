@@ -82,7 +82,9 @@ function RouteGuard() {
       // Progression — badges/collection/paws/défis (flags OFF par défaut).
       first === "progression" ||
       // Feature 18 — suggestion de lieu (flag suggestions-lieux OFF par défaut).
-      first === "suggest-place";
+      first === "suggest-place" ||
+      // SPAWT Wrapped — rétrospective annuelle (flag wrapped OFF par défaut).
+      first === "wrapped";
     const inOnboarding = first === "(onboarding)";
     const onSplash = !first;
 
@@ -263,6 +265,8 @@ export default function RootLayout() {
             <Stack.Screen name="progression" options={{ presentation: "card" }} />
             {/* Feature 18 — suggestion de lieu (flag suggestions-lieux). */}
             <Stack.Screen name="suggest-place" options={{ presentation: "modal" }} />
+            {/* SPAWT Wrapped — rétrospective annuelle (flag wrapped). */}
+            <Stack.Screen name="wrapped" options={{ presentation: "modal" }} />
             {/* Mode Crew — écran de session (flag mode-crew, entrée via l'onglet Meute). */}
             <Stack.Screen name="crew/[id]" options={{ presentation: "card" }} />
             <Stack.Screen

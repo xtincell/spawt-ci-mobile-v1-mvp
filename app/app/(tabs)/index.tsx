@@ -39,6 +39,9 @@ import { useSpawterPosition } from "../../src/lib/use-spawter-position";
 import { isPlaceLocked } from "../../src/lib/paywall-geo";
 import { isGoldSpawter } from "../../src/lib/spawter-gold";
 import { useFlag } from "../../src/store/feature-flags";
+// SPAWT Wrapped — bannière saisonnière (flag `wrapped` + fenêtre déc-janv).
+import { WrappedBanner } from "../../src/components/share/WrappedBanner";
+import { isWrappedSeason, wrappedYearFor } from "../../src/lib/wrapped";
 import { GoldUpsellSheet } from "../../src/components/GoldUpsellSheet";
 
 const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
@@ -189,6 +192,10 @@ export default function HomeD() {
   // ici par le même canal.
   const rapideEnabled = useFlag("mode-rapide");
   const exploreEnabled = useFlag("mode-explore");
+  // SPAWT Wrapped — bannière saisonnière (flag `wrapped` OFF par défaut +
+  // fenêtre 1er déc → 15 janv). Hors des deux gardes : feed inchangé.
+  const wrappedEnabled = useFlag("wrapped");
+  const wrappedSeason = wrappedEnabled && isWrappedSeason();
   const modeEntries = useMemo(() => {
     const entries: ModeEntry[] = [];
     if (rapideEnabled) {
@@ -366,6 +373,16 @@ export default function HomeD() {
             entries={modeEntries}
           />
         </View>
+
+        {/* SPAWT Wrapped — bannière saisonnière vers /wrapped. */}
+        {wrappedSeason ? (
+          <View style={{ marginTop: theme.spacing.lg }}>
+            <WrappedBanner
+              year={wrappedYearFor()}
+              onPress={() => router.push("/wrapped" as never)}
+            />
+          </View>
+        ) : null}
 
         {/* R7 — le bloc mascotte précède la sélection des 3 suggestions,
             avec la copy définitive « Voici mes 3 suggestions du jour. » */}

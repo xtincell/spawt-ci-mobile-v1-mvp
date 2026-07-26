@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, useRouter } from "expo-router";
 import { BackHandler, Pressable, ScrollView, Text, View, StyleSheet } from "react-native";
+import type { View as RNView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
@@ -36,6 +37,10 @@ import {
 import { ARCHETYPES } from "../../src/data/archetypes";
 import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
 import { track } from "../../src/lib/analytics";
+// Wrapped/share — la carte d'archétype se partage dès la révélation (carte
+// 9:16 noir/or rendue hors-écran, capturée au tap — lib/share-card.ts).
+import { ShareCard } from "../../src/components/share/ShareCard";
+import { captureAndShareView } from "../../src/lib/share-card";
 
 export default function PalaisRevealScreen() {
   const { t } = useTranslation();
@@ -56,6 +61,9 @@ export default function PalaisRevealScreen() {
       mountedRef.current = false;
     };
   }, []);
+
+  // Wrapped/share — ref de la carte 9:16 hors-écran (capture au tap).
+  const shareCardRef = useRef<RNView>(null);
 
   const ans = draft.calibration_answers;
 
@@ -218,6 +226,67 @@ export default function PalaisRevealScreen() {
             l'onboarding est toujours au stade touriste. */}
         <View style={{ marginTop: theme.spacing.lg }}>
           <ChatBubble stade="touriste" moment="post_calibration" />
+        </View>
+
+        {/* Wrapped/share — partage de la carte d'archétype (lien sobre,
+            jamais bloquant : échec silencieux, l'onboarding continue). */}
+        <Pressable
+          onPress={() => {
+            track({
+              name: "share_initiated",
+              properties: { surface: "palais_reveal", archetype: archetypeKey },
+            });
+            void captureAndShareView(
+              shareCardRef.current,
+              t("palais_reveal.share_dialog_title"),
+            ).then((shared) => {
+              if (shared) {
+                track({
+                  name: "share_completed",
+                  properties: { surface: "palais_reveal", archetype: archetypeKey },
+                });
+              }
+            });
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t("palais_reveal.share_cta")}
+          testID="palais-reveal-share"
+          style={({ pressed }) => ({
+            alignSelf: "center",
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.base,
+            marginTop: theme.spacing.base,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.brand.primary,
+              textDecorationLine: "underline",
+            }}
+          >
+            {t("palais_reveal.share_cta")}
+          </Text>
+        </Pressable>
+
+        {/* Carte 9:16 rendue hors-écran, capturée par le bouton ci-dessus. */}
+        <View
+          pointerEvents="none"
+          style={{ position: "absolute", left: -9999, top: 0 }}
+        >
+          <ShareCard
+            ref={shareCardRef}
+            kicker={t("palais_reveal.share_card_kicker")}
+            headline={t(ARCHETYPES[archetypeKey].nameKey)}
+            subline={draft.display_name}
+            archetype={archetypeKey}
+            footer={
+              pionnierSeq
+                ? t("palais_reveal.share_card_pionnier", { n: pionnierSeq })
+                : undefined
+            }
+          />
         </View>
 
         {error ? (

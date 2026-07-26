@@ -1439,3 +1439,30 @@ export async function listMySuggestionsFromSupabase(
   }
   return (data ?? []) as import("./place-suggestions").PlaceSuggestionRow[];
 }
+
+// ─── SPAWT Wrapped — Edge Function `wrapped-stats` ──────────────────────────
+
+import { parseWrappedResponse, type WrappedResult } from "./wrapped";
+
+/**
+ * Invoque l'Edge `wrapped-stats` (POST auth spawter — le SDK attache le
+ * token de session). Toute erreur (réseau, 401, payload inattendu) → null :
+ * le Wrapped est une surface de plaisir, jamais un point de crash.
+ */
+export async function getWrappedStatsFromSupabase(
+  year?: number,
+): Promise<WrappedResult | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("wrapped-stats", {
+      body: year !== undefined ? { year } : {},
+    });
+    if (error) {
+      if (__DEV__) console.warn("[data-source] wrapped-stats failed", error);
+      return null;
+    }
+    return parseWrappedResponse(data);
+  } catch (err) {
+    if (__DEV__) console.warn("[data-source] wrapped-stats threw", err);
+    return null;
+  }
+}

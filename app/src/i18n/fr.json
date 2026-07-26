@@ -780,7 +780,11 @@
     "first_title": "Voici ton palais",
     "first_title_subtitle": "Plus tu Spawtes, plus il est précis.",
     "heritage_mention": "Pionnier n°{{n}} de la Meute — ton flair de {{archetype}} te suit.",
-    "continue": "Rejoindre la bande"
+    "continue": "Rejoindre la bande",
+    "share_cta": "Partager ma carte",
+    "share_dialog_title": "Partage ta carte SPAWT",
+    "share_card_kicker": "Mon archétype SPAWT",
+    "share_card_pionnier": "Pionnier n°{{n}} de la Meute"
   },
   "place": {
     "notRatedYet": "Pas encore noté",
@@ -1120,5 +1124,42 @@
       "title": "Juillet en Meute",
       "description": "1 000 spawts vérifiés à nous tous avant la fin du mois. Chaque table compte, chaque spawter aussi."
     }
+  },
+  "wrapped": {
+    "title": "SPAWT Wrapped {{year}}",
+    "intro_title": "Ton année {{year}} avec la Meute",
+    "intro_body": "Le Chat a tout noté. Glisse, on remonte le fil de tes tables.",
+    "empty_body": "Pas encore assez de spawts cette année pour raconter quelque chose. La suite s'écrit à table.",
+    "slide_spawts_kicker": "Tes spawts vérifiés",
+    "slide_spawts_caption_one": "{{count}} fois où le Chat t'a vu à table. Chacune comptait.",
+    "slide_spawts_caption_other": "{{count}} fois où le Chat t'a vu à table. Chacune comptait.",
+    "slide_places_kicker": "Tes lieux uniques",
+    "slide_places_caption_one": "Répartis sur {{count}} commune. Ton territoire s'étend.",
+    "slide_places_caption_other": "Répartis sur {{count}} communes. Ton territoire s'étend.",
+    "slide_cuisine_kicker": "Ta cuisine de l'année",
+    "slide_cuisine_caption": "Ton Palais a voté. Lui, il ne ment jamais.",
+    "slide_top_place_kicker": "Ton lieu fétiche",
+    "slide_top_place_caption_one": "{{count}} spawt là-bas. On appelle ça une histoire.",
+    "slide_top_place_caption_other": "{{count}} spawts là-bas. On appelle ça une histoire.",
+    "slide_note_kicker": "Ta note moyenne",
+    "slide_note_caption": "Exigeant mais juste. Le Chat approuve.",
+    "slide_identity_kicker": "Ton identité",
+    "slide_identity_caption": "C'est toi, à table comme dans la rue.",
+    "slide_identity_pionnier": "Pionnier n°{{n}} de la Meute — ça ne se rachète pas.",
+    "slide_badges_kicker": "Tes badges de l'année",
+    "slide_badges_caption_one": "{{count}} badge décroché cette année. Le terrain paie.",
+    "slide_badges_caption_other": "{{count}} badges décrochés cette année. Le terrain paie.",
+    "card_kicker": "SPAWT Wrapped {{year}}",
+    "card_headline_fallback": "Mon année avec la Meute",
+    "card_stat_spawts": "Spawts vérifiés",
+    "card_stat_places": "Lieux uniques",
+    "card_stat_communes": "Communes",
+    "card_stat_cuisine": "Cuisine de l'année",
+    "card_pionnier": "Pionnier n°{{n}}",
+    "share_cta": "Partager mon année",
+    "share_dialog_title": "Partage ton année SPAWT",
+    "banner_title": "Ton Wrapped {{year}} est prêt",
+    "banner_body": "Le Chat a compté tes tables. Viens voir ce que ton année raconte.",
+    "banner_aria": "Ouvrir ton SPAWT Wrapped {{year}}"
   }
 }

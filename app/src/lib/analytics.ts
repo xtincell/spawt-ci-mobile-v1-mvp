@@ -197,7 +197,9 @@ type EventName =
   // 16. Progression complète (badges/collection/paws/défis — 0035-0037 + 0040)
   | "progression_opened"
   // 17. Feature 18 — suggestion de lieu par la Meute (0039)
-  | "place_suggestion_submitted";
+  | "place_suggestion_submitted"
+  // 18. SPAWT Wrapped — rétrospective annuelle + share card
+  | "wrapped_opened" | "wrapped_shared";
 
 export type AnalyticsEvent =
   | AppFirstOpen | AppOpen
@@ -288,6 +290,8 @@ const EVENT_TO_SIGNAL = {
   progression_opened: "view",
   // Feature 18 — envoi d'une suggestion de lieu.
   place_suggestion_submitted: "click",
+  // SPAWT Wrapped — ouverture + partage de la carte.
+  wrapped_opened: "view", wrapped_shared: "share",
 } as const satisfies Record<EventName, SignalType>;
 
 // Regex UUID v4 (validation soft pour `place_id` avant insert — la column DB

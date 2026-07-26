@@ -848,3 +848,23 @@ export async function listMySuggestions(
   }
   return listDemoPlaceSuggestions();
 }
+
+// ─── SPAWT Wrapped (post-MVP #11/#15) — rétrospective annuelle ──────────────
+
+import type { WrappedResult } from "./wrapped";
+// Import statique (doctrine SEED_PLACES) : la branche démo doit marcher
+// partout, y compris sous jest où `import()` runtime n'est pas disponible.
+import { SEED_WRAPPED } from "../data/seed/wrapped";
+
+/**
+ * Rétrospective de l'année du spawter. Mode supabase : Edge `wrapped-stats`
+ * (agrégats best-effort côté serveur) ; toute erreur → null, le caller
+ * affiche un état d'attente sobre. Mode démo : fixture vivante.
+ */
+export async function getWrappedStats(year?: number): Promise<WrappedResult | null> {
+  if (isSupabaseConfigured) {
+    const { getWrappedStatsFromSupabase } = await import("./data-source.supabase");
+    return getWrappedStatsFromSupabase(year);
+  }
+  return SEED_WRAPPED;
+}
