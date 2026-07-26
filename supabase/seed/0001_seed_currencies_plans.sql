@@ -14,8 +14,16 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- Plans Sprint 1 — Gold (Premium SPAWT). Pricing PRD §11.
+-- ⚠️ Prix annuel : 25 000 F HT (PRD §11.2, « prix annuel corrigé : 25 000,
+-- 2 mois offerts ») — l'ancien 22 000 était un reliquat pré-arbitrage.
+-- Source de vérité runtime du checkout : _shared/payment/types.ts (alignés).
+-- L'UPDATE rattrape les bases déjà seedées (le ON CONFLICT DO NOTHING
+-- n'aurait jamais corrigé une ligne existante).
 INSERT INTO public.plans (code, label, price_ht, currency_code, country_code, period, is_active)
 VALUES
   ('gold_monthly', 'Gold mensuel',  2500,  'XOF', 'CI', 'monthly', true),
-  ('gold_annual',  'Gold annuel',   22000, 'XOF', 'CI', 'annual',  true)
+  ('gold_annual',  'Gold annuel',   25000, 'XOF', 'CI', 'annual',  true)
 ON CONFLICT (code) DO NOTHING;
+
+UPDATE public.plans SET price_ht = 25000
+WHERE code = 'gold_annual' AND price_ht = 22000;
