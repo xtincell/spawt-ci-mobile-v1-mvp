@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, type Theme } from "../src/theme/ThemeProvider";
 import { useSpawterStore } from "../src/store/spawter-store";
 import { isGuetOptedOut, setGuetOptOut } from "../src/lib/guet";
+import { unregisterPushToken } from "../src/lib/push-token";
 import { requestAccountDeletion, isSupabaseConfigured } from "../src/lib/data-source";
 import { track } from "../src/lib/analytics";
 
@@ -41,6 +42,12 @@ export default function SettingsScreen() {
   };
 
   const signOut = async () => {
+    // Feature 13 — retire le token push AVANT auth.signOut : la RLS DELETE de
+    // push_tokens est owner-only, il faut encore la session. Best-effort (ne
+    // throw jamais) — une row orpheline serait purgée par push-send
+    // (DeviceNotRegistered). Couvre aussi la suppression de compte (ce même
+    // signOut est appelé après requestAccountDeletion).
+    await unregisterPushToken();
     if (isSupabaseConfigured) {
       try {
         const { supabase } = await import("../src/lib/supabase");

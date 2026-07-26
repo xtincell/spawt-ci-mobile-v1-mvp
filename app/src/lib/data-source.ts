@@ -384,6 +384,29 @@ export async function countCoupsDeCoeurThisMonth(
   return countCoupsDeCoeurFromSupabase(place_id);
 }
 
+// ─── Feature 13 — push serveur : tokens Expo par device (migration 0034) ────
+
+/**
+ * Upsert du token push du device dans `push_tokens` (ON CONFLICT token :
+ * un device qui se ré-enregistre met à jour sa row — RLS owner-only).
+ * Mode démo : no-op silencieux, aucun push serveur sans Supabase.
+ */
+export async function upsertPushToken(
+  token: string,
+  platform: "ios" | "android",
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { upsertPushTokenToSupabase } = await import("./data-source.supabase");
+  await upsertPushTokenToSupabase(token, platform);
+}
+
+/** Retrait du token au logout / suppression de compte. Mode démo : no-op. */
+export async function deletePushToken(token: string): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { deletePushTokenFromSupabase } = await import("./data-source.supabase");
+  await deletePushTokenFromSupabase(token);
+}
+
 /** Phase 2 — suppression de compte self-service (migration 0029, ARTCI). */
 export async function requestAccountDeletion(): Promise<boolean> {
   if (!isSupabaseConfigured) return true; // démo : reset local suffit

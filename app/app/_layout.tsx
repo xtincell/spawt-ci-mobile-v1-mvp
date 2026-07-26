@@ -33,6 +33,12 @@ import {
   bootOfflineQueue,
   shutdownOfflineQueue,
 } from "../src/lib/offline-queue-init";
+// Feature 13 — push serveur : enregistrement du token Expo + routage des taps
+// (deep link `data.deep_link`). Listener séparé de celui du Guet.
+import {
+  registerPushToken,
+  registerPushResponseHandler,
+} from "../src/lib/push-token";
 import { initMonitoring } from "../src/lib/monitoring";
 import "../src/i18n";
 
@@ -105,11 +111,27 @@ export default function RootLayout() {
   useEffect(() => {
     if (storeHydrating) return;
     if (spawterId) {
-      void bootGuet();
+      // Feature 13 — registerPushToken APRÈS bootGuet (séquencé, pas en
+      // parallèle) : les deux passent par le même helper de permission
+      // notifications, l'ordre garantit un seul dialogue système. Couvre le
+      // login réussi ET le boot avec session (spawterId passe non-null dans
+      // les deux cas). Jamais avant le consentement : un spawter n'existe
+      // qu'après l'écran consent bloquant de l'onboarding.
+      void (async () => {
+        await bootGuet();
+        await registerPushToken();
+      })();
     } else {
       void shutdownGuet();
     }
   }, [spawterId, storeHydrating]);
+
+  // Feature 13 — tap d'une notification push serveur → deep link. Monté 1× au
+  // Root (indépendant du Guet : fonctionne même Guet opt-out ou non booté).
+  useEffect(() => {
+    const unsubscribe = registerPushResponseHandler();
+    return unsubscribe;
+  }, []);
 
   // Story 4.3 — branche NetInfo → flush des mutations spawt_checkin queue offline.
   // No-op en mode démo (pas de Supabase) et tolérant à l'absence de NetInfo (web).

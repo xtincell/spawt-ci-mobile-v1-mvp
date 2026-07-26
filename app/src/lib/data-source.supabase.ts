@@ -609,6 +609,37 @@ export async function countCoupsDeCoeurFromSupabase(
 
 // ─── Phase 2 — suppression de compte (migration 0029) ───────────────────────
 
+// ─── Feature 13 — push serveur : tokens Expo (migration 0034) ────────────────
+
+/**
+ * Upsert du token push du device. spawter_id = auth.uid() (session locale via
+ * getSession — pas d'aller-retour réseau) : la RLS owner-only de `push_tokens`
+ * exige cette égalité de toute façon.
+ *
+ * Device qui change de compte : la row de l'ancien proprio est supprimée au
+ * logout (unregisterPushToken). Si elle traîne malgré tout, l'upsert ON
+ * CONFLICT échoue sous RLS (UPDATE d'une row d'autrui) → warn sans crash ;
+ * push-send purgera la row obsolète au premier DeviceNotRegistered.
+ */
+export async function upsertPushTokenToSupabase(
+  token: string,
+  platform: "ios" | "android",
+): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const uid = sessionData.session?.user?.id;
+  if (!uid) return; // pas de session — la RLS refuserait l'écriture
+  const { error } = await supabase
+    .from("push_tokens")
+    .upsert({ spawter_id: uid, token, platform }, { onConflict: "token" });
+  if (error && __DEV__) console.warn("[data-source] upsertPushToken failed", error);
+}
+
+/** DELETE par token — RLS owner-only (à faire AVANT auth.signOut). */
+export async function deletePushTokenFromSupabase(token: string): Promise<void> {
+  const { error } = await supabase.from("push_tokens").delete().eq("token", token);
+  if (error && __DEV__) console.warn("[data-source] deletePushToken failed", error);
+}
+
 export async function requestAccountDeletionFromSupabase(): Promise<boolean> {
   const { data, error } = await supabase.rpc("request_account_deletion");
   if (error) {
