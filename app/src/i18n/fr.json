@@ -316,7 +316,8 @@
     "distance_off": "Toutes distances",
     "rating_min": "Note ≥ {{value}}",
     "results_empty_title": "Aucun spawt ne correspond",
-    "results_empty_body": "Élargis tes filtres ou demande au Chat des suggestions."
+    "results_empty_body": "Élargis tes filtres ou demande au Chat des suggestions.",
+    "results_empty_suggest_cta": "Ton spot n'existe pas encore ? Suggère-le"
   },
   "saved": {
     "title": "Mes spawts sauvegardés",
@@ -906,7 +907,42 @@
     "delete_cancel": "Annuler",
     "delete_in_progress": "Suppression…",
     "delete_failed": "La suppression a échoué. Réessaie ou écris-nous.",
-    "delete_legal_note": "Conformément à la Loi ivoirienne 2013-450, ton compte est anonymisé immédiatement puis purgé sous 30 jours."
+    "delete_legal_note": "Conformément à la Loi ivoirienne 2013-450, ton compte est anonymisé immédiatement puis purgé sous 30 jours.",
+    "section_spots": "MES SPOTS",
+    "suggest_place": "Suggérer un lieu"
+  },
+  "suggest": {
+    "title": "Suggère un spot",
+    "subtitle": "Un lieu que la Meute doit connaître ? Balance, le Chat va flairer.",
+    "field_name": "Nom du lieu",
+    "name_placeholder": "Ex. Chez Tantie Marie",
+    "field_commune": "Commune",
+    "commune_placeholder": "Choisis la commune",
+    "commune_aria": "Choisir la commune du lieu",
+    "field_landmark": "Quartier ou repère",
+    "landmark_placeholder": "Ex. en face de la pharmacie Sainte-Thérèse",
+    "field_description": "Ton mot sur le lieu",
+    "description_placeholder": "Ce qu'on y mange, l'ambiance, pourquoi ça vaut le détour…",
+    "gps_label": "Je suis sur place",
+    "gps_hint": "Le Chat note ta position pour retrouver le spot plus vite.",
+    "gps_unavailable": "Géoloc inactive — ton repère écrit suffira.",
+    "section_photos": "Photos (0-3)",
+    "photo_add": "Ajouter une photo",
+    "photo_remove": "Retirer (appui long)",
+    "cta_submit": "Envoyer à la Meute",
+    "sending": "Envoi…",
+    "success_title": "Bien flairé",
+    "success_body": "Bien flairé. La Meute vérifie, tu seras le premier informé.",
+    "quota_title": "Doucement, chasseur",
+    "quota_body": "Tu as déjà 5 suggestions en vérification. Laisse la Meute flairer avant d'en envoyer d'autres.",
+    "error_title": "Ça a couiné",
+    "error_body": "Ta suggestion n'est pas passée. Réessaie dans un instant.",
+    "mine_title": "Tes suggestions",
+    "mine_empty": "Aucune suggestion pour l'instant. Ton flair peut nourrir la carte.",
+    "status_pending": "En vérification",
+    "status_approved": "Validée",
+    "status_rejected": "Refusée",
+    "rejection_prefix": "Motif : {{reason}}"
   },
   "meute": {
     "title": "La Meute",

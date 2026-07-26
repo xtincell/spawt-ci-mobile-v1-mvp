@@ -194,7 +194,14 @@ const DEMO_EPOCH = "2026-07-07T00:00:00Z";
 const DEMO_FEATURE_FLAGS: FeatureFlag[] = (
   // mode-crew : ON en démo (la preview doit faire vivre le vote de crew) —
   // en mode live, le seed feature_flags_v2.sql le laisse OFF partout.
-  ["place-avg-price", "onboarding-origin-country", "mode-crew"] as const
+  // suggestions-lieux : même doctrine — la preview fait vivre le formulaire
+  // (stockage AsyncStorage) ; live OFF partout (seed v2).
+  [
+    "place-avg-price",
+    "onboarding-origin-country",
+    "mode-crew",
+    "suggestions-lieux",
+  ] as const
 ).flatMap((flag_code) =>
   (["internal", "alpha", "beta", "prod"] as const).map((scope) => ({
     id: `demo-${flag_code}-${scope}`,
@@ -798,4 +805,46 @@ export async function getMyStreak(spawter_id: string): Promise<SpawterStreak | n
     return getMyStreakFromSupabase(spawter_id);
   }
   return { ...SEED_STREAK };
+}
+
+// ─── Feature 18 — suggestion de lieu par la Meute (migration 0039) ──────────
+// La communauté propose, l'humain décide : INSERT pending sous RLS own,
+// quota 5 pending par trigger DB. Mode démo : moteur AsyncStorage local
+// (place-suggestions.ts, import statique — doctrine crew-demo).
+
+import {
+  listDemoPlaceSuggestions,
+  submitDemoPlaceSuggestion,
+  type PlaceSuggestionInput,
+  type PlaceSuggestionRow,
+  type SubmitSuggestionResult,
+} from "./place-suggestions";
+
+/**
+ * Envoie une suggestion de lieu. "quota_exceeded" = déjà 5 suggestions en
+ * attente (trigger 0039 côté DB, miroir local en démo).
+ */
+export async function submitPlaceSuggestion(
+  spawter_id: string,
+  input: PlaceSuggestionInput,
+): Promise<SubmitSuggestionResult> {
+  if (isSupabaseConfigured) {
+    const { submitPlaceSuggestionToSupabase } = await import("./data-source.supabase");
+    return submitPlaceSuggestionToSupabase(spawter_id, input);
+  }
+  return submitDemoPlaceSuggestion(input);
+}
+
+/**
+ * Suggestions du spawter (statut pending/approved/rejected + motif de refus),
+ * plus récentes d'abord. Mode démo : stockage local du device.
+ */
+export async function listMySuggestions(
+  spawter_id: string,
+): Promise<PlaceSuggestionRow[]> {
+  if (isSupabaseConfigured) {
+    const { listMySuggestionsFromSupabase } = await import("./data-source.supabase");
+    return listMySuggestionsFromSupabase(spawter_id);
+  }
+  return listDemoPlaceSuggestions();
 }

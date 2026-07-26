@@ -1393,3 +1393,49 @@ export async function getMyStreakFromSupabase(
     last_spawt_week: typeof row.last_spawt_week === "string" ? row.last_spawt_week : null,
   };
 }
+
+// ─── Feature 18 — suggestion de lieu par la Meute (migration 0039) ──────────
+
+/**
+ * INSERT sous RLS `place_suggestions_insert_own` (spawter_id = auth.uid(),
+ * status pending forcé). Le quota 5 pending est appliqué par le trigger
+ * `assert_place_suggestions_rate_limit` — son RAISE porte ERRCODE 23514
+ * (check_violation), qu'on traduit en "quota_exceeded" lisible côté UI.
+ */
+export async function submitPlaceSuggestionToSupabase(
+  spawter_id: string,
+  input: import("./place-suggestions").PlaceSuggestionInput,
+): Promise<import("./place-suggestions").SubmitSuggestionResult> {
+  const { error } = await supabase.from("place_suggestions").insert({
+    spawter_id,
+    name: input.name,
+    commune: input.commune,
+    neighborhood: input.neighborhood,
+    description: input.description,
+    lat: input.lat,
+    lng: input.lng,
+    photo_urls: input.photo_urls,
+  });
+  if (!error) return "ok";
+  if (error.code === "23514") return "quota_exceeded";
+  if (__DEV__) console.warn("[data-source] submitPlaceSuggestion failed", error);
+  return "error";
+}
+
+/** Suggestions du spawter (RLS select own), plus récentes d'abord. */
+export async function listMySuggestionsFromSupabase(
+  spawter_id: string,
+): Promise<import("./place-suggestions").PlaceSuggestionRow[]> {
+  const { data, error } = await supabase
+    .from("place_suggestions")
+    .select(
+      "id, name, commune, neighborhood, description, lat, lng, photo_urls, status, rejection_reason, created_at",
+    )
+    .eq("spawter_id", spawter_id)
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] listMySuggestions failed", error);
+    return [];
+  }
+  return (data ?? []) as import("./place-suggestions").PlaceSuggestionRow[];
+}

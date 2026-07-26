@@ -61,6 +61,10 @@ export default function SearchScreen() {
   const spawter = useSpawterStore((s) => s.spawter);
   const stade = spawter?.stade ?? "touriste";
 
+  // Feature 18 — entrée « suggère ton spot » dans l'état vide des résultats
+  // (flag suggestions-lieux OFF par défaut → lien absent).
+  const suggestionsEnabled = useFlag("suggestions-lieux");
+
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
@@ -346,11 +350,37 @@ export default function SearchScreen() {
           </View>
         </ScrollView>
       ) : results.length === 0 ? (
-        <EmptyState
-          icon="search"
-          title={t("search.results_empty_title")}
-          body={t("search.results_empty_body")}
-        />
+        <View style={{ flex: 1 }}>
+          <EmptyState
+            icon="search"
+            title={t("search.results_empty_title")}
+            body={t("search.results_empty_body")}
+          />
+          {suggestionsEnabled ? (
+            <Pressable
+              onPress={() => router.push("/suggest-place" as never)}
+              accessibilityRole="button"
+              accessibilityLabel={t("search.results_empty_suggest_cta")}
+              testID="search-suggest-place-cta"
+              style={({ pressed }) => ({
+                alignSelf: "center",
+                paddingVertical: theme.spacing.base,
+                paddingHorizontal: theme.spacing.lg,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  ...theme.typography.preset.body,
+                  color: theme.colors.brand.primary,
+                  textDecorationLine: "underline",
+                }}
+              >
+                {t("search.results_empty_suggest_cta")}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : (
         <FlatList
           data={results}

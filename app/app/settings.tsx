@@ -16,6 +16,9 @@ import { isGuetOptedOut, setGuetOptOut } from "../src/lib/guet";
 import { unregisterPushToken } from "../src/lib/push-token";
 import { requestAccountDeletion, isSupabaseConfigured } from "../src/lib/data-source";
 import { track } from "../src/lib/analytics";
+// Feature 18 — entrée « Suggérer un lieu » (flag suggestions-lieux OFF par
+// défaut → section absente).
+import { useFlag } from "../src/store/feature-flags";
 
 // URLs légales — vides tant que le juriste n'a pas livré (HUMAN_TODO.md).
 // Une URL vide masque la ligne ; le code est prêt.
@@ -31,6 +34,7 @@ export default function SettingsScreen() {
 
   const [guetOff, setGuetOff] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const suggestionsEnabled = useFlag("suggestions-lieux");
 
   useEffect(() => {
     void isGuetOptedOut().then(setGuetOff);
@@ -131,6 +135,18 @@ export default function SettingsScreen() {
           label={t("settings.system_settings")}
           onPress={() => void Linking.openSettings()}
         />
+
+        {/* Feature 18 — Mes spots : suggérer un lieu à la Meute. */}
+        {suggestionsEnabled ? (
+          <>
+            <SectionTitle theme={theme} label={t("settings.section_spots")} />
+            <LinkRow
+              theme={theme}
+              label={t("settings.suggest_place")}
+              onPress={() => router.push("/suggest-place" as never)}
+            />
+          </>
+        ) : null}
 
         {/* Légal */}
         {CGU_URL || PRIVACY_URL ? (

@@ -80,7 +80,9 @@ function RouteGuard() {
       // Mode Crew — l'écran de session dépend du spawter (identité + votes).
       first === "crew" ||
       // Progression — badges/collection/paws/défis (flags OFF par défaut).
-      first === "progression";
+      first === "progression" ||
+      // Feature 18 — suggestion de lieu (flag suggestions-lieux OFF par défaut).
+      first === "suggest-place";
     const inOnboarding = first === "(onboarding)";
     const onSplash = !first;
 
@@ -259,6 +261,8 @@ export default function RootLayout() {
             <Stack.Screen name="settings" options={{ presentation: "card" }} />
             {/* Progression — badges/collection/paws/défis (flags OFF par défaut). */}
             <Stack.Screen name="progression" options={{ presentation: "card" }} />
+            {/* Feature 18 — suggestion de lieu (flag suggestions-lieux). */}
+            <Stack.Screen name="suggest-place" options={{ presentation: "modal" }} />
             {/* Mode Crew — écran de session (flag mode-crew, entrée via l'onglet Meute). */}
             <Stack.Screen name="crew/[id]" options={{ presentation: "card" }} />
             <Stack.Screen
