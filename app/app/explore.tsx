@@ -111,6 +111,14 @@ export default function ExploreScreen() {
           >
             {t("explore.title")}
           </Text>
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.text.tertiary,
+            }}
+          >
+            {t("explore.subtitle")}
+          </Text>
         </View>
       </View>
 
