@@ -64,7 +64,14 @@ function RouteGuard() {
     // Les écrans modaux au root (search, saved) sont accessibles uniquement
     // pour un spawter onboardé — sinon on rebascule vers le splash, sinon
     // un utilisateur deep-linké atteindrait un écran qui dépend du store.
-    const inGuardedRoot = first === "search" || first === "saved" || first === "settings";
+    // Sprint 2 — rapide/explore : mêmes règles (dépendent du store ; leur
+    // gate de flag interne redirige ensuite vers le feed si flag off).
+    const inGuardedRoot =
+      first === "search" ||
+      first === "saved" ||
+      first === "settings" ||
+      first === "rapide" ||
+      first === "explore";
     const inOnboarding = first === "(onboarding)";
     const onSplash = !first;
 
@@ -222,6 +229,13 @@ export default function RootLayout() {
             />
             <Stack.Screen name="search" options={{ presentation: "modal" }} />
             <Stack.Screen name="saved" options={{ presentation: "card" }} />
+            {/* Sprint 2 — modes plein écran (flags mode-rapide / mode-explore). */}
+            <Stack.Screen name="rapide" options={{ presentation: "card" }} />
+            <Stack.Screen name="explore" options={{ presentation: "card" }} />
+            <Stack.Screen
+              name="explore/[slug]"
+              options={{ presentation: "card" }}
+            />
             <Stack.Screen name="settings" options={{ presentation: "card" }} />
             <Stack.Screen
               name="review/[spawt_id]"

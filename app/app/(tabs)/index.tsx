@@ -21,7 +21,11 @@ import { ChatBubble } from "../../src/components/ChatBubble";
 import { DataSourceBanner } from "../../src/components/DataSourceBanner";
 import { EmptyState } from "../../src/components/EmptyState";
 import { Masthead } from "../../src/components/Masthead";
-import { ModeStories, type ModeKey } from "../../src/components/ModeStories";
+import {
+  ModeStories,
+  type ModeEntry,
+  type ModeKey,
+} from "../../src/components/ModeStories";
 import { UneCarousel } from "../../src/components/UneCarousel";
 import { FeuilletonRow } from "../../src/components/FeuilletonRow";
 import { Ico } from "../../src/components/primitives/Ico";
@@ -179,6 +183,34 @@ export default function HomeD() {
       });
   }, [loading, spawter, ranked]);
 
+  // Sprint 2 — hub des modes plein écran (post-MVP #1/#3). Flags OFF par
+  // défaut → `modeEntries` vide → ModeStories rend EXACTEMENT comme avant
+  // (critère de non-régression). Le Mode Crew (chantier parallèle) s'ajoutera
+  // ici par le même canal.
+  const rapideEnabled = useFlag("mode-rapide");
+  const exploreEnabled = useFlag("mode-explore");
+  const modeEntries = useMemo(() => {
+    const entries: ModeEntry[] = [];
+    if (rapideEnabled) {
+      entries.push({
+        key: "rapide",
+        icon: "arrow-right",
+        labelKey: "modes.entry_rapide.label",
+        // typedRoutes regenerate les types au prochain build — V1 cast.
+        onPress: () => router.push("/rapide" as never),
+      });
+    }
+    if (exploreEnabled) {
+      entries.push({
+        key: "explore",
+        icon: "map",
+        labelKey: "modes.entry_explore.label",
+        onPress: () => router.push("/explore" as never),
+      });
+    }
+    return entries;
+  }, [rapideEnabled, exploreEnabled, router]);
+
   // Phase 2 F14 — paywall géographique (nudge, flag OFF par défaut) :
   // un lieu hors zone gratuite ouvre l'upsell Gold au lieu de la fiche.
   const paywallEnabled = useFlag("paywall-geo");
@@ -277,6 +309,7 @@ export default function HomeD() {
         <ModeStories
           selectedMode={selectedMode}
           onModePress={setSelectedMode}
+          entries={modeEntries}
         />
         <EmptyState
           icon="search"
@@ -330,6 +363,7 @@ export default function HomeD() {
           <ModeStories
             selectedMode={selectedMode}
             onModePress={setSelectedMode}
+            entries={modeEntries}
           />
         </View>
 
