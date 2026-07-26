@@ -178,7 +178,7 @@ export const SignalementsList = () => {
       <h1>Signalements</h1>
       <p style={{ background: "var(--bg-warm)", padding: 12, borderRadius: 6 }}>
         ⓘ File des signalements envoyés par la Meute via le bouton « Signaler »
-        de l'app (Feature 17). Trois issues possibles : garder l'avis, le
+        de l&apos;app (Feature 17). Trois issues possibles : garder l&apos;avis, le
         supprimer, ou avertir son auteur.
       </p>
       {toast ? (
@@ -212,7 +212,7 @@ export const SignalementsList = () => {
             <th>Avis (auteur)</th>
             <th>Lieu</th>
             <th>Note</th>
-            <th>Texte de l'avis</th>
+            <th>Texte de l&apos;avis</th>
             {tab === "pending" ? <th>Actions</th> : <th>Issue</th>}
           </tr>
         </thead>
@@ -250,14 +250,14 @@ export const SignalementsList = () => {
                       disabled={!canModerate || isBusy || alreadyDeleted}
                       onClick={() => setActiveAction({ kind: "remove", report: row })}
                     >
-                      Supprimer l'avis
+                      Supprimer l&apos;avis
                     </button>
                     <button
                       type="button"
                       disabled={!canModerate || isBusy}
                       onClick={() => setActiveAction({ kind: "warn", report: row })}
                     >
-                      Avertir l'auteur
+                      Avertir l&apos;auteur
                     </button>
                   </td>
                 ) : (

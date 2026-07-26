@@ -7,6 +7,9 @@
 
 import { supabaseClient } from "../utility/supabaseClient";
 
+// Console admin complète 07/2026 — le CHECK DB fait foi (migrations 0047 +
+// 0049) : toute valeur ici DOIT exister dans admin_audit_log_action_check,
+// sinon l'INSERT échoue (throw en mode strict, warn en best-effort).
 export type AdminAction =
   | "login"
   | "login_failed"
@@ -24,7 +27,26 @@ export type AdminAction =
   | "seed_inventory_run"
   | "report_kept"
   | "report_removed"
-  | "report_warned";
+  | "report_warned"
+  | "push_campaign"
+  | "event_create"
+  | "event_update"
+  | "event_delete"
+  | "promo_create"
+  | "promo_update"
+  | "promo_delete"
+  | "challenge_create"
+  | "challenge_update"
+  | "suggestion_approve"
+  | "suggestion_reject"
+  | "b2b_link"
+  | "b2b_unlink"
+  | "flag_update"
+  | "explore_create"
+  | "explore_update"
+  | "explore_delete"
+  | "explore_publish"
+  | "explore_unpublish";
 
 export type AdminEntityType =
   | "place"
@@ -33,7 +55,16 @@ export type AdminEntityType =
   | "spawter"
   | "session"
   | "seed_batch"
-  | "review_reports";
+  | "review_reports"
+  | "push_campaign"
+  | "place_event"
+  | "place_promotion"
+  | "challenge"
+  | "place_suggestion"
+  | "b2b_account"
+  | "feature_flag"
+  | "explore_collection"
+  | "explore_item";
 
 export interface AuditEntry {
   action: AdminAction;

@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabaseClient } from "../../utility/supabaseClient";
+import { logAuditActionBestEffort } from "../../lib/audit";
 import {
   SCOPES,
   applyToggle,
@@ -76,6 +77,14 @@ export const FonctionnalitesList = () => {
           .select("id");
         const msg = toggleErrorMessage(error, data?.length ?? 0);
         if (msg) throw new Error(msg);
+        // Audit flag_update (0047) — best-effort : le toggle n'est pas destructif.
+        await logAuditActionBestEffort({
+          action: "flag_update",
+          entity_type: "feature_flag",
+          entity_id: plan.id,
+          payload_before: { flag_code: flagCode, scope, enabled: !plan.enabled },
+          payload_after: { flag_code: flagCode, scope, enabled: plan.enabled },
+        });
       } else {
         const { data, error } = await supabaseClient
           .from("feature_flags")
@@ -90,6 +99,14 @@ export const FonctionnalitesList = () => {
         const msg = toggleErrorMessage(error, data ? 1 : 0);
         if (msg) throw new Error(msg);
         setRows((cur) => (cur ? confirmInsert(cur, tempId, data as FeatureFlagRow) : cur));
+        // Audit flag_update (0047) — la création d'une row = activation du flag.
+        await logAuditActionBestEffort({
+          action: "flag_update",
+          entity_type: "feature_flag",
+          entity_id: (data as FeatureFlagRow).id,
+          payload_before: null,
+          payload_after: { flag_code: plan.flag_code, scope: plan.scope, enabled: plan.enabled },
+        });
       }
     } catch (err) {
       setRows((cur) => (cur ? rollbackToggle(cur, plan, tempId) : cur));

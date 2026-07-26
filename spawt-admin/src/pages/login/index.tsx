@@ -52,7 +52,7 @@ export const LoginPage = () => {
           SPAWT <span style={{ color: "var(--spawt-gold-deep)" }}>admin</span>
         </h1>
         <p style={{ color: "var(--ink-soft)", fontSize: 13, textAlign: "center", marginTop: 0 }}>
-          Connexion réservée à l'équipe interne (spawt_staff).
+          Connexion réservée à l&apos;équipe interne (spawt_staff).
         </p>
         <label style={{ display: "block", marginTop: 16 }}>
           Email
