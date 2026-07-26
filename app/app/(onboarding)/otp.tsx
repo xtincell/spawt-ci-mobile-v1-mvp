@@ -1,8 +1,8 @@
 // Étape OTP — Story 2.3 (FR-001) + #V07 (MAJ consolidée 07/2026)
-// 8 cases auto-advance + auto-submit au 8e chiffre.
-// Phase mock : code universel `12345678` (aligné MOCK_OTP_CODE côté Edge
-// otp-verify) — en démo locale ET en mock serveur. À la bascule SMS réel
-// (Termii, pin 6 chiffres), repasser CELL_COUNT à 6 et retirer ce code.
+// 6 cases auto-advance + auto-submit au 6e chiffre — aligné sur le pin Termii
+// (otp-send envoie pin_length: 6). Tant que le serveur est en mock
+// (MOCK_TERMII non désactivé), le code universel `123456` est accepté — la
+// même longueur en mock et en réel évite un écran qui change à la bascule.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,9 +23,9 @@ import { track } from "../../src/lib/analytics";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
 import { supabase } from "../../src/lib/supabase";
 
-const CELL_COUNT = 8;
+const CELL_COUNT = 6;
 const RESEND_COOLDOWN_S = 30;
-const DEMO_CODE = "12345678";
+const DEMO_CODE = "123456";
 
 // P11 — mask phone for analytics (`+225 XXXXXX 12` style) — pareil que phone.tsx.
 // P-16 round 3 — Si le phone est trop court (deep-link malformé, troncation),

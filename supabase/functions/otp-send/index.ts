@@ -14,7 +14,7 @@
 // `MOCK_TERMII=true`, OU par défaut quand ni `MOCK_TERMII` ni `TERMII_API_KEY`
 // ne sont configurés — un déploiement sans secrets fonctionne donc en mock.
 // En mock : retourne `{success:true, request_id:"mock-..."}` sans SMS ; le code
-// attendu côté otp-verify est `12345678`.
+// attendu côté otp-verify est `123456`.
 //
 // Bascule SMS réel (phase suivante, NE PAS câbler maintenant) :
 //   supabase secrets set TERMII_API_KEY=... MOCK_TERMII=false

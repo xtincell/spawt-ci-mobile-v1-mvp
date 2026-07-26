@@ -254,7 +254,7 @@
     "otp_resend": "Renvoyer le code",
     "otp_resend_cooldown": "Réessayer dans {{seconds}}s",
     "otp_change_phone": "Changer de numéro",
-    "otp_demo_hint": "Mode test : tape 12345678 pour continuer",
+    "otp_demo_hint": "Mode test : tape 123456 pour continuer",
     "otp_friction_title": "Trop d'essais",
     "otp_friction_body": "Renvoyer un code ou changer de numéro pour réessayer.",
     "error_rate_limited": "Trop de codes envoyés. Réessaie dans quelques minutes.",

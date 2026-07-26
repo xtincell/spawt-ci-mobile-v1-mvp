@@ -3,7 +3,7 @@
 // Supabase Auth bout-en-bout.
 //
 // Phase courante (#V07, MAJ consolidée 07/2026) : MODE MOCK par défaut —
-// aucun compte Termii requis, code universel `12345678`, mais la session
+// aucun compte Termii requis, code universel `123456`, mais la session
 // Supabase émise est réelle. Bascule SMS réel (phase suivante) :
 // `supabase secrets set TERMII_API_KEY=... MOCK_TERMII=false`.
 //
@@ -50,7 +50,7 @@ const OTP_RE = /^\d{6,8}$/;
 
 // #V07 (MAJ consolidée 07/2026) — code de test universel du mode mock.
 // Doit rester aligné avec DEMO_CODE côté app (app/app/(onboarding)/otp.tsx).
-const MOCK_OTP_CODE = "12345678";
+const MOCK_OTP_CODE = "123456";
 
 // #V07 — même sémantique que otp-send : mock par défaut sans clé Termii.
 function isMockMode(): boolean {
@@ -139,7 +139,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   if (!pinId) return json({ error: "no_pending_otp" }, req, 400);
 
   // Mock mode (défaut de cette phase) : skip Termii API, accepte le code
-  // de test universel 12345678. La session Supabase émise derrière est RÉELLE
+  // de test universel 123456. La session Supabase émise derrière est RÉELLE
   // (generateLink + verifyOtp) — seul le SMS est mocké.
   if (isMockMode()) {
     if (payload.otp_code !== MOCK_OTP_CODE) return json({ error: "invalid_otp" }, req, 401);
