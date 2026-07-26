@@ -19,7 +19,7 @@ import {
   assertExists,
 } from "https://deno.land/std@0.220.0/assert/mod.ts";
 
-import { handleRequest } from "./index.ts";
+import { handleRequest, claimMeuteHeritage } from "./index.ts";
 
 function makeRequest(body: unknown, init: RequestInit = {}): Request {
   return new Request("http://localhost/otp-verify", {
@@ -136,4 +136,42 @@ Deno.test("otp-verify: response includes CORS headers on all paths", async () =>
   const req = makeRequest({ phone_e164: "+2250707000000", otp_code: "123456" });
   const resp = await handleRequest(req);
   assert(resp.headers.get("access-control-allow-origin") !== null);
+});
+
+// ── Chantier 13 archétypes — héritage Meute STRICTEMENT non bloquant ───────
+// La RPC `claim_meute_heritage` (migration 0033) peut être absente (migration
+// pas encore appliquée), en erreur, ou lever : le helper doit TOUJOURS
+// retourner (null) sans jamais throw — le login n'est jamais cassé.
+
+Deno.test("claimMeuteHeritage: fonction SQL absente (error PostgREST) → null, pas de throw", async () => {
+  const admin = {
+    rpc: () =>
+      Promise.resolve({
+        data: null,
+        error: { message: "function public.claim_meute_heritage does not exist" },
+      }),
+  };
+  const out = await claimMeuteHeritage(admin, "00000000-0000-4000-8000-000000000000", "+2250707000000");
+  assertEquals(out, null);
+});
+
+Deno.test("claimMeuteHeritage: rpc qui throw (réseau) → null, pas de throw", async () => {
+  const admin = {
+    rpc: () => Promise.reject(new Error("network down")),
+  };
+  const out = await claimMeuteHeritage(admin, "00000000-0000-4000-8000-000000000000", "+2250707000000");
+  assertEquals(out, null);
+});
+
+Deno.test("claimMeuteHeritage: succès → relaye le jsonb {claimed, archetype, pionnier_seq}", async () => {
+  const payload = { claimed: true, archetype: "pisteur", pionnier_seq: 42 };
+  const admin = {
+    rpc: (fn: string, args: Record<string, unknown>) => {
+      assertEquals(fn, "claim_meute_heritage");
+      assertEquals(args.p_phone, "+2250707000000");
+      return Promise.resolve({ data: payload, error: null });
+    },
+  };
+  const out = await claimMeuteHeritage(admin, "00000000-0000-4000-8000-000000000000", "+2250707000000");
+  assertEquals(out, payload);
 });

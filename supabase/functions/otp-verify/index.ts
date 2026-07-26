@@ -95,6 +95,50 @@ function synthEmailForUser(userId: string): string {
   return `phone-${userId.replace(/-/g, "")}@phone.spawt.local`;
 }
 
+// ---------------------------------------------------------------------------
+// Chantier 13 archétypes — héritage quiz « La Meute » (migration 0033).
+// Appelle la RPC `claim_meute_heritage(p_spawter_id, p_phone)` (SECURITY
+// DEFINER, idempotente, GRANT service_role) qui matche le résultat quiz par
+// téléphone et retourne jsonb {claimed, archetype, pionnier_seq}.
+//
+// STRICTEMENT NON BLOQUANT (même philosophie que les patterns P-07 de ce
+// fichier) : tout échec — fonction absente (migration pas encore appliquée),
+// erreur SQL, timeout — logge un warning et retourne null. Le login N'EST
+// JAMAIS cassé par l'héritage ; le client peut ignorer `meute_heritage`.
+// ---------------------------------------------------------------------------
+interface MinimalRpcClient {
+  rpc(
+    fn: string,
+    args: Record<string, unknown>,
+  ): Promise<{ data: unknown; error: { message?: string } | null }>;
+}
+
+export async function claimMeuteHeritage(
+  admin: MinimalRpcClient,
+  spawterId: string,
+  phoneE164: string,
+): Promise<unknown | null> {
+  try {
+    const { data, error } = await admin.rpc("claim_meute_heritage", {
+      p_spawter_id: spawterId,
+      p_phone: phoneE164,
+    });
+    if (error) {
+      // Fonction absente (42883 avant migration 0033) ou erreur runtime :
+      // warning + null — jamais de throw vers le flux de login.
+      console.warn("[otp-verify] claim_meute_heritage failed (non-bloquant)", error.message);
+      return null;
+    }
+    return data ?? null;
+  } catch (err) {
+    console.warn(
+      "[otp-verify] claim_meute_heritage threw (non-bloquant)",
+      (err as { message?: string })?.message,
+    );
+    return null;
+  }
+}
+
 export async function handleRequest(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(req) });
   if (req.method !== "POST") {
@@ -342,11 +386,17 @@ export async function handleRequest(req: Request): Promise<Response> {
     return json({ error: "session_user_mismatch" }, req, 500);
   }
 
+  // Chantier 13 archétypes — héritage quiz APRÈS l'émission de session
+  // réussie (le login est déjà acquis à ce point). Non bloquant : null si
+  // échec/absence, le client ignore alors le champ.
+  const meuteHeritage = await claimMeuteHeritage(admin, userId, payload.phone_e164);
+
   return json({
     success: true,
     user_id: userId,
     access_token: verifyData.session.access_token,
     refresh_token: verifyData.session.refresh_token,
+    meute_heritage: meuteHeritage,
   }, req);
 }
 

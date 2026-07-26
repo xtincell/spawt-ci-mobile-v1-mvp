@@ -240,6 +240,13 @@ export default function OtpScreen() {
         access_token?: string;
         refresh_token?: string;
         user_id?: string;
+        // Chantier 13 archétypes — héritage quiz « La Meute » (claim par
+        // téléphone côté Edge, migration 0033). Optionnel et ignorable.
+        meute_heritage?: {
+          claimed?: boolean;
+          archetype?: string | null;
+          pionnier_seq?: number | null;
+        } | null;
       };
       if (!body.access_token || !body.refresh_token) {
         setError(t("auth.error_network"));
@@ -256,6 +263,23 @@ export default function OtpScreen() {
       }
 
       setDraftField("phone_e164", phone);
+      // Chantier 13 archétypes — si l'héritage quiz a été réclamé, on le
+      // stashe dans le draft : finalizeOnboarding en fera l'archétype INITIAL
+      // (au lieu du calcul calibration) + persistera pionnier_seq. En mode
+      // démo (demoMode plus haut), pas d'héritage — comportement inchangé.
+      if (body.meute_heritage?.claimed === true) {
+        setDraftField("meute_heritage", {
+          claimed: true,
+          archetype:
+            typeof body.meute_heritage.archetype === "string"
+              ? body.meute_heritage.archetype
+              : null,
+          pionnier_seq:
+            typeof body.meute_heritage.pionnier_seq === "number"
+              ? body.meute_heritage.pionnier_seq
+              : null,
+        });
+      }
       track({ name: "auth_otp_validated", properties: { method: "phone", success: true } });
       track({ name: "auth_signed_in", properties: { method: "phone" } });
       track({
