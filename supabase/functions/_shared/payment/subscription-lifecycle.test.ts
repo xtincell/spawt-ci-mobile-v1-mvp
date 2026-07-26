@@ -42,6 +42,14 @@ Deno.test("daysUntil: J-3 / J / dépassé", () => {
   assertEquals(daysUntil(now, new Date("2026-07-25T08:00:00.000Z")) < 0, true);
 });
 
+Deno.test("daysUntil: échéance quelques heures plus tard le MÊME jour → 0 (floor, finding P1#2)", () => {
+  // Le cœur du bug J-0 : échéance à 12:00, cron à 08:00 (+4h). ceil renvoyait 1
+  // → le seuil remind_j0 (===0) était inatteignable. floor renvoie 0.
+  const now = new Date("2026-07-26T08:00:00.000Z");
+  assertEquals(daysUntil(now, new Date("2026-07-26T12:00:00.000Z")), 0);
+  assertEquals(daysUntil(now, new Date("2026-07-26T23:59:00.000Z")), 0);
+});
+
 Deno.test("decideLifecycle: active à J-3 → remind_j3", () => {
   const action = decideLifecycle({
     status: "active",
@@ -60,6 +68,32 @@ Deno.test("decideLifecycle: active au jour J → remind_j0", () => {
     now: new Date("2026-07-26T08:00:00.000Z"),
   });
   assertEquals(action.kind, "remind_j0");
+});
+
+Deno.test("decideLifecycle: J-2 et J-1 → none (aucun rappel entre J-3 et J-0)", () => {
+  const expiry = "2026-07-30T12:00:00.000Z"; // échéance à 12:00
+  const jMinus2 = decideLifecycle({
+    status: "active",
+    expires_at: expiry,
+    grace_until: null,
+    now: new Date("2026-07-28T08:00:00.000Z"),
+  });
+  assertEquals(jMinus2.kind, "none");
+  const jMinus1 = decideLifecycle({
+    status: "active",
+    expires_at: expiry,
+    grace_until: null,
+    now: new Date("2026-07-29T08:00:00.000Z"),
+  });
+  assertEquals(jMinus1.kind, "none");
+  // Et le jour J (avant l'heure d'échéance) → remind_j0.
+  const jZero = decideLifecycle({
+    status: "active",
+    expires_at: expiry,
+    grace_until: null,
+    now: new Date("2026-07-30T08:00:00.000Z"),
+  });
+  assertEquals(jZero.kind, "remind_j0");
 });
 
 Deno.test("decideLifecycle: active expirée → grace avec grace_until = échéance + 7 j", () => {

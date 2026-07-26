@@ -11,7 +11,7 @@
 
 import { assertEquals } from "https://deno.land/std@0.220.0/assert/mod.ts";
 
-import { handleRequest, readWebhookFields } from "./index.ts";
+import { handleRequest, isActivatableStatus, readWebhookFields } from "./index.ts";
 
 function resetEnv() {
   Deno.env.delete("SUPABASE_URL");
@@ -97,6 +97,19 @@ Deno.test("payment-webhook: x-token invalide → 400 invalid_signature", async (
   assertEquals(resp.status, 400);
   assertEquals((await resp.json()).error, "invalid_signature");
   resetEnv();
+});
+
+// ── Anti-réactivation (finding P1#5) : replay-sur-expired → no-op ───────────
+// getStatus répond `accepted` à vie ; seule une sub en état INITIAL de paiement
+// peut être activée. Une re-notification d'une vieille transaction sur une sub
+// passée 'expired'/'grace' par le cron ne doit JAMAIS la réactiver.
+Deno.test("isActivatableStatus: n'active que depuis pending/cancelled", () => {
+  assertEquals(isActivatableStatus("pending"), true);
+  assertEquals(isActivatableStatus("cancelled"), true);
+  // Replay-sur-expired / grace / active → refusé (no-op, pas de Gold gratuit).
+  assertEquals(isActivatableStatus("expired"), false);
+  assertEquals(isActivatableStatus("grace"), false);
+  assertEquals(isActivatableStatus("active"), false);
 });
 
 // ── readWebhookFields : tolérance de formats ────────────────────────────────

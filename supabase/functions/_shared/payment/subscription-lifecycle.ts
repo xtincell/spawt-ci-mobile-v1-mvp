@@ -51,11 +51,17 @@ export function computeExpiresAt(plan: PaidPlan, from: Date): Date {
 }
 
 /**
- * Jours entiers restants avant `target` (ceil) — négatif si dépassé.
+ * Jours entiers restants avant `target` (floor) — négatif si dépassé.
  * Le cron tourne 1×/jour : daysLeft===3 → rappel J-3, daysLeft===0 → rappel J.
+ *
+ * floor (et non ceil) : le jour de l'échéance, `target` est encore dans le
+ * futur de quelques heures (échéance 12:00, cron 08:00 → +4h). ceil arrondissait
+ * ce reste à 1 → le seuil `left===0` du rappel J-0 était INATTEIGNABLE (finding
+ * P1#2). floor rend « moins d'un jour restant » = 0, cohérent avec les seuils
+ * J-3/J-0, tout en gardant les multiples exacts de 24 h (72h→3, 0h→0, passé→<0).
  */
 export function daysUntil(now: Date, target: Date): number {
-  return Math.ceil((target.getTime() - now.getTime()) / DAY_MS);
+  return Math.floor((target.getTime() - now.getTime()) / DAY_MS);
 }
 
 export type LifecycleAction =

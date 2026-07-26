@@ -46,6 +46,18 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+/**
+ * États d'une subscription depuis lesquels une confirmation `accepted` PEUT
+ * activer (finding P1#5). getStatus répond `accepted` à vie : sans ce garde, une
+ * re-notification signée d'une vieille transaction réactiverait gratuitement une
+ * sub passée 'expired'/'grace' par le cron (répétable). 'active' est déjà traité
+ * en amont (idempotence). Un vrai renouvellement crée une NOUVELLE sub 'pending'.
+ */
+export const ACTIVATABLE_STATUSES = ["pending", "cancelled"] as const;
+export function isActivatableStatus(status: string): boolean {
+  return (ACTIVATABLE_STATUSES as readonly string[]).includes(status);
+}
+
 /** Log structuré de transition — chaque décision du webhook laisse une trace. */
 function logTransition(fields: Record<string, unknown>): void {
   console.log(JSON.stringify({ evt: "payment_webhook", ...fields }));
@@ -173,6 +185,19 @@ export async function handleRequest(req: Request): Promise<Response> {
   });
 
   if (confirmation.status === "accepted") {
+    // ── Anti-réactivation (finding P1#5) ──────────────────────────────────
+    // N'activer QUE depuis un état INITIAL de paiement. getStatus répond
+    // `accepted` À VIE pour une transaction acceptée : une re-notification
+    // signée d'une vieille transaction ne doit JAMAIS ressusciter une sub que
+    // le cron a passée en 'expired' ou 'grace' — ce serait un Gold gratuit,
+    // répétable. Un vrai renouvellement crée une NOUVELLE sub 'pending'
+    // (nouveau tx_id), il n'emprunte pas ce chemin. 'active' est déjà court-
+    // circuité plus haut (idempotence). La garde `.in(...)` sur l'UPDATE
+    // ci-dessous ferme en plus la fenêtre TOCTOU (fetch → update).
+    if (!isActivatableStatus(sub.status)) {
+      logTransition({ transaction_id: txId, decision: "noop_terminal_status", from_status: sub.status });
+      return json({ received: true, idempotent: true });
+    }
     const startedAt = new Date();
     if (!isPaidPlan(sub.plan)) {
       // Plan hors catalogue (donnée legacy/corrompue) : on ne devine pas
@@ -183,8 +208,11 @@ export async function handleRequest(req: Request): Promise<Response> {
     // B2C comme B2B : mensuels +1 mois, gold_annual +12 (PLAN_PRICING).
     const expiresAt = computeExpiresAt(sub.plan, startedAt);
 
-    // Activation — garde .neq('status','active') : deux notifications
-    // concurrentes ne peuvent pas activer deux fois (la 2e ne matche plus).
+    // Activation — garde atomique `.in('status', ['pending','cancelled'])` :
+    // (1) deux notifications concurrentes ne peuvent pas activer deux fois (la
+    // 2e voit 'active', hors liste, ne matche plus) ; (2) une sub 'expired'/
+    // 'grace' n'est jamais réactivée même si le check ci-dessus était contourné
+    // par une course (finding P1#5).
     const { data: updated, error: updErr } = await admin
       .from("subscriptions")
       .update({
@@ -194,7 +222,7 @@ export async function handleRequest(req: Request): Promise<Response> {
         grace_until: null,
       })
       .eq("id", sub.id)
-      .neq("status", "active")
+      .in("status", [...ACTIVATABLE_STATUSES])
       .select("id");
     if (updErr) {
       logTransition({ transaction_id: txId, decision: "db_error_activate", detail: updErr.message });
