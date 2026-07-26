@@ -353,7 +353,8 @@
       "demographics_consent_request": "Quelques infos sur toi pour que le Chat connaisse mieux sa bande. Toujours optionnel.",
       "home_edito": "Aujourd'hui je te propose 3 spawts à ton goût. Trie ton choix.",
       "search_suggestions": "Essaie : maquis, café, à 2 km",
-      "guet_prompt": ""
+      "guet_prompt": "",
+      "archetype_mue": "Je te sens différent. Tes derniers spawts disent {{archetype}}."
     },
     "explorateur": {
       "welcome_first_open": "",
@@ -369,7 +370,8 @@
       "demographics_consent_request": "",
       "home_edito": "Pas mal de nouveaux endroits cette semaine. J'en mets 3 pour toi.",
       "search_suggestions": "Tente : libanaise, Yopougon, soirée",
-      "guet_prompt": ""
+      "guet_prompt": "",
+      "archetype_mue": "Je te sens différent. Tes derniers spawts disent {{archetype}}."
     },
     "detective": {
       "welcome_first_open": "",
@@ -385,7 +387,8 @@
       "demographics_consent_request": "",
       "home_edito": "Les bons spawts sont là. Toi, choisis.",
       "search_suggestions": "Cherche : ouest-africaine, premium, pépite vérifiée",
-      "guet_prompt": ""
+      "guet_prompt": "",
+      "archetype_mue": "Ton flair a tourné. Tes derniers spawts disent {{archetype}}."
     },
     "djidji": {
       "welcome_first_open": "",
@@ -401,7 +404,8 @@
       "demographics_consent_request": "",
       "home_edito": "La sélection est fine aujourd'hui. Prends ton temps.",
       "search_suggestions": "Aujourd'hui : tu sais ce que tu veux",
-      "guet_prompt": ""
+      "guet_prompt": "",
+      "archetype_mue": "Tu as changé de registre. Tes derniers spawts disent {{archetype}}."
     },
     "guide": {
       "welcome_first_open": "",
@@ -417,7 +421,8 @@
       "demographics_consent_request": "",
       "home_edito": "",
       "search_suggestions": "",
-      "guet_prompt": ""
+      "guet_prompt": "",
+      "archetype_mue": ""
     }
   },
   "stade": {
@@ -433,7 +438,108 @@
     "detective": "Détective",
     "djidji": "Djidji",
     "guide": "Guide",
-    "premier_spawt": "Premier Spawt"
+    "premier_spawt": "Premier Spawt",
+    "archetype": {
+      "omnivore": "Omnivore",
+      "gardien": "Gardien du Maquis",
+      "ancre": "Ancre Fidèle",
+      "bouchedor": "Bouche d'Or",
+      "braise": "Feu de Braise",
+      "memoire": "Mémoire Vive",
+      "pisteur": "Pisteur de Rue",
+      "vent": "Vent d'Ailleurs",
+      "fantome": "Fantôme Furtif",
+      "murmure": "Murmure de Cour",
+      "oeil": "Œil de Chat",
+      "lame": "Fine Lame",
+      "passeport": "Passeport Doré"
+    }
+  },
+  "archetype": {
+    "rarity": {
+      "commun": "Commun",
+      "rare": "Rare",
+      "epique": "Épique",
+      "legendaire": "Légendaire"
+    },
+    "omnivore": {
+      "name": "Omnivore",
+      "epithet": "Caméléon",
+      "motto": "Mange tout. Juge tout. N'appartient à aucune case.",
+      "portrait": "Tu manges tout, tu juges tout, et tu n'appartiens à aucune case — c'est exactement ce qui te définit."
+    },
+    "gardien": {
+      "name": "Gardien du Maquis",
+      "epithet": "Habitué",
+      "motto": "Pourquoi chercher ailleurs quand tu as trouvé le bon ?",
+      "portrait": "Tu as trouvé le bon, alors tu restes. Ton maquis te connaît, ta commande arrive avant que tu parles."
+    },
+    "ancre": {
+      "name": "Ancre Fidèle",
+      "epithet": "Point Fixe",
+      "motto": "La fidélité est une forme d'expertise.",
+      "portrait": "Tu as une belle table, et c'est LA tienne. Tu reviens, on te reconnaît, on te soigne."
+    },
+    "bouchedor": {
+      "name": "Bouche d'Or",
+      "epithet": "Bec Fin",
+      "motto": "Le palais n'a pas de frontières, mais il a des standards.",
+      "portrait": "Tu explores large, mais tu ne descends jamais en gamme. Nouveau oui — médiocre jamais."
+    },
+    "braise": {
+      "name": "Feu de Braise",
+      "epithet": "Étincelle",
+      "motto": "Manger seul c'est se nourrir. Ensemble, c'est vivre.",
+      "portrait": "Manger seul ? Aucun sens. Tu sors pour les gens autant que pour l'assiette."
+    },
+    "memoire": {
+      "name": "Mémoire Vive",
+      "epithet": "Nostalgique",
+      "motto": "Le vrai goût ne se réinvente pas. Il se transmet.",
+      "portrait": "Pour toi, le vrai goût ne s'invente pas, il se transmet. Tu cherches le plat de ton enfance."
+    },
+    "pisteur": {
+      "name": "Pisteur de Rue",
+      "epithet": "Petit Pisteur",
+      "motto": "Le nez au vent, les pieds dans la poussière.",
+      "portrait": "Tu n'as pas de spot préféré, tu as un territoire. Le maquis sans enseigne, la ruelle que Google ignore."
+    },
+    "vent": {
+      "name": "Vent d'Ailleurs",
+      "epithet": "Brise",
+      "motto": "Chaque assiette est un billet d'avion.",
+      "portrait": "Chaque assiette est un billet d'avion. Tu chasses les cuisines du monde, le dépaysement dans ta ville."
+    },
+    "fantome": {
+      "name": "Fantôme Furtif",
+      "epithet": "Petite Ombre",
+      "motto": "Tu ne le trouves pas. C'est lui qui te trouve.",
+      "portrait": "On ne te trouve pas, c'est toi qui trouves. Trois recos sur un spot et tu n'iras jamais."
+    },
+    "murmure": {
+      "name": "Murmure de Cour",
+      "epithet": "Chuchoteur",
+      "motto": "Les meilleurs spots ne sont pas sur Google.",
+      "portrait": "Les meilleurs spots ne sont pas sur Google, et tu en es la preuve. Ton savoir se transmet à voix basse."
+    },
+    "oeil": {
+      "name": "Œil de Chat",
+      "epithet": "Œil Neuf",
+      "motto": "Si c'est moyen, ça n'existe pas.",
+      "portrait": "Si c'est moyen, pour toi ça n'existe pas. Tu repères le détail qui cloche à dix mètres."
+    },
+    "lame": {
+      "name": "Fine Lame",
+      "epithet": "Tranchant",
+      "motto": "Le détail sépare le bon du mémorable.",
+      "portrait": "Le détail sépare le bon du mémorable, et tu ne vois que le détail. Tu vises le haut."
+    },
+    "passeport": {
+      "name": "Passeport Doré",
+      "epithet": "Curieux Doré",
+      "motto": "La grande table n'a pas de nationalité.",
+      "portrait": "La grande table n'a pas de nationalité pour toi. Tu cherches le raffinement partout."
+    }
   },
   "profile": {
     "onboarding_pending": "Onboarding pas terminé.",
@@ -464,6 +570,10 @@
     "link_spawts_stub": "Cet écran arrive au prochain sprint.",
     "link_avis_stub": "Cet écran arrive au prochain sprint.",
     "link_settings_stub": "Cet écran arrive au prochain sprint.",
+    "archetype_section_title": "TON ARCHÉTYPE",
+    "archetype_card_aria": "Carte d'archétype {{name}}",
+    "pionnier_badge": "Pionnier n°{{n}}",
+    "mue_ack": "C'est noté",
     "reset_demo": "Réinitialiser le compte (mode démo)",
     "about_title": "À propos",
     "build_format": "v{{version}} — build {{n}} ({{date}})",
@@ -495,6 +605,7 @@
   "palais_reveal": {
     "first_title": "Voici ton palais",
     "first_title_subtitle": "Plus tu Spawtes, plus il est précis.",
+    "heritage_mention": "Pionnier n°{{n}} de la Meute — ton flair de {{archetype}} te suit.",
     "continue": "Rejoindre la bande"
   },
   "place": {

@@ -1,8 +1,16 @@
-// PRD §3.1 FR-008 + §5.4 — Catalogue des titres Sprint 1.
+// PRD §3.1 FR-008 + §5.4 — Catalogue des titres Sprint 1 + archétypes.
 // Sprint 1 = 5 titres de base (1 par stade) + 1 badge bonus `Premier Spawt` (D4).
-// V1.5+ ajoutera les titres d'archétype / de mue (PRD §6.3).
+// Chantier 13 archétypes (PRD final §5.5/§6.3) : les 13 titres d'archétype
+// (`title.archetype.<key>`) entrent dans la collection à l'assignation
+// initiale et à chaque mue — mémoire d'identité, PAS un trophée.
+//
+// ⚠️ Source DB : la CHECK constraint de `collection_titres.source`
+// (migration 0014) n'accepte que 'stade' | 'badge'. Les titres d'archétype
+// sont donc insérés avec source='badge' (le title_key `title.archetype.*`
+// suffit à les distinguer). Ne pas ajouter 'archetype' au type sans migration.
 
 import type { Stade } from "../types/stade";
+import { ARCHETYPE_TITLE_KEYS } from "../data/archetypes";
 
 /** Source d'un titre (table `collection_titres.source`). */
 export type TitleSource = "stade" | "badge";
@@ -25,11 +33,13 @@ export const STADE_TITLE_KEYS: Record<Stade, string> = {
 /** Badge bonus Sprint 1 (drift D4 — pas d'autres jalons V1). */
 export const PREMIER_SPAWT_TITLE_KEY = "title.premier_spawt";
 
-/** Vérifie qu'une clé est connue du catalogue V1 (anti-typo + anti-drift). */
+/** Vérifie qu'une clé est connue du catalogue (anti-typo + anti-drift).
+ *  Couvre : 5 titres de stade + badge Premier Spawt + 13 titres d'archétype. */
 export function isKnownTitleKey(key: string): boolean {
   return (
     Object.values(STADE_TITLE_KEYS).includes(key) ||
-    key === PREMIER_SPAWT_TITLE_KEY
+    key === PREMIER_SPAWT_TITLE_KEY ||
+    ARCHETYPE_TITLE_KEYS.includes(key)
   );
 }
 
