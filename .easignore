@@ -28,6 +28,13 @@ yarn-error.log*
 *.p8
 *.p12
 *.mobileprovision
+# Service account Google Play + credentials de soumission : jamais dans le
+# tarball EAS (le .gitignore les exclut de git, mais .easignore le REMPLACE
+# pour l'archive — sans cette ligne ils partiraient chez EAS).
+# NB : google-services.json n'est PAS listé ici — il est requis au build FCM
+# (identifiants publics, pas un secret).
+app/secrets/
+**/secrets/
 
 # ━━━ Builds / caches (mirror .gitignore) ━━━
 dist/

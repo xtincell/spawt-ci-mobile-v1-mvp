@@ -118,11 +118,15 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Resolve platform/profile
-        # Tag build-ios-* → ios/production ; build-android-* → android/preview ;
-        # workflow_dispatch → inputs.
+        # Tag build-ios-* → ios/production ; build-android-prod-* → android/
+        # production (.aab store) ; build-android-* → android/preview (APK
+        # alpha) ; workflow_dispatch → inputs.
         run: |
           if [[ "$GITHUB_REF" == refs/tags/build-ios-* ]]; then
             echo "BUILD_PLATFORM=ios" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=production" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_REF" == refs/tags/build-android-prod-* ]]; then
+            echo "BUILD_PLATFORM=android" >> "$GITHUB_ENV"
             echo "BUILD_PROFILE=production" >> "$GITHUB_ENV"
           elif [[ "$GITHUB_REF" == refs/tags/build-android-* ]]; then
             echo "BUILD_PLATFORM=android" >> "$GITHUB_ENV"
