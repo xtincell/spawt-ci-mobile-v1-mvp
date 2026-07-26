@@ -112,17 +112,50 @@ Deno.test("otp-send: response includes CORS headers on all paths", async () => {
 
 import { isReviewerPhone } from "./index.ts";
 
-Deno.test("isReviewerPhone: env absente → false", () => {
+function clearReviewerEnv() {
   // @ts-expect-error — Deno global
   Deno.env.delete("REVIEWER_PHONE_E164");
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_OTP_CODE");
+}
+
+Deno.test("isReviewerPhone: env absente → false", () => {
+  clearReviewerEnv();
   if (isReviewerPhone("+2250700000001") !== false) throw new Error("attendu false");
 });
 
-Deno.test("isReviewerPhone: CSV avec espaces → match exact", () => {
+Deno.test("isReviewerPhone: CSV avec espaces + code posé → match exact", () => {
   // @ts-expect-error — Deno global
   Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001 , +2250700000002");
+  // @ts-expect-error — Deno global — le skip-SMS exige aussi un code bien formé.
+  Deno.env.set("REVIEWER_OTP_CODE", "424242");
   if (isReviewerPhone("+2250700000002") !== true) throw new Error("attendu true");
   if (isReviewerPhone("+2250700000009") !== false) throw new Error("attendu false");
+  clearReviewerEnv();
+});
+
+// finding P2#11 — le skip-SMS d'otp-send DOIT s'aligner sur le login d'otp-verify.
+// Un numéro whitelisté SANS REVIEWER_OTP_CODE (ou code malformé) ne doit PAS
+// déclencher le skip-SMS : sinon le numéro ne reçoit plus de SMS ET n'a pas de
+// code reviewer → inloggable.
+Deno.test("isReviewerPhone: numéro whitelisté mais REVIEWER_OTP_CODE absent → false (P2#11)", () => {
   // @ts-expect-error — Deno global
-  Deno.env.delete("REVIEWER_PHONE_E164");
+  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001");
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_OTP_CODE");
+  if (isReviewerPhone("+2250700000001") !== false) {
+    throw new Error("attendu false — pas de skip-SMS sans code reviewer exploitable");
+  }
+  clearReviewerEnv();
+});
+
+Deno.test("isReviewerPhone: REVIEWER_OTP_CODE malformé (trop court) → false (P2#11)", () => {
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001");
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_OTP_CODE", "42");
+  if (isReviewerPhone("+2250700000001") !== false) {
+    throw new Error("attendu false — code malformé ne doit pas activer le skip-SMS");
+  }
+  clearReviewerEnv();
 });

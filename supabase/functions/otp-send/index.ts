@@ -25,6 +25,8 @@
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { isReviewerPhone as isReviewerPhoneShared } from "../_shared/reviewer.ts";
+
 // @ts-expect-error — Deno global
 declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Promise<Response> | Response) => void };
 
@@ -51,12 +53,14 @@ function isMockMode(): boolean {
 // SMS envoyé même en mode live (le reviewer Apple/Google valide avec le code
 // fixe REVIEWER_OTP_CODE côté otp-verify). Les rate limits et l'audit
 // otp_attempts s'appliquent normalement.
+//
+// finding P2#11 — le skip-SMS repose sur le MÊME prédicat que le login
+// (`_shared/reviewer.ts`) : on ne prive un numéro de SMS QUE si le chemin
+// reviewer est réellement exploitable (REVIEWER_OTP_CODE posé et bien formé),
+// sinon le numéro serait brické (ni SMS, ni code reviewer). Wrapper Deno.env
+// pour garder la signature testée `isReviewerPhone(phone)`.
 export function isReviewerPhone(phoneE164: string): boolean {
-  const phones = (Deno.env.get("REVIEWER_PHONE_E164") ?? "")
-    .split(",")
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-  return phones.includes(phoneE164);
+  return isReviewerPhoneShared(phoneE164, Deno.env);
 }
 
 // P-11 — CORS restreint via `ALLOWED_ORIGINS` (CSV). Pas de wildcard `*` car

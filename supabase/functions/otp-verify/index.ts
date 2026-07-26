@@ -35,6 +35,8 @@
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { isReviewerLogin as isReviewerLoginShared } from "../_shared/reviewer.ts";
+
 // @ts-expect-error — Deno global
 declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Promise<Response> | Response) => void };
 
@@ -68,14 +70,12 @@ function isMockMode(): boolean {
 // doivent être posées pour activer le chemin ; sinon comportement inchangé.
 // Un mauvais code sur un numéro whitelisté retombe sur le flux normal (le
 // numéro reste utilisable en SMS réel).
+//
+// finding P2#11 — source UNIQUE `_shared/reviewer.ts`, partagée avec le
+// skip-SMS d'otp-send : le prédicat « numéro reviewer actif » est identique des
+// deux côtés. Wrapper Deno.env pour garder la signature testée.
 export function isReviewerLogin(phoneE164: string, otpCode: string): boolean {
-  const phones = (Deno.env.get("REVIEWER_PHONE_E164") ?? "")
-    .split(",")
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-  const code = Deno.env.get("REVIEWER_OTP_CODE") ?? "";
-  if (phones.length === 0 || !OTP_RE.test(code)) return false;
-  return phones.includes(phoneE164) && otpCode === code;
+  return isReviewerLoginShared(phoneE164, otpCode, Deno.env);
 }
 
 // P-11 — CORS restreint : la liste blanche est lue depuis `ALLOWED_ORIGINS`
