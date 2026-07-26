@@ -189,13 +189,18 @@ mots-clés, screenshots, catégorie **Food & Drink**) et le formulaire **App Pri
 Le reviewer d'Apple est seul devant l'app, quelque part en Californie — il doit pouvoir
 se connecter **sans nous**. Trois options, de la plus recommandée à la moins bonne :
 
-1. **Recommandé — numéro de test whitelisté côté serveur** : demander à la tech
-   d'ajouter une petite allowlist dans la fonction OTP (`otp-verify`) : pour UN numéro
-   dédié (ex. `+225 07 00 00 00 01`, une SIM de l'équipe), un code fixe est accepté,
-   pendant que **tous les autres numéros reçoivent le vrai SMS Termii**. C'est la solution
-   la plus honnête : le pipeline réel reste actif pour le monde entier, et on documente
-   noir sur blanc à Apple « demo number X, verification code Y ». Apple accepte
-   parfaitement les comptes démo ainsi documentés.
+1. **Recommandé — numéro de test whitelisté côté serveur** : ✅ **déjà implémenté**
+   dans `otp-send`/`otp-verify` (version finale 07/2026). À activer : poser DEUX
+   variables d'environnement sur les Edge Functions (Coolify/Supabase) :
+   - `REVIEWER_PHONE_E164` = le(s) numéro(s) de démo au format E.164, séparés par des
+     virgules (ex. `+2250700000001`)
+   - `REVIEWER_OTP_CODE` = le code fixe (6 chiffres, PAS `123456`, ex. `842917`)
+
+   Comportement : ce numéro ne reçoit aucun SMS et se connecte avec le code fixe,
+   pendant que **tous les autres numéros reçoivent le vrai SMS Termii**. Rate limits
+   et audit inchangés. On documente noir sur blanc à Apple « demo number X,
+   verification code Y ». Apple accepte parfaitement les comptes démo ainsi
+   documentés. ⚠️ Après la review : retirer ou changer `REVIEWER_OTP_CODE`.
    - Variante pour la QA interne (TestFlight équipe, pas pour le reviewer) : un vrai
      numéro d'équipe avec l'OTP réel reçu par SMS — impossible pour le reviewer
      (personne pour lui relayer le code), très bien pour nous.
