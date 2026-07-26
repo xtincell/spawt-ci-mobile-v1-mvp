@@ -4,6 +4,15 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## v1.7.0 — Les 13 archétypes + héritage quiz « La Meute » (2026-07-26)
+
+**PRD final §5.5 : l'app passe de 5 à 13 archétypes, avec la mue (constat neutre) et l'héritage du résultat quiz à la première connexion. Branche `claude/app-finale-ios-android-f8ewrp`. Triple gate verte (457 jest, tsc 0, vocab, i18n).**
+
+- `feat(archetypes)` moteur `archetype-engine.ts` porté fidèlement du quiz (parité vérifiée par 20 fixtures générées par le moteur JS du quiz — `app/scripts/gen-archetype-fixtures.mjs` ; conversion Palais [-1,1]→[-2,2] ×2, **aucun axe inversé**, garde-fous omnivore reproduits) ; catalogue 13 (codes SPWT-XX-NNN, raretés, paires) + 13 visuels webp (~1,4 Mo) ; strings via i18n `archetype.*`.
+- `feat(archetypes)` **mue** = constat neutre : inertie PRD §5.5 (candidat identique sur 5 recalculs consécutifs, compteur AsyncStorage), event `archetype_mue`, titre `title.archetype.*` en collection (source `'badge'`, CHECK 0014 inchangée), bulle de Chat sobre sur le profil (silencieuse au stade Guide). Archétype initial calculé à la fin de la calibration (event `archetype_assigned`).
+- `feat(heritage)` `otp-verify` appelle la RPC `claim_meute_heritage` (contrat migration 0033) **après** l'émission de session, strictement non bloquant (P-07) — réponse enrichie `meute_heritage` ; l'app en fait l'archétype INITIAL + `pionnier_seq` (badge « Pionnier n°X », mention sur l'écran de révélation). Mode démo inchangé. Colonnes `spawters.quiz_archetype`/`pionnier_seq` = archétype courant (UPDATE ciblé + rattrapage hydrate live).
+- `feat(ui)` `ArchetypeCard` (visuel + nom + code + rareté + devise, fallback typographique tokens-only) sur `palais-reveal` (animation sobre FadeInDown, R8 : radar toujours interne) et l'onglet profil.
+
 ## v1.6.0 — MAJ consolidée MVP V1 : retours build 04/06 + alignement DS (2026-07-07)
 
 **Note consolidée Stephanie Bidje (rédaction Alexandre Djengue, data Kidam Balle) : correctifs R1→R21 + décisions Q1→Q3 appliqués, design system aligné sur les 3 surfaces (app, admin, quiz). Branche `spawt/v1-maj-consolidee`. Quadruple gate verte (403 tests mobile, 29 vitest admin, 20 tests Deno Edge).**
