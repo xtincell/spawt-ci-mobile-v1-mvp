@@ -16,6 +16,11 @@
 //   400 → signature invalide ou payload illisible.
 //   405 → méthode ≠ POST.
 //
+// Plans couverts : B2C (gold_monthly / gold_annual) ET B2B lieux (pro /
+// b2b_gold). À l'activation d'un plan B2B, le rôle b2b_accounts du compte
+// payeur est synchronisé (pro→'pro', b2b_gold→'gold') ; à l'expiration le
+// rôle n'est JAMAIS rétrogradé automatiquement — acte humain (voir plus bas).
+//
 // ⚠️ Déploiement : cette fonction doit être déployée avec `--no-verify-jwt`
 // (CinetPay n'envoie pas de JWT Supabase).
 //
@@ -24,7 +29,7 @@
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-import { isGoldPlan } from "../_shared/payment/types.ts";
+import { b2bRoleForPlan, isB2bPlan, isPaidPlan } from "../_shared/payment/types.ts";
 import { createPaymentProvider, PaymentConfigError } from "../_shared/payment/factory.ts";
 import { computeExpiresAt } from "../_shared/payment/subscription-lifecycle.ts";
 
@@ -169,11 +174,13 @@ export async function handleRequest(req: Request): Promise<Response> {
 
   if (confirmation.status === "accepted") {
     const startedAt = new Date();
-    if (!isGoldPlan(sub.plan)) {
-      // Plan hors périmètre B2C (pro / b2b_gold) : pas d'échéance auto ici.
-      logTransition({ transaction_id: txId, decision: "ignored_non_gold_plan", plan: sub.plan });
-      return json({ received: true, ignored: "non_gold_plan" });
+    if (!isPaidPlan(sub.plan)) {
+      // Plan hors catalogue (donnée legacy/corrompue) : on ne devine pas
+      // d'échéance — trace + 200 (rien à retenter côté CinetPay).
+      logTransition({ transaction_id: txId, decision: "ignored_unknown_plan", plan: sub.plan });
+      return json({ received: true, ignored: "unknown_plan" });
     }
+    // B2C comme B2B : mensuels +1 mois, gold_annual +12 (PLAN_PRICING).
     const expiresAt = computeExpiresAt(sub.plan, startedAt);
 
     // Activation — garde .neq('status','active') : deux notifications
@@ -211,10 +218,59 @@ export async function handleRequest(req: Request): Promise<Response> {
       logTransition({ transaction_id: txId, decision: "warn_supersede_failed", detail: superErr.message });
     }
 
+    // ── Synchronisation du rôle B2B (0043) — le paiement OUVRE le droit ─────
+    // pro → role 'pro', b2b_gold → role 'gold' sur le compte payeur
+    // (customers.spawter_id porte l'auth_user_id du compte B2B, cf. checkout).
+    // Le plan PAYÉ est la source de vérité du rôle à l'activation.
+    //
+    // DÉCISION PRODUIT (sens unique) : la synchro ne joue qu'à l'ACTIVATION.
+    // À l'expiration (payment-cron passe la subscription 'expired' après la
+    // grâce), le rôle n'est PAS rétrogradé automatiquement — la coupure
+    // d'accès B2B est un ACTE HUMAIN (relance commerciale, geste, résiliation
+    // négociée) ; le dashboard portail affiche « abonnement expiré » en
+    // attendant la décision de l'équipe.
+    if (isB2bPlan(sub.plan)) {
+      const { data: payerCustomer, error: payerErr } = await admin
+        .from("customers")
+        .select("spawter_id")
+        .eq("id", sub.customer_id)
+        .maybeSingle();
+      if (payerErr || !payerCustomer) {
+        logTransition({
+          transaction_id: txId,
+          decision: "warn_b2b_customer_lookup_failed",
+          detail: payerErr?.message ?? "customer_not_found",
+        });
+      } else {
+        const role = b2bRoleForPlan(sub.plan);
+        const { data: syncedAccounts, error: roleErr } = await admin
+          .from("b2b_accounts")
+          .update({ role })
+          .eq("auth_user_id", payerCustomer.spawter_id)
+          .select("id");
+        if (roleErr) {
+          // Droit actif mais rôle non synchronisé : log fort pour rattrapage
+          // admin — on ne casse pas le 200, CinetPay n'y peut rien.
+          logTransition({
+            transaction_id: txId,
+            decision: "warn_b2b_role_sync_failed",
+            detail: roleErr.message,
+          });
+        } else if (!syncedAccounts || syncedAccounts.length === 0) {
+          logTransition({ transaction_id: txId, decision: "warn_b2b_account_not_found" });
+        } else {
+          logTransition({ transaction_id: txId, decision: "b2b_role_synced", role });
+        }
+      }
+    }
+
     // Facture payée — mécanique 0032 : le trigger BEFORE INSERT pose
     // invoice_number (next_invoice_number, SPAWT-YYYY-NNNN), tva_amount et
     // price_ttc quand on ne les fournit pas. Garde anti-doublon : une facture
     // existe déjà pour ce provider_tx_id → skip (webhook rejoué).
+    // B2B comme B2C : on pose price_ht + tva_rate (18 %), le trigger complète
+    // tva_amount/price_ttc — la facture porte donc bien HT + TVA + TTC, et le
+    // portail B2B affiche HT + TVA (convention PRD prix professionnels).
     const { data: existingInvoice, error: invCheckErr } = await admin
       .from("invoices")
       .select("id")
