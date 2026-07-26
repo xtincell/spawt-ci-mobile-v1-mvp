@@ -35,9 +35,11 @@ import {
   deleteSavedPlace,
   updateSpawterArchetype,
   fetchSpawterArchetype,
+  claimMeuteHeritage,
   fetchGoldEntitlement,
   type GoldEntitlement,
 } from "../lib/data-source";
+import { applyMeuteHeritage } from "../lib/meute-heritage";
 // Sprint 2 Gold — cache module synchrone (isGoldSpawter) + persistance locale.
 import {
   GOLD_STORAGE_KEY,
@@ -88,6 +90,9 @@ import {
   notifySpawtVerified,
   useProgressionStore,
 } from "./progression-store";
+// Cycle runtime-only (crew-store importe spawter-store, usage réciproque
+// uniquement dans les actions) — utilisé par reset() pour purger le Crew (P2#7).
+import { useCrewStore } from "./crew-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { track } from "../lib/analytics";
@@ -692,12 +697,56 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
 
     // 3. Fire-and-forget Supabase — règle d'or project-context.
     // P16 — capture unhandled rejection en `__DEV__` log warn pour traçabilité.
-    void saveSpawter(spawter).catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] saveSpawter finalize failed", err);
-    });
     void savePalais(palais).catch((err) => {
       if (__DEV__) console.warn("[spawter-store] savePalais finalize failed", err);
     });
+    // saveSpawter PUIS rattrapage héritage « La Meute » (finding P0). Le claim
+    // d'otp-verify au 1er login échoue (la ligne spawters n'existe pas encore) ;
+    // ici la ligne vient d'être upsertée, on re-claim : la RPC 0051 (GRANT
+    // authenticated) écrase l'archétype calculé localement par l'archétype quiz
+    // hérité + pose le n° Pionnier. Best-effort, jamais bloquant ; sauté si
+    // l'héritage a déjà été appliqué au passage OTP (inheritedArchetype).
+    void (async () => {
+      try {
+        await saveSpawter(spawter);
+      } catch (err) {
+        if (__DEV__) console.warn("[spawter-store] saveSpawter finalize failed", err);
+        return; // la ligne n'est peut-être pas côté serveur → ne pas re-claim
+      }
+      if (inheritedArchetype) return;
+      try {
+        const claim = await claimMeuteHeritage(id, spawter.phone_e164);
+        const cur = get().spawter;
+        if (!cur || cur.id !== id) return; // compte changé entretemps
+        const applied = applyMeuteHeritage(cur, get().palais, claim);
+        if (!applied) return;
+        await saveSpawterLocal(applied.spawter);
+        if (applied.palais) await savePalaisLocal(applied.palais);
+        // Re-vérifie l'identité APRÈS les I/O (course logout/login).
+        if (get().spawter?.id !== id) return;
+        set(applied.palais ? { spawter: applied.spawter, palais: applied.palais } : { spawter: applied.spawter });
+        // Analytics : seulement pour un claim FRAIS (pas une ré-adoption au
+        // re-login/réinstallation, already_claimed) — évite le double-comptage.
+        if (claim?.claimed) {
+          track({
+            name: "archetype_assigned",
+            properties: {
+              archetype: applied.spawter.quiz_archetype,
+              source: "meute_heritage",
+              runner_up: null,
+              pionnier_seq: applied.spawter.pionnier_seq,
+            },
+          });
+        }
+        void get()
+          .unlockTitle(applied.titleKey, "badge")
+          .catch((err) => {
+            if (__DEV__) console.warn("[spawter-store] unlockTitle heritage failed", err);
+          });
+      } catch (err) {
+        if (__DEV__) console.warn("[spawter-store] adopt meute heritage failed", err);
+      }
+    })();
 
     set({ spawter, palais });
 
@@ -1045,11 +1094,31 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       // nouveau compte repartirait sinon avec l'anti-replay du précédent).
       BADGES_SEEN_KEY,
       CARDS_SEEN_KEY,
+      // finding P2#7 — caches feature V2 oubliés à la purge : résas, suggestions
+      // de lieux, dernière session Crew et token push. Sans ça, les résas /
+      // suggestions / la session Crew d'un ancien compte restent visibles sur le
+      // même device, et le token push reste rattaché à l'ancien compte. Clés en
+      // dur (les modules propriétaires importent spawter-store → pas d'import
+      // statique ici pour éviter un cycle) — verrouillées par un test de dérive.
+      "spawt:reservations", // reservations.ts STORAGE_KEY
+      "spawt:place-suggestions", // place-suggestions.ts STORAGE_KEY
+      "spawt:crew:last-session", // crew-store CREW_SESSION_STORAGE_KEY
+      "spawt:push:token", // push-token.ts PUSH_TOKEN_STORAGE_KEY
       ...STADE_ORDER.map((s) => `${STADE_CELEBRATED_KEY}:${s}`),
     ];
     void AsyncStorage.multiRemove(keysToPurge).catch((err) => {
       if (__DEV__) console.warn("[spawter-store] reset multiRemove failed", err);
     });
+    // Crew : vide l'état transient en mémoire (session/membres/propositions) et
+    // la référence persistée du compte précédent (finding P2#7). Le cycle
+    // crew-store ⇄ spawter-store est runtime-only des deux côtés (aucun usage à
+    // l'initialisation), donc sûr sous Metro.
+    void useCrewStore
+      .getState()
+      .leave()
+      .catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] crew leave on reset failed", err);
+      });
     // CR finding M7 — vide aussi le guard in-flight pour que le prochain user
     // puisse célébrer chaque stade comme un nouveau parcours.
     __celebrationInFlight.clear();

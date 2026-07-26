@@ -139,6 +139,21 @@ export async function fetchSpawterArchetype(
   return fetchSpawterArchetypeFromSupabase(spawter_id);
 }
 
+/**
+ * Réclame l'héritage quiz « La Meute » (RPC `claim_meute_heritage`, 0051) pour
+ * le spawter courant. À appeler APRÈS l'upsert de la ligne spawters (la RPC
+ * l'UPDATE). Mode démo → null. Best-effort : le caller ignore l'héritage et
+ * garde l'archétype calculé localement en cas de null.
+ */
+export async function claimMeuteHeritage(
+  spawter_id: string,
+  phone_e164: string,
+): Promise<{ claimed: boolean; archetype: string | null; pionnier_seq: number | null } | null> {
+  if (!isSupabaseConfigured) return null;
+  const { claimMeuteHeritageInSupabase } = await import("./data-source.supabase");
+  return claimMeuteHeritageInSupabase(spawter_id, phone_e164);
+}
+
 // ─── Story 5.1 — progression par stade ──────────────
 
 export interface ProgressionRow {

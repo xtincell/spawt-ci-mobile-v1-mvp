@@ -110,7 +110,7 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
     // Changement de compte : repartir d'un état vierge avant de charger.
     if (get().spawterId && get().spawterId !== spawter_id) get().reset();
     if (__hydrateInFlight) return __hydrateInFlight;
-    __hydrateInFlight = (async () => {
+    const run = async (): Promise<void> => {
       try {
         set({ loading: true, spawterId: spawter_id });
         const [badges, cards, pawsBalance, pawsLedger, streak, challenges] =
@@ -122,6 +122,12 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
             getMyStreak(spawter_id),
             listActiveChallenges(),
           ]);
+
+        // finding P2#13 — le compte a pu changer pendant le fetch (logout →
+        // re-login d'un autre compte) : NE PAS écrire les données de A dans le
+        // store de B (ni ses sets « déjà vu »). reset() a invalidé le guard
+        // in-flight, donc B a lancé sa propre hydratation ; on abandonne A ici.
+        if (get().spawterId !== spawter_id) return;
 
         // ── Diff badges → file de célébrations ──────────────────────────────
         const freshCodes = badges.unlocked.map((b) => b.badge_code);
@@ -169,12 +175,20 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
         });
       } catch (err) {
         if (__DEV__) console.warn("[progression-store] hydrate failed", err);
-        set({ loading: false });
-      } finally {
-        __hydrateInFlight = null;
+        // N'écrase pas l'état d'un autre compte entré entretemps.
+        if (get().spawterId === spawter_id) set({ loading: false });
       }
-    })();
-    return __hydrateInFlight;
+    };
+    // `p` est affecté depuis run() (jamais depuis .finally) → pas de TDZ : la
+    // closure de nettoyage le lit une fois pleinement assigné.
+    const p = run();
+    __hydrateInFlight = p;
+    void p.finally(() => {
+      // Ne nulle le guard que s'il est TOUJOURS le nôtre (un reset() suivi
+      // d'une nouvelle hydratation a pu le remplacer — finding P2#13).
+      if (__hydrateInFlight === p) __hydrateInFlight = null;
+    });
+    return p;
   },
 
   runBadgeCheck: async (spawter_id) => {
@@ -244,6 +258,10 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
   },
 
   reset: () => {
+    // finding P2#13 — invalide toute hydratation en vol : sans ça, un hydrate(B)
+    // juste après reset() récupérerait la promesse de A (guard présent) et
+    // n'hydraterait jamais B, pendant que A résoudrait ses données dans le store.
+    __hydrateInFlight = null;
     set({
       spawterId: null,
       hydrated: false,

@@ -232,6 +232,35 @@ export async function fetchSpawterArchetypeFromSupabase(
   };
 }
 
+/**
+ * Réclame l'héritage quiz « La Meute » pour le spawter courant via la RPC
+ * `claim_meute_heritage` (0051 — GRANT authenticated : le téléphone est
+ * redérivé de la ligne spawters côté serveur, anti-usurpation). Au 1er login le
+ * claim d'otp-verify échoue (la ligne spawters n'existe pas encore) ; ce
+ * rattrapage post-upsert récupère l'héritage (finding P0). Best-effort : null si
+ * la migration n'est pas appliquée, échec réseau, ou pas d'héritage — le caller
+ * garde alors l'archétype calculé localement.
+ */
+export async function claimMeuteHeritageInSupabase(
+  spawter_id: string,
+  phone_e164: string,
+): Promise<{ claimed: boolean; archetype: string | null; pionnier_seq: number | null } | null> {
+  const { data, error } = await supabase.rpc("claim_meute_heritage", {
+    p_spawter_id: spawter_id,
+    p_phone: phone_e164,
+  });
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] claim_meute_heritage failed", error);
+    return null;
+  }
+  const row = data as { claimed?: unknown; archetype?: unknown; pionnier_seq?: unknown };
+  return {
+    claimed: row.claimed === true,
+    archetype: typeof row.archetype === "string" ? row.archetype : null,
+    pionnier_seq: typeof row.pionnier_seq === "number" ? row.pionnier_seq : null,
+  };
+}
+
 export async function savePalaisToSupabase(palais: UserPalais): Promise<void> {
   await supabase.from("user_palais").upsert(palais);
 }
@@ -624,14 +653,14 @@ export async function countCoupsDeCoeurFromSupabase(
 // ─── Feature 13 — push serveur : tokens Expo (migration 0034) ────────────────
 
 /**
- * Upsert du token push du device. spawter_id = auth.uid() (session locale via
- * getSession — pas d'aller-retour réseau) : la RLS owner-only de `push_tokens`
- * exige cette égalité de toute façon.
+ * Enregistre le token push du device via la RPC `claim_push_token` (0051,
+ * SECURITY DEFINER) : elle réassigne le token à auth.uid() — le token physique
+ * appartient au DEVICE courant.
  *
- * Device qui change de compte : la row de l'ancien proprio est supprimée au
- * logout (unregisterPushToken). Si elle traîne malgré tout, l'upsert ON
- * CONFLICT échoue sous RLS (UPDATE d'une row d'autrui) → warn sans crash ;
- * push-send purgera la row obsolète au premier DeviceNotRegistered.
+ * Device qui change de compte : si la row de l'ancien proprio traîne (logout non
+ * propre), l'upsert client ON CONFLICT échouait sous la RLS UPDATE owner-only
+ * (finding P2#10) → l'ancien compte gardait le token, le nouveau ne recevait pas
+ * ses pushes. La RPC bypass cette RLS et fait basculer la row proprement.
  */
 export async function upsertPushTokenToSupabase(
   token: string,
@@ -639,11 +668,12 @@ export async function upsertPushTokenToSupabase(
 ): Promise<void> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user?.id;
-  if (!uid) return; // pas de session — la RLS refuserait l'écriture
-  const { error } = await supabase
-    .from("push_tokens")
-    .upsert({ spawter_id: uid, token, platform }, { onConflict: "token" });
-  if (error && __DEV__) console.warn("[data-source] upsertPushToken failed", error);
+  if (!uid) return; // pas de session — la RPC refuserait l'écriture (42501)
+  const { error } = await supabase.rpc("claim_push_token", {
+    p_token: token,
+    p_platform: platform,
+  });
+  if (error && __DEV__) console.warn("[data-source] claim_push_token failed", error);
 }
 
 /** DELETE par token — RLS owner-only (à faire AVANT auth.signOut). */
@@ -810,8 +840,13 @@ export async function fetchCrewSnapshotFromSupabase(
       .order("joined_at", { ascending: true }),
     supabase
       .from("crew_proposals")
-      .select("id, session_id, place_id, proposed_by, places!inner(name, neighborhood)")
-      .eq("session_id", session_id),
+      .select("id, session_id, place_id, proposed_by, created_at, places!inner(name, neighborhood)")
+      // Ordre déterministe = ordre de proposition : départage « premier proposé »
+      // de crew-resolution (règle 3) stable d'un refresh à l'autre (0051, P2#6).
+      // id en tiebreak si deux propositions partagent le même created_at.
+      .eq("session_id", session_id)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true }),
     supabase
       .from("crew_votes")
       .select("proposal_id, spawter_id")
@@ -1561,6 +1596,12 @@ import type {
   PlacePromotion,
   UpcomingEvent,
 } from "./place-activity";
+// Filtres MIROIRS des policies RLS (0049/0050). finding P2#12 : un compte STAFF
+// voit sous RLS les brouillons + événements passés / promos hors fenêtre
+// (place_events_select_staff, place_promotions_select_staff) — on réapplique la
+// fenêtre côté client pour que l'app n'affiche jamais que l'actif « en ce
+// moment », comme le fait déjà le Mode Explore.
+import { isEventCurrent, isPromoActive, todayCivilDate } from "./place-activity";
 
 /** Row défensive → PlaceEvent. Null si les colonnes vitales manquent. */
 function parseEventRow(raw: unknown): PlaceEvent | null {
@@ -1591,10 +1632,13 @@ export async function listPlaceEventsFromSupabase(
     if (__DEV__ && error) console.warn("[data-source] listPlaceEvents failed", error);
     return [];
   }
+  const now = new Date();
   const out: PlaceEvent[] = [];
   for (const row of data) {
     const event = parseEventRow(row);
-    if (event) out.push(event);
+    // finding P2#12 — re-filtre côté client : un compte staff verrait sinon les
+    // brouillons/passés remontés par place_events_select_staff (0049).
+    if (event && isEventCurrent(event, now)) out.push(event);
   }
   return out;
 }
@@ -1614,18 +1658,21 @@ export async function listPlacePromotionsFromSupabase(
     }
     return [];
   }
+  const todayCivil = todayCivilDate(new Date());
   const out: PlacePromotion[] = [];
   for (const row of data) {
     const r = row as Record<string, unknown>;
     if (typeof r.label !== "string") continue;
-    out.push({
+    const promo: PlacePromotion = {
       id: String(r.id ?? ""),
       place_id: String(r.place_id ?? ""),
       label: r.label,
       description: typeof r.description === "string" ? r.description : null,
       starts_at: typeof r.starts_at === "string" ? r.starts_at : null,
       ends_at: typeof r.ends_at === "string" ? r.ends_at : null,
-    });
+    };
+    // finding P2#12 — re-filtre fenêtre civile côté client (RLS staff 0050).
+    if (isPromoActive(promo, todayCivil)) out.push(promo);
   }
   return out;
 }
@@ -1650,10 +1697,13 @@ export async function listUpcomingEventsFromSupabase(
     if (__DEV__ && error) console.warn("[data-source] listUpcomingEvents failed", error);
     return [];
   }
+  const now = new Date();
   const out: UpcomingEvent[] = [];
   for (const row of data) {
     const event = parseEventRow(row);
     if (!event) continue;
+    // finding P2#12 — re-filtre côté client (RLS staff 0049 remonte les passés).
+    if (!isEventCurrent(event, now)) continue;
     // La relation jointe peut remonter objet ou array selon le SDK — même
     // normalisation défensive que spawters_public dans les reviews.
     const rel = (row as Record<string, unknown>).places;
@@ -1684,21 +1734,32 @@ export async function listPlaceActivityFromSupabase(
   placeIds: readonly string[],
 ): Promise<PlaceActivityMap> {
   const ids = [...placeIds];
+  // finding P2#12 — on récupère aussi les bornes pour re-filtrer la fenêtre côté
+  // client : un compte staff verrait sinon des pastilles pour des événements
+  // passés / promos hors fenêtre (RLS staff 0049/0050).
   const [eventsQ, promosQ] = await Promise.all([
-    supabase.from("place_events").select("place_id").in("place_id", ids),
-    supabase.from("place_promotions").select("place_id").in("place_id", ids),
+    supabase.from("place_events").select("place_id, starts_at, ends_at").in("place_id", ids),
+    supabase.from("place_promotions").select("place_id, starts_at, ends_at").in("place_id", ids),
   ]);
 
   const map: PlaceActivityMap = {};
   const entry = (place_id: string) =>
     (map[place_id] ??= { has_event: false, has_promo: false });
 
+  const now = new Date();
+  const todayCivil = todayCivilDate(now);
+
   if (eventsQ.error) {
     if (__DEV__) console.warn("[data-source] activity events failed", eventsQ.error);
   } else {
     for (const row of eventsQ.data ?? []) {
-      const pid = (row as { place_id?: unknown }).place_id;
-      if (typeof pid === "string") entry(pid).has_event = true;
+      const r = row as { place_id?: unknown; starts_at?: unknown; ends_at?: unknown };
+      if (typeof r.place_id !== "string" || typeof r.starts_at !== "string") continue;
+      const current = isEventCurrent(
+        { starts_at: r.starts_at, ends_at: typeof r.ends_at === "string" ? r.ends_at : null },
+        now,
+      );
+      if (current) entry(r.place_id).has_event = true;
     }
   }
 
@@ -1706,8 +1767,16 @@ export async function listPlaceActivityFromSupabase(
     if (__DEV__) console.warn("[data-source] activity promos failed", promosQ.error);
   } else {
     for (const row of promosQ.data ?? []) {
-      const pid = (row as { place_id?: unknown }).place_id;
-      if (typeof pid === "string") entry(pid).has_promo = true;
+      const r = row as { place_id?: unknown; starts_at?: unknown; ends_at?: unknown };
+      if (typeof r.place_id !== "string") continue;
+      const active = isPromoActive(
+        {
+          starts_at: typeof r.starts_at === "string" ? r.starts_at : null,
+          ends_at: typeof r.ends_at === "string" ? r.ends_at : null,
+        },
+        todayCivil,
+      );
+      if (active) entry(r.place_id).has_promo = true;
     }
   }
 

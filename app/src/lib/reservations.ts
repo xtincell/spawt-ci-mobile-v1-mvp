@@ -49,7 +49,7 @@ export function buildWaMeUrl(whatsapp: string, text: string): string | null {
 
 // ─── Mode démo — trace locale, statut « sent » ──────────────────────────────
 
-const STORAGE_KEY = "spawt:reservations";
+export const STORAGE_KEY = "spawt:reservations";
 
 /** Chargement lazy d'AsyncStorage (pattern place-suggestions) : le module
  *  jette à l'import quand le natif est absent (jest sans mock). */

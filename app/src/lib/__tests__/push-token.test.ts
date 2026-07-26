@@ -53,6 +53,12 @@ jest.mock("expo-router", () => ({
   router: { push: (...args: unknown[]) => mockRouterPush(...args) },
 }));
 
+const mockOpenURL: jest.Mock = jest.fn(() => Promise.resolve(true));
+jest.mock("expo-linking", () => ({
+  __esModule: true,
+  openURL: (...args: unknown[]) => mockOpenURL(...args),
+}));
+
 const mockUpsertPushToken: jest.Mock = jest.fn(() => Promise.resolve());
 const mockDeletePushToken: jest.Mock = jest.fn(() => Promise.resolve());
 jest.mock("../data-source", () => ({
@@ -85,6 +91,7 @@ import {
   unregisterPushToken,
   registerPushResponseHandler,
   resolvePushDeepLink,
+  resolvePushExternalUrl,
   _resetPushTokenStateForTest,
 } from "../push-token";
 
@@ -221,6 +228,57 @@ describe("resolvePushDeepLink", () => {
     expect(resolvePushDeepLink({ deep_link: 42 })).toBeNull();
     expect(resolvePushDeepLink(null)).toBeNull();
   });
+
+  it("URL https du portail → toujours null ici (route externe, cf. resolvePushExternalUrl)", () => {
+    expect(resolvePushDeepLink({ deep_link: "https://spawt.online/gold" })).toBeNull();
+  });
+});
+
+// finding P1#3 — le rappel Gold pousse un deep_link https vers le portail : il
+// doit être routé en ouverture externe, pas ignoré comme avant.
+describe("resolvePushExternalUrl", () => {
+  it("URL du portail (origine exacte et sous-chemins) → retournée", () => {
+    expect(resolvePushExternalUrl({ deep_link: "https://spawt.online/gold" })).toBe(
+      "https://spawt.online/gold",
+    );
+    expect(resolvePushExternalUrl({ deep_link: "https://spawt.online/pro/dashboard" })).toBe(
+      "https://spawt.online/pro/dashboard",
+    );
+    expect(resolvePushExternalUrl({ deep_link: "https://spawt.online" })).toBe(
+      "https://spawt.online",
+    );
+  });
+
+  it("host qui préfixe le portail ou userinfo → refusés (anti-spoof)", () => {
+    expect(resolvePushExternalUrl({ deep_link: "https://spawt.online.evil.com/gold" })).toBeNull();
+    expect(resolvePushExternalUrl({ deep_link: "https://spawt.online@evil.com/gold" })).toBeNull();
+  });
+
+  it("https hors portail, http, payload Guet, deep link interne → null", () => {
+    expect(resolvePushExternalUrl({ deep_link: "https://evil.example/x" })).toBeNull();
+    expect(resolvePushExternalUrl({ deep_link: "http://spawt.online/gold" })).toBeNull();
+    expect(
+      resolvePushExternalUrl({ row_id: "row-1", deep_link: "https://spawt.online/gold" }),
+    ).toBeNull();
+    expect(resolvePushExternalUrl({ deep_link: "/place/abc" })).toBeNull();
+    expect(resolvePushExternalUrl({})).toBeNull();
+    expect(resolvePushExternalUrl(null)).toBeNull();
+  });
+
+  it("EXPO_PUBLIC_PORTAL_URL personnalisé → whitelist suit l'env", () => {
+    const prev = process.env.EXPO_PUBLIC_PORTAL_URL;
+    process.env.EXPO_PUBLIC_PORTAL_URL = "https://portal.spawt.test/";
+    try {
+      expect(resolvePushExternalUrl({ deep_link: "https://portal.spawt.test/gold" })).toBe(
+        "https://portal.spawt.test/gold",
+      );
+      // L'ancien host par défaut n'est plus whitelisté.
+      expect(resolvePushExternalUrl({ deep_link: "https://spawt.online/gold" })).toBeNull();
+    } finally {
+      if (prev === undefined) delete process.env.EXPO_PUBLIC_PORTAL_URL;
+      else process.env.EXPO_PUBLIC_PORTAL_URL = prev;
+    }
+  });
 });
 
 describe("registerPushResponseHandler", () => {
@@ -244,6 +302,14 @@ describe("registerPushResponseHandler", () => {
     registerPushResponseHandler();
     const listener = mockAddResponseListener.mock.calls[0][0] as (e: unknown) => void;
     listener(makeEvent({ row_id: "row-1", place_id: "p-1" }));
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("tap sur le rappel Gold (https portail) → openURL externe, pas de router.push (P1#3)", () => {
+    registerPushResponseHandler();
+    const listener = mockAddResponseListener.mock.calls[0][0] as (e: unknown) => void;
+    listener(makeEvent({ deep_link: "https://spawt.online/gold", type: "gold_renewal" }));
+    expect(mockOpenURL).toHaveBeenCalledWith("https://spawt.online/gold");
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
 

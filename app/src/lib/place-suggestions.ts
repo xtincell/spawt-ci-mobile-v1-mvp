@@ -41,7 +41,7 @@ export type SubmitSuggestionResult = "ok" | "quota_exceeded" | "error";
 
 // ─── Mode démo — stockage local, statut simulé ──────────────────────────────
 
-const STORAGE_KEY = "spawt:place-suggestions";
+export const STORAGE_KEY = "spawt:place-suggestions";
 
 /** Chargement lazy d'AsyncStorage — voir le commentaire d'en-tête. Interop
  *  default/namespace : le module réel expose `.default`, le mock jest expose

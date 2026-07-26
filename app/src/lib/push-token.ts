@@ -24,6 +24,7 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, type Href } from "expo-router";
 
@@ -32,7 +33,7 @@ import { ensureNotifPermissionPostOTP } from "./guet/guet-permissions";
 import { useSpawterStore } from "../store/spawter-store";
 
 /** Dernier token enregistré — persiste pour le DELETE au logout (app relancée). */
-const PUSH_TOKEN_STORAGE_KEY = "spawt:push:token";
+export const PUSH_TOKEN_STORAGE_KEY = "spawt:push:token";
 
 /** Channel Android des pushes serveur (distinct du channel "guet" local). */
 export const PUSH_CHANNEL_ID = "spawt";
@@ -185,6 +186,42 @@ export function resolvePushDeepLink(
   return path;
 }
 
+/** Origine du portail web (spawt.online), sans slash final — même source que
+ *  spawter-gold.ts. Le renouvellement Gold/Pro se paie sur ce portail. */
+function portalOrigin(): string {
+  return (process.env.EXPO_PUBLIC_PORTAL_URL ?? "https://spawt.online").replace(/\/+$/, "");
+}
+
+/**
+ * Extrait une URL EXTERNE sûre depuis `data.deep_link` — null si non applicable.
+ * Whitelist STRICTE : uniquement l'origine exacte du portail web (payment-cron
+ * envoie `https://spawt.online/gold` et `/pro` pour le rappel de renouvellement,
+ * finding P1#3). Un https hors portail, un payload Guet (row_id) ou un deep link
+ * interne → null (gérés par resolvePushDeepLink / le listener Guet).
+ */
+export function resolvePushExternalUrl(
+  data: PushNotificationData | null | undefined,
+): string | null {
+  if (!data) return null;
+  if (typeof data.row_id === "string" && data.row_id.length > 0) return null;
+  const raw = data.deep_link;
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  const origin = portalOrigin();
+  if (!origin.startsWith("https://")) return null;
+  // Origine exacte, ou chemin/query/fragment sous cette origine — jamais un host
+  // qui la « préfixe » (spawt.online.evil.com) ni un userinfo (@evil.com) : le
+  // caractère qui suit l'origine doit être une frontière de chemin/query/fragment.
+  if (
+    raw === origin ||
+    raw.startsWith(`${origin}/`) ||
+    raw.startsWith(`${origin}?`) ||
+    raw.startsWith(`${origin}#`)
+  ) {
+    return raw;
+  }
+  return null;
+}
+
 /**
  * Monte le listener de tap des pushes serveur. À appeler 1× au Root layout
  * (idempotent : re-appel remplace la subscription). Retourne l'unsubscribe.
@@ -193,6 +230,15 @@ export function registerPushResponseHandler(): () => void {
   responseSub?.remove();
   responseSub = Notifications.addNotificationResponseReceivedListener((event) => {
     const data = event.notification.request.content.data as PushNotificationData;
+    // Rappel de renouvellement Gold/Pro : deep_link https vers le portail web →
+    // ouverture externe (le paiement vit sur le portail, finding P1#3).
+    const external = resolvePushExternalUrl(data);
+    if (external) {
+      void Linking.openURL(external).catch((err) => {
+        if (__DEV__) console.warn("[push-token] openURL portail échoué", err);
+      });
+      return;
+    }
     const path = resolvePushDeepLink(data);
     if (!path) return;
     navigateToDeepLink(path);
