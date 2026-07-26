@@ -43,8 +43,25 @@ export interface Spawter {
   geoloc_consent_at: string | null;
   /** Acceptation CGU/CGV (FR-040 — bloc 1 du gate ARTCI, DR-CGV-01) */
   cgv_accepted_at: string | null;
+  /** Chantier 13 archétypes (migration 0033) — archétype COURANT du spawter.
+   *  Colonne `spawters.quiz_archetype` : sert aux DEUX flux (héritage quiz
+   *  « La Meute » ET recalculs in-app post-spawt). Clé du catalogue
+   *  `data/archetypes.ts` — nullable pour back-compat rows pré-0033. */
+  quiz_archetype: string | null;
+  /** Numéro de pionnier hérité du quiz « La Meute » (migration 0033,
+   *  `claim_meute_heritage`). Null si pas d'héritage réclamé. */
+  pionnier_seq: number | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Résultat de `claim_meute_heritage` relayé par otp-verify (`meute_heritage`
+ *  dans la réponse JSON). Le client PEUT l'ignorer — l'échec ne casse jamais
+ *  le login (pattern P-07 côté Edge). */
+export interface MeuteHeritage {
+  claimed: boolean;
+  archetype: string | null;
+  pionnier_seq: number | null;
 }
 
 /** Données récoltées à l'onboarding (PRD §3.1 Feature 2 + amendements 4.5) */
@@ -76,4 +93,9 @@ export interface OnboardingDraft {
   /** ms epoch posé au tap CTA Splash (Story 2.6). Sert au calcul
    *  `time_to_complete_seconds` à l'émission `onboarding_completed`. */
   started_at: number | null;
+  /** Chantier 13 archétypes — héritage quiz « La Meute » capturé à l'étape
+   *  OTP (réponse otp-verify). Si `claimed`, l'archétype hérité devient
+   *  l'archétype INITIAL au finalize (au lieu du calcul calibration). Null en
+   *  mode démo ou si rien à réclamer. */
+  meute_heritage: MeuteHeritage | null;
 }

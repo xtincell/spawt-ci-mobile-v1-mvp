@@ -21,6 +21,9 @@ export const SAMPLE_SPAWTER: Spawter = {
   customer_id: null,
   geoloc_consent_at: null,
   cgv_accepted_at: null,
+  // Chantier 13 archétypes (0033) — assignés au finalize onboarding.
+  quiz_archetype: null,
+  pionnier_seq: null,
   created_at: "2026-05-03T18:00:00Z",
   updated_at: "2026-05-03T18:00:00Z",
 };

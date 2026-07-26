@@ -71,6 +71,8 @@ function freshDraft(over: Partial<OnboardingDraft> = {}): OnboardingDraft {
       maquis_table: -0.4,
     },
     started_at: Date.now() - 120_000,
+    // Chantier 13 archétypes — pas d'héritage quiz par défaut dans les tests.
+    meute_heritage: null,
     ...over,
   };
 }

@@ -29,16 +29,17 @@ describe("isChatSilent", () => {
     for (const moment of nonStadeUpMoments) {
       expect(isChatSilent("guide", moment)).toBe(true);
     }
-    // 10 moments non-stade_up : welcome_first_open, welcome_back,
+    // 11 moments non-stade_up : welcome_first_open, welcome_back,
     // post_calibration, first_spawt_invite, post_first_spawt,
     // geoloc_consent_request, demographics_consent_request, home_edito,
-    // search_suggestions, guet_prompt.
+    // search_suggestions, guet_prompt, archetype_mue.
     // Story 3.3c — `home_edito` ajouté pour le HomeD édito Chat.
     // Story 3.5 — `search_suggestions` ajouté pour l'écran de recherche vide.
     // Story 4.2 — `guet_prompt` ajouté pour la notif post-spawt (V1 body neutre).
+    // Chantier 13 archétypes — `archetype_mue` (constat neutre, PRD §5.5).
     // Assertion stricte : la suppression accidentelle d'un moment doit faire
     // échouer ce test (review finding P1 — 2026-05-17).
-    expect(nonStadeUpMoments).toHaveLength(10);
+    expect(nonStadeUpMoments).toHaveLength(11);
   });
 
   it("retourne false pour tous les moments stade_up_*, quel que soit le stade", () => {
@@ -63,7 +64,7 @@ describe("isChatSilent", () => {
 });
 
 describe("CHAT_MOMENTS", () => {
-  it("expose 14 moments (filet anti-régression — ajouter un moment doit casser ici + les tests i18n)", () => {
-    expect(CHAT_MOMENTS).toHaveLength(14);
+  it("expose 15 moments (filet anti-régression — ajouter un moment doit casser ici + les tests i18n)", () => {
+    expect(CHAT_MOMENTS).toHaveLength(15);
   });
 });

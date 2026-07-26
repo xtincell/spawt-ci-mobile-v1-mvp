@@ -105,6 +105,37 @@ export async function updateSpawt(
   return mod.updateSpawtInSupabase(row_id, patch);
 }
 
+// ─── Chantier 13 archétypes — archétype courant (colonne 0033) ─────────────
+
+/**
+ * Écrit l'archétype courant du spawter (colonne `spawters.quiz_archetype`,
+ * migration 0033). UPDATE ciblé (pas d'upsert row entier) : ne clobber aucune
+ * autre colonne et sert aux DEUX flux — héritage quiz ET recalculs mue.
+ * Mode démo : no-op — l'archétype vit dans le store (AsyncStorage).
+ */
+export async function updateSpawterArchetype(
+  spawter_id: string,
+  quiz_archetype: string,
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { updateSpawterArchetypeInSupabase } = await import("./data-source.supabase");
+  await updateSpawterArchetypeInSupabase(spawter_id, quiz_archetype);
+}
+
+/**
+ * Lit l'archétype courant + le n° pionnier depuis `spawters` (0033).
+ * Sert au rattrapage hydrate : un claim `claim_meute_heritage` effectué
+ * server-side (autre device, OTP antérieur) est adopté si le local n'a rien.
+ * Retourne null en mode démo ou sur échec réseau (le caller garde le local).
+ */
+export async function fetchSpawterArchetype(
+  spawter_id: string,
+): Promise<{ quiz_archetype: string | null; pionnier_seq: number | null } | null> {
+  if (!isSupabaseConfigured) return null;
+  const { fetchSpawterArchetypeFromSupabase } = await import("./data-source.supabase");
+  return fetchSpawterArchetypeFromSupabase(spawter_id);
+}
+
 // ─── Story 5.1 — progression par stade ──────────────
 
 export interface ProgressionRow {

@@ -180,6 +180,46 @@ export async function saveSpawterToSupabase(spawter: Spawter): Promise<void> {
   await supabase.from("spawters").upsert(spawter);
 }
 
+// ─── Chantier 13 archétypes — colonne `quiz_archetype` (migration 0033) ─────
+
+/**
+ * UPDATE ciblé de l'archétype courant. Colonne posée par 0033 (contrat du
+ * chantier SQL parallèle) — si la migration n'est pas encore appliquée sur le
+ * projet live, l'erreur est loggée et avalée (le local reste la vérité).
+ */
+export async function updateSpawterArchetypeInSupabase(
+  spawter_id: string,
+  quiz_archetype: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("spawters")
+    .update({ quiz_archetype })
+    .eq("id", spawter_id);
+  if (error && __DEV__) {
+    console.warn("[data-source] updateSpawterArchetype failed", error);
+  }
+}
+
+/** Lecture archétype + pionnier depuis `spawters` (0033). Null si échec. */
+export async function fetchSpawterArchetypeFromSupabase(
+  spawter_id: string,
+): Promise<{ quiz_archetype: string | null; pionnier_seq: number | null } | null> {
+  const { data, error } = await supabase
+    .from("spawters")
+    .select("quiz_archetype, pionnier_seq")
+    .eq("id", spawter_id)
+    .maybeSingle();
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] fetchSpawterArchetype failed", error);
+    return null;
+  }
+  const row = data as { quiz_archetype?: unknown; pionnier_seq?: unknown };
+  return {
+    quiz_archetype: typeof row.quiz_archetype === "string" ? row.quiz_archetype : null,
+    pionnier_seq: typeof row.pionnier_seq === "number" ? row.pionnier_seq : null,
+  };
+}
+
 export async function savePalaisToSupabase(palais: UserPalais): Promise<void> {
   await supabase.from("user_palais").upsert(palais);
 }

@@ -113,6 +113,9 @@ function makeSpawter(): Spawter {
     customer_id: null,
     geoloc_consent_at: "2026-05-01T00:00:00Z",
     cgv_accepted_at: "2026-05-01T00:00:00Z",
+    // Chantier 13 archétypes (0033).
+    quiz_archetype: null,
+    pionnier_seq: null,
     created_at: "2026-05-01T00:00:00Z",
     updated_at: "2026-05-20T00:00:00Z",
   };

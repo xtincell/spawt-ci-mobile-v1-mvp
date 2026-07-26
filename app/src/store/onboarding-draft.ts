@@ -28,6 +28,9 @@ const initial: OnboardingDraft = {
     maquis_table: 0,
   },
   started_at: null,
+  // Chantier 13 archétypes — héritage quiz « La Meute » (posé par otp.tsx si
+  // otp-verify retourne meute_heritage.claimed).
+  meute_heritage: null,
 };
 
 interface DraftStore {

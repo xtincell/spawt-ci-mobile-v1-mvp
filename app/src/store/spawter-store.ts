@@ -32,7 +32,25 @@ import {
   listSavedPlaceIds,
   saveSavedPlace,
   deleteSavedPlace,
+  updateSpawterArchetype,
+  fetchSpawterArchetype,
 } from "../lib/data-source";
+import {
+  computeArchetypeFromPalais,
+  isArchetypeKey,
+  type ArchetypeKey,
+} from "../lib/archetype-engine";
+import {
+  evaluateArchetypeTransition,
+  loadMueStreak,
+  saveMueStreak,
+  loadPendingMue,
+  savePendingMue,
+  MUE_STREAK_STORAGE_KEY,
+  PENDING_MUE_STORAGE_KEY,
+  type PendingMue,
+} from "../lib/archetype-mue";
+import { ARCHETYPES } from "../data/archetypes";
 import {
   isKnownTitleKey,
   STADE_TITLE_KEYS,
@@ -101,6 +119,11 @@ interface SpawterStore {
     to_stade: import("../types/stade").Stade;
     unique_spots: number;
   } | null;
+  /** Chantier 13 archétypes — mue en attente de constat NEUTRE (bulle de Chat
+   *  sur le profil, PAS un overlay de célébration — exigence PRD §5.5). */
+  pendingMue: PendingMue | null;
+  /** Acquitte le constat de mue (clear state + AsyncStorage). */
+  consumePendingMue: () => Promise<void>;
   /** Story 5.4 — Acquitte la célébration (set flag anti-replay + clear). */
   consumePendingStadeCelebration: () => Promise<void>;
   /** Story 5.2 — Débloque un titre dans la collection (append idempotent). Retourne true si row ajoutée. */
@@ -174,6 +197,15 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   pendingBadge: null,
   collectionTitres: [],
   pendingStadeCelebration: null,
+  pendingMue: null,
+
+  consumePendingMue: async () => {
+    if (!get().pendingMue) return;
+    // Clear AsyncStorage AVANT le state (même philosophie que les autres
+    // consume* : un crash entre les deux ne doit pas rejouer le constat).
+    await savePendingMue(null);
+    set({ pendingMue: null });
+  },
 
   consumePendingBadge: async () => {
     // CR finding M3 — POSE LE FLAG ANTI-REPLAY AVANT `set(null)` pour qu'un
@@ -298,14 +330,38 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   },
 
   hydrate: async () => {
-    const [spawter, palais, spawts, savedPlaceIds, collectionTitres] = await Promise.all([
-      loadSpawter(),
-      loadPalais(),
-      loadSpawts(),
-      loadSaved(),
-      loadCollectionTitres(),
-    ]);
-    set({ spawter, palais, spawts, savedPlaceIds, collectionTitres, hydrating: false });
+    const [spawter, palais, spawts, savedPlaceIds, collectionTitres, pendingMue] =
+      await Promise.all([
+        loadSpawter(),
+        loadPalais(),
+        loadSpawts(),
+        loadSaved(),
+        loadCollectionTitres(),
+        loadPendingMue(),
+      ]);
+    set({ spawter, palais, spawts, savedPlaceIds, collectionTitres, pendingMue, hydrating: false });
+
+    // Chantier 13 archétypes — rattrapage live : si le local n'a pas
+    // d'archétype (row pré-chantier, réinstallation) mais que `spawters` en a
+    // un (héritage réclamé server-side via claim_meute_heritage, ou recalc
+    // d'un autre device), on l'adopte. Fire-and-forget, jamais bloquant.
+    if (spawter && isSupabaseConfigured && !spawter.quiz_archetype) {
+      void (async () => {
+        const remote = await fetchSpawterArchetype(spawter.id);
+        if (!remote || !isArchetypeKey(remote.quiz_archetype)) return;
+        const cur = get().spawter;
+        if (!cur || cur.quiz_archetype) return; // le local a avancé entretemps
+        const updated: Spawter = {
+          ...cur,
+          quiz_archetype: remote.quiz_archetype,
+          pionnier_seq: remote.pionnier_seq ?? cur.pionnier_seq ?? null,
+        };
+        await saveSpawterLocal(updated);
+        set({ spawter: updated });
+      })().catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] archetype remote adopt failed", err);
+      });
+    }
 
     // Câblage MVP — favoris cross-device : union-merge local ∪ remote en
     // arrière-plan (local-first, jamais bloquant). Les favoris locaux absents
@@ -443,6 +499,15 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       ? ageRangeFromDateOfBirth(draft.date_of_birth)
       : null;
 
+    // Chantier 13 archétypes — archétype INITIAL du spawter.
+    // Priorité à l'héritage quiz « La Meute » s'il a été réclamé au passage
+    // OTP (draft.meute_heritage, cf. otp.tsx) ; sinon calcul depuis la
+    // calibration (axes ±0.4 app → ×2 échelle quiz, garde-fous omnivore
+    // inclus — moteur archetype-engine, parité quiz vérifiée par fixtures).
+    const heritage = draft.meute_heritage;
+    const inheritedArchetype =
+      heritage?.claimed && isArchetypeKey(heritage.archetype) ? heritage.archetype : null;
+
     const spawter: Spawter = {
       ...SAMPLE_SPAWTER,
       id,
@@ -456,6 +521,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       age_range: derivedAgeRange,
       cgv_accepted_at: draft.consent.cgv_accepted_at,
       geoloc_consent_at: draft.consent.geoloc_consent_at,
+      pionnier_seq: heritage?.claimed ? (heritage.pionnier_seq ?? null) : null,
       created_at: now,
       updated_at: now,
     };
@@ -475,6 +541,11 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       axe_maquis_table: draft.calibration_answers.maquis_table ?? 0,
     };
 
+    // Archétype calculé depuis la calibration — utilisé si pas d'héritage.
+    const computedArchetype = computeArchetypeFromPalais(ax);
+    const initialArchetype: ArchetypeKey = inheritedArchetype ?? computedArchetype.key;
+    spawter.quiz_archetype = initialArchetype;
+
     const palais: UserPalais = {
       ...EMPTY_PALAIS,
       spawter_id: id,
@@ -486,6 +557,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         ).length,
       ),
       dominant_axes: dominantAxes(ax),
+      // Sync miroir : `user_palais.archetype_id` (colonne 0008) reflète
+      // toujours `spawters.quiz_archetype` (colonne 0033, source de vérité).
+      archetype_id: initialArchetype,
       stade: "touriste",
       total_spawts: 0,
       updated_at: now,
@@ -504,6 +578,25 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     });
 
     set({ spawter, palais });
+
+    // Chantier 13 archétypes — event + titre de collection à l'assignation.
+    // `source` distingue héritage vs calibration pour Madame Sun (KPI funnel
+    // quiz → app). Titre inséré avec source='badge' (CHECK 0014 — cf.
+    // titres-catalogue.ts) ; unlockTitle est idempotent.
+    track({
+      name: "archetype_assigned",
+      properties: {
+        archetype: initialArchetype,
+        source: inheritedArchetype ? "meute_heritage" : "calibration",
+        runner_up: inheritedArchetype ? null : computedArchetype.runnerUp,
+        pionnier_seq: spawter.pionnier_seq,
+      },
+    });
+    void get()
+      .unlockTitle(ARCHETYPES[initialArchetype].titleKey, "badge")
+      .catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] unlockTitle archetype failed", err);
+      });
 
     // 4. Reset draft (libère mémoire + sécurise contre relance accidentelle).
     useOnboardingDraft.getState().reset();
@@ -688,6 +781,78 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
           if (__DEV__) console.warn("[spawter-store] savePalais review update failed", err);
         });
         set({ palais: newPalais });
+
+        // Chantier 13 archétypes — recalcul post-mise-à-jour du Palais
+        // (spawt vérifié + avis = seul flux qui bouge les axes). Règle
+        // d'inertie PRD §5.5 : le candidat doit rester identique sur
+        // MUE_STABILITY_THRESHOLD recalculs consécutifs ET différer de
+        // l'actuel avant de muer. Fire-and-forget — jamais bloquant pour
+        // l'UX de l'avis.
+        void (async () => {
+          const result = computeArchetypeFromPalais(newPalais);
+          const sp = get().spawter;
+          if (!sp) return;
+          const current = isArchetypeKey(sp.quiz_archetype) ? sp.quiz_archetype : null;
+          const streak = await loadMueStreak();
+          const transition = evaluateArchetypeTransition({
+            current,
+            candidate: result.key,
+            streak,
+          });
+          if (transition.type === "none") {
+            await saveMueStreak(transition.streak);
+            return;
+          }
+          // "assign" (spawter legacy sans archétype) ou "mue" : même écriture
+          // locale + remote, seul le ton diffère (la mue a un constat Chat).
+          const to = transition.to;
+          const updatedSpawter: Spawter = {
+            ...sp,
+            quiz_archetype: to,
+            updated_at: new Date().toISOString(),
+          };
+          const palaisWithArchetype: UserPalais = {
+            ...(get().palais ?? newPalais),
+            archetype_id: to,
+          };
+          await Promise.all([
+            saveSpawterLocal(updatedSpawter),
+            savePalaisLocal(palaisWithArchetype),
+            saveMueStreak(null),
+          ]);
+          // UPDATE ciblé `spawters.quiz_archetype` (0033) — pas d'upsert row
+          // entier, pour ne clobber aucune colonne serveur.
+          void updateSpawterArchetype(sp.id, to).catch((err) => {
+            if (__DEV__) console.warn("[spawter-store] updateSpawterArchetype failed", err);
+          });
+          void savePalais(palaisWithArchetype).catch((err) => {
+            if (__DEV__) console.warn("[spawter-store] savePalais archetype failed", err);
+          });
+          if (transition.type === "mue") {
+            const pendingMue: PendingMue = { from: transition.from, to };
+            await savePendingMue(pendingMue);
+            set({ spawter: updatedSpawter, palais: palaisWithArchetype, pendingMue });
+            track({
+              name: "archetype_mue",
+              properties: { from: transition.from, to, runner_up: result.runnerUp },
+            });
+          } else {
+            set({ spawter: updatedSpawter, palais: palaisWithArchetype });
+            track({
+              name: "archetype_assigned",
+              properties: { archetype: to, source: "recalc_legacy", runner_up: result.runnerUp },
+            });
+          }
+          // Entrée dans la collection de titres (mémoire d'identité) —
+          // source='badge' (CHECK 0014), clé `title.archetype.<key>`.
+          void get()
+            .unlockTitle(ARCHETYPES[to].titleKey, "badge")
+            .catch((err) => {
+              if (__DEV__) console.warn("[spawter-store] unlockTitle mue failed", err);
+            });
+        })().catch((err) => {
+          if (__DEV__) console.warn("[spawter-store] archetype recalc failed", err);
+        });
       }
     }
 
@@ -725,6 +890,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       pendingBadge: null,
       collectionTitres: [],
       pendingStadeCelebration: null,
+      pendingMue: null,
     });
     // Privacy V1 — CR finding M2 : purger TOUS les caches AsyncStorage qui
     // gardent une trace d'identité utilisateur (fuite cross-user sur même device).
@@ -734,6 +900,10 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       "spawt:saved_places",
       "spawt:collection_titres",
       BADGE_CELEBRATED_KEY,
+      // Chantier 13 archétypes — compteur d'inertie + constat de mue en attente
+      // (fuite cross-user sinon, même logique que les flags de célébration).
+      MUE_STREAK_STORAGE_KEY,
+      PENDING_MUE_STORAGE_KEY,
       ...STADE_ORDER.map((s) => `${STADE_CELEBRATED_KEY}:${s}`),
     ];
     void AsyncStorage.multiRemove(keysToPurge).catch((err) => {

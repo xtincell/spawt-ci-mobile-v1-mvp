@@ -41,6 +41,10 @@ export const CHAT_MOMENTS = [
   "search_suggestions",
   /** Story 4.2 — prompt notif post-spawt (V1 : body neutre, mapping stade reservé V2 D-408). */
   "guet_prompt",
+  /** Chantier 13 archétypes — constat NEUTRE de mue (PRD §5.5). Pas une
+   *  célébration : « Je te sens différent. Tes derniers spawts disent [X]. »
+   *  Interpolation {{archetype}} côté caller (profile.tsx). */
+  "archetype_mue",
 ] as const;
 
 /** Clé i18n correspondante à un message du Chat selon le contexte */

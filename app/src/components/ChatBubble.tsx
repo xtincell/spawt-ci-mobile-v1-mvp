@@ -35,6 +35,9 @@ const MOMENT_POSE: Record<ChatMoment, MokaPose> = {
   home_edito: "recommande",
   search_suggestions: "cherche",
   guet_prompt: "notification",
+  // Chantier 13 archétypes — la mue est un constat neutre : pose "curieux",
+  // surtout PAS "celebration" (exigence produit PRD §5.5).
+  archetype_mue: "curieux",
 };
 
 interface Props {

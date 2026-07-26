@@ -57,6 +57,19 @@ jest.mock("../../src/components/ChatBubble", () => ({
   ChatBubble: () => null,
 }));
 
+// Chantier 13 archétypes — palais-reveal anime la carte d'archétype
+// (FadeInDown). Mock reanimated : pas de partie native en jest (même pattern
+// que GuetIndicator.test.tsx).
+jest.mock("react-native-reanimated", () => {
+  const { View } = jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: { View, createAnimatedComponent: (c: unknown) => c },
+    FadeInDown: { duration: () => ({}) },
+    View,
+  };
+});
+
 jest.mock("../../src/components/primitives/PalaisRadar", () => ({
   PalaisRadar: () => null,
 }));
@@ -93,6 +106,8 @@ function freshDraft(over: Partial<OnboardingDraft> = {}): OnboardingDraft {
       maquis_table: -0.4,
     },
     started_at: Date.now() - 120_000,
+    // Chantier 13 archétypes — pas d'héritage quiz par défaut dans les tests.
+    meute_heritage: null,
     ...over,
   };
 }

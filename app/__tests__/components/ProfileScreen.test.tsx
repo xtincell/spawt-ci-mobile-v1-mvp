@@ -106,6 +106,8 @@ function freshDraft(overrides: Partial<OnboardingDraft> = {}): OnboardingDraft {
       maquis_table: 0,
     },
     started_at: null,
+    // Chantier 13 archétypes — pas d'héritage quiz par défaut dans les tests.
+    meute_heritage: null,
     ...overrides,
   };
 }
