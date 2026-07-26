@@ -84,6 +84,15 @@ jobs:
       - name: Tests (jest)
         run: npm test -- --ci
 
+      # ── Conformité cahier (boucle adversariale version finale) ────────────
+      # Vérifie la checklist exécutable des 37 features + textes de la note
+      # MAJ + Contrat SPAWT + DA + enveloppe (voir scripts/README.md).
+      # Exit 1 au moindre ❌ — les ⚠️ expected_pending (ex. eas.json submit
+      # en placeholders) ne bloquent pas.
+      - name: Conformité cahier
+        working-directory: .
+        run: node scripts/conformity-check.mjs
+
       # ── Story 7.1 — versioning : injecte versionCode + build date ─────────
       # Tag `build-android-YYYY-MM-DD-N` → versionCode/buildNumber = N,
       # extra.buildDate = YYYY-MM-DD (lu in-app par BuildBadge via Constants).

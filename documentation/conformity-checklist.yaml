@@ -1,0 +1,598 @@
+# SPAWT — Checklist de conformité exécutable (version finale)
+# Consommée par `node scripts/conformity-check.mjs` (voir scripts/README.md).
+#
+# 37 features : 19 MVP (PRD §3.1) + 18 post-MVP (PRD §4.1, Podcast marqué
+# excluded — « Jamais dans l'app »). Chaque entrée porte des assertions
+# vérifiables mécaniquement, établies par inspection du repo au 2026-07-26 :
+#   files:      chemins (relatifs à la racine du repo) qui doivent exister
+#   symbols:    "chemin#export" — l'export nommé doit exister dans le fichier
+#   migrations: numéro NNNN — supabase/migrations/NNNN_*.sql + .down.sql apparié
+#   i18n:       clé pointée de app/src/i18n/fr.json (une section compte aussi)
+#   flags:      flag_code attendu dans supabase/seed/*.sql
+#   deps:       dépendance attendue dans app/package.json
+#   absent_pattern: regex qui ne doit PAS matcher dans app/src + app/app
+#   expected_pending: true — écart connu/attendu → ⚠️ WARNING, pas ❌
+#
+# Syntaxe : sous-ensemble YAML (maps + listes de scalaires/maps, indentation
+# 2 espaces, strings quotées optionnelles) parsé par le mini-parseur du script.
+
+version: 1
+generated: 2026-07-26
+
+features:
+  # ────────────────────── 19 features MVP (PRD §3.1) ──────────────────────
+  - id: F01
+    name: "Feature 1 — Inscription / Authentification (OTP + Google/Apple)"
+    tier: mvp
+    files:
+      - app/app/(onboarding)/phone.tsx
+      - app/app/(onboarding)/otp.tsx
+      - supabase/functions/otp-send/index.ts
+      - supabase/functions/otp-verify/index.ts
+    symbols:
+      - app/src/lib/data-source.ts#isSupabaseConfigured
+    migrations:
+      - 0007
+      - 0009
+    i18n:
+      - auth.otp_title
+      - auth.send_otp
+
+  - id: F02
+    name: "Feature 2 — Onboarding léger (consent ARTCI + profil + calibrage Palais)"
+    tier: mvp
+    files:
+      - app/app/(onboarding)/consent.tsx
+      - app/app/(onboarding)/profile.tsx
+      - app/app/(onboarding)/calibration.tsx
+      - app/app/(onboarding)/palais-reveal.tsx
+      - app/src/store/onboarding-draft.ts
+    migrations:
+      - 0008
+      - 0020
+    i18n:
+      - onboarding.profile_title
+      - onboarding.commune.cocody
+      - consent
+
+  - id: F03
+    name: "Feature 3 — Feed personnalisé de lieux"
+    tier: mvp
+    files:
+      - app/app/(tabs)/index.tsx
+      - app/src/components/ModeStories.tsx
+      - app/src/components/UneCarousel.tsx
+    symbols:
+      - app/src/lib/matching.ts#rankPlaces
+      - app/src/lib/opening-hours.ts#partitionOpenFirst
+    i18n:
+      - home.modes_title
+      - home.suggestions_title
+
+  - id: F04
+    name: "Feature 4 — Fiche lieu (onglets, carte, horaires, prix F CFA)"
+    tier: mvp
+    files:
+      - app/app/place/[id]/index.tsx
+      - app/src/components/place/PlaceTabs.tsx
+      - app/src/components/place/PlaceMediaTab.tsx
+      - app/src/components/place/PlaceMenuTab.tsx
+      - app/src/components/OpeningHours.tsx
+    symbols:
+      - app/src/lib/static-map.ts#buildStaticMapUrl
+      - app/src/lib/format-price.ts#formatXofAmount
+    migrations:
+      - 0010
+      - 0030
+    i18n:
+      - place.spawt_cta
+      - place.tab_media
+      - place.divers_title
+    flags:
+      - place-avg-price
+
+  - id: F05
+    name: "Feature 5 — Le Spawt / Le Guet (check-in géolocalisé)"
+    tier: mvp
+    files:
+      - app/src/lib/guet/geofence.ts
+      - app/src/lib/guet/guet-orchestrator.ts
+      - app/src/lib/guet/guet-task.ts
+      - app/src/lib/guet/guet-notifications.ts
+      - app/src/components/GuetIndicator.tsx
+    symbols:
+      - app/src/lib/guet/geofence.ts#armGuet
+      - app/src/lib/guet/guet-orchestrator.ts#bootGuet
+    migrations:
+      - 0011
+      - 0012
+    i18n:
+      - guet.indicator_label
+    flags:
+      - guet-geofence
+
+  - id: F06
+    name: "Feature 6 — Avis structuré post-spawt (+ apprentissage du Palais)"
+    tier: mvp
+    files:
+      - app/app/review/[spawt_id].tsx
+      - app/src/lib/storage-photos.ts
+      - app/src/components/PlaceReviews.tsx
+      - app/app/place/[id]/reviews.tsx
+    symbols:
+      - app/src/lib/palais-signals.ts#applyReviewToPalais
+      - app/src/lib/weighted-rating.ts#computeWeightedRating
+    migrations:
+      - 0013
+      - 0021
+      - 0025
+    i18n:
+      - review.title
+      - place.reviews_all_title
+
+  - id: F07
+    name: "Feature 7 — Profil utilisateur (carte spawter, avatar)"
+    tier: mvp
+    files:
+      - app/app/(tabs)/profile.tsx
+      - app/src/components/SpawterCard.tsx
+      - app/src/lib/storage-avatars.ts
+    symbols:
+      - app/src/lib/storage-avatars.ts#uploadAvatar
+    migrations:
+      - 0031
+    i18n:
+      - profile.stat_spawts
+      - profile.stat_favoris
+
+  - id: F08
+    name: "Feature 8 — 5 stades de maturité"
+    tier: mvp
+    files:
+      - app/src/types/stade.ts
+    symbols:
+      - app/src/lib/stade-progress.ts#getNextStadeProgress
+    migrations:
+      - 0014
+      - 0022
+    i18n:
+      - stade.djidji
+      - stade.guide
+
+  - id: F09
+    name: "Feature 9 — Sauvegarde / Favoris"
+    tier: mvp
+    files:
+      - app/app/saved.tsx
+      - app/src/components/ListeCard.tsx
+    migrations:
+      - 0024
+    i18n:
+      - saved.title
+      - saved.save_aria
+
+  - id: F10
+    name: "Feature 10 — Recherche + filtres"
+    tier: mvp
+    files:
+      - app/app/search.tsx
+      - app/src/components/FilterSheet.tsx
+      - app/src/components/SearchBar.tsx
+    symbols:
+      - app/src/lib/search.ts#searchPlaces
+    i18n:
+      - search.title
+      - search.filters_button
+
+  - id: F11
+    name: "Feature 11 — Carte interactive (MapLibre)"
+    tier: mvp
+    files:
+      - app/app/(tabs)/carte.tsx
+    deps:
+      - "@maplibre/maplibre-react-native"
+    i18n:
+      - carte.module_unavailable
+
+  - id: F12
+    name: "Feature 12 — Coup de Cœur"
+    tier: mvp
+    files:
+      - app/src/components/CoupDeCoeurButton.tsx
+    migrations:
+      - 0028
+    i18n:
+      - cdc.button
+
+  - id: F13
+    name: "Feature 13 — Notifications push basiques"
+    tier: mvp
+    files:
+      - app/src/lib/push-token.ts
+      - supabase/functions/push-send/index.ts
+    symbols:
+      - app/src/lib/push-token.ts#registerPushToken
+    migrations:
+      - 0034
+
+  - id: F14
+    name: "Feature 14 — Paywall géographique (3 km gratuit / Gold)"
+    tier: mvp
+    files:
+      - app/src/lib/spawter-gold.ts
+      - app/src/components/GoldUpsellSheet.tsx
+    symbols:
+      - app/src/lib/paywall-geo.ts#isPlaceLocked
+      - app/src/lib/paywall-geo.ts#FREE_RADIUS_KM
+    flags:
+      - paywall-geo
+    i18n:
+      - paywall.locked_badge
+
+  - id: F15
+    name: "Feature 15 — Paiement Mobile Money (CinetPay via IPaymentProvider)"
+    tier: mvp
+    files:
+      - supabase/functions/payment-checkout/index.ts
+      - supabase/functions/payment-webhook/index.ts
+      - supabase/functions/payment-cron/index.ts
+      - supabase/functions/_shared/payment/factory.ts
+      - supabase/seed/payment_cron_setup.sql
+    symbols:
+      - supabase/functions/_shared/payment/cinetpay.ts#CinetPayProvider
+    migrations:
+      - 0032
+
+  - id: F16
+    name: "Feature 16 — Partage WhatsApp"
+    tier: mvp
+    files:
+      - app/src/components/place/ReservationSheet.tsx
+    i18n:
+      - share
+      - crew.cta_share_code
+
+  - id: F17
+    name: "Feature 17 — Modération basique (signalement + file admin)"
+    tier: mvp
+    files:
+      - app/src/components/ReportReviewSheet.tsx
+      - supabase/functions/moderate-spawter/index.ts
+    migrations:
+      - 0019
+      - 0026
+    i18n:
+      - report
+
+  - id: F18
+    name: "Feature 18 — Création de fiche lieu (équipe) + suggestions Meute"
+    tier: mvp
+    files:
+      - app/app/suggest-place.tsx
+      - app/src/lib/place-suggestions.ts
+      - supabase/functions/seed-inventory/index.ts
+      - spawt-admin/src/pages/lieux/create.tsx
+    migrations:
+      - 0039
+    flags:
+      - suggestions-lieux
+    i18n:
+      - suggest.title
+
+  - id: F19
+    name: "Feature 19 — Admin panel (Refine)"
+    tier: mvp
+    files:
+      - spawt-admin/package.json
+      - spawt-admin/src/App.tsx
+      - spawt-admin/src/pages/fonctionnalites/index.tsx
+      - spawt-admin/src/pages/metriques/index.tsx
+    migrations:
+      - 0017
+      - 0018
+
+  # ─────────────── 18 features post-MVP (PRD §4.1, sans Podcast) ───────────────
+  - id: P01
+    name: "Post-MVP 1 — Mode Rapide (swipe cards)"
+    tier: post_mvp
+    files:
+      - app/app/rapide.tsx
+      - app/src/components/place/SwipeDeck.tsx
+    symbols:
+      - app/src/lib/rapide-deck.ts#buildRapideDeck
+    migrations:
+      - 0046
+    flags:
+      - mode-rapide
+    i18n:
+      - rapide.title
+
+  - id: P02
+    name: "Post-MVP 2 — Mode Crew (vote temps réel)"
+    tier: post_mvp
+    files:
+      - app/app/crew/[id].tsx
+      - app/src/lib/crew/crew-session.ts
+      - app/src/components/crew/CrewBlock.tsx
+    migrations:
+      - 0038
+      - 0048
+    flags:
+      - mode-crew
+    i18n:
+      - crew.block_title
+
+  - id: P03
+    name: "Post-MVP 3 — Mode Explore (magazine scroll)"
+    tier: post_mvp
+    files:
+      - app/app/explore.tsx
+      - app/app/explore/[slug].tsx
+    migrations:
+      - 0045
+    flags:
+      - mode-explore
+    i18n:
+      - explore.title
+
+  - id: P04
+    name: "Post-MVP 4 — 8 archétypes supplémentaires (13 au total)"
+    tier: post_mvp
+    files:
+      - app/src/data/archetypes.ts
+      - app/src/components/profile/ArchetypeCard.tsx
+    symbols:
+      - app/src/lib/archetype-engine.ts#computeArchetype
+    migrations:
+      - 0033
+    i18n:
+      - archetype.murmure
+      - archetype.fantome
+
+  - id: P05
+    name: "Post-MVP 5 — Cartes collectibles / Plats"
+    tier: post_mvp
+    files:
+      - app/src/components/progression/CollectionSection.tsx
+    migrations:
+      - 0037
+    flags:
+      - collectibles
+
+  - id: P06
+    name: "Post-MVP 6 — Matching ML 4 dimensions (fondations data V1)"
+    tier: post_mvp
+    note: "Le modèle ML lui-même est V2+ (10K+ spawts requis) — on verrouille les fondations : signaux append-only + score composite."
+    symbols:
+      - app/src/lib/matching.ts#rankPlaces
+      - app/src/lib/matching.ts#computeRawScore
+    migrations:
+      - 0003
+      - 0046
+
+  - id: P07
+    name: "Post-MVP 7 — Réservation 1-tap"
+    tier: post_mvp
+    files:
+      - app/app/reservations.tsx
+      - app/src/components/place/ReservationSheet.tsx
+    symbols:
+      - app/src/lib/reservations.ts#buildWaMeUrl
+    migrations:
+      - 0042
+    flags:
+      - reservation-1tap
+    i18n:
+      - resa.button
+
+  - id: P08
+    name: "Post-MVP 8 — Dashboard B2B Gold"
+    tier: post_mvp
+    note: "Socle data : comptes B2B + agrégats n>=3 (0043), abonnements/entitlements (0032). Pages console = chantier admin en cours."
+    files:
+      - app/src/types/commerce.ts
+    migrations:
+      - 0032
+      - 0043
+    flags:
+      - b2b-dashboards
+
+  - id: P09
+    name: "Post-MVP 9 — Dashboard B2B Pro"
+    tier: post_mvp
+    note: "Même socle 0043 (agrégats anonymisés) ; tier pro dans le catalogue plans."
+    migrations:
+      - 0043
+    flags:
+      - b2b-dashboards
+
+  - id: P10
+    name: "Post-MVP 10 — Badges (30+)"
+    tier: post_mvp
+    files:
+      - app/src/components/progression/BadgesSection.tsx
+    symbols:
+      - app/src/lib/progression-engine.ts#buildBadgeStates
+    migrations:
+      - 0036
+    flags:
+      - badges-v2
+    i18n:
+      - badge_condition
+
+  - id: P11
+    name: "Post-MVP 11 — SPAWT Wrapped (bilan annuel)"
+    tier: post_mvp
+    files:
+      - app/app/wrapped.tsx
+      - supabase/functions/wrapped-stats/index.ts
+    symbols:
+      - app/src/lib/wrapped.ts#parseWrappedResponse
+    flags:
+      - wrapped
+    i18n:
+      - wrapped.title
+
+  - id: P12
+    name: "Post-MVP 12 — Podcast (EXCLU : « Jamais dans l'app », PRD §4.1)"
+    tier: excluded
+    absent_pattern: "\\bpodcast\\b"
+
+  - id: P13
+    name: "Post-MVP 13 — Paws (monnaie d'activité)"
+    tier: post_mvp
+    files:
+      - app/src/components/progression/PawsSection.tsx
+    migrations:
+      - 0035
+    flags:
+      - paws
+
+  - id: P14
+    name: "Post-MVP 14 — Streaks & défis collectifs (SANS leaderboard — Contrat)"
+    tier: post_mvp
+    note: "Implémenté conforme au Contrat SPAWT : streaks privés + progrès agrégé, aucun classement (cf. section contrat_spawt)."
+    files:
+      - app/src/components/progression/DefisSection.tsx
+    migrations:
+      - 0040
+    flags:
+      - defis-collectifs
+    i18n:
+      - defi.meute_juillet_spawts
+
+  - id: P15
+    name: "Post-MVP 15 — Share card auto-générée (type Wrapped)"
+    tier: post_mvp
+    files:
+      - app/src/components/share/ShareCard.tsx
+      - app/src/components/share/WrappedBanner.tsx
+    symbols:
+      - app/src/lib/share-card.ts#captureAndShareView
+
+  - id: P16
+    name: "Post-MVP 16 — Multi-villes (Abidjan actif, Dakar prêt)"
+    tier: post_mvp
+    symbols:
+      - app/src/lib/city.ts#getActiveCity
+    migrations:
+      - 0041
+
+  - id: P17
+    name: "Post-MVP 17 — Site web / landing (hors monorepo)"
+    tier: post_mvp
+    expected_pending: true
+    note: "Vit dans le repo séparé spawt-meute-quiz (quiz « La Meute » LIVE, vérifié 07/07) — rien à asserter mécaniquement ici."
+    files:
+      - documentation/livraison-maj-consolidee-2026-07-07.md
+
+  - id: P18
+    name: "Post-MVP 18 — Programme ambassadeur"
+    tier: post_mvp
+    migrations:
+      - 0044
+
+# ───────────── Textes exacts de la note MAJ (R2/R4/R5/R6/R7/R9/R11/R26) ─────────────
+note_maj:
+  texts:
+    - ref: R2
+      key: onboarding.neighborhood_body
+      equals: "Pour t'afficher des lieux proches de toi."
+    - ref: R4
+      key: onboarding.age_body
+      equals: "Pour te souhaiter Joyeux anniversaire, promis. (Et ça restera secret)"
+    - ref: R5
+      key: calibration.q_maquis_table.card.maquis_garba
+      equals: "🍢 Garbadrome"
+    - ref: R5
+      key: calibration.q_maquis_table.card.foodtruck
+      equals: "🚚 Foodtruck"
+    - ref: R5
+      key: calibration.q_maquis_table.card.restaurant_chic
+      equals: "🍽️ Restaurant chic"
+    - ref: R5
+      key: calibration.q_maquis_table.card.brunch_cocody
+      equals: "🥞 Brunch"
+    - ref: R6
+      key: home.modes_title
+      equals: "Je sors pour…"
+    - ref: R6
+      key: modes.traine.label
+      equals: "Manger"
+    - ref: R6
+      key: modes.decouvre.label
+      equals: "Découvrir"
+    - ref: R6
+      key: modes.tribu.label
+      equals: "En groupe"
+    - ref: R6
+      key: modes.chic.label
+      equals: "En duo"
+    - ref: R7
+      key: home.suggestions_title
+      equals: "Voici mes 3 suggestions du jour."
+    - ref: R9
+      key: palais_reveal.first_title
+      equals: "Voici ton palais"
+    - ref: R11
+      key: place.spawt_cta
+      equals: "Spawt le !"
+    - ref: R26
+      key: onboarding.origin_country_body
+      equals: "Pour te proposer les goûts de chez toi. (Optionnel, promis)"
+  contains:
+    - ref: "#V07"
+      file: app/app/(onboarding)/otp.tsx
+      contains: "const CELL_COUNT = 6"
+    - ref: "#V07"
+      file: app/app/(onboarding)/otp.tsx
+      contains: "const DEMO_CODE = \"123456\""
+    - ref: "#V07"
+      file: supabase/functions/otp-verify/index.ts
+      contains: "const MOCK_OTP_CODE = \"123456\""
+  no_on_pronoun:
+    ref: R13
+    file: app/src/i18n/fr.json
+    allow:
+      - "« On mange où ce soir ? »"
+
+# ─────────────────────────── Contrat SPAWT (anti-compétition) ───────────────────────────
+contrat_spawt:
+  sql_table_lacks_column:
+    - migration: 0040
+      table: challenge_progress
+      column: spawter_id
+      note: "Le Contrat interdit tout classement : progrès agrégé, 1 ligne par défi, aucune donnée individuelle."
+  grep_absent:
+    - id: no-competition-vocab
+      paths:
+        - app/src
+        - app/app
+      pattern: "\\b(leaderboard|classement|ranking)\\b"
+      strip_comments: true
+      note: "Redonde lint:vocab — défense en profondeur."
+
+# ──────────────────────────────── Direction artistique ────────────────────────────────
+da:
+  hex_scan:
+    paths:
+      - app/src
+      - app/app
+      - app/__tests__
+    exclude:
+      - app/src/theme/tokens.ts
+    note: "Aucun hex hors tokens.ts (source unique brandbook)."
+
+# ─────────────────────────────── Enveloppe de livraison ───────────────────────────────
+enveloppe:
+  deps:
+    - react-native-view-shot
+    - expo-sharing
+    - "@maplibre/maplibre-react-native"
+    - "@react-native-community/datetimepicker"
+    - expo-image-picker
+  eas_submit:
+    file: app/eas.json
+    placeholder_marker: REMPLACER_
+    expected_pending: true
+    note: "ascAppId/appleTeamId restent des placeholders tant qu'Alexandre n'a pas les comptes stores (HUMAN_TODO) — WARNING attendu, pas un échec."
