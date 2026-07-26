@@ -38,7 +38,8 @@ export type IconName =
   | "bell"
   | "check"
   | "fork"
-  | "users";
+  | "users"
+  | "paw";
 
 interface Props {
   name: IconName;
@@ -245,6 +246,21 @@ export function Ico({ name, size = 20, color, filled = false }: Props) {
           <Circle cx={9} cy={8} r={3.5} {...common} fill={fill} />
           <Path {...common} d="M2.5 20 C2.5 16 5.5 14 9 14 C12.5 14 15.5 16 15.5 20" fill={fill} />
           <Path {...common} d="M15.5 4.8 A3.5 3.5 0 0 1 15.5 11.2 M17.5 14.3 C20 15.2 21.5 17.2 21.5 20" />
+        </>,
+      );
+    case "paw":
+      // Progression — patte du Chat (solde paws). Coussinet + 4 doigts.
+      return svg(
+        <>
+          <Circle cx={5.5} cy={10.5} r={1.7} {...common} fill={fill} />
+          <Circle cx={9.5} cy={6.5} r={1.9} {...common} fill={fill} />
+          <Circle cx={14.5} cy={6.5} r={1.9} {...common} fill={fill} />
+          <Circle cx={18.5} cy={10.5} r={1.7} {...common} fill={fill} />
+          <Path
+            {...common}
+            d="M12 11 C15 11 17.5 13.5 17.5 16.2 C17.5 18.6 15.6 20 12 20 C8.4 20 6.5 18.6 6.5 16.2 C6.5 13.5 9 11 12 11 Z"
+            fill={fill}
+          />
         </>,
       );
     default:

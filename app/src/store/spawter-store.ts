@@ -79,6 +79,15 @@ import { dominantAxes, computeConfidence } from "../lib/palais-engine";
 import { getStade, maxStade } from "../types/stade";
 import { EMPTY_PALAIS, SAMPLE_SPAWTER } from "../data/seed/sample-spawter";
 import { useOnboardingDraft } from "./onboarding-draft";
+// Progression — évaluation serveur des badges après spawt vérifié (RPC
+// check_and_award_badges, gated flag badges-v2 dans notifySpawtVerified) +
+// purge des clés « déjà vu » et reset du store au changement de compte.
+import {
+  BADGES_SEEN_KEY,
+  CARDS_SEEN_KEY,
+  notifySpawtVerified,
+  useProgressionStore,
+} from "./progression-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { track } from "../lib/analytics";
@@ -831,6 +840,13 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         ...(pendingBadge ? { pendingBadge } : {}),
         ...(pendingStadeCelebration ? { pendingStadeCelebration } : {}),
       });
+
+      // Progression — spawt vérifié → évaluation serveur des badges.
+      // Best-effort fire-and-forget : jamais bloquant pour le flux du spawt,
+      // no-op si le flag badges-v2 est off (gate interne).
+      if (s.is_verified) {
+        void notifySpawtVerified(updated.id);
+      }
     } else {
       set({ spawts: list });
     }
@@ -1025,6 +1041,10 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       // (fuite cross-user sinon, même logique que les flags de célébration).
       MUE_STREAK_STORAGE_KEY,
       PENDING_MUE_STORAGE_KEY,
+      // Progression — sets « déjà vu » des célébrations badges/cartes (un
+      // nouveau compte repartirait sinon avec l'anti-replay du précédent).
+      BADGES_SEEN_KEY,
+      CARDS_SEEN_KEY,
       ...STADE_ORDER.map((s) => `${STADE_CELEBRATED_KEY}:${s}`),
     ];
     void AsyncStorage.multiRemove(keysToPurge).catch((err) => {
@@ -1033,6 +1053,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     // CR finding M7 — vide aussi le guard in-flight pour que le prochain user
     // puisse célébrer chaque stade comme un nouveau parcours.
     __celebrationInFlight.clear();
+    // Progression — état en mémoire remis à zéro (badges/cartes/paws du
+    // compte précédent ne doivent pas survivre au changement de spawter).
+    useProgressionStore.getState().reset();
   },
 }));
 

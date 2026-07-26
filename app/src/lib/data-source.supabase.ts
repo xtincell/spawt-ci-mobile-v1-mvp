@@ -1118,3 +1118,278 @@ export async function getExploreCollectionFromSupabase(
     items,
   };
 }
+
+// ━━━ Progression complète (migrations 0035-0037 + 0040) ━━━━━━━━━━━━━━━━━━━━
+// Lecture badges/cartes/paws/défis + toggle is_displayed + RPC d'évaluation.
+// Toutes les erreurs sont avalées avec warn __DEV__ : la progression est une
+// surface de confort, jamais un point de crash du parcours principal.
+
+import type {
+  ActiveChallenge,
+  BadgeCatalogueEntry,
+  BadgeSnapshot,
+  OwnedCard,
+  PawsLedgerEntry,
+  SpawterBadgeRow,
+  SpawterStreak,
+} from "../types/progression";
+
+/**
+ * Catalogue actif (`badge_catalogue`, lisible par tous les authentifiés) +
+ * état du spawter (`spawter_badges`, RLS own) en 2 requêtes parallèles.
+ */
+export async function listBadgesFromSupabase(
+  spawter_id: string,
+): Promise<BadgeSnapshot> {
+  const [catQ, ownQ] = await Promise.all([
+    supabase
+      .from("badge_catalogue")
+      .select("code, category, title_key, description_key, condition_type, threshold, sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("spawter_badges")
+      .select("badge_code, unlocked_at, is_displayed")
+      .eq("spawter_id", spawter_id),
+  ]);
+
+  const catalogue: BadgeCatalogueEntry[] = [];
+  if (catQ.error) {
+    if (__DEV__) console.warn("[data-source] badge_catalogue failed", catQ.error);
+  } else {
+    for (const row of (catQ.data ?? []) as unknown as Array<Record<string, unknown>>) {
+      if (typeof row.code !== "string" || typeof row.category !== "string") continue;
+      catalogue.push({
+        code: row.code,
+        category: row.category as BadgeCatalogueEntry["category"],
+        title_key: typeof row.title_key === "string" ? row.title_key : `badge.${row.code}.title`,
+        description_key:
+          typeof row.description_key === "string"
+            ? row.description_key
+            : `badge.${row.code}.description`,
+        condition_type: (row.condition_type ?? "custom") as BadgeCatalogueEntry["condition_type"],
+        threshold: typeof row.threshold === "number" ? row.threshold : null,
+        sort_order: typeof row.sort_order === "number" ? row.sort_order : 0,
+      });
+    }
+  }
+
+  const unlocked: SpawterBadgeRow[] = [];
+  if (ownQ.error) {
+    if (__DEV__) console.warn("[data-source] spawter_badges failed", ownQ.error);
+  } else {
+    for (const row of (ownQ.data ?? []) as unknown as Array<Record<string, unknown>>) {
+      if (typeof row.badge_code !== "string") continue;
+      unlocked.push({
+        badge_code: row.badge_code,
+        unlocked_at: String(row.unlocked_at ?? ""),
+        is_displayed: Boolean(row.is_displayed),
+      });
+    }
+  }
+
+  return { catalogue, unlocked };
+}
+
+/**
+ * RPC `check_and_award_badges` (SECURITY DEFINER, garde-fou own-account) —
+ * retourne les NOUVEAUX codes gagnés (SETOF text). [] sur erreur : la
+ * célébration est un bonus, jamais un blocage.
+ */
+export async function triggerBadgeCheckInSupabase(
+  spawter_id: string,
+): Promise<string[]> {
+  const { data, error } = await supabase.rpc("check_and_award_badges", {
+    p_spawter_id: spawter_id,
+  });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] check_and_award_badges failed", error);
+    return [];
+  }
+  if (!Array.isArray(data)) return [];
+  return data.filter((c): c is string => typeof c === "string" && c.length > 0);
+}
+
+/**
+ * Toggle is_displayed d'un badge (seule colonne modifiable côté client —
+ * trigger 0036). "max" = ERRCODE 23514 du trigger `assert_max_displayed_badges`
+ * (déjà 3 affichés) — l'UI affiche un feedback dédié.
+ */
+export async function setBadgeDisplayedInSupabase(
+  spawter_id: string,
+  badge_code: string,
+  displayed: boolean,
+): Promise<"ok" | "max" | "error"> {
+  const { error } = await supabase
+    .from("spawter_badges")
+    .update({ is_displayed: displayed })
+    .eq("spawter_id", spawter_id)
+    .eq("badge_code", badge_code);
+  if (!error) return "ok";
+  if (error.code === "23514") return "max";
+  if (__DEV__) console.warn("[data-source] setBadgeDisplayed failed", error);
+  return "error";
+}
+
+/**
+ * Cartes possédées : join `spawter_cards` × `collectible_cards` en un
+ * round-trip (RLS own sur spawter_cards). La relation peut remonter objet ou
+ * array selon le SDK — normalisation défensive, doctrine spawters_public.
+ */
+export async function listSpawterCardsFromSupabase(
+  spawter_id: string,
+): Promise<OwnedCard[]> {
+  const { data, error } = await supabase
+    .from("spawter_cards")
+    .select(
+      "obtained_at, source, collectible_cards(id, code, kind, rarity, title, image_url, verso_text)",
+    )
+    .eq("spawter_id", spawter_id)
+    .order("obtained_at", { ascending: false });
+
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] listSpawterCards failed", error);
+    return [];
+  }
+
+  const out: OwnedCard[] = [];
+  for (const row of data as unknown as Array<Record<string, unknown>>) {
+    const rel = row.collectible_cards;
+    const cardRaw = Array.isArray(rel) ? rel[0] : rel;
+    if (!cardRaw || typeof cardRaw !== "object") {
+      if (__DEV__) console.warn("[data-source] spawter_card dropped — carte manquante");
+      continue;
+    }
+    const c = cardRaw as Record<string, unknown>;
+    if (typeof c.code !== "string" || typeof c.title !== "string") continue;
+    out.push({
+      id: String(c.id ?? c.code),
+      code: c.code,
+      kind: (c.kind ?? "archetype") as OwnedCard["kind"],
+      rarity: (c.rarity ?? "commun") as OwnedCard["rarity"],
+      title: c.title,
+      image_url: typeof c.image_url === "string" && c.image_url.length > 0 ? c.image_url : null,
+      verso_text: typeof c.verso_text === "string" ? c.verso_text : null,
+      obtained_at: String(row.obtained_at ?? ""),
+      source: (row.source ?? "admin") as OwnedCard["source"],
+    });
+  }
+  return out;
+}
+
+/**
+ * Solde paws — vue `paws_balance` (security_invoker : chaque spawter ne lit
+ * que le sien). Aucune row = jamais crédité → 0 franc. `null` = indéterminé
+ * (erreur) : le caller conserve le dernier solde connu.
+ */
+export async function getPawsBalanceFromSupabase(
+  spawter_id: string,
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("paws_balance")
+    .select("balance")
+    .eq("spawter_id", spawter_id)
+    .maybeSingle();
+  if (error) {
+    if (__DEV__) console.warn("[data-source] paws_balance failed", error);
+    return null;
+  }
+  const balance = (data as { balance?: unknown } | null)?.balance;
+  return typeof balance === "number" ? balance : 0;
+}
+
+/** Historique du ledger paws (RLS own, append-only — lecture seule). */
+export async function listPawsLedgerFromSupabase(
+  spawter_id: string,
+  limit: number,
+): Promise<PawsLedgerEntry[]> {
+  const { data, error } = await supabase
+    .from("paws_ledger")
+    .select("id, delta, reason, ref_id, created_at")
+    .eq("spawter_id", spawter_id)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] paws_ledger failed", error);
+    return [];
+  }
+  const out: PawsLedgerEntry[] = [];
+  for (const row of data as unknown as Array<Record<string, unknown>>) {
+    if (typeof row.delta !== "number") continue;
+    out.push({
+      id: String(row.id ?? ""),
+      delta: row.delta,
+      reason: (row.reason ?? "ajustement_admin") as PawsLedgerEntry["reason"],
+      ref_id: typeof row.ref_id === "string" ? row.ref_id : null,
+      created_at: String(row.created_at ?? ""),
+    });
+  }
+  return out;
+}
+
+/**
+ * Défis actifs + progression collective (`challenge_progress` : UNE ligne
+ * par défi, aucun spawter_id — le Contrat SPAWT est garanti par le schéma).
+ */
+export async function listActiveChallengesFromSupabase(): Promise<ActiveChallenge[]> {
+  const { data, error } = await supabase
+    .from("challenges")
+    .select(
+      "id, code, title_key, description_key, period_start, period_end, goal_type, goal_target, reward_paws, challenge_progress(current_value)",
+    )
+    .eq("status", "active")
+    .order("period_end", { ascending: true });
+
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] listActiveChallenges failed", error);
+    return [];
+  }
+
+  const out: ActiveChallenge[] = [];
+  for (const row of data as unknown as Array<Record<string, unknown>>) {
+    if (typeof row.code !== "string" || typeof row.goal_target !== "number") continue;
+    const rel = row.challenge_progress;
+    const progressRaw = Array.isArray(rel) ? rel[0] : rel;
+    const currentValue =
+      progressRaw && typeof progressRaw === "object"
+        ? (progressRaw as { current_value?: unknown }).current_value
+        : 0;
+    out.push({
+      id: String(row.id ?? row.code),
+      code: row.code,
+      title_key: typeof row.title_key === "string" ? row.title_key : `defi.${row.code}.title`,
+      description_key:
+        typeof row.description_key === "string"
+          ? row.description_key
+          : `defi.${row.code}.description`,
+      period_start: String(row.period_start ?? ""),
+      period_end: String(row.period_end ?? ""),
+      goal_type: (row.goal_type ?? "spawts_total") as ActiveChallenge["goal_type"],
+      goal_target: row.goal_target,
+      reward_paws: typeof row.reward_paws === "number" ? row.reward_paws : 0,
+      current_value: typeof currentValue === "number" ? currentValue : 0,
+    });
+  }
+  return out;
+}
+
+/** Streak hebdo privé (`spawter_streaks`, RLS owner-only). Null si aucune row. */
+export async function getMyStreakFromSupabase(
+  spawter_id: string,
+): Promise<SpawterStreak | null> {
+  const { data, error } = await supabase
+    .from("spawter_streaks")
+    .select("current_weeks, best_weeks, last_spawt_week")
+    .eq("spawter_id", spawter_id)
+    .maybeSingle();
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] spawter_streaks failed", error);
+    return null;
+  }
+  const row = data as Record<string, unknown>;
+  return {
+    current_weeks: typeof row.current_weeks === "number" ? row.current_weeks : 0,
+    best_weeks: typeof row.best_weeks === "number" ? row.best_weeks : 0,
+    last_spawt_week: typeof row.last_spawt_week === "string" ? row.last_spawt_week : null,
+  };
+}

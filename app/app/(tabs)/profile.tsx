@@ -26,6 +26,11 @@ import { isArchetypeKey } from "../../src/lib/archetype-engine";
 import { ARCHETYPES } from "../../src/data/archetypes";
 import { chatKey, isChatSilent } from "../../src/lib/chat-voice";
 import { track } from "../../src/lib/analytics";
+// Progression — teaser compact (badges affichés max 3 + lien écran dédié).
+// Visible seulement si au moins un flag progression est actif (OFF par
+// défaut → ce bloc n'existe pas, non-régression stricte du profil).
+import { useProgressionStore } from "../../src/store/progression-store";
+import { useFlag } from "../../src/store/feature-flags";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -47,6 +52,22 @@ export default function ProfileScreen() {
   // Sprint 2 — entitlement Gold réactif (revalidé par le store : hydratation,
   // foreground, paywall). Hook AVANT le early-return (rules of hooks).
   const goldEntitlement = useSpawterStore((s) => s.gold);
+
+  // Progression — hooks AVANT le early-return (rules of hooks). Le teaser ne
+  // se rend que si au moins un flag progression est actif.
+  const badgesV2Enabled = useFlag("badges-v2");
+  const collectiblesEnabled = useFlag("collectibles");
+  const pawsEnabled = useFlag("paws");
+  const defisEnabled = useFlag("defis-collectifs");
+  const progressionEnabled =
+    badgesV2Enabled || collectiblesEnabled || pawsEnabled || defisEnabled;
+  const progressionBadges = useProgressionStore((s) => s.badges);
+  const hydrateProgression = useProgressionStore((s) => s.hydrate);
+  const spawterIdForProgression = useSpawterStore((s) => s.spawter?.id ?? null);
+  useEffect(() => {
+    if (!progressionEnabled || !spawterIdForProgression) return;
+    void hydrateProgression(spawterIdForProgression);
+  }, [progressionEnabled, spawterIdForProgression, hydrateProgression]);
 
   // Le Chat au stade Guide se tait (isChatSilent) : le constat ne sera jamais
   // affichable — on l'acquitte silencieusement pour ne pas le laisser traîner.
@@ -283,6 +304,63 @@ export default function ProfileScreen() {
             void clearDisplayedTitle();
           }}
         />
+
+        {/* Progression — teaser compact : badges affichés (max 3, invariant
+            DB) + compteur + lien vers l'écran dédié. S'intègre SANS toucher
+            archétype/Pionnier/Gold — flags OFF par défaut = bloc absent. */}
+        {progressionEnabled ? (
+          <View testID="profile-progression-teaser" style={{ gap: theme.spacing.sm }}>
+            <Text
+              style={{
+                ...theme.typography.preset.caption,
+                color: theme.colors.text.tertiary,
+              }}
+            >
+              {t("progression.profile_teaser_title")}
+            </Text>
+            {(() => {
+              const unlocked = progressionBadges?.unlocked ?? [];
+              const displayed = unlocked.filter((b) => b.is_displayed).slice(0, 3);
+              return displayed.length > 0 ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: theme.spacing.sm,
+                  }}
+                >
+                  {displayed.map((b) => (
+                    <View
+                      key={b.badge_code}
+                      testID={`profile-displayed-badge-${b.badge_code}`}
+                      style={{
+                        paddingVertical: theme.spacing.xs,
+                        paddingHorizontal: theme.spacing.base,
+                        borderRadius: theme.radius.full,
+                        borderWidth: 1,
+                        borderColor: theme.colors.brand.primary,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          ...theme.typography.preset.caption,
+                          color: theme.colors.brand.primary,
+                        }}
+                      >
+                        {t(`badge.${b.badge_code}.title`)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null;
+            })()}
+            <QuickLink
+              label={t("progression.profile_teaser_cta")}
+              count={progressionBadges?.unlocked.length ?? 0}
+              onPress={() => router.push("/progression" as never)}
+            />
+          </View>
+        ) : null}
 
         {/* Sprint 2 — indicateur Gold discret (tokens or uniquement) + lien de
             gestion vers le portail /compte. Apple 3.1.3 : aucun achat in-app,

@@ -193,7 +193,9 @@ type EventName =
   // 15. Mode Crew (vote de groupe — migrations 0038 + 0046)
   | "crew_session_created" | "crew_session_joined" | "crew_place_proposed"
   | "crew_vote_cast" | "crew_session_resolved"
-  | "crew_code_shared" | "crew_result_shared";
+  | "crew_code_shared" | "crew_result_shared"
+  // 16. Progression complète (badges/collection/paws/défis — 0035-0037 + 0040)
+  | "progression_opened";
 
 export type AnalyticsEvent =
   | AppFirstOpen | AppOpen
@@ -280,6 +282,8 @@ const EVENT_TO_SIGNAL = {
   crew_place_proposed: "click", crew_vote_cast: "crew_vote",
   crew_session_resolved: "click",
   crew_code_shared: "share", crew_result_shared: "share",
+  // Progression — ouverture de l'écran (badges/collection/paws/défis).
+  progression_opened: "view",
 } as const satisfies Record<EventName, SignalType>;
 
 // Regex UUID v4 (validation soft pour `place_id` avant insert — la column DB

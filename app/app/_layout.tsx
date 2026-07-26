@@ -29,6 +29,11 @@ import {
 import { AppOpening } from "../src/components/brand/AppOpening";
 import { BadgePremierSpawt } from "../src/components/BadgePremierSpawt";
 import { StadeCelebration } from "../src/components/StadeCelebration";
+// Progression — célébration « badge débloqué » (file FIFO du store, flag
+// badges-v2). Même doctrine d'overlay root que StadeCelebration.
+import { BadgeUnlocked } from "../src/components/progression/BadgeUnlocked";
+import { useProgressionStore } from "../src/store/progression-store";
+import { useFlag } from "../src/store/feature-flags";
 import {
   bootOfflineQueue,
   shutdownOfflineQueue,
@@ -73,7 +78,9 @@ function RouteGuard() {
       first === "rapide" ||
       first === "explore" ||
       // Mode Crew — l'écran de session dépend du spawter (identité + votes).
-      first === "crew";
+      first === "crew" ||
+      // Progression — badges/collection/paws/défis (flags OFF par défaut).
+      first === "progression";
     const inOnboarding = first === "(onboarding)";
     const onSplash = !first;
 
@@ -161,6 +168,17 @@ export default function RootLayout() {
     (s) => s.consumePendingStadeCelebration,
   );
 
+  // Progression — file de badges à célébrer (FIFO). L'overlay ne sort que si
+  // le flag badges-v2 est actif ET qu'aucune célébration de stade n'est en
+  // cours (le stade prime — un rituel à la fois).
+  const badgesV2Enabled = useFlag("badges-v2");
+  const pendingBadgeCelebrations = useProgressionStore(
+    (s) => s.pendingBadgeCelebrations,
+  );
+  const consumeBadgeCelebration = useProgressionStore(
+    (s) => s.consumeBadgeCelebration,
+  );
+
   // CR finding M9 — gate les overlays sur !hydrating pour empêcher leur mount
   // pré-hydrate (sinon unlockTitle dans consumePendingBadge serait no-op à cause
   // de `spawter === null` et le badge serait perdu à jamais).
@@ -239,6 +257,8 @@ export default function RootLayout() {
               options={{ presentation: "card" }}
             />
             <Stack.Screen name="settings" options={{ presentation: "card" }} />
+            {/* Progression — badges/collection/paws/défis (flags OFF par défaut). */}
+            <Stack.Screen name="progression" options={{ presentation: "card" }} />
             {/* Mode Crew — écran de session (flag mode-crew, entrée via l'onglet Meute). */}
             <Stack.Screen name="crew/[id]" options={{ presentation: "card" }} />
             <Stack.Screen
@@ -261,6 +281,17 @@ export default function RootLayout() {
             onDismiss={() => {
               void consumePendingStadeCelebration();
             }}
+          />
+          <BadgeUnlocked
+            visible={
+              !hydrating &&
+              badgesV2Enabled &&
+              pendingStadeCelebration === null &&
+              pendingBadgeCelebrations.length > 0
+            }
+            code={pendingBadgeCelebrations[0]}
+            queueLength={pendingBadgeCelebrations.length}
+            onDismiss={consumeBadgeCelebration}
           />
           {/* R23 — l'ouverture animée est le DERNIER enfant : elle recouvre
               tout (Stack + overlays) jusqu'à sa fin ou un tap. */}

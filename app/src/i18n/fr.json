@@ -62,7 +62,135 @@
   "badge": {
     "premier_spawt_title": "Premier Spawt",
     "premier_spawt_body": "Le Chat sait que tu es passé chez {{place_name}}. Ton Palais s'éveille.",
-    "premier_spawt_cta": "Continuer"
+    "premier_spawt_cta": "Continuer",
+    "premier_spawt": {
+      "title": "Premier Spawt",
+      "description": "Ton tout premier spawt vérifié. Le Chat t'a vu, la Meute sait que tu existes."
+    },
+    "traversee": {
+      "title": "La Traversée",
+      "description": "5 communes explorées. Abidjan commence à reconnaître ta démarche."
+    },
+    "cartographe": {
+      "title": "Cartographe",
+      "description": "10 communes au compteur. Tu dessines la carte que personne n'a écrite."
+    },
+    "maitre_des_communes": {
+      "title": "Maître des Communes",
+      "description": "Les 13 communes, toutes spawtées. Abidjan n'a plus un seul angle mort pour toi."
+    },
+    "noctambule": {
+      "title": "Noctambule",
+      "description": "10 spawts après 21 h. La nuit c'est ton heure — le garba de minuit te connaît par ton prénom."
+    },
+    "chasseur_de_pepites": {
+      "title": "Chasseur de Pépites",
+      "description": "5 spots presque sans avis. Tu flaires ce que personne n'a encore goûté."
+    },
+    "hors_des_sentiers": {
+      "title": "Hors des Sentiers",
+      "description": "15 lieux confidentiels à ton actif. Le bitume te raconte ses secrets."
+    },
+    "pionnier_commune": {
+      "title": "Pionnier de Commune",
+      "description": "3 lieux spawtés dans leur premier mois. Toujours premier sur le terrain."
+    },
+    "marathon_maquis": {
+      "title": "Marathon Maquis",
+      "description": "25 spawts vérifiés. Tes semelles commencent à parler de toi."
+    },
+    "semelles_de_feu": {
+      "title": "Semelles de Feu",
+      "description": "75 spawts vérifiés. À ce rythme, c'est la ville qui te suit."
+    },
+    "spawteur_du_weekend": {
+      "title": "Spawteur du Weekend",
+      "description": "10 spawts le weekend. Samedi-dimanche, c'est terrain — pas canapé."
+    },
+    "leve_tot": {
+      "title": "Lève-Tôt",
+      "description": "Le Chat t'a vu à l'aube. Ce badge ne se demande pas, il se constate."
+    },
+    "palais_diversifie": {
+      "title": "Palais Diversifié",
+      "description": "5 types de cuisine goûtés. Ton Palais refuse la routine."
+    },
+    "ambassadeur_cuisine": {
+      "title": "Ambassadeur des Cuisines",
+      "description": "10 types de cuisine explorés. Ton Palais parle toutes les langues."
+    },
+    "calibre": {
+      "title": "Calibré",
+      "description": "10 avis publiés. Ton mot commence à compter dans la Meute."
+    },
+    "plume_du_palais": {
+      "title": "Plume du Palais",
+      "description": "25 avis publiés. Tu écris la mémoire gustative d'Abidjan."
+    },
+    "voix_d_or": {
+      "title": "Voix d'Or",
+      "description": "50 avis publiés. Quand tu parles d'un spot, la Meute tend l'oreille."
+    },
+    "oeil_de_braise": {
+      "title": "Œil de Braise",
+      "description": "50 spawts vérifiés. Rien ne t'échappe — surtout pas une bonne table."
+    },
+    "photographe_gourmand": {
+      "title": "Photographe Gourmand",
+      "description": "10 photos publiées. Tes clichés donnent faim avant même le premier mot."
+    },
+    "objectif_pepite": {
+      "title": "Objectif Pépite",
+      "description": "30 photos publiées. Ton téléphone mange avant toi, et toute la Meute en profite."
+    },
+    "gardien_du_garba": {
+      "title": "Gardien du Garba",
+      "description": "Un titre que le Chat réserve aux vrais. Le garba, chez toi, c'est une religion."
+    },
+    "fidele_au_poste": {
+      "title": "Fidèle au Poste",
+      "description": "Attribué par le Chat à ceux qui reviennent, encore et encore, là où ça compte."
+    },
+    "eclaireur": {
+      "title": "Éclaireur",
+      "description": "5 de tes avis sauvegardés par la Meute. Tu ouvres la piste, on te suit."
+    },
+    "aimant": {
+      "title": "Aimant",
+      "description": "5 coups de cœur reçus. Tes trouvailles font battre des cœurs."
+    },
+    "coeur_de_la_meute": {
+      "title": "Cœur de la Meute",
+      "description": "15 coups de cœur reçus. La bande spawte sur tes pas."
+    },
+    "bouche_a_oreille": {
+      "title": "Bouche à Oreille",
+      "description": "3 spawters entrés dans la Meute grâce à toi. Ton flair se transmet."
+    },
+    "faiseur_de_pluie": {
+      "title": "Faiseur de Pluie",
+      "description": "10 spawters parrainés. Là où tu passes, la Meute grandit."
+    },
+    "voix_de_la_colonie": {
+      "title": "Voix de la Colonie",
+      "description": "25 spawters parrainés. Toute une colonie t'a suivi jusqu'ici."
+    },
+    "defi_releve": {
+      "title": "Défi Relevé",
+      "description": "Un défi collectif bouclé avec la Meute. Ensemble, on mange plus loin."
+    },
+    "pilier_de_colonie": {
+      "title": "Pilier de Colonie",
+      "description": "5 défis collectifs bouclés. La Meute sait qu'elle peut compter sur toi."
+    },
+    "meneur_de_crew": {
+      "title": "Meneur de Crew",
+      "description": "Le Chat t'a vu rassembler la bande. « On mange où ce soir ? » — chez toi, la réponse."
+    },
+    "murmure_urbain": {
+      "title": "Murmure Urbain",
+      "description": "Réservé à ceux dont le nom circule dans la rue. Le Chat sait pourquoi."
+    }
   },
   "review": {
     "title": "Ton avis sur {{place_name}}",
@@ -845,5 +973,116 @@
     "picker_results": "Résultats",
     "picker_empty": "Rien trouvé. Essaie un autre mot.",
     "picker_close": "Fermer"
+  },
+  "badge_condition": {
+    "communes_distinctes_one": "Spawte dans {{count}} commune",
+    "communes_distinctes_other": "Spawte dans {{count}} communes différentes",
+    "spawts_apres_21h_one": "{{count}} spawt vérifié après 21 h",
+    "spawts_apres_21h_other": "{{count}} spawts vérifiés après 21 h",
+    "lieux_peu_avises_one": "Spawte {{count}} lieu presque sans avis",
+    "lieux_peu_avises_other": "Spawte {{count}} lieux presque sans avis",
+    "types_cuisine_one": "Goûte {{count}} type de cuisine",
+    "types_cuisine_other": "Goûte {{count}} types de cuisine différents",
+    "avis_sauvegardes_one": "{{count}} de tes avis sauvegardé par la Meute",
+    "avis_sauvegardes_other": "{{count}} de tes avis sauvegardés par la Meute",
+    "spawts_total_one": "{{count}} spawt vérifié au total",
+    "spawts_total_other": "{{count}} spawts vérifiés au total",
+    "avis_total_one": "Publie {{count}} avis",
+    "avis_total_other": "Publie {{count}} avis",
+    "premier_spawt_one": "Ton premier spawt vérifié",
+    "premier_spawt_other": "Ton premier spawt vérifié",
+    "coups_de_coeur_recus_one": "Reçois {{count}} coup de cœur",
+    "coups_de_coeur_recus_other": "Reçois {{count}} coups de cœur",
+    "spawts_weekend_one": "{{count}} spawt le weekend",
+    "spawts_weekend_other": "{{count}} spawts le weekend",
+    "lieux_nouveaux_30j_one": "Spawte {{count}} lieu dans son premier mois",
+    "lieux_nouveaux_30j_other": "Spawte {{count}} lieux dans leur premier mois",
+    "photos_publiees_one": "Publie {{count}} photo avec tes avis",
+    "photos_publiees_other": "Publie {{count}} photos avec tes avis",
+    "parrainages_one": "Fais entrer {{count}} spawter dans la Meute",
+    "parrainages_other": "Fais entrer {{count}} spawters dans la Meute",
+    "defis_completes_one": "Boucle {{count}} défi collectif avec la Meute",
+    "defis_completes_other": "Boucle {{count}} défis collectifs avec la Meute",
+    "custom_one": "Attribution spéciale du Chat — continue de vivre, il te voit",
+    "custom_other": "Attribution spéciale du Chat — continue de vivre, il te voit"
+  },
+  "progression": {
+    "title": "Ta progression",
+    "subtitle": "Badges, collection, défis — ton chemin avec le Chat. Jamais un classement.",
+    "stade_label": "Ton stade",
+    "stade_progress": "{{current}} / {{threshold}} spots vers {{stade}}",
+    "stade_max": "Stade maximal. La bande marche derrière toi.",
+    "next_title": "À portée de fourchette",
+    "badges_title": "Badges",
+    "badges_count": "{{unlocked}} / {{total}}",
+    "category": {
+      "core": "Fondations",
+      "exploration": "Exploration",
+      "expertise": "Expertise",
+      "influence": "Influence"
+    },
+    "badge_tile_unlocked_aria": "Badge débloqué : {{title}}",
+    "badge_tile_locked_aria": "Badge verrouillé : {{title}}",
+    "badge_progress_label": "{{current}} / {{threshold}}",
+    "badge_display_toggle_aria": "Afficher ou retirer ce badge de ton profil",
+    "badge_display_on": "Affiché sur ton profil",
+    "badge_display_off": "Afficher sur mon profil",
+    "badges_display_max_title": "Trois badges maximum",
+    "badges_display_max_body": "Ton profil affiche déjà 3 badges. Retires-en un avant d'en épingler un nouveau.",
+    "badge_unlocked_kicker": "Badge débloqué",
+    "badge_unlocked_cta": "Continuer",
+    "badge_unlocked_cta_aria": "Fermer la célébration du badge",
+    "badge_unlocked_queue_one": "Encore {{count}} badge t'attend",
+    "badge_unlocked_queue_other": "Encore {{count}} badges t'attendent",
+    "collection_title": "Collection",
+    "collection_count_one": "{{count}} carte",
+    "collection_count_other": "{{count}} cartes",
+    "collection_empty": "Aucune carte pour l'instant. Spawte, vis, collectionne — elles viendront à toi.",
+    "card_flip_aria": "Retourner la carte {{title}}",
+    "card_source": {
+      "spawt": "Gagnée en spawtant",
+      "badge": "Gagnée avec un badge",
+      "defi": "Gagnée avec la Meute",
+      "heritage_quiz": "Héritage du quiz La Meute",
+      "admin": "Offerte par le Chat"
+    },
+    "defis_title": "Défis de la Meute",
+    "defis_empty": "Aucun défi en cours. La Meute reprend son souffle.",
+    "defi_kicker": "Toute la Meute ensemble",
+    "defi_progress": {
+      "spawts_total": "La Meute a spawté {{current}} fois sur {{target}}",
+      "communes_couvertes": "{{current}} communes couvertes sur {{target}}",
+      "avis_total": "{{current}} avis publiés sur {{target}}",
+      "nouveaux_lieux": "{{current}} nouveaux lieux découverts sur {{target}}"
+    },
+    "defi_reward_one": "{{count}} paw pour chaque participant à l'arrivée",
+    "defi_reward_other": "{{count}} paws pour chaque participant à l'arrivée",
+    "streak_title": "Ton rendez-vous (privé)",
+    "streak_current_one": "{{count}} semaine de suite",
+    "streak_current_other": "{{count}} semaines de suite",
+    "streak_best_one": "Record : {{count}} semaine",
+    "streak_best_other": "Record : {{count}} semaines",
+    "streak_private_hint": "Visible par toi seul. Un rendez-vous avec toi-même, pas une compétition.",
+    "paws_title": "Paws",
+    "paws_balance_label": "paws de reconnaissance",
+    "paws_hint": "Les paws saluent ton engagement. Ils ne s'achètent pas, ne s'échangent pas — ils se vivent.",
+    "paws_empty": "Aucun paw pour l'instant. Ton premier spawt vérifié ouvrira le compteur.",
+    "paws_reason": {
+      "spawt_verifie": "Spawt vérifié",
+      "avis_publie": "Avis publié",
+      "badge_obtenu": "Badge obtenu",
+      "defi_collectif": "Défi collectif bouclé",
+      "ajustement_admin": "Geste du Chat"
+    },
+    "profile_teaser_title": "Progression",
+    "profile_teaser_badges_one": "{{count}} badge débloqué",
+    "profile_teaser_badges_other": "{{count}} badges débloqués",
+    "profile_teaser_cta": "Voir ma progression"
+  },
+  "defi": {
+    "meute_juillet_spawts": {
+      "title": "Juillet en Meute",
+      "description": "1 000 spawts vérifiés à nous tous avant la fin du mois. Chaque table compte, chaque spawter aussi."
+    }
   }
 }

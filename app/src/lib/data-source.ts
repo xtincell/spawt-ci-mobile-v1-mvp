@@ -669,3 +669,133 @@ export async function getExploreCollection(
   const { items: _items, is_published: _published, ...summary } = seed;
   return { ...summary, items };
 }
+
+// ─── Progression complète (migrations 0035-0037 + 0040) ─────────────────────
+// Badges 30+, cartes collector, paws, défis collectifs. Les CONDITIONS de
+// badges vivent en SQL (check_and_award_badges) — l'app AFFICHE et déclenche.
+// Mode démo : fixtures seed/progression.ts (import statique, même doctrine
+// que SEED_PLACES — la branche démo doit marcher partout, y compris sous jest).
+
+import type {
+  ActiveChallenge,
+  BadgeSnapshot,
+  OwnedCard,
+  PawsLedgerEntry,
+  SpawterStreak,
+} from "../types/progression";
+import {
+  SEED_ACTIVE_CHALLENGE,
+  SEED_BADGE_CATALOGUE,
+  SEED_OWNED_CARDS,
+  SEED_PAWS_BALANCE,
+  SEED_PAWS_LEDGER,
+  SEED_STREAK,
+  SEED_UNLOCKED_BADGES,
+} from "../data/seed/progression";
+
+/**
+ * Catalogue des badges + état du spawter (débloqués/affichés).
+ * Mode supabase : `badge_catalogue` (lisible par tous) + `spawter_badges`
+ * (RLS own). Mode démo : fixtures vivantes (7 badges débloqués, 3 affichés).
+ */
+export async function listBadges(spawter_id: string): Promise<BadgeSnapshot> {
+  if (isSupabaseConfigured) {
+    const { listBadgesFromSupabase } = await import("./data-source.supabase");
+    return listBadgesFromSupabase(spawter_id);
+  }
+  return {
+    catalogue: SEED_BADGE_CATALOGUE.slice(),
+    unlocked: SEED_UNLOCKED_BADGES.slice(),
+  };
+}
+
+/**
+ * Déclenche l'évaluation serveur des badges (RPC `check_and_award_badges`,
+ * 0036) et retourne les NOUVEAUX codes gagnés — pour la célébration côté app.
+ * Appelée après un spawt vérifié et à l'ouverture de l'écran Progression,
+ * toujours en best-effort non bloquant. Mode démo : aucun moteur local, [].
+ */
+export async function triggerBadgeCheck(spawter_id: string): Promise<string[]> {
+  if (!isSupabaseConfigured) return [];
+  const { triggerBadgeCheckInSupabase } = await import("./data-source.supabase");
+  return triggerBadgeCheckInSupabase(spawter_id);
+}
+
+/**
+ * Toggle « afficher sur mon profil » d'un badge débloqué.
+ * "max" = le trigger SQL `assert_max_displayed_badges` a refusé (déjà 3
+ * affichés) — le store remonte un feedback lisible. Mode démo : "ok" (l'état
+ * vit dans le store, la garde max-3 est appliquée côté client).
+ */
+export async function setBadgeDisplayed(
+  spawter_id: string,
+  badge_code: string,
+  displayed: boolean,
+): Promise<"ok" | "max" | "error"> {
+  if (!isSupabaseConfigured) return "ok";
+  const { setBadgeDisplayedInSupabase } = await import("./data-source.supabase");
+  return setBadgeDisplayedInSupabase(spawter_id, badge_code, displayed);
+}
+
+/**
+ * Cartes collector possédées (join `spawter_cards` × `collectible_cards`).
+ * Mode démo : 3 cartes archétype (raretés variées) — l'écran Collection vit.
+ */
+export async function listSpawterCards(spawter_id: string): Promise<OwnedCard[]> {
+  if (isSupabaseConfigured) {
+    const { listSpawterCardsFromSupabase } = await import("./data-source.supabase");
+    return listSpawterCardsFromSupabase(spawter_id);
+  }
+  return SEED_OWNED_CARDS.slice();
+}
+
+/**
+ * Solde paws (vue `paws_balance` — somme du ledger, jamais une colonne
+ * mutable). `null` = indéterminé (erreur réseau) : le caller garde le dernier
+ * état connu. Mode démo : 120 (somme des fixtures, cohérence testée).
+ */
+export async function getPawsBalance(spawter_id: string): Promise<number | null> {
+  if (isSupabaseConfigured) {
+    const { getPawsBalanceFromSupabase } = await import("./data-source.supabase");
+    return getPawsBalanceFromSupabase(spawter_id);
+  }
+  return SEED_PAWS_BALANCE;
+}
+
+/** Historique lisible du ledger paws (append-only, tri fraîcheur). */
+export async function listPawsLedger(
+  spawter_id: string,
+  limit = 30,
+): Promise<PawsLedgerEntry[]> {
+  if (isSupabaseConfigured) {
+    const { listPawsLedgerFromSupabase } = await import("./data-source.supabase");
+    return listPawsLedgerFromSupabase(spawter_id, limit);
+  }
+  return SEED_PAWS_LEDGER.slice()
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, limit);
+}
+
+/**
+ * Défis collectifs actifs + progression AGRÉGÉE (Meute entière — Contrat
+ * SPAWT : jamais de détail par spawter). Mode démo : 1 défi à 62 %.
+ */
+export async function listActiveChallenges(): Promise<ActiveChallenge[]> {
+  if (isSupabaseConfigured) {
+    const { listActiveChallengesFromSupabase } = await import("./data-source.supabase");
+    return listActiveChallengesFromSupabase();
+  }
+  return [{ ...SEED_ACTIVE_CHALLENGE }];
+}
+
+/**
+ * Streak hebdo PRIVÉ du spawter (RLS owner-only). `null` = pas encore de
+ * streak ou indéterminé. Mode démo : 3 semaines de suite (record 5).
+ */
+export async function getMyStreak(spawter_id: string): Promise<SpawterStreak | null> {
+  if (isSupabaseConfigured) {
+    const { getMyStreakFromSupabase } = await import("./data-source.supabase");
+    return getMyStreakFromSupabase(spawter_id);
+  }
+  return { ...SEED_STREAK };
+}
