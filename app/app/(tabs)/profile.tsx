@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { SpawterCard } from "../../src/components/SpawterCard";
 import { BuildBadge } from "../../src/components/primitives/BuildBadge";
+import { ChatBubble } from "../../src/components/ChatBubble";
+import { ArchetypeCard } from "../../src/components/profile/ArchetypeCard";
 import { CollectionTitlesSection } from "../../src/components/profile/CollectionTitlesSection";
 import { OfflineQueueInspector } from "../../src/components/OfflineQueueInspector";
 import { useSpawterStore } from "../../src/store/spawter-store";
@@ -20,6 +22,9 @@ import { isGoldSpawter } from "../../src/lib/spawter-gold";
 import { compressAvatar, uploadAvatar } from "../../src/lib/storage-avatars";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
 import { defaultTitleKeyForStade } from "../../src/lib/titres-catalogue";
+import { isArchetypeKey } from "../../src/lib/archetype-engine";
+import { ARCHETYPES } from "../../src/data/archetypes";
+import { chatKey, isChatSilent } from "../../src/lib/chat-voice";
 import { track } from "../../src/lib/analytics";
 
 export default function ProfileScreen() {
@@ -36,6 +41,17 @@ export default function ProfileScreen() {
   const clearDisplayedTitle = useSpawterStore((s) => s.clearDisplayedTitle);
   const updateAvatar = useSpawterStore((s) => s.updateAvatar);
   const reset = useSpawterStore((s) => s.reset);
+  // Chantier 13 archétypes — constat de mue en attente (neutre, PRD §5.5).
+  const pendingMue = useSpawterStore((s) => s.pendingMue);
+  const consumePendingMue = useSpawterStore((s) => s.consumePendingMue);
+
+  // Le Chat au stade Guide se tait (isChatSilent) : le constat ne sera jamais
+  // affichable — on l'acquitte silencieusement pour ne pas le laisser traîner.
+  const stade = spawter?.stade ?? "touriste";
+  const mueSilent = pendingMue !== null && isChatSilent(stade, "archetype_mue");
+  useEffect(() => {
+    if (mueSilent) void consumePendingMue();
+  }, [mueSilent, consumePendingMue]);
 
   const [queueSize, setQueueSize] = useState(0);
   const [inspectorVisible, setInspectorVisible] = useState(false);
@@ -156,6 +172,47 @@ export default function ProfileScreen() {
           {spawter.neighborhood ?? t("profile.neighborhood_unknown")}
         </Text>
 
+        {/* Chantier 13 archétypes — constat de mue NEUTRE (PRD §5.5) : une
+            bulle de Chat sobre + acquittement. Pas d'overlay, pas de fête. */}
+        {pendingMue && !mueSilent
+          ? (() => {
+              const mueKey = chatKey("archetype_mue", spawter.stade);
+              const text = t(mueKey, {
+                archetype: t(ARCHETYPES[pendingMue.to].nameKey),
+              });
+              if (!text || text === mueKey) return null;
+              return (
+                <View style={{ gap: theme.spacing.sm }}>
+                  <ChatBubble
+                    stade={spawter.stade}
+                    moment="archetype_mue"
+                    overrideText={text}
+                  />
+                  <Pressable
+                    onPress={() => void consumePendingMue()}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("profile.mue_ack")}
+                    style={({ pressed }) => ({
+                      alignSelf: "flex-end",
+                      paddingVertical: theme.spacing.xs,
+                      paddingHorizontal: theme.spacing.sm,
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <Text
+                      style={{
+                        ...theme.typography.preset.caption,
+                        color: theme.colors.text.tertiary,
+                      }}
+                    >
+                      {t("profile.mue_ack")}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            })()
+          : null}
+
         <SpawterCard
           spawter={spawter}
           palais={palais}
@@ -165,6 +222,26 @@ export default function ProfileScreen() {
           savedCount={savedPlaceIds.size}
           onAvatarPress={onAvatarPress}
         />
+
+        {/* Chantier 13 archétypes — carte d'identité (visuel + nom + code
+            SPWT + rareté) + badge Pionnier n°X si héritage quiz. R8 : le
+            radar reste interne, l'identité passe par cette carte. */}
+        {isArchetypeKey(spawter.quiz_archetype) ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            <Text
+              style={{
+                ...theme.typography.preset.caption,
+                color: theme.colors.text.tertiary,
+              }}
+            >
+              {t("profile.archetype_section_title")}
+            </Text>
+            <ArchetypeCard
+              archetypeKey={spawter.quiz_archetype}
+              pionnierSeq={spawter.pionnier_seq}
+            />
+          </View>
+        ) : null}
 
         <View
           style={{

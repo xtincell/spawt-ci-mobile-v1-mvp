@@ -5,22 +5,35 @@
 //   3. `router.replace("/(tabs)")`
 //
 // R8 (MAJ consolidée 07/2026, P0) — le graphe radar du Palais est RETIRÉ du
-// parcours utilisateur (réservé à l'exploitation interne). R9 — le bloc de
-// texte du haut (ChatBubble) est supprimé : l'écran garde le titre « Voici
-// ton palais », avec la pose Moka celebration en héros.
+// parcours utilisateur (réservé à l'exploitation interne).
+//
+// Chantier 13 archétypes (PRD final §5.5) — la révélation passe désormais par
+// la CARTE D'ARCHÉTYPE visuelle (remplace le héros Moka de R9) : archétype
+// hérité du quiz « La Meute » si réclamé au passage OTP, sinon calculé depuis
+// la calibration (moteur archetype-engine, parité quiz). Animation sobre
+// (FadeInDown reanimated), texte du Chat selon le stade via chat-voice
+// (`post_calibration`), mention « Pionnier n°X » si héritage.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, useRouter } from "expo-router";
-import { BackHandler, Pressable, Text, View, StyleSheet } from "react-native";
+import { BackHandler, Pressable, ScrollView, Text, View, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { gradient } from "../../src/theme/tokens";
-import { CatMark } from "../../src/components/brand/CatMark";
+import { ArchetypeCard } from "../../src/components/profile/ArchetypeCard";
+import { ChatBubble } from "../../src/components/ChatBubble";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { dominantAxes } from "../../src/lib/palais-engine";
+import {
+  computeArchetypeFromPalais,
+  isArchetypeKey,
+  type ArchetypeKey,
+} from "../../src/lib/archetype-engine";
+import { ARCHETYPES } from "../../src/data/archetypes";
 import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
 import { track } from "../../src/lib/analytics";
 
@@ -45,6 +58,29 @@ export default function PalaisRevealScreen() {
   }, []);
 
   const ans = draft.calibration_answers;
+
+  // Chantier 13 archétypes — même logique de priorité que finalizeOnboarding
+  // (héritage quiz > calcul calibration) pour que la carte révélée soit
+  // EXACTEMENT celle qui sera persistée au tap CTA.
+  const heritage = draft.meute_heritage;
+  const inheritedArchetype: ArchetypeKey | null =
+    heritage?.claimed && isArchetypeKey(heritage.archetype) ? heritage.archetype : null;
+  const archetypeKey: ArchetypeKey = useMemo(
+    () =>
+      inheritedArchetype ??
+      computeArchetypeFromPalais({
+        axe_racines_horizons: ans.racines_horizons ?? 0,
+        axe_taniere_nomade: ans.taniere_nomade ?? 0,
+        axe_exigeant_enthousiaste: ans.exigeant_enthousiaste ?? 0,
+        axe_foule_secret: ans.foule_secret ?? 0,
+        axe_maquis_table: ans.maquis_table ?? 0,
+      }).key,
+    [inheritedArchetype, ans],
+  );
+  const pionnierSeq =
+    inheritedArchetype && typeof heritage?.pionnier_seq === "number"
+      ? heritage.pionnier_seq
+      : null;
 
   // P-23 — `submittingRef` mis à jour dans un effet pour éviter la stale
   // closure capturée par le BackHandler listener. Sans ça, un back-press
@@ -127,12 +163,11 @@ export default function PalaisRevealScreen() {
       {/* P-24 — désactive le swipe-back iOS au niveau route (BackHandler
           couvre Android). Conjointement, finalize ne peut être bypassé. */}
       <Stack.Screen options={{ gestureEnabled: !submitting }} />
-      <View style={[styles.content, { padding: theme.spacing.lg }]}>
-        {/* R8 — le radar est retiré du parcours ; Moka célèbre le moment. */}
-        <View style={{ alignItems: "center", marginVertical: theme.spacing.xl }}>
-          <CatMark pose="celebration" size={200} />
-        </View>
-
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{ padding: theme.spacing.lg, paddingTop: theme.spacing.xl }}
+        showsVerticalScrollIndicator={false}
+      >
         <Text
           style={{
             ...theme.typography.preset.h1,
@@ -153,6 +188,38 @@ export default function PalaisRevealScreen() {
           {t("palais_reveal.first_title_subtitle")}
         </Text>
 
+        {/* R8 + chantier 13 archétypes — la révélation passe par la carte
+            visuelle (radar interne). Animation sobre, pas de confettis. */}
+        <Animated.View
+          entering={FadeInDown.duration(600)}
+          style={{ marginTop: theme.spacing.lg }}
+        >
+          <ArchetypeCard archetypeKey={archetypeKey} pionnierSeq={pionnierSeq} />
+        </Animated.View>
+
+        {/* Héritage quiz « La Meute » — mention du pionnier, ton complice. */}
+        {pionnierSeq ? (
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.text.inverseSecondary,
+              textAlign: "center",
+              marginTop: theme.spacing.base,
+            }}
+          >
+            {t("palais_reveal.heritage_mention", {
+              n: pionnierSeq,
+              archetype: t(ARCHETYPES[archetypeKey].nameKey),
+            })}
+          </Text>
+        ) : null}
+
+        {/* Voix du Chat selon le stade (chat-voice `post_calibration`) —
+            l'onboarding est toujours au stade touriste. */}
+        <View style={{ marginTop: theme.spacing.lg }}>
+          <ChatBubble stade="touriste" moment="post_calibration" />
+        </View>
+
         {error ? (
           <Text
             style={{
@@ -165,7 +232,7 @@ export default function PalaisRevealScreen() {
             {error}
           </Text>
         ) : null}
-      </View>
+      </ScrollView>
 
       <View style={[styles.cta, { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.xl }]}>
         <Pressable
@@ -199,6 +266,7 @@ export default function PalaisRevealScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: "space-between" },
-  content: { flex: 1, justifyContent: "center" },
+  // Chantier 13 archétypes — la carte peut dépasser un petit écran : scroll.
+  content: { flex: 1 },
   cta: {},
 });
