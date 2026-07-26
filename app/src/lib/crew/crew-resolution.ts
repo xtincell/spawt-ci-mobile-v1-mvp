@@ -13,7 +13,7 @@
 //      préservé par le fetch et par le moteur démo).
 //
 // Pure : aucun I/O, aucun throw, aucune mutation des entrées. Le déclencheur
-// (bouton hôte « On tranche » ou expiration TTL) vit dans le store.
+// (bouton hôte « Tranche » ou expiration TTL) vit dans le store.
 
 import {
   computeRawScore,

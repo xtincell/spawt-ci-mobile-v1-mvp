@@ -123,7 +123,7 @@ describe("crew-store — propositions et votes", () => {
   });
 });
 
-describe("crew-store — résolution (« On tranche »)", () => {
+describe("crew-store — résolution (« Tranche »)", () => {
   it("trancher() sans proposition → null (on ne tranche pas dans le vide)", async () => {
     await useCrewStore.getState().start(SELF);
     const winner = await useCrewStore.getState().trancher({ hostTiebreak: null });

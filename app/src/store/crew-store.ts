@@ -80,7 +80,7 @@ interface CrewStoreState {
   refresh: () => Promise<void>;
   propose: (place: { id: string; name: string; neighborhood: string }) => Promise<CrewMutationResult>;
   castVote: (proposal_id: string) => Promise<CrewMutationResult>;
-  /** Clôture par l'hôte (« On tranche ») ou forcée par l'expiration TTL. */
+  /** Clôture par l'hôte (« Tranche ») ou forcée par l'expiration TTL. */
   trancher: (opts?: { hostTiebreak?: HostTiebreak | null }) => Promise<CrewWinner | null>;
   markExpired: () => Promise<void>;
   leave: () => Promise<void>;
