@@ -1,0 +1,426 @@
+{
+  "date": "2026-07-28T16:14:26.806Z",
+  "backend": "https://api.spawt.online",
+  "erreurs_console": [
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET",
+    "Failed to load resource: net::ERR_CONNECTION_RESET"
+  ],
+  "appels_api": [
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_checkin",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/review_reports",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/place_suggestions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/places",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/place_events",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/places",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/place_promotions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/challenges",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawters",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "HEAD",
+      "path": "/rest/v1/spawters",
+      "status": 200
+    },
+    {
+      "method": "HEAD",
+      "path": "/rest/v1/places",
+      "status": 200
+    },
+    {
+      "method": "HEAD",
+      "path": "/rest/v1/spawters",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_checkin",
+      "status": 200
+    },
+    {
+      "method": "HEAD",
+      "path": "/rest/v1/spawt_checkin",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_checkin",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawters",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/admin_waitlist_stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_checkin",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/feature_flags",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/b2b_accounts",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/places",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/admin_audit_log",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/spawt_staff",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/explore_collections",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/places",
+      "status": 200
+    }
+  ],
+  "etapes": [
+    {
+      "etape": "ouverture",
+      "url": "http://127.0.0.1:18081/login",
+      "extrait": "SPAWT admin Connexion réservée à l'équipe interne (spawt_staff). Email Mot de passe Se connecter"
+    },
+    {
+      "etape": "connexion",
+      "reussie": true,
+      "url": "http://127.0.0.1:18081/lieux?pageSize=25&currentPage=1&sorters[0][field]=updated_at&sorters[0][order]=desc",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Lieux + Nouveau lieu Tous Publié"
+    },
+    {
+      "etape": "Lieux",
+      "route": "/lieux",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/03-lieux.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Lieux + Nouv"
+    },
+    {
+      "etape": "Modération",
+      "route": "/moderation",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/04-moderation.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Modération ⓘ"
+    },
+    {
+      "etape": "Signalements",
+      "route": "/signalements",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/05-signalements.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Signalements"
+    },
+    {
+      "etape": "Suggestions de lieux",
+      "route": "/suggestions",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/06-suggestions.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Suggestions "
+    },
+    {
+      "etape": "Événements",
+      "route": "/evenements",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/07-evenements.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Événements É"
+    },
+    {
+      "etape": "Promotions",
+      "route": "/promotions",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/08-promotions.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Promotions ⚠"
+    },
+    {
+      "etape": "Défis collectifs",
+      "route": "/defis",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/09-defis.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Défis de la "
+    },
+    {
+      "etape": "Comptes",
+      "route": "/comptes",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/10-comptes.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Comptes spaw"
+    },
+    {
+      "etape": "Métriques",
+      "route": "/metriques",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/11-metriques.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Métriques (3"
+    },
+    {
+      "etape": "Fonctionnalités",
+      "route": "/fonctionnalites",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/12-fonctionnalites.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Fonctionnali"
+    },
+    {
+      "etape": "B2B",
+      "route": "/b2b",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/13-b2b.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Comptes B2B "
+    },
+    {
+      "etape": "Campagnes push",
+      "route": "/push",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/14-push.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Campagnes pu"
+    },
+    {
+      "etape": "Explore",
+      "route": "/explore",
+      "ok": true,
+      "capture": "/home/user/spawt-ci-mobile-v1-mvp/recette-admin/15-explore.png",
+      "extrait": "SPAWT ADMIN Lieux Événements Promotions Explore Défis Suggestions Modération Signalements Comptes Comptes B2B Push Métriques Fonctionnalités AlexandreADMIN Déconnexion Curation Exp"
+    }
+  ]
+}

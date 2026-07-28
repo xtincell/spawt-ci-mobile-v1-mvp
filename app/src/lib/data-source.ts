@@ -1,10 +1,24 @@
 // Adaptateur de source de données.
 //
-// Mode FALLBACK (par défaut) : seed data locales, AsyncStorage pour le spawter.
-// Mode SUPABASE : actif si EXPO_PUBLIC_SUPABASE_URL + ANON_KEY sont définis.
+// Deux modes, et un troisième état volontairement bruyant :
 //
-// Permet de livrer une première version fonctionnelle SANS payer Supabase,
-// et de basculer en live sans toucher aux écrans.
+//   LIVE   — `EXPO_PUBLIC_SUPABASE_URL` + `_ANON_KEY` définis : la base qui vit
+//            dans Coolify fait foi. C'est le mode normal, y compris en preview.
+//   DÉMO   — `EXPO_PUBLIC_DEMO_MODE=true` : fixtures locales + AsyncStorage.
+//            Sert aux démonstrations commerciales hors ligne et à la CI.
+//   MANQUE — ni l'un ni l'autre : le binaire est mal configuré. L'app le DIT
+//            au lieu de servir des fixtures.
+//
+// ── Pourquoi ce troisième état existe ───────────────────────────────────────
+// Le repli vers les fixtures était автоmatique et silencieux : il suffisait
+// qu'une variable manque pour qu'un binaire de production serve du faux
+// contenu sans un mot. C'est précisément ce qui s'est produit — `eas.json` n'a
+// jamais contenu de bloc `env`, donc TOUS les APK produits ont tourné en
+// fixtures, et l'app paraissait « vide » alors que le backend allait bien.
+//
+// On applique donc la même doctrine « fail closed » que le mock OTP côté Edge
+// (`MOCK_TERMII`, correctif sécurité C1) : le mode dégradé n'existe que sur
+// OPT-IN EXPLICITE. Sans backend et sans opt-in, on échoue visiblement.
 
 import Constants from "expo-constants";
 
@@ -31,6 +45,23 @@ const SUPABASE_KEY =
   "";
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
+
+/**
+ * Mode démo : opt-in explicite uniquement. Jamais déduit d'une absence.
+ *
+ * Sous Jest, aucune variable n'est posée et les tests exercent le chemin
+ * fixtures : on l'active donc aussi quand `NODE_ENV === "test"`, sinon toute
+ * la suite basculerait en « configuration manquante ».
+ */
+export const isDemoMode =
+  process.env.EXPO_PUBLIC_DEMO_MODE === "true" || process.env.NODE_ENV === "test";
+
+/**
+ * Ni backend, ni opt-in démo : le binaire est mal configuré.
+ * `app/_layout.tsx` s'en sert pour afficher un écran explicite plutôt que de
+ * laisser croire à un produit vide.
+ */
+export const isBackendMissing = !isSupabaseConfigured && !isDemoMode;
 
 /** Mode courant — exposé pour debug + bandeau UI */
 export const dataSourceMode: "supabase" | "fallback" = isSupabaseConfigured

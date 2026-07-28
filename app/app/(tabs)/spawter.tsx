@@ -44,6 +44,7 @@ import { listPlaces } from "../../src/lib/data-source";
 import { buildManualSpawt } from "../../src/lib/guet/guet-spawt-actions";
 import { upsertSpawt } from "../../src/lib/data-source";
 import { useSpawterStore } from "../../src/store/spawter-store";
+import { useFlag } from "../../src/store/feature-flags";
 import { track } from "../../src/lib/analytics";
 
 type ScreenState =
@@ -65,6 +66,7 @@ export default function SpawterTabScreen() {
   const { t } = useTranslation();
   const spawter = useSpawterStore((s) => s.spawter);
   const registerSpawt = useSpawterStore((s) => s.registerSpawt);
+  const suggestionsEnabled = useFlag("suggestions-lieux");
 
   const [state, setState] = useState<ScreenState>({ kind: "loading_perm" });
 
@@ -310,6 +312,46 @@ export default function SpawterTabScreen() {
               {t("fab.nearby_empty")}
             </Text>
           </View>
+        ) : null}
+
+        {/*
+          Le spot où je suis n'existe pas encore → je le crée.
+          C'est une promesse fondatrice du produit (PRD FR-018 : « un
+          utilisateur ne doit JAMAIS arriver sur une carte vide »), et c'était
+          le seul endroit de l'app où le lien n'avait pas été posé : l'état
+          vide du bouton central était un cul-de-sac, un simple texte sans
+          aucune action. Or c'est LE moment le plus légitime pour proposer
+          l'ajout — le spawter est physiquement dans un lieu inconnu.
+
+          Affiché aussi quand des lieux SONT trouvés : être à 800 m de trois
+          spots connus ne veut pas dire être dans le bon.
+
+          Motif repris de app/search.tsx (état vide de la recherche).
+        */}
+        {suggestionsEnabled && (state.kind === "empty" || state.kind === "loaded") ? (
+          <Pressable
+            onPress={() => router.push("/suggest-place" as never)}
+            accessibilityRole="button"
+            accessibilityLabel={t("fab.nearby_suggest_cta")}
+            testID="spawter-tab-suggest-cta"
+            style={({ pressed }) => ({
+              alignSelf: "center",
+              paddingVertical: theme.spacing.base,
+              paddingHorizontal: theme.spacing.lg,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text
+              style={{
+                ...theme.typography.preset.body,
+                color: theme.colors.brand.primary,
+                textAlign: "center",
+                textDecorationLine: "underline",
+              }}
+            >
+              {t("fab.nearby_suggest_cta")}
+            </Text>
+          </Pressable>
         ) : null}
 
         {state.kind === "loaded"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { Platform, Text, View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -11,7 +11,7 @@ import { palette } from "../src/theme/tokens";
 import { useAppFonts } from "../src/theme/useAppFonts";
 import { useSpawterStore } from "../src/store/spawter-store";
 import { flushPendingSignals } from "../src/lib/analytics";
-import { isSupabaseConfigured } from "../src/lib/data-source";
+import { isBackendMissing, isSupabaseConfigured } from "../src/lib/data-source";
 // CR finding M1 — import dynamique gated __DEV__ pour que le module + ses
 // credentials env vars NE soient PAS bundlés en prod. Le gate runtime interne
 // à maybeDevAutologin ne suffit pas : le `import` statique embarque le code
@@ -231,6 +231,44 @@ export default function RootLayout() {
   // (asynchrone, sans signal fiable côté useFonts) — gate désactivé pour éviter
   // un null persistant qui rend l'app blanche dans le navigateur.
   if (Platform.OS !== "web" && !fontsLoaded && !fontError) return null;
+
+  // Binaire sans backend ET sans opt-in démo : on le dit franchement au lieu de
+  // servir des fixtures. C'est ce silence-là qui a fait passer des APK vides
+  // pour un produit non fonctionnel — l'app paraissait cassée alors que seule
+  // la configuration de build manquait.
+  if (isBackendMissing) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <StatusBar style="light" backgroundColor={palette.black} />
+          <View
+            accessibilityRole="alert"
+            style={{
+              flex: 1,
+              backgroundColor: palette.black,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 28,
+            }}
+          >
+            <Text
+              style={{ color: palette.gold, fontSize: 18, marginBottom: 12, textAlign: "center" }}
+            >
+              Configuration manquante
+            </Text>
+            <Text
+              style={{ color: palette.blancCasse, fontSize: 14, lineHeight: 21, textAlign: "center" }}
+            >
+              Ce binaire a été construit sans adresse de backend. Pose
+              EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY dans le
+              profil EAS, ou EXPO_PUBLIC_DEMO_MODE=true pour une démonstration
+              hors ligne.
+            </Text>
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

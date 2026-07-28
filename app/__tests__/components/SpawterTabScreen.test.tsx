@@ -51,6 +51,13 @@ jest.mock("../../src/lib/data-source", () => ({
   isSupabaseConfigured: false,
 }));
 
+// Feature 18 — le CTA « mon spot n'est pas là » est gardé par le flag
+// suggestions-lieux. Le mock le rend pilotable test par test.
+let mockSuggestionsFlag = true;
+jest.mock("../../src/store/feature-flags", () => ({
+  useFlag: (code: string) => (code === "suggestions-lieux" ? mockSuggestionsFlag : false),
+}));
+
 const mockRegisterSpawt = jest.fn().mockResolvedValue(undefined);
 let mockSpawter: Spawter | null = null;
 jest.mock("../../src/store/spawter-store", () => {
@@ -251,6 +258,45 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
         properties: expect.objectContaining({ count_in_radius: 0, has_geoloc_perm: true }),
       }),
     );
+  });
+
+  // ── Promesse fondatrice : créer un spot absent depuis le bouton central ───
+  // L'état vide était un cul-de-sac (un simple <Text>, sans aucune action),
+  // alors que la base, l'API, le formulaire et la modération existaient déjà.
+  // Ces trois cas verrouillent le câblage qui manquait.
+  it("état vide → propose d'ajouter le spot absent (promesse fondatrice)", async () => {
+    mockSuggestionsFlag = true;
+    mockGetFgPerms.mockResolvedValue({ status: "granted" });
+    mockGetPos.mockResolvedValue({ coords: { latitude: 5.348, longitude: -3.998 } });
+    mockListPlaces.mockResolvedValue([]);
+
+    const instance = await render();
+    const cta = tryFindByTestID(instance, "spawter-tab-suggest-cta");
+    expect(cta).not.toBeNull();
+
+    cta!.props.onPress();
+    expect(mockPush).toHaveBeenCalledWith("/suggest-place");
+  });
+
+  it("des lieux proches existent → le CTA reste offert (on peut être à côté sans être dedans)", async () => {
+    mockSuggestionsFlag = true;
+    mockGetFgPerms.mockResolvedValue({ status: "granted" });
+    mockGetPos.mockResolvedValue({ coords: { latitude: 5.348, longitude: -3.998 } });
+    mockListPlaces.mockResolvedValue([makePlace("p-1", "Proche", 5.349, -3.999)]);
+
+    const instance = await render();
+    expect(tryFindByTestID(instance, "spawter-tab-suggest-cta")).not.toBeNull();
+  });
+
+  it("flag suggestions-lieux inactif → aucun CTA", async () => {
+    mockSuggestionsFlag = false;
+    mockGetFgPerms.mockResolvedValue({ status: "granted" });
+    mockGetPos.mockResolvedValue({ coords: { latitude: 5.348, longitude: -3.998 } });
+    mockListPlaces.mockResolvedValue([]);
+
+    const instance = await render();
+    expect(tryFindByTestID(instance, "spawter-tab-suggest-cta")).toBeNull();
+    mockSuggestionsFlag = true;
   });
 
   it("État #4 — loaded → rend une card par lieu, tri par distance", async () => {

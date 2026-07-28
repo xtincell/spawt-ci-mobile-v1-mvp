@@ -23,12 +23,13 @@
     "stub_body": "Active la géoloc pour que le Chat te propose les lieux les plus proches.",
     "action_label": "Spawter depuis le centre",
     "nearby_title": "Tu es près de…",
-    "nearby_empty": "Aucun lieu connu dans les 500 m. Élargis ta recherche.",
+    "nearby_empty": "Aucun spot connu dans les 2 km autour de toi.",
     "nearby_loading": "Localisation en cours…",
     "nearby_perm_required": "Active la géoloc dans tes paramètres pour spawter depuis ici.",
     "nearby_perm_open_settings": "Ouvrir les réglages",
     "nearby_close_label": "Fermer",
-    "nearby_cta_spawt": "Spawter ici"
+    "nearby_cta_spawt": "Spawter ici",
+    "nearby_suggest_cta": "Mon spot n'est pas là — ajoute-le"
   },
   "cuisine": {
     "ivoirienne": "Ivoirienne",

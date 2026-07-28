@@ -9,6 +9,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_DEMO_MODE": "true"
       }
     },
     "preview": {
@@ -19,12 +22,20 @@
       },
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://api.spawt.online",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4MzI4NzAwMCwiZXhwIjo0OTM4OTYwNjAwLCJyb2xlIjoiYW5vbiJ9.4il9S43L-oBixQiKabl6a5sl4B9CbLWqH-pK32dWtu0"
       }
     },
     "production": {
       "channel": "production",
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://api.spawt.online",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4MzI4NzAwMCwiZXhwIjo0OTM4OTYwNjAwLCJyb2xlIjoiYW5vbiJ9.4il9S43L-oBixQiKabl6a5sl4B9CbLWqH-pK32dWtu0"
       }
     },
     "preview-ios-device": {
@@ -33,6 +44,10 @@
       "channel": "preview",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://api.spawt.online",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4MzI4NzAwMCwiZXhwIjo0OTM4OTYwNjAwLCJyb2xlIjoiYW5vbiJ9.4il9S43L-oBixQiKabl6a5sl4B9CbLWqH-pK32dWtu0"
       }
     }
   },

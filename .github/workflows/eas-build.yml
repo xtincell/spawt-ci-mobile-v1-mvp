@@ -93,6 +93,14 @@ jobs:
         working-directory: .
         run: node scripts/conformity-check.mjs
 
+      # ── Le binaire est-il branché sur un backend ? ────────────────────────
+      # Garde-fou ajouté après coup : eas.json n'avait aucun bloc `env`, donc
+      # tous les APK livrés tournaient sur des fixtures, silencieusement.
+      # Échoue AVANT le build plutôt que de réexpédier un binaire vide.
+      - name: Backend branché sur le profil visé
+        working-directory: .
+        run: node scripts/check-eas-env.mjs
+
       # ── Story 7.1 — versioning : injecte versionCode + build date ─────────
       # Tag `build-android-YYYY-MM-DD-N` → versionCode/buildNumber = N,
       # extra.buildDate = YYYY-MM-DD (lu in-app par BuildBadge via Constants).
