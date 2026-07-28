@@ -79,6 +79,7 @@ function defaultAdnForRow(r: Record<string, unknown>): Record<string, unknown> {
     confidence_score: 0,
     total_reviews: 0,
     sample_size: 0,
+    adn_revealed: false,
     weighted_rating: 0,
     updated_at: r.updated_at ?? new Date().toISOString(),
   };

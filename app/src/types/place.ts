@@ -137,6 +137,14 @@ export interface PlaceAdn {
    * construction). Ne jamais l'afficher : ce n'est pas le chiffre public.
    */
   sample_size: number;
+  /**
+   * Le radar est-il révélé ? Décidé UNE FOIS côté serveur (migration 0059),
+   * avec cliquet : le seuil monte avec la base (3 avis jusqu'à 3 000 Spawters,
+   * puis 1/1000e, plafonné à 10) mais ne reprend jamais un radar acquis.
+   * L'app ne recalcule rien : elle n'a pas à connaître la taille de la base
+   * pour afficher une fiche.
+   */
+  adn_revealed: boolean;
   /** Note communautaire pondérée par stade (PRD §3.1 Feature 6) */
   weighted_rating: number;
   updated_at: string;

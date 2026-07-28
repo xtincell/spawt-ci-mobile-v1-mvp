@@ -217,7 +217,7 @@ export default function PlaceDetailScreen() {
   // adn_under_construction_seen — si total_reviews < 5 OU confidence < 0.3
   useEffect(() => {
     if (!place || adnUnderConstructionEmittedRef.current) return;
-    if (place.adn.sample_size < 5) {
+    if (!place.adn.adn_revealed) {
       adnUnderConstructionEmittedRef.current = true;
       track({
         name: "adn_under_construction_seen",
@@ -280,7 +280,7 @@ export default function PlaceDetailScreen() {
   // La condition `confidence_score >= 0.3` a également sauté : elle n'existe
   // nulle part dans le cahier et rendait la porte plus stricte que la règle
   // écrite (elle exigeait ~10 avis, pas 5).
-  const adnHasEnoughReviews = place.adn.sample_size >= 5;
+  const adnHasEnoughReviews = place.adn.adn_revealed;
   // Le `noUncheckedIndexedAccess` typerait cover_photo_url comme `string | null`
   // mais la couche DB peut livrer `""` (Zod normalise désormais → null, voir
   // place.schema.ts). On double-check côté UI pour les seeds qui passent off-schema.

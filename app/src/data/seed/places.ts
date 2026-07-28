@@ -386,6 +386,7 @@ function adn(
     confidence_score: 0,
     total_reviews: 0,
     sample_size: 0,
+    adn_revealed: false,
     weighted_rating,
     updated_at: todayISO,
   };

@@ -161,6 +161,7 @@ function makePlace(id: string, name: string, lat = 5.348, lng = -3.998): PlaceWi
       confidence_score: 0.5,
       total_reviews: 5,
       sample_size: 5,
+      adn_revealed: true,
       weighted_rating: 4,
       updated_at: "2026-05-01T00:00:00Z",
     },

@@ -64,6 +64,7 @@ function validAdn(): Record<string, unknown> {
     confidence_score: 0.8,
     total_reviews: 12,
     sample_size: 12,
+    adn_revealed: true,
     weighted_rating: 4.2,
     updated_at: "2026-01-01T00:00:00Z",
   };

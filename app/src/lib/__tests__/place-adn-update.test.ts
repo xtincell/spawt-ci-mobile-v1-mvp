@@ -19,6 +19,7 @@ function makeAdn(overrides: Partial<PlaceAdn> = {}): PlaceAdn {
     confidence_score: 0,
     total_reviews: 0,
     sample_size: 0,
+    adn_revealed: false,
     weighted_rating: 0,
     updated_at: "2026-05-20T00:00:00Z",
     ...overrides,

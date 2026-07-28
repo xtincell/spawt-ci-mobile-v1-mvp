@@ -168,6 +168,7 @@ function makePlace(id: string, name: string): PlaceWithAdn {
       confidence_score: 0.8,
       total_reviews: 12,
       sample_size: 12,
+      adn_revealed: true,
       weighted_rating: 4.2,
       updated_at: NOW_ISO,
     },

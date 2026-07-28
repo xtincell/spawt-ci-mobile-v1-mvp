@@ -78,6 +78,7 @@ export const PlaceAdnSchema = z.object({
   // .default(0) : une base antérieure à 0057 ne renvoie pas la colonne — on
   // dégrade vers « ADN en construction » plutôt que de faire échouer le parse.
   sample_size: z.number().int().min(0).default(0),
+  adn_revealed: z.boolean().default(false),
   weighted_rating: z.number().min(0).max(5),
   updated_at: z.string(),
 });
