@@ -8,6 +8,59 @@ Ce que la tech ne peut pas faire à votre place. Classé par urgence. Cochez et 
 > **`documentation/DATA_SAFETY_PRIVACY.md`** (réponses exactes aux formulaires
 > de confidentialité). Les comptes Apple/Google arrivant, dérouler le runbook.
 
+## 🔴 URGENT — secrets exposés le 28/07/2026 (incident agent)
+
+Un message de commit a absorbé un dump d'environnement et a été poussé sur
+GitHub pendant ~3 minutes. Le dépôt est **privé** et la branche a été réécrite
+(force-push), mais l'objet orphelin reste atteignable par son empreinte
+(`485dc2b`) jusqu'au ramassage GitHub. **Traiter ces clés comme compromises :**
+
+- [ ] `SSH_PRIVATE_KEY_B64` — clé privée SSH en clair, le plus grave
+- [ ] `CINETPAY_API_KEY` (`sk_live_…`) + `CINETPAY_API_PASSWORD` — production
+- [ ] `OPENAI_API_KEY`
+- [ ] `GOOGLE_OAUTH_CLIENT_SECRET`, `META_OAUTH_CLIENT_SECRET`, `LINKEDIN_OAUTH_CLIENT_SECRET`
+- [ ] `APIFY_TOKEN`, `BRAVE_API_KEY`, `PEXELS_API_KEY`, `OLLAMA_API_KEY`, `INTEGRATION_TOKEN_KEY`
+- [ ] Demander à GitHub Support la purge de l'objet orphelin
+- [ ] Vérifier l'onglet *Security → Secret scanning* du dépôt
+
+`CRON_SECRET` a déjà été régénéré côté Coolify.
+
+## 🔴 Anciens tokens Coolify à révoquer
+
+Le token décrit comme « lecture seule » expose en réalité **toutes** les
+variables d'environnement en clair via `/api/v1/services/{uuid}/envs` — clé
+`service_role`, mots de passe Postgres, secret JWT, clé Brevo.
+
+- [ ] Révoquer le token `22|sUhD…` et celui du 01/07
+- [ ] Ne conserver que le token en écriture en cours
+
+## 📍 Coordonnées GPS des 10 lieux — à relever sur le terrain
+
+Les lieux de la Mission 1 sont en base avec des coordonnées posées **au niveau
+du quartier** (précision ~200-400 m). Le rapport de mission ne relève pas de GPS
+et aucun annuaire en ligne n'en publie de fiable.
+
+C'est suffisant pour le feed, la recherche et les distances affichées. Ça ne
+l'est **pas** pour Le Guet, dont le géofence fait 100 m : un spawt automatique
+ne se déclencherait pas, ou se déclencherait au mauvais endroit.
+
+- [ ] Relever la position réelle devant chaque établissement (app carto au choix)
+- [ ] Corriger dans la console admin → Lieux → Éditer
+- [ ] **Seulement ensuite**, activer `guet-geofence` sur ces lieux
+
+Les 10 : Kaiten, Texas Grillz, Sam's, La Grande République, Bushman Café,
+The Rooph, Madame Antika, Kajazoma, L'Impasse, Le Paon.
+
+## 🔑 Comptes de la console admin (créés le 28/07)
+
+Trois comptes `admin` actifs sur `https://admin.spawt.online` :
+`xtincell@gmail.com`, `moka@spawt.online`, `stephanie@spawt.online`.
+Les mots de passe ont été affichés une seule fois à la création — s'ils sont
+perdus, en régénérer un avec `node scripts/create-staff-account.mjs --email … --role admin`.
+
+- [ ] Consigner les trois mots de passe dans le gestionnaire de l'équipe
+- [ ] Changer ceux qui ont transité par le chat
+
 ## ⚠️ Migration Coolify — PLAN PRÊT (voir MIGRATION_COOLIFY.md)
 
 Le runbook complet (backend Supabase self-hosted, bascule des clients,
