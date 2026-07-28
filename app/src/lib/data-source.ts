@@ -171,6 +171,19 @@ export async function fetchSpawterArchetype(
 }
 
 /**
+ * Lit le statut de compte interne (`spawters.is_internal`, 0060) — la seule
+ * source qui fasse foi. Le client ne peut pas se l'attribuer : un trigger
+ * serveur restaure la valeur si un PATCH tente de la changer.
+ * Mode démo → null (« on ne sait pas ») : pas de menu interne hors ligne, mais
+ * pas de retrait intempestif non plus.
+ */
+export async function fetchSpawterInternal(spawter_id: string): Promise<boolean | null> {
+  if (!isSupabaseConfigured) return null;
+  const { fetchSpawterInternalFromSupabase } = await import("./data-source.supabase");
+  return fetchSpawterInternalFromSupabase(spawter_id);
+}
+
+/**
  * Réclame l'héritage quiz « La Meute » (RPC `claim_meute_heritage`, 0051) pour
  * le spawter courant. À appeler APRÈS l'upsert de la ligne spawters (la RPC
  * l'UPDATE). Mode démo → null. Best-effort : le caller ignore l'héritage et

@@ -51,6 +51,14 @@ export interface Spawter {
   /** Numéro de pionnier hérité du quiz « La Meute » (migration 0033,
    *  `claim_meute_heritage`). Null si pas d'héritage réclamé. */
   pionnier_seq: number | null;
+  /** Compte interne équipe SPAWT (migration 0060). Déverrouille le menu
+   *  « Mode interne » des réglages : bascule gratuit ↔ Gold simulé, aperçu du
+   *  paywall géographique, choix du scope des flags.
+   *  ⚠️ Écriture SERVEUR uniquement — un trigger restaure la valeur si le
+   *  client tente de la changer. La copie locale n'est qu'un reflet ; ne
+   *  jamais l'utiliser comme preuve d'un droit, seulement pour afficher
+   *  ou masquer le menu. */
+  is_internal: boolean;
   created_at: string;
   updated_at: string;
 }

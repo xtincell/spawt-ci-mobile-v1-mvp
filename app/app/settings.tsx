@@ -18,7 +18,15 @@ import { requestAccountDeletion, isSupabaseConfigured } from "../src/lib/data-so
 import { track } from "../src/lib/analytics";
 // Feature 18 — entrée « Suggérer un lieu » (flag suggestions-lieux OFF par
 // défaut → section absente).
-import { useFlag } from "../src/store/feature-flags";
+import { useFlag, useFeatureFlagsStore } from "../src/store/feature-flags";
+// Comptes internes (migration 0060) — section « Mode interne ».
+import {
+  isInternalAccount,
+  isInternalGoldPreview,
+  saveInternalGoldPreview,
+  setInternalGoldPreview,
+} from "../src/lib/spawter-gold";
+import { FREE_RADIUS_KM } from "../src/lib/paywall-geo";
 
 // URLs légales — vides tant que le juriste n'a pas livré (HUMAN_TODO.md).
 // Une URL vide masque la ligne ; le code est prêt.
@@ -38,9 +46,36 @@ export default function SettingsScreen() {
   // Résa 1-tap — entrée « Mes réservations » (flag OFF par défaut → absente).
   const resaEnabled = useFlag("reservation-1tap");
 
+  // ── Mode interne (0060) ───────────────────────────────────────────────────
+  // Le statut vient du serveur (`spawters.is_internal`) via le store ; on le
+  // lit une fois au montage. Un compte ordinaire ne verra jamais cette section
+  // — et même s'il forçait le rendu, la bascule serait sans effet : elle est
+  // ignorée côté module tant que le statut serveur n'est pas posé.
+  const [internal] = useState(() => isInternalAccount());
+  const [goldPreview, setGoldPreview] = useState(() => isInternalGoldPreview());
+  const paywallEnabled = useFlag("paywall-geo");
+  const setLocalOverride = useFeatureFlagsStore((s) => s.setLocalOverride);
+
   useEffect(() => {
     void isGuetOptedOut().then(setGuetOff);
   }, []);
+
+  // La bascule ne fait que changer ce que l'écran MONTRE. Rien n'est écrit en
+  // base, aucun droit facturé n'est touché : le vrai droit reste tranché par
+  // la vue serveur `active_entitlements`.
+  const onToggleGoldPreview = (value: boolean) => {
+    setGoldPreview(value);
+    setInternalGoldPreview(value);
+    void saveInternalGoldPreview(value);
+  };
+
+  // Sans le paywall actif, la bascule gratuit/Gold ne change rien à l'écran :
+  // le rayon gratuit n'est appliqué que si `paywall-geo` est allumé. On offre
+  // donc l'aperçu LOCAL du flag, pour que la comparaison soit possible avant
+  // même que le paywall soit ouvert au public.
+  const onTogglePaywallPreview = (value: boolean) => {
+    setLocalOverride("paywall-geo", value);
+  };
 
   const onToggleGuet = (value: boolean) => {
     setGuetOff(value);
@@ -156,6 +191,72 @@ export default function SettingsScreen() {
                 onPress={() => router.push("/reservations" as never)}
               />
             ) : null}
+          </>
+        ) : null}
+
+        {/* Mode interne — visible uniquement pour les comptes de l'équipe. */}
+        {internal ? (
+          <>
+            <SectionTitle theme={theme} label={t("settings.section_internal")} />
+            <Text
+              style={{
+                ...theme.typography.preset.small,
+                color: theme.colors.text.secondary,
+                marginBottom: theme.spacing.sm,
+              }}
+            >
+              {t("settings.internal_intro")}
+            </Text>
+
+            <Row theme={theme}>
+              <View style={{ flex: 1, paddingRight: theme.spacing.base }}>
+                <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.primary }}>
+                  {t("settings.internal_gold_label")}
+                </Text>
+                <Text
+                  style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}
+                >
+                  {goldPreview
+                    ? t("settings.internal_gold_hint_on")
+                    : t("settings.internal_gold_hint_off", { km: FREE_RADIUS_KM })}
+                </Text>
+              </View>
+              <Switch
+                testID="settings-internal-gold-switch"
+                value={goldPreview}
+                onValueChange={onToggleGoldPreview}
+                trackColor={{ true: theme.colors.brand.primary, false: undefined }}
+              />
+            </Row>
+
+            <Row theme={theme}>
+              <View style={{ flex: 1, paddingRight: theme.spacing.base }}>
+                <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.primary }}>
+                  {t("settings.internal_paywall_label")}
+                </Text>
+                <Text
+                  style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}
+                >
+                  {t("settings.internal_paywall_hint", { km: FREE_RADIUS_KM })}
+                </Text>
+              </View>
+              <Switch
+                testID="settings-internal-paywall-switch"
+                value={paywallEnabled}
+                onValueChange={onTogglePaywallPreview}
+                trackColor={{ true: theme.colors.brand.primary, false: undefined }}
+              />
+            </Row>
+
+            <Text
+              style={{
+                ...theme.typography.preset.small,
+                color: theme.colors.text.secondary,
+                marginTop: theme.spacing.sm,
+              }}
+            >
+              {t("settings.internal_note")}
+            </Text>
           </>
         ) : null}
 

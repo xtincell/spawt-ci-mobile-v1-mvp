@@ -35,6 +35,7 @@ import {
   deleteSavedPlace,
   updateSpawterArchetype,
   fetchSpawterArchetype,
+  fetchSpawterInternal,
   claimMeuteHeritage,
   fetchGoldEntitlement,
   type GoldEntitlement,
@@ -43,9 +44,13 @@ import { applyMeuteHeritage } from "../lib/meute-heritage";
 // Sprint 2 Gold — cache module synchrone (isGoldSpawter) + persistance locale.
 import {
   GOLD_STORAGE_KEY,
+  INTERNAL_GOLD_KEY,
   loadGoldLocal,
+  loadInternalGoldPreview,
   saveGoldLocal,
   setGoldEntitlementState,
+  setInternalAccount,
+  setInternalGoldPreview,
 } from "../lib/spawter-gold";
 import { AppState } from "react-native";
 import {
@@ -468,6 +473,28 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     })().catch((err) => {
       if (__DEV__) console.warn("[spawter-store] gold hydrate failed", err);
     });
+
+    // Comptes internes (0060) — le statut est REVALIDÉ à chaque hydratation,
+    // pas seulement à la première : un retrait décidé depuis la console admin
+    // doit refermer le menu au prochain lancement. La bascule Gold locale n'est
+    // restaurée qu'ensuite, et seulement si le statut tient toujours — sinon
+    // un compte déchu garderait un aperçu Gold que plus rien ne justifie.
+    if (spawter) {
+      void (async () => {
+        const remote = await fetchSpawterInternal(spawter.id);
+        const isInternal = remote ?? spawter.is_internal;
+        setInternalAccount(isInternal);
+        if (isInternal) setInternalGoldPreview(await loadInternalGoldPreview());
+        const cur = get().spawter;
+        if (cur && cur.is_internal !== isInternal) {
+          const updated: Spawter = { ...cur, is_internal: isInternal };
+          await saveSpawterLocal(updated);
+          set({ spawter: updated });
+        }
+      })().catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] internal status refresh failed", err);
+      });
+    }
 
     // Chantier 13 archétypes — rattrapage live : si le local n'a pas
     // d'archétype (row pré-chantier, réinstallation) mais que `spawters` en a
@@ -1082,6 +1109,11 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     // le state : un nouveau compte sur le même device ne doit jamais hériter
     // du droit Gold du précédent.
     setGoldEntitlementState(null);
+    // Comptes internes (0060) — même raison : le statut ET la bascule Gold
+    // simulée sont attachés au COMPTE, pas à l'appareil. Sans cette purge, un
+    // compte ordinaire qui s'inscrit après un compte interne sur le même
+    // téléphone hériterait du menu et de l'aperçu Gold.
+    setInternalAccount(false);
     set({
       spawter: null,
       palais: null,
@@ -1103,6 +1135,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       // Sprint 2 Gold — l'entitlement est un droit de COMPTE (fuite cross-user
       // sinon : le badge doré survivrait au changement de spawter).
       GOLD_STORAGE_KEY,
+      // Comptes internes (0060) — la bascule « voir l'app comme un Gold » est
+      // un réglage de compte, pas d'appareil.
+      INTERNAL_GOLD_KEY,
       BADGE_CELEBRATED_KEY,
       // Chantier 13 archétypes — compteur d'inertie + constat de mue en attente
       // (fuite cross-user sinon, même logique que les flags de célébration).

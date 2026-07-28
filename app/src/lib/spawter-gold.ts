@@ -47,6 +47,66 @@ export function setGoldEntitlementState(entitlement: GoldEntitlement | null): vo
   currentGold = entitlement;
 }
 
+// ─── Bascule des comptes internes (migration 0060) ──────────────────────────
+// L'équipe doit pouvoir regarder l'app avec les yeux d'un compte gratuit PUIS
+// avec ceux d'un Gold, depuis un seul téléphone et sans payer — sinon personne
+// ne vérifie jamais ce que le paywall change vraiment à l'écran.
+//
+// Deux verrous, parce qu'une bascule locale de droit est exactement le genre de
+// chose qui finit en contournement d'abonnement si on la pose naïvement :
+//   1. `internalAccount` n'est vrai que si le SERVEUR l'a dit
+//      (`spawters.is_internal`, posé par trigger, non auto-attribuable — 0060).
+//      Une valeur forgée dans AsyncStorage sur un compte ordinaire ne produit
+//      donc rien : la bascule est ignorée.
+//   2. Elle ne déverrouille que de la PRÉSENTATION. Le paywall géographique est
+//      un nudge côté client par conception (PRD F14 : les lieux hors rayon sont
+//      déjà sur l'appareil, seul leur nom est masqué). Rien de facturé ne
+//      dépend de ce booléen — le droit réel reste `active_entitlements`.
+
+/** Clé AsyncStorage de la bascule interne (purgée au reset — cross-compte). */
+export const INTERNAL_GOLD_KEY = "spawt:internal_gold_preview";
+
+let internalAccount = false;
+let internalGoldPreview = false;
+
+/** Statut serveur du compte. Poussé par le store à l'hydratation. */
+export function setInternalAccount(value: boolean): void {
+  internalAccount = value;
+  if (!value) internalGoldPreview = false; // le retrait du statut coupe la bascule
+}
+
+export function isInternalAccount(): boolean {
+  return internalAccount;
+}
+
+/** Bascule « voir l'app comme un Gold ». Sans statut interne : sans effet. */
+export function setInternalGoldPreview(value: boolean): void {
+  internalGoldPreview = internalAccount && value;
+}
+
+export function isInternalGoldPreview(): boolean {
+  return internalAccount && internalGoldPreview;
+}
+
+/** Restaure la bascule au démarrage (le réglage doit survivre au redémarrage,
+ *  sinon on le repositionne à chaque test — et on finit par ne plus tester). */
+export async function loadInternalGoldPreview(): Promise<boolean> {
+  try {
+    const raw = await AsyncStorage.getItem(INTERNAL_GOLD_KEY);
+    return raw === "true";
+  } catch {
+    return false;
+  }
+}
+
+export async function saveInternalGoldPreview(value: boolean): Promise<void> {
+  try {
+    await AsyncStorage.setItem(INTERNAL_GOLD_KEY, value ? "true" : "false");
+  } catch {
+    // Réglage de confort : un échec disque ne doit rien casser.
+  }
+}
+
 /** Lecture brute du cache (debug / tests). */
 export function getGoldEntitlementState(): GoldEntitlement | null {
   return currentGold;
@@ -79,6 +139,10 @@ export function isEntitlementCurrentlyActive(
  * Mode démo : le store hydrate un entitlement inactif → false.
  */
 export function isGoldSpawter(_spawter: Spawter): boolean {
+  // La bascule interne PRIME, dans un seul sens : elle peut faire voir Gold à
+  // un compte interne, jamais retirer un droit réellement payé (un abonné qui
+  // rejoint l'équipe ne perd pas son abonnement en coupant l'aperçu).
+  if (isInternalGoldPreview()) return true;
   return isEntitlementCurrentlyActive(currentGold);
 }
 

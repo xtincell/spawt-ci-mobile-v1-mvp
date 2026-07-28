@@ -235,6 +235,33 @@ export async function fetchSpawterArchetypeFromSupabase(
 }
 
 /**
+ * Lecture du statut de compte interne (`spawters.is_internal`, 0060).
+ *
+ * Requête DÉDIÉE et non un champ de plus dans `fetchSpawterArchetype` : ce
+ * dernier n'est appelé qu'au rattrapage d'un archétype manquant, alors que le
+ * statut interne doit être revalidé à CHAQUE hydratation — un retrait décidé
+ * depuis la console admin doit refermer le menu au prochain lancement.
+ *
+ * Null (échec réseau, colonne absente sur une base pas encore migrée) = « on ne
+ * sait pas » : le caller garde ce qu'il avait, il ne dégrade pas.
+ */
+export async function fetchSpawterInternalFromSupabase(
+  spawter_id: string,
+): Promise<boolean | null> {
+  const { data, error } = await supabase
+    .from("spawters")
+    .select("is_internal")
+    .eq("id", spawter_id)
+    .maybeSingle();
+  if (error || !data) {
+    if (__DEV__ && error) console.warn("[data-source] fetchSpawterInternal failed", error);
+    return null;
+  }
+  const row = data as { is_internal?: unknown };
+  return typeof row.is_internal === "boolean" ? row.is_internal : null;
+}
+
+/**
  * Réclame l'héritage quiz « La Meute » pour le spawter courant via la RPC
  * `claim_meute_heritage` (0051 — GRANT authenticated : le téléphone est
  * redérivé de la ligne spawters côté serveur, anti-usurpation). Au 1er login le

@@ -5,6 +5,7 @@ import { useParams } from "react-router";
 import { useOne, useGetIdentity, useInvalidate } from "@refinedev/core";
 import { ReasonModal, FAUX_PAS_SPAWTER } from "../../components/ReasonModal";
 import { moderateSpawter } from "../../lib/moderate-spawter";
+import { setSpawterInternal } from "../../lib/set-spawter-internal";
 import { maskPhone } from "./index";
 
 export const CompteShow = () => {
@@ -22,6 +23,10 @@ export const CompteShow = () => {
   const [modalKind, setModalKind] = useState<"warning" | "ban" | "unban" | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Comptes internes (0060) — réservé aux admins : la RPC refuse les autres
+  // rôles, autant ne pas afficher un bouton qui ne peut qu'échouer.
+  const isAdmin = identity?.role === "admin";
+  const [internalBusy, setInternalBusy] = useState(false);
 
   if (!id) return <p>ID manquant</p>;
   if (query.isLoading) return <p>Chargement…</p>;
@@ -45,6 +50,27 @@ export const CompteShow = () => {
       setModalKind(null);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function onToggleInternal() {
+    if (!id || internalBusy) return;
+    setInternalBusy(true);
+    setErrorMsg(null);
+    try {
+      const next = !spawter?.is_internal;
+      const res = await setSpawterInternal(id, next, next ? "accès équipe" : "retrait accès équipe");
+      if (!res.ok) {
+        setErrorMsg(
+          res.error?.code === "FORBIDDEN"
+            ? "Refusé : seul un admin actif peut accorder le mode interne."
+            : `Erreur : ${res.error?.code ?? "inconnue"}`,
+        );
+        return;
+      }
+      invalidate({ resource: "spawters", invalidates: ["detail", "list"] });
+    } finally {
+      setInternalBusy(false);
     }
   }
 
@@ -72,6 +98,26 @@ export const CompteShow = () => {
         <p style={{ background: "var(--danger)", color: "white", padding: 8, borderRadius: 6 }}>
           BANNI le {String(spawter.banned_at)} — Motif : {String(spawter.banned_reason)}
         </p>
+      ) : null}
+
+      {/* Comptes internes (0060) — l'état est affiché même aux non-admins :
+          savoir qu'un compte est interne compte pour lire ses métriques. Seul
+          le bouton est réservé. */}
+      <p style={{ marginTop: 16 }}>
+        Mode interne :{" "}
+        <strong>{spawter.is_internal ? "ACTIF" : "inactif"}</strong>
+        {spawter.is_internal ? (
+          <span style={{ color: "var(--text-secondary)" }}>
+            {" "}
+            — ce compte peut basculer entre la vue gratuite et la vue Gold depuis ses réglages.
+            Ses spawts restent des spawts réels : à exclure des métriques si tu fais du test.
+          </span>
+        ) : null}
+      </p>
+      {isAdmin ? (
+        <button type="button" disabled={internalBusy} onClick={onToggleInternal}>
+          {spawter.is_internal ? "Retirer le mode interne" : "Accorder le mode interne"}
+        </button>
       ) : null}
 
       <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
