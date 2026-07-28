@@ -46,7 +46,7 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   base `postgres`. Le domaine se pose via `PATCH /api/v1/services/{uuid}` champ `urls`
   (format `https://hôte:portConteneur`) — **pas** par la variable `SERVICE_FQDN_*`, que
   Coolify régénère depuis la colonne `fqdn`.
-- **Schéma** : migrations 0001→0055 appliquées, suivies dans `public.schema_migrations`.
+- **Schéma** : migrations 0001→0062 appliquées, suivies dans `public.schema_migrations`.
   Deux migrateurs équivalents : `supabase/migrator/migrate.sh` (conteneur Docker) et
   `supabase/migrator/migrate-http.mjs` (via `/pg/query`, **sans SSH** — c'est le chemin
   praticable, `supabase-db` ne publie aucun port).
@@ -63,6 +63,18 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   + 30 avis fondateurs (`founder_reviews_mission1.sql`), marqués `is_seed` avec un lot,
   retirables par `purge_seed_reviews(lot)`. ⚠️ **GPS au niveau du quartier** (±200-400 m) :
   suffisant pour le feed, **insuffisant pour le géofence 100 m du Guet**.
+- **Portail** : `https://portail.spawt.online` (app Coolify `spawt-portail-apercu`,
+  repo `project_spawt_mobile_ci`, Dockerfile). **Rideau d'avant-lancement** :
+  `VITE_PREVIEW_GATE=true` → écran « Bientôt » pour tout le monde, portail réel
+  pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). Au
+  lancement : retirer la variable et **rebuild**. `spawt.online` continue de
+  servir sa page « Bientôt » statique — elle n'est dans AUCUN des 4 dépôts,
+  déployée à la main, hors Coolify.
+- **Comptes internes** (0060) : `spawters.is_internal` déverrouille la section
+  « Mode interne » des réglages de l'app — bascule gratuit ↔ Gold simulé,
+  aperçu local du paywall géo (rayon gratuit 3 km). Non auto-attribuable
+  (2 triggers) ; octroi par `scripts/grant-internal.mjs --add <+E164>` (avant la
+  première connexion) ou par la page Comptes de la console (RPC auditée).
 - **Console admin** : `https://admin.spawt.online`, build statique nixpacks + nginx
   (fallback SPA déjà configuré). ⚠️ Les variables `VITE_*` sont **figées au build** —
   les changer impose un **rebuild**, pas un redéploiement. Premier compte :
@@ -93,6 +105,16 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `fs_path` fourni est IGNORÉ — il est déduit du `mount_path`, et aucun bind-mount n'est
   ajouté au compose ; (2) un service ne voit les autres ressources du serveur que si
   *Connect to predefined docker network* est activé.
+- **RLS : ne JAMAIS révoquer `EXECUTE` d'un prédicat de policy à `authenticated`.**
+  Une expression de policy est évaluée avec les privilèges de l'APPELANT. La
+  migration 0058 l'a fait sur `is_active_staff`/`is_admin_staff`/`is_b2b_of`/
+  `is_b2b_gold_of`/`crew_session_is_joinable` → **41 policies sur 18 tables**
+  inévaluables pour tout compte connecté (plus de push, badges, pattes,
+  abonnements, suggestions, Crew…). Réparé en 0061. Aucun test unitaire ne peut
+  l'attraper : ils tournent hors base ou en `service_role`, qui contourne la RLS.
+- **Lire `spawt_staff` côté client** : passer par `current_staff()` (0062), pas
+  par un `select`. Un admin lit TOUTE l'équipe (`spawt_staff_select_admin`), donc
+  un `maybeSingle()` échoue sur le cas nominal.
 - **Compteurs d'avis** : ne jamais les écrire à la main. `place_adn.total_reviews` est
   recalculé depuis les lignes réelles (`recompute_place_adn_full`, 0054/0055). Les avis
   fondateurs alimentent la note, la confiance et les axes, mais **jamais** le compteur
