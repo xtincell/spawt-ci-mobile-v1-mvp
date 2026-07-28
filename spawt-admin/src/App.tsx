@@ -3,7 +3,7 @@ import { dataProvider, liveProvider } from "@refinedev/supabase";
 import routerProvider from "@refinedev/react-router";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router";
 
-import { supabaseClient } from "./utility/supabaseClient";
+import { supabaseClient, supabaseConfigError } from "./utility/supabaseClient";
 import { authProvider } from "./providers/authProvider";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/login";
@@ -36,7 +36,37 @@ const ProtectedLayout = () => (
   </Authenticated>
 );
 
-export const App = () => (
+/**
+ * Écran de configuration manquante — remplace l'écran blanc qu'un `throw` au
+ * chargement du module `supabaseClient` produisait. Rendu AVANT tout le reste
+ * pour qu'un exploitant comprenne immédiatement ce qui manque, plutôt que
+ * d'ouvrir la console du navigateur.
+ */
+const ConfigError = ({ message }: { message: string }) => (
+  <div
+    role="alert"
+    style={{
+      maxWidth: 640,
+      margin: "10vh auto",
+      padding: 24,
+      fontFamily: "system-ui, sans-serif",
+      lineHeight: 1.55,
+    }}
+  >
+    <h1 style={{ fontSize: 20, marginBottom: 12 }}>Console SPAWT — configuration incomplète</h1>
+    <p style={{ marginBottom: 16 }}>{message}</p>
+    <p style={{ opacity: 0.75, fontSize: 14 }}>
+      La console ne peut pas démarrer tant que le backend n&apos;est pas renseigné.
+      Après avoir posé les variables, il faut <strong>reconstruire</strong> — pas
+      seulement redéployer.
+    </p>
+  </div>
+);
+
+export const App = () =>
+  supabaseConfigError ? (
+    <ConfigError message={supabaseConfigError} />
+  ) : (
   <BrowserRouter>
     <Refine
       dataProvider={dataProvider(supabaseClient)}
@@ -113,4 +143,4 @@ export const App = () => (
       </Routes>
     </Refine>
   </BrowserRouter>
-);
+  );
