@@ -72,7 +72,7 @@ import {
   stadeTitleKeysBetween,
   type TitleSource,
 } from "../lib/titres-catalogue";
-import { saveSpawtToSupabaseOrEnqueue } from "../lib/offline-queue";
+import { enqueue, saveSpawtToSupabaseOrEnqueue } from "../lib/offline-queue";
 import { applyReviewToPalais } from "../lib/palais-signals";
 import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
@@ -255,6 +255,30 @@ interface SpawterStore {
 }
 
 const STADE_CELEBRATED_KEY = "spawt:stade:celebrated";
+
+/**
+ * Écrit le compte côté serveur, et en cas d'échec le confie à la file de
+ * reprise plutôt que de se contenter d'un avertissement.
+ *
+ * Les trois appels d'origine étaient `void saveSpawter(x).catch(warn)` : un
+ * échec réseau au moment du consentement laissait un compte qui vit sur le
+ * téléphone et n'existe nulle part en base, sans le moindre signal. Ses spawts
+ * partaient ensuite vers un `spawter_id` inconnu et échouaient en cascade sur
+ * la clé étrangère — un compte durablement cassé, né d'une coupure de réseau
+ * de trois secondes.
+ */
+async function persistSpawterFiable(spawter: Spawter): Promise<void> {
+  try {
+    await saveSpawter(spawter);
+  } catch (err) {
+    if (__DEV__) console.warn("[spawter-store] saveSpawter échoué — mis en file", err);
+    try {
+      await enqueue({ kind: "spawter_upsert", row: spawter });
+    } catch (qerr) {
+      if (__DEV__) console.warn("[spawter-store] mise en file impossible", qerr);
+    }
+  }
+}
 
 export const useSpawterStore = create<SpawterStore>((set, get) => ({
   hydrating: true,
@@ -574,9 +598,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       };
       await saveSpawterLocal(updated);
       // P16 — capture unhandled rejection sur le fire-and-forget Supabase.
-      void saveSpawter(updated).catch((err) => {
-        if (__DEV__) console.warn("[spawter-store] saveSpawter consent failed", err);
-      });
+      void persistSpawterFiable(updated);
       set({ spawter: updated });
       return true;
     }
@@ -594,9 +616,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       updated_at: new Date().toISOString(),
     };
     await saveSpawterLocal(updated);
-    void saveSpawter(updated).catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] saveSpawter avatar failed", err);
-    });
+    void persistSpawterFiable(updated);
     set({ spawter: updated });
   },
 
@@ -798,9 +818,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       };
       await saveSpawterLocal(updated);
       // P16 — capture unhandled rejection sur le fire-and-forget Supabase.
-      void saveSpawter(updated).catch((err) => {
-        if (__DEV__) console.warn("[spawter-store] saveSpawter registerSpawt failed", err);
-      });
+      void persistSpawterFiable(updated);
 
       // Story 5.1 — Détection franchissement de seuil de stade.
       // maxStade a déjà filtré les baisses → une différence ici est une montée garantie.

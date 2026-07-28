@@ -15,6 +15,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { SpawtCheckin } from "../types/spawt";
+import type { Spawter } from "../types/spawter";
 
 const STORAGE_KEY = "spawt:offline:queue";
 const MAX_ATTEMPTS = 5;
@@ -38,11 +39,26 @@ export type QueueEntry =
       enqueued_at: string;
       attempts: number;
       last_attempt_at: string | null;
+    }
+  | {
+      // La création du compte côté serveur était en « lance et oublie » :
+      // `void saveSpawter(...).catch(warn)`, sans reprise. Un échec réseau au
+      // moment du consentement laissait un compte qui vit sur le téléphone et
+      // n'existe nulle part en base — sans le moindre signal. Ses spawts
+      // partaient ensuite vers un `spawter_id` inconnu et échouaient en
+      // cascade sur la clé étrangère. La file le rattrape maintenant, au même
+      // titre qu'un spawt.
+      kind: "spawter_upsert";
+      row: Spawter;
+      enqueued_at: string;
+      attempts: number;
+      last_attempt_at: string | null;
     };
 
 export type EnqueueInput =
   | { kind: "spawt_insert"; row: SpawtCheckin }
-  | { kind: "spawt_update"; row_id: string; patch: Partial<SpawtCheckin> };
+  | { kind: "spawt_update"; row_id: string; patch: Partial<SpawtCheckin> }
+  | { kind: "spawter_upsert"; row: Spawter };
 
 export interface FlushResult {
   ok: number;
@@ -110,6 +126,8 @@ export interface SyncBackend {
   upsertSpawt: (row: SpawtCheckin) => Promise<boolean>;
   /** Update partial `spawt_update`. */
   updateSpawt: (row_id: string, patch: Partial<SpawtCheckin>) => Promise<boolean>;
+  /** Upsert du compte spawter — idempotent (PK = id). */
+  upsertSpawter: (row: Spawter) => Promise<boolean>;
 }
 
 let backendRef: SyncBackend | null = null;
@@ -182,6 +200,9 @@ async function tryDrainEntry(
   try {
     if (entry.kind === "spawt_insert") {
       return await backend.upsertSpawt(entry.row);
+    }
+    if (entry.kind === "spawter_upsert") {
+      return await backend.upsertSpawter(entry.row);
     }
     return await backend.updateSpawt(entry.row_id, entry.patch);
   } catch (err) {

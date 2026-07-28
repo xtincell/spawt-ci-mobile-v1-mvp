@@ -106,6 +106,7 @@ describe("flush", () => {
     const backend: SyncBackend = {
       upsertSpawt: jest.fn(() => Promise.resolve(true)),
       updateSpawt: jest.fn(() => Promise.resolve(true)),
+      upsertSpawter: jest.fn(() => Promise.resolve(true)),
     };
     setSyncBackend(backend);
     await enqueue({ kind: "spawt_insert", row: makeRow("a") });
@@ -124,6 +125,7 @@ describe("flush", () => {
         return Promise.resolve(calls === 1); // 1er succès, 2e+3e échec
       }),
       updateSpawt: jest.fn(() => Promise.resolve(true)),
+      upsertSpawter: jest.fn(() => Promise.resolve(true)),
     };
     setSyncBackend(backend);
     await enqueue({ kind: "spawt_insert", row: makeRow("a") });
@@ -141,6 +143,7 @@ describe("flush", () => {
     const backend: SyncBackend = {
       upsertSpawt: jest.fn(() => Promise.resolve(false)),
       updateSpawt: jest.fn(() => Promise.resolve(false)),
+      upsertSpawter: jest.fn(() => Promise.resolve(false)),
     };
     setSyncBackend(backend);
     // Pre-seed une entry avec attempts === MAX_ATTEMPTS - 1, last_attempt très ancien.
@@ -165,6 +168,7 @@ describe("flush", () => {
     const backend: SyncBackend = {
       upsertSpawt: jest.fn(() => Promise.resolve(true)),
       updateSpawt: jest.fn(() => Promise.resolve(true)),
+      upsertSpawter: jest.fn(() => Promise.resolve(true)),
     };
     setSyncBackend(backend);
     const now = new Date("2026-05-20T12:00:00Z");
@@ -185,6 +189,46 @@ describe("flush", () => {
     expect(result.remaining).toBe(1);
     expect(backend.upsertSpawt).not.toHaveBeenCalled();
   });
+
+  // ── Reprise de la création de compte ──────────────────────────────────────
+  // Elle était en « lance et oublie » : un échec réseau au moment du
+  // consentement laissait un compte qui vit sur le téléphone et n'existe pas
+  // en base, sans le moindre signal. Ses spawts partaient ensuite vers un
+  // `spawter_id` inconnu et échouaient en cascade sur la clé étrangère.
+  it("garde le compte spawter en file tant qu'il n'est pas passé, puis le rejoue", async () => {
+    let tentatives = 0;
+    const backend: SyncBackend = {
+      upsertSpawt: jest.fn(() => Promise.resolve(true)),
+      updateSpawt: jest.fn(() => Promise.resolve(true)),
+      upsertSpawter: jest.fn(() => {
+        tentatives += 1;
+        return Promise.resolve(tentatives > 1); // hors ligne, puis en ligne
+      }),
+    };
+    setSyncBackend(backend);
+    mockStorage.set(
+      "spawt:offline:queue",
+      JSON.stringify([
+        {
+          kind: "spawter_upsert",
+          row: { id: "sp-1", phone_e164: "+2250700000001", display_name: "Test" },
+          enqueued_at: "2026-05-20T11:00:00Z",
+          attempts: 0,
+          last_attempt_at: null,
+        },
+      ]),
+    );
+
+    const r1 = await flush(new Date("2026-05-20T12:00:00Z"));
+    expect(r1.failed).toBe(1);
+    expect(r1.remaining).toBe(1); // le compte n'est PAS perdu
+
+    // Assez tard pour que le backoff soit purgé.
+    const r2 = await flush(new Date("2026-05-20T12:05:00Z"));
+    expect(r2.ok).toBe(1);
+    expect(r2.remaining).toBe(0);
+    expect(backend.upsertSpawter).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("saveSpawtToSupabaseOrEnqueue", () => {
@@ -192,6 +236,7 @@ describe("saveSpawtToSupabaseOrEnqueue", () => {
     const backend: SyncBackend = {
       upsertSpawt: jest.fn(() => Promise.resolve(true)),
       updateSpawt: jest.fn(() => Promise.resolve(true)),
+      upsertSpawter: jest.fn(() => Promise.resolve(true)),
     };
     setSyncBackend(backend);
     const out = await saveSpawtToSupabaseOrEnqueue({
@@ -206,6 +251,7 @@ describe("saveSpawtToSupabaseOrEnqueue", () => {
     const backend: SyncBackend = {
       upsertSpawt: jest.fn(() => Promise.resolve(false)),
       updateSpawt: jest.fn(() => Promise.resolve(false)),
+      upsertSpawter: jest.fn(() => Promise.resolve(false)),
     };
     setSyncBackend(backend);
     const out = await saveSpawtToSupabaseOrEnqueue({
@@ -224,4 +270,6 @@ describe("saveSpawtToSupabaseOrEnqueue", () => {
     });
     expect(out.persisted).toBe("queued");
   });
+
+
 });

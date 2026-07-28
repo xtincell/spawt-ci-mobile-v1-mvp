@@ -152,10 +152,12 @@ export function OfflineQueueInspector({ visible, onClose }: Props) {
                         place_id: item.row.place_id,
                         defaultValue: `Spawt ${item.row.place_id}`,
                       })
-                    : t("offline_queue.row_update", {
-                        row_id: item.row_id,
-                        defaultValue: `Mise à jour ${item.row_id}`,
-                      })}
+                    : item.kind === "spawter_upsert"
+                      ? t("offline_queue.row_spawter")
+                      : t("offline_queue.row_update", {
+                          row_id: item.row_id,
+                          defaultValue: `Mise à jour ${item.row_id}`,
+                        })}
                 </Text>
                 <Text
                   style={{

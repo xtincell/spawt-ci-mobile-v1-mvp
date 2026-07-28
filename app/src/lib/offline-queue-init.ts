@@ -5,7 +5,7 @@
 
 import { Platform } from "react-native";
 
-import { isSupabaseConfigured, upsertSpawt, updateSpawt } from "./data-source";
+import { isSupabaseConfigured, upsertSpawt, updateSpawt, saveSpawter } from "./data-source";
 import {
   initOfflineQueue,
   setSyncBackend,
@@ -17,6 +17,9 @@ let unsubscribe: (() => void) | null = null;
 const backend: SyncBackend = {
   upsertSpawt: (row) => upsertSpawt(row),
   updateSpawt: (id, patch) => updateSpawt(id, patch),
+  // `saveSpawter` ne renvoie rien : une résolution sans exception vaut succès,
+  // un rejet est capté par `tryDrainEntry` et l'entrée sera retentée.
+  upsertSpawter: (row) => saveSpawter(row).then(() => true),
 };
 
 /**

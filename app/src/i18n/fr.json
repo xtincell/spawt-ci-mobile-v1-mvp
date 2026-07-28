@@ -216,7 +216,8 @@
     "purge_confirm": "Tu vas effacer {{count}} spawts non synchronisés, ils ne seront jamais envoyés.",
     "row_insert": "Spawt chez {{place_id}}",
     "row_update": "Mise à jour {{row_id}}",
-    "open_button": "Synchronisation des spawts"
+    "open_button": "Synchronisation des spawts",
+    "row_spawter": "Compte à synchroniser"
   },
   "empty_state": {
     "map_title": "Le Chat regarde la carte…",
