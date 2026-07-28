@@ -67,6 +67,7 @@ function makeItem(id: string, name: string): PlaceWithScore {
     axe_decontracte_habille: 0,
     confidence_score: 0.8,
     total_reviews: 12,
+    sample_size: 12,
     weighted_rating: 4.2,
     updated_at: NOW_ISO,
   };

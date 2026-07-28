@@ -43,6 +43,7 @@ function makeAdn(place_id: string, overrides: Partial<PlaceAdn> = {}): PlaceAdn 
     axe_decontracte_habille: 0,
     confidence_score: 0.8,
     total_reviews: 10,
+    sample_size: 10,
     weighted_rating: 4,
     updated_at: NOW.toISOString(),
     ...overrides,

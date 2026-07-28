@@ -797,7 +797,7 @@
     "info_whatsapp": "WhatsApp",
     "adn_section_title": "ADN du lieu",
     "adn_in_construction": "ADN en construction",
-    "adn_in_construction_hint": "{{reviews}} avis publics — il en faut au moins 5 pour révéler les axes.",
+    "adn_in_construction_hint": "{{reviews}} avis sur les 5 qu'il faut pour révéler les axes.",
     "match_with_palais": "{{score}}% pour ton Palais",
     "card_aria_label": "{{name}}, {{score}}% pour ton Palais",
     "back": "Retour",

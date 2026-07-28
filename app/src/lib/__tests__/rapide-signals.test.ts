@@ -42,6 +42,7 @@ function makeAdn(overrides: Partial<PlaceAdn> = {}): PlaceAdn {
     axe_decontracte_habille: 0,
     confidence_score: 0.8,
     total_reviews: 30,
+    sample_size: 30,
     weighted_rating: 4,
     updated_at: NOW_ISO,
     ...overrides,

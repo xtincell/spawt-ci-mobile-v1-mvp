@@ -217,7 +217,7 @@ export default function PlaceDetailScreen() {
   // adn_under_construction_seen — si total_reviews < 5 OU confidence < 0.3
   useEffect(() => {
     if (!place || adnUnderConstructionEmittedRef.current) return;
-    if (place.adn.total_reviews < 5 || place.adn.confidence_score < 0.3) {
+    if (place.adn.sample_size < 5) {
       adnUnderConstructionEmittedRef.current = true;
       track({
         name: "adn_under_construction_seen",
@@ -269,8 +269,18 @@ export default function PlaceDetailScreen() {
     );
   }
 
-  const adnHasEnoughReviews =
-    place.adn.total_reviews >= 5 && place.adn.confidence_score >= 0.3;
+  // FR-026 : « Un lieu avec < 5 avis (avis seed INCLUS pour le calcul ADN,
+  // exclus pour l'affichage du compteur communauté) affiche ADN en
+  // construction ». La porte se joue donc sur `sample_size` — l'échantillon
+  // réel — et NON sur `total_reviews`, qui est le compteur public.
+  //
+  // Le code testait `total_reviews`, ce qui annulait tout l'effet des avis
+  // fondateurs : un lieu qui en a 3 aurait dû n'attendre que 2 avis de la
+  // communauté pour révéler son radar ; il en fallait 5, soit 8 avis réels.
+  // La condition `confidence_score >= 0.3` a également sauté : elle n'existe
+  // nulle part dans le cahier et rendait la porte plus stricte que la règle
+  // écrite (elle exigeait ~10 avis, pas 5).
+  const adnHasEnoughReviews = place.adn.sample_size >= 5;
   // Le `noUncheckedIndexedAccess` typerait cover_photo_url comme `string | null`
   // mais la couche DB peut livrer `""` (Zod normalise désormais → null, voir
   // place.schema.ts). On double-check côté UI pour les seeds qui passent off-schema.
@@ -844,8 +854,11 @@ export default function PlaceDetailScreen() {
                     marginTop: 4,
                   }}
                 >
+                  {/* L'échantillon, pas le compteur public : sinon le texte
+                      annonce « 0 avis, il en faut 5 » alors que 3 avis
+                      fondateurs comptent déjà pour la révélation du radar. */}
                   {t("place.adn_in_construction_hint", {
-                    reviews: place.adn.total_reviews,
+                    reviews: place.adn.sample_size,
                   })}
                 </Text>
               </View>

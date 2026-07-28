@@ -61,8 +61,13 @@ async function loadDashboard(): Promise<DashboardData> {
     reviews,
     spawters30d,
   ] = await Promise.all([
-    supabaseClient.from("spawters").select("id", { count: "exact", head: true }),
-    supabaseClient.from("spawters").select("id", { count: "exact", head: true }).eq("is_banned", false),
+    // `is_seed = false` : les comptes de service qui portent les avis
+    // fondateurs ne sont pas des Spawters. Sans ce filtre, le tableau de bord
+    // annonce des inscrits qui n'existent pas — exactement ce que l'en-tête de
+    // ce fichier interdit depuis la Story 6.5 (« Madame Sun ne veut pas les
+    // seeds »), mais la colonne `spawters.is_seed` n'existait pas encore.
+    supabaseClient.from("spawters").select("id", { count: "exact", head: true }).eq("is_seed", false),
+    supabaseClient.from("spawters").select("id", { count: "exact", head: true }).eq("is_banned", false).eq("is_seed", false),
     supabaseClient.from("places").select("id", { count: "exact", head: true }).eq("is_published", true),
     supabaseClient
       .from("spawt_checkin")

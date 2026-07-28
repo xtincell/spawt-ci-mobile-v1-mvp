@@ -54,6 +54,7 @@ function makePlace(
       axe_decontracte_habille: 0,
       confidence_score: 0.5,
       total_reviews: 5,
+      sample_size: 5,
       weighted_rating: 4,
       updated_at: "2026-05-01T00:00:00Z",
     },

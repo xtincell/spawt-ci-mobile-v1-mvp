@@ -124,9 +124,19 @@ export interface PlaceAdn {
   axe_budget_premium: number;
   axe_populaire_prive: number;
   axe_decontracte_habille: number;
-  /** [0, 1] — fiabilité. <0.3 → afficher "ADN en construction" */
+  /** [0, 1] — fiabilité, calculée sur `sample_size`. */
   confidence_score: number;
+  /**
+   * Compteur PUBLIC : avis de la communauté uniquement. C'est le seul nombre
+   * qu'on montre au spawter (FR-032 : les avis fondateurs ne le gonflent pas).
+   */
   total_reviews: number;
+  /**
+   * Échantillon RÉEL du calcul — avis fondateurs inclus. Sert à décider si le
+   * radar est affichable (FR-026 : « < 5 avis, seed inclus » → ADN en
+   * construction). Ne jamais l'afficher : ce n'est pas le chiffre public.
+   */
+  sample_size: number;
   /** Note communautaire pondérée par stade (PRD §3.1 Feature 6) */
   weighted_rating: number;
   updated_at: string;

@@ -385,6 +385,7 @@ function adn(
     // maintenant les 10 lieux de la Mission 1 et leurs avis fondateurs.
     confidence_score: 0,
     total_reviews: 0,
+    sample_size: 0,
     weighted_rating,
     updated_at: todayISO,
   };
