@@ -36,6 +36,7 @@ if (!EMAIL || !PASSWORD) {
 /** Les écrans que l'exploitation doit pouvoir ouvrir, dans l'ordre du menu. */
 const ECRANS = [
   ["/lieux", "Lieux"],
+  ["/lieux/import", "Import de lieux"],
   ["/moderation", "Modération"],
   ["/signalements", "Signalements"],
   ["/suggestions", "Suggestions de lieux"],

@@ -65,9 +65,17 @@ export const LieuxList = () => {
     <div>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h1>Lieux</h1>
-        <button type="button" className="btn-primary" onClick={() => navigate("/lieux/create")}>
-          + Nouveau lieu
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* L'import est là où l'opérateur le cherche : à côté de la création
+              unitaire, pas enfoui dans un menu. Charger vingt lieux d'un coup
+              est le cas normal après une mission terrain. */}
+          <button type="button" onClick={() => navigate("/lieux/import")}>
+            Importer un fichier
+          </button>
+          <button type="button" className="btn-primary" onClick={() => navigate("/lieux/create")}>
+            + Nouveau lieu
+          </button>
+        </div>
       </header>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>

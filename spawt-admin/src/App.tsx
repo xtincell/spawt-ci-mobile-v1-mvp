@@ -9,6 +9,7 @@ import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/login";
 import { LieuxList } from "./pages/lieux";
 import { LieuCreate } from "./pages/lieux/create";
+import { LieuxImport } from "./pages/lieux/import";
 import { LieuEdit } from "./pages/lieux/edit";
 import { ModerationList } from "./pages/moderation";
 import { SignalementsList } from "./pages/signalements";
@@ -125,6 +126,7 @@ export const App = () =>
           <Route path="/" element={<Navigate to="/lieux" replace />} />
           <Route path="/lieux" element={<LieuxList />} />
           <Route path="/lieux/create" element={<LieuCreate />} />
+          <Route path="/lieux/import" element={<LieuxImport />} />
           <Route path="/lieux/edit/:id" element={<LieuEdit />} />
           <Route path="/moderation" element={<ModerationList />} />
           <Route path="/signalements" element={<SignalementsList />} />
