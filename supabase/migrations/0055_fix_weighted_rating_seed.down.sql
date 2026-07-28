@@ -1,0 +1,6 @@
+-- Down 0055 — restaure l'approximation incrémentale de 0025.
+-- ⚠️ Après ce rollback, un lieu qui n'a que des avis fondateurs réaffichera la
+-- note de son DERNIER avis au lieu d'une moyenne, et la confiance d'un seul
+-- avis quel que soit leur nombre. Ne le jouer qu'en connaissance de cause.
+-- La fonction de recompte (0054) et le trigger d'ajout (0025) sont recréés en
+-- l'état de la migration 0054 par un simple rejeu de son corps.

@@ -365,7 +365,9 @@ function adn(
     decontracte_habille: number;
   },
   weighted_rating: number,
-  total_reviews: number,
+  // Conservé dans la signature pour ne pas toucher aux 12 appels ci-dessus,
+  // mais volontairement IGNORÉ — voir le commentaire ci-dessous.
+  _total_reviews_ignore: number,
 ): PlaceAdn {
   return {
     place_id,
@@ -374,8 +376,15 @@ function adn(
     axe_budget_premium: axes.budget_premium,
     axe_populaire_prive: axes.populaire_prive,
     axe_decontracte_habille: axes.decontracte_habille,
-    confidence_score: total_reviews >= 5 ? Math.min(1, total_reviews / 50) : 0.2,
-    total_reviews,
+    // Le mode démo n'embarque AUCUN avis : `listReviewsForPlace` y renvoie
+    // toujours un tableau vide. Annoncer « 87 avis » au-dessus d'une liste
+    // vide était le même mensonge que celui qu'on vient de retirer de la base
+    // (compteurs écrits en dur dans seed/places.sql, sans une seule ligne
+    // d'avis derrière). On dit donc la vérité : 0 avis, ADN en construction.
+    // La démonstration commerciale se fait sur le vrai backend, qui porte
+    // maintenant les 10 lieux de la Mission 1 et leurs avis fondateurs.
+    confidence_score: 0,
+    total_reviews: 0,
     weighted_rating,
     updated_at: todayISO,
   };

@@ -274,7 +274,7 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
     const cta = tryFindByTestID(instance, "spawter-tab-suggest-cta");
     expect(cta).not.toBeNull();
 
-    cta!.props.onPress();
+    (cta!.props.onPress as () => void)();
     expect(mockPush).toHaveBeenCalledWith("/suggest-place");
   });
 
