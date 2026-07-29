@@ -124,10 +124,22 @@ export async function startHarness({ distDir, backend, port = 0, spa = true }) {
 }
 
 /** Lance Chromium (sans bac à sable — conteneur CI) et renvoie page + erreurs. */
-export async function openBrowser() {
+/**
+ * Ouvre Chromium.
+ *
+ * `geolocation` : sans position accordée, l'app affiche « Active la géoloc dans
+ * tes paramètres » et le feed reste vide de lieux proches — on croirait alors
+ * que le backend ne rend rien, alors que c'est le navigateur qui refuse. Par
+ * défaut on se place à Cocody, au milieu des lieux de la Mission 1.
+ */
+export async function openBrowser(opts = {}) {
   const { chromium } = await import("/opt/node22/lib/node_modules/playwright/index.mjs");
   const browser = await chromium.launch({ args: ["--no-sandbox", "--disable-dev-shm-usage"] });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 950 },
+    geolocation: opts.geolocation ?? { latitude: 5.3536, longitude: -3.9868 },
+    permissions: opts.permissions ?? ["geolocation"],
+  });
   const page = await context.newPage();
   const errors = [];
   page.on("console", (m) => {

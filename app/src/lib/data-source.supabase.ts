@@ -85,6 +85,12 @@ function defaultAdnForRow(r: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
+/** Exposé pour les tests : la dérivation `adn_revealed_at` → `adn_revealed`
+ *  n'est vérifiable que sur des lignes brutes, telles que PostgREST les rend. */
+export function parseRowsForTest(rows: readonly unknown[]): PlaceWithAdn[] {
+  return parseRows(rows);
+}
+
 function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
   const out: PlaceWithAdn[] = [];
   for (const row of rows) {
@@ -94,10 +100,23 @@ function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
     // on tolère l'absence (R22 : ADN neutre plutôt que lieu droppé).
     const rawAdn = r.place_adn;
     const adnCandidate = Array.isArray(rawAdn) ? rawAdn[0] : rawAdn;
-    const adn =
+    const adnBrut =
       adnCandidate && typeof adnCandidate === "object"
         ? (adnCandidate as Record<string, unknown>)
         : defaultAdnForRow(r);
+    // La base stocke une DATE de révélation (`adn_revealed_at`, cliquet de la
+    // migration 0059), l'app raisonne sur un booléen. Sans cette dérivation, le
+    // `.default(false)` du schéma Zod s'appliquait en silence : le radar ADN
+    // n'était révélé sur AUCUNE fiche, quel que soit le nombre d'avis. Un
+    // défaut qui rattrape une colonne absente rattrape aussi une colonne mal
+    // nommée — c'est ce qui a rendu la panne invisible.
+    const adn: Record<string, unknown> = {
+      ...adnBrut,
+      adn_revealed:
+        typeof adnBrut.adn_revealed === "boolean"
+          ? adnBrut.adn_revealed
+          : adnBrut.adn_revealed_at != null,
+    };
     if (adnCandidate == null && __DEV__) {
       console.warn("[data-source] place row without place_adn — default ADN used", r.id);
     }

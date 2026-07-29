@@ -1,0 +1,119 @@
+{
+  "id": "a1000000-0000-4000-8000-000000000001",
+  "name": "Kaiten",
+  "cuisine": [
+    "asiatique"
+  ],
+  "lat": 5.2962,
+  "lng": -3.9948,
+  "descriptive_address": "Rue du Docteur Blanchard, Zone 4",
+  "neighborhood": "Zone 4",
+  "city": "Abidjan",
+  "price_tier": 3,
+  "avg_ticket_xof": 16750,
+  "hours": {
+    "fri": [
+      {
+        "open": "11:00",
+        "close": "15:00"
+      },
+      {
+        "open": "18:30",
+        "close": "23:00"
+      }
+    ],
+    "mon": [
+      {
+        "open": "11:00",
+        "close": "15:00"
+      },
+      {
+        "open": "18:30",
+        "close": "23:00"
+      }
+    ],
+    "sat": [
+      {
+        "open": "11:00",
+        "close": "15:00"
+      },
+      {
+        "open": "18:30",
+        "close": "23:00"
+      }
+    ],
+    "sun": [
+      {
+        "open": "11:00",
+        "close": "15:00"
+      },
+      {
+        "open": "18:30",
+        "close": "23:00"
+      }
+    ],
+    "thu": [
+      {
+        "open": "11:00",
+        "close": "15:00"
+      },
+      {
+        "open": "18:30",
+        "close": "23:00"
+      }
+    ],
+    "tue": [
+      {
+        "open": "11:00",
+        "close": "15:00"
+      },
+      {
+        "open": "18:30",
+        "close": "23:00"
+      }
+    ],
+    "wed": [
+      {
+        "open": "11:00",
+        "close": "15:00"
+      },
+      {
+        "open": "18:30",
+        "close": "23:00"
+      }
+    ]
+  },
+  "phone": "+2252721254461",
+  "whatsapp": "+2250708317060",
+  "cover_photo_url": null,
+  "gallery_urls": [],
+  "signals": [
+    "sushi",
+    "business_lunch",
+    "lounge"
+  ],
+  "is_published": true,
+  "created_at": "2026-07-28T16:38:14.504619+00:00",
+  "updated_at": "2026-07-29T02:46:10.43914+00:00",
+  "menu_urls": [],
+  "city_code": "abidjan",
+  "place_adn": {
+    "place_id": "a1000000-0000-4000-8000-000000000001",
+    "updated_at": "2026-07-28T17:57:32.941033+00:00",
+    "sample_size": 3,
+    "total_reviews": 0,
+    "adn_revealed_at": "2026-07-28T17:57:32.941033+00:00",
+    "weighted_rating": 4.7,
+    "confidence_score": 0.130435,
+    "axe_budget_premium": 0.721146,
+    "axe_informel_etabli": 0.785573,
+    "axe_populaire_prive": 0.15368,
+    "axe_decontracte_habille": 0.691417,
+    "axe_local_international": 0.9,
+    "base_axe_budget_premium": 0.65,
+    "base_axe_informel_etabli": 0.75,
+    "base_axe_populaire_prive": 0.2,
+    "base_axe_decontracte_habille": 0.6,
+    "base_axe_local_international": 0.9
+  }
+}

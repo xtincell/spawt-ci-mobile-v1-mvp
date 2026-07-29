@@ -47,7 +47,7 @@ VALUES
    ARRAY['asiatique'], 5.2962, -3.9948,
    'Rue du Docteur Blanchard, Zone 4', 'Zone 4', 'Abidjan',
    3, 16750,
-   '{"lun":[["11:00","15:00"],["18:30","23:00"]],"mar":[["11:00","15:00"],["18:30","23:00"]],"mer":[["11:00","15:00"],["18:30","23:00"]],"jeu":[["11:00","15:00"],["18:30","23:00"]],"ven":[["11:00","15:00"],["18:30","23:00"]],"sam":[["11:00","15:00"],["18:30","23:00"]],"dim":[["11:00","15:00"],["18:30","23:00"]]}'::jsonb,
+   '{"mon":[{"open":"11:00","close":"15:00"},{"open":"18:30","close":"23:00"}],"tue":[{"open":"11:00","close":"15:00"},{"open":"18:30","close":"23:00"}],"wed":[{"open":"11:00","close":"15:00"},{"open":"18:30","close":"23:00"}],"thu":[{"open":"11:00","close":"15:00"},{"open":"18:30","close":"23:00"}],"fri":[{"open":"11:00","close":"15:00"},{"open":"18:30","close":"23:00"}],"sat":[{"open":"11:00","close":"15:00"},{"open":"18:30","close":"23:00"}],"sun":[{"open":"11:00","close":"15:00"},{"open":"18:30","close":"23:00"}]}'::jsonb,
    '+2252721254461', '+2250708317060', ARRAY[]::text[], ARRAY['sushi','business_lunch','lounge']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- PÉPITE — chaîne qui cherche activement du trafic, effet de levier B2B
@@ -55,7 +55,7 @@ VALUES
    ARRAY['grillades','burger_pizza'], 5.3558, -3.9876,
    'Riviera 2', 'Riviera 2', 'Abidjan',
    2, 12500,
-   '{"lun":[["12:00","23:30"]],"mar":[["12:00","23:30"]],"mer":[["12:00","23:30"]],"jeu":[["12:00","23:30"]],"ven":[["12:00","23:30"]],"sam":[["12:00","23:30"]],"dim":[["12:00","23:30"]]}'::jsonb,
+   '{"mon":[{"open":"12:00","close":"23:30"}],"tue":[{"open":"12:00","close":"23:30"}],"wed":[{"open":"12:00","close":"23:30"}],"thu":[{"open":"12:00","close":"23:30"}],"fri":[{"open":"12:00","close":"23:30"}],"sat":[{"open":"12:00","close":"23:30"}],"sun":[{"open":"12:00","close":"23:30"}]}'::jsonb,
    '+2250777595947', '+2250777595947', ARRAY[]::text[], ARRAY['bbq','cocktails','groupes']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- COUP DE CŒUR — qualité exceptionnelle, vitrine idéale
@@ -63,7 +63,7 @@ VALUES
    ARRAY['burger_pizza','fusion'], 5.2988, -3.9992,
    'Zone 4', 'Zone 4', 'Abidjan',
    2, 11750,
-   '{"lun":[["11:00","23:00"]],"mar":[["11:00","23:00"]],"mer":[["11:00","23:00"]],"jeu":[["11:00","23:00"]],"ven":[["11:00","23:00"]],"sam":[["11:00","23:00"]],"dim":[["11:00","23:00"]]}'::jsonb,
+   '{"mon":[{"open":"11:00","close":"23:00"}],"tue":[{"open":"11:00","close":"23:00"}],"wed":[{"open":"11:00","close":"23:00"}],"thu":[{"open":"11:00","close":"23:00"}],"fri":[{"open":"11:00","close":"23:00"}],"sat":[{"open":"11:00","close":"23:00"}],"sun":[{"open":"11:00","close":"23:00"}]}'::jsonb,
    NULL, NULL, ARRAY[]::text[], ARRAY['burgers','date','patisserie']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- COUP DE CŒUR — « meilleur porc de toute la vie », prix très accessibles
@@ -71,7 +71,7 @@ VALUES
    ARRAY['ivoirienne'], 5.3731, -3.9558,
    'Riviera Bonoumin — O''porco & O''sogo', 'Riviera Bonoumin', 'Abidjan',
    1, 9000,
-   '{"lun":[["11:00","23:00"]],"mar":[["11:00","23:00"]],"mer":[["11:00","23:00"]],"jeu":[["11:00","23:00"]],"ven":[["11:00","00:00"]],"sam":[["11:00","00:00"]],"dim":[["11:00","23:00"]]}'::jsonb,
+   '{"mon":[{"open":"11:00","close":"23:00"}],"tue":[{"open":"11:00","close":"23:00"}],"wed":[{"open":"11:00","close":"23:00"}],"thu":[{"open":"11:00","close":"23:00"}],"fri":[{"open":"11:00","close":"00:00"}],"sat":[{"open":"11:00","close":"00:00"}],"sun":[{"open":"11:00","close":"23:00"}]}'::jsonb,
    NULL, NULL, ARRAY[]::text[], ARRAY['braise','porc','cour_exterieure','portions_genereuses']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- SOLIDE — galerie d'art, piano live, hôtel
@@ -79,7 +79,7 @@ VALUES
    ARRAY['fusion','ouest_africaine'], 5.3689, -3.9641,
    'CIAD, Riviera 4 M''pouto', 'Riviera 4', 'Abidjan',
    2, 14000,
-   '{"mar":[["16:00","00:00"]],"mer":[["16:00","00:00"]],"jeu":[["16:00","00:00"]],"ven":[["16:00","00:00"]],"sam":[["16:00","00:00"]],"dim":[["16:00","00:00"]]}'::jsonb,
+   '{"tue":[{"open":"16:00","close":"00:00"}],"wed":[{"open":"16:00","close":"00:00"}],"thu":[{"open":"16:00","close":"00:00"}],"fri":[{"open":"16:00","close":"00:00"}],"sat":[{"open":"16:00","close":"00:00"}],"sun":[{"open":"16:00","close":"00:00"}]}'::jsonb,
    '+2250759496651', NULL, ARRAY[]::text[], ARRAY['galerie_art','piano_live','jardin']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- SOLIDE — rooftop 600 m², plusieurs espaces
@@ -87,7 +87,7 @@ VALUES
    ARRAY['francaise','fusion'], 5.3736, -3.9571,
    'Immeuble Le Phare, Bonoumin — carrefour', 'Riviera Bonoumin', 'Abidjan',
    2, 14750,
-   '{"lun":[["12:00","00:00"]],"mar":[["12:00","00:00"]],"mer":[["12:00","00:00"]],"jeu":[["12:00","00:00"]],"ven":[["12:00","02:00"]],"sam":[["12:00","02:00"]],"dim":[["12:00","00:00"]]}'::jsonb,
+   '{"mon":[{"open":"12:00","close":"00:00"}],"tue":[{"open":"12:00","close":"00:00"}],"wed":[{"open":"12:00","close":"00:00"}],"thu":[{"open":"12:00","close":"00:00"}],"fri":[{"open":"12:00","close":"02:00"}],"sat":[{"open":"12:00","close":"02:00"}],"sun":[{"open":"12:00","close":"00:00"}]}'::jsonb,
    '+2250707701010', '+2250707701010', ARRAY[]::text[], ARRAY['rooftop','terrasse','date','repas_pro']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- SOLIDE — bâtiment historique, cocktails remarquables
@@ -95,7 +95,7 @@ VALUES
    ARRAY['ivoirienne','fusion'], 5.3477, -4.0012,
    'Danga, Cocody', 'Danga', 'Abidjan',
    1, 7000,
-   '{"lun":[["11:00","23:00"]],"mar":[["11:00","23:00"]],"mer":[["11:00","23:00"]],"jeu":[["11:00","23:00"]],"ven":[["11:00","00:00"]],"sam":[["11:00","00:00"]],"dim":[["11:00","23:00"]]}'::jsonb,
+   '{"mon":[{"open":"11:00","close":"23:00"}],"tue":[{"open":"11:00","close":"23:00"}],"wed":[{"open":"11:00","close":"23:00"}],"thu":[{"open":"11:00","close":"23:00"}],"fri":[{"open":"11:00","close":"00:00"}],"sat":[{"open":"11:00","close":"00:00"}],"sun":[{"open":"11:00","close":"23:00"}]}'::jsonb,
    NULL, NULL, ARRAY[]::text[], ARRAY['cocktails','vue_coucher_soleil','decor_vintage','intimiste']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- MOYEN — espace lumineux, bar bien fourni
@@ -103,7 +103,7 @@ VALUES
    ARRAY['fusion','asiatique','ouest_africaine'], 5.3762, -4.0093,
    'Boulevard Latrille, II Plateaux — Liehn & Co', 'II Plateaux', 'Abidjan',
    3, 17000,
-   '{"lun":[["11:30","23:00"]],"mar":[["11:30","23:00"]],"mer":[["11:30","23:00"]],"jeu":[["11:30","23:00"]],"ven":[["11:30","00:00"]],"sam":[["11:30","00:00"]],"dim":[["11:30","23:00"]]}'::jsonb,
+   '{"mon":[{"open":"11:30","close":"23:00"}],"tue":[{"open":"11:30","close":"23:00"}],"wed":[{"open":"11:30","close":"23:00"}],"thu":[{"open":"11:30","close":"23:00"}],"fri":[{"open":"11:30","close":"00:00"}],"sat":[{"open":"11:30","close":"00:00"}],"sun":[{"open":"11:30","close":"23:00"}]}'::jsonb,
    NULL, NULL, ARRAY[]::text[], ARRAY['bar','groupes','lumineux']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- MOYEN — ancien bâtiment réaménagé, rhums arrangés maison
@@ -111,7 +111,7 @@ VALUES
    ARRAY['ivoirienne'], 5.2955, -3.9981,
    'Zone 4, Marcory — ex-Ô Feu de Bois', 'Zone 4', 'Abidjan',
    1, 8250,
-   '{"lun":[["11:00","23:00"]],"mar":[["11:00","23:00"]],"mer":[["11:00","23:00"]],"jeu":[["11:00","23:00"]],"ven":[["11:00","00:00"]],"sam":[["11:00","00:00"]],"dim":[["11:00","23:00"]]}'::jsonb,
+   '{"mon":[{"open":"11:00","close":"23:00"}],"tue":[{"open":"11:00","close":"23:00"}],"wed":[{"open":"11:00","close":"23:00"}],"thu":[{"open":"11:00","close":"23:00"}],"fri":[{"open":"11:00","close":"00:00"}],"sat":[{"open":"11:00","close":"00:00"}],"sun":[{"open":"11:00","close":"23:00"}]}'::jsonb,
    NULL, NULL, ARRAY[]::text[], ARRAY['brochettes','rhums_arranges','habitues','cadre_soigne']::text[], ARRAY[]::text[], true, 'abidjan'),
 
   -- MOYEN — boukarous cloisonnés, spécialité poisson et gibier
@@ -119,7 +119,7 @@ VALUES
    ARRAY['francaise','ivoirienne'], 5.3624, -3.9783,
    'Riviera 3', 'Riviera 3', 'Abidjan',
    3, 15500,
-   '{"lun":[["11:30","23:00"]],"mar":[["11:30","23:00"]],"mer":[["11:30","23:00"]],"jeu":[["11:30","23:00"]],"ven":[["11:30","23:30"]],"sam":[["11:30","23:30"]],"dim":[["11:30","23:00"]]}'::jsonb,
+   '{"mon":[{"open":"11:30","close":"23:00"}],"tue":[{"open":"11:30","close":"23:00"}],"wed":[{"open":"11:30","close":"23:00"}],"thu":[{"open":"11:30","close":"23:00"}],"fri":[{"open":"11:30","close":"23:30"}],"sat":[{"open":"11:30","close":"23:30"}],"sun":[{"open":"11:30","close":"23:00"}]}'::jsonb,
    NULL, NULL, ARRAY[]::text[], ARRAY['poisson','gibier','boukarous','intimiste']::text[], ARRAY[]::text[], true, 'abidjan')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name, cuisine = EXCLUDED.cuisine,
