@@ -219,18 +219,41 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   margin-top: 16px;
 }
 
+/* Avertissement de largeur — un bandeau, plus un mur.
+   Il occupait tout l'écran (inset: 0, fond opaque, z-index 9999) sans bouton
+   de fermeture : sous 1024 px la console était inutilisable, y compris sur un
+   portable dont l'affichage est simplement mis à l'échelle. On informe en bas
+   d'écran et on laisse travailler. */
 .viewport-warning {
   position: fixed;
-  inset: 0;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
   display: none;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 16px;
   background: var(--ink);
   color: var(--on-dark);
-  font-size: 18px;
-  padding: 24px;
-  text-align: center;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+  text-align: left;
   z-index: 9999;
+}
+
+.viewport-warning button {
+  flex: 0 0 auto;
+  background: var(--or, #c8a44e);
+  color: var(--ink, #0a0a0a);
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 @media (max-width: 1023px) {

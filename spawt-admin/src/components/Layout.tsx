@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, NavLink } from "react-router";
 import { useGetIdentity, useLogout } from "@refinedev/core";
 
@@ -11,6 +12,12 @@ interface StaffIdentity {
 export const Layout = () => {
   const { data: identity } = useGetIdentity<StaffIdentity>();
   const { mutate: logout } = useLogout();
+  // L'avertissement de largeur était un panneau opaque plein écran, z-index
+  // 9999, SANS aucun moyen de le fermer : sous 1024 px la console devenait
+  // inutilisable, sans recours. Ce n'est pas un avertissement, c'est un mur —
+  // et il tombe aussi sur un portable dont l'affichage est mis à l'échelle.
+  // On prévient, on laisse passer.
+  const [avertissementMasque, setAvertissementMasque] = useState(false);
 
   return (
     <div className="app-shell">
@@ -96,9 +103,14 @@ export const Layout = () => {
           <Outlet />
         </section>
       </main>
-      <div className="viewport-warning">
-        Le panel SPAWT admin est optimisé pour un écran ≥ 1024px.
-      </div>
+      {!avertissementMasque && (
+        <div className="viewport-warning" role="status">
+          <span>Le panel SPAWT admin est prévu pour un écran d\u2019au moins 1024&nbsp;px. En dessous, l\u2019affichage peut être à l\u2019étroit.</span>
+          <button type="button" onClick={() => setAvertissementMasque(true)}>
+            Continuer quand même
+          </button>
+        </div>
+      )}
     </div>
   );
 };
