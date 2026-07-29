@@ -83,21 +83,26 @@ d.textContent = 'Été'; document.body.appendChild(d);
 console.log(d.getBoundingClientRect().height);  // 107 = sain · 0 = cassé
 ```
 
-## ⚠️ Exemplaires encore atteints
+## État des exemplaires du dépôt
 
-Le correctif ci-dessus n'a été appliqué qu'aux polices de la console
-(`spawt-admin/src/assets/fonts/`). Les mêmes fichiers cassés vivent ailleurs :
+Tous les Gotham TTF suivis par git sont réparés (audit : 0 atteint) :
 
 | Emplacement | Ce qu'il alimente | État |
 |---|---|---|
 | `spawt-admin/src/assets/fonts/` | console admin | **réparé** |
-| `app/src/theme/fonts/` | **l'app mobile, donc l'APK** | à traiter |
-| `documentation/ux/fonts/` | brandbook UX | à traiter |
-| `documentation/ux/uploads/fonts/Gotham-Font/*.ttf` | archive du fondeur | à laisser tel quel (pièce d'origine) |
+| `app/src/theme/fonts/` | l'app mobile, donc l'APK | **réparé** |
+| `documentation/ux/fonts/` | brandbook UX | **réparé** |
+| `documentation/ux/uploads/fonts/Gotham-Font/*.ttf` | archive — conversions TTF | **réparé** (c'était la source de la contamination) |
+| `documentation/ux/uploads/fonts/Gotham-Font/*.otf` | archive — originaux du fondeur | sains d'origine, intouchés |
 
-Réparer les polices de `app/` **modifiera la hauteur de tout texte de
-l'application**. C'est très probablement une correction — du texte qui était
-rogné cessera de l'être — mais cela reflue chaque écran : à faire avec une
-vérification visuelle sur simulateur, pas à la veille d'une soumission.
+Côté app, l'impact visuel est volontairement minime : le design system
+(`app/src/theme/tokens.ts`) épingle un `lineHeight` pré-calculé sur chaque
+variante typographique, donc les hauteurs de blocs ne bougent pas. La
+réparation corrige ce qu'Android dérive des métriques du fichier — placement
+de la ligne de base, `includeFontPadding`, rognage des accents. Un coup d'œil
+aux écrans denses (fiche lieu, Palais) sur le prochain APK suffit.
 
 Les `.otf` Klinsman sont sains partout ; ne pas y toucher.
+
+Garde-fou : `npm test` (suite admin) audite désormais les six polices de la
+console et échoue si une police aux métriques nulles revient dans le dépôt.
