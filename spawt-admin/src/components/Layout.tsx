@@ -105,7 +105,7 @@ export const Layout = () => {
       </main>
       {!avertissementMasque && (
         <div className="viewport-warning" role="status">
-          <span>Le panel SPAWT admin est prévu pour un écran d\u2019au moins 1024&nbsp;px. En dessous, l\u2019affichage peut être à l\u2019étroit.</span>
+          <span>Le panel SPAWT admin est prévu pour un écran d’au moins 1024&nbsp;px. En dessous, l’affichage peut être à l’étroit.</span>
           <button type="button" onClick={() => setAvertissementMasque(true)}>
             Continuer quand même
           </button>
