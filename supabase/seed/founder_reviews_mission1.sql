@@ -31,11 +31,25 @@ BEGIN;
 -- Pas de ligne auth.users : ce compte ne se connecte jamais. La FK
 -- spawters.id → auth.users(id) impose toutefois une ligne, créée ici avec un
 -- e-mail interne non routable.
+--
+-- ⚠️ Les colonnes de jetons DOIVENT valoir '' et jamais NULL.
+-- GoTrue les lit dans des champs Go de type `string` (non-pointeurs) : un seul
+-- NULL fait échouer TOUTE la requête d'administration `GET /admin/users` avec
+-- « Database error finding users ». Or c'est exactement ce lookup qui permet à
+-- `otp-verify` de retrouver un compte déjà provisionné. Conséquence observée en
+-- production : plus AUCUN spawter déjà inscrit ne pouvait se reconnecter — une
+-- ligne d'amorçage insérée en SQL direct suffisait à fermer la porte à tous.
+-- Un INSERT qui contourne GoTrue doit donc poser lui-même ces valeurs par
+-- défaut, que GoTrue aurait mises.
 INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password,
-                        created_at, updated_at, email_confirmed_at)
+                        created_at, updated_at, email_confirmed_at,
+                        confirmation_token, recovery_token, email_change,
+                        email_change_token_new, email_change_token_current,
+                        phone_change, phone_change_token, reauthentication_token)
 VALUES ('a1000000-0000-4000-8000-00000000e001',
         '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'mission1@seed.spawt.local', '', now(), now(), now())
+        'mission1@seed.spawt.local', '', now(), now(), now(),
+        '', '', '', '', '', '', '', '')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.spawters (id, phone_e164, display_name, stade, is_seed, neighborhood)

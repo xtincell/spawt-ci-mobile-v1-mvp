@@ -116,6 +116,34 @@ function synthEmailForUser(userId: string): string {
   return `phone-${userId.replace(/-/g, "")}@phone.spawt.local`;
 }
 
+/**
+ * Un compte auth existant correspond-il au numéro qui tente de se connecter ?
+ *
+ * ⚠️ GoTrue NORMALISE le téléphone à l'écriture : il retire le `+`. On envoie
+ * `+2250700000101`, il stocke `2250700000101`. Une égalité stricte sur la forme
+ * E.164 ne peut donc jamais correspondre — et ce lookup est le SEUL chemin pour
+ * un compte déjà créé, puisque `createUser` échoue alors en `email_exists`.
+ *
+ * Effet mesuré sur la base réelle avant correctif : première connexion OK,
+ * **toutes les suivantes en `user_provisioning_failed`**. Chaque spawter était
+ * enfermé dehors dès sa deuxième visite.
+ *
+ * Deux critères plutôt qu'un : les chiffres seuls, et l'e-mail de substitution
+ * — déterministe, et c'est lui qui déclenche le `email_exists`. Si GoTrue change
+ * encore sa normalisation du téléphone, l'e-mail retrouve quand même le compte.
+ */
+export function matchesPhoneAccount(
+  candidate: { phone?: string; email?: string },
+  phoneE164: string,
+  placeholderEmail: string,
+): boolean {
+  const digitsOf = (v?: string) => (v ?? "").replace(/[^0-9]/g, "");
+  const target = digitsOf(phoneE164);
+  if (target.length > 0 && digitsOf(candidate.phone) === target) return true;
+  const email = (candidate.email ?? "").trim().toLowerCase();
+  return email.length > 0 && email === placeholderEmail.trim().toLowerCase();
+}
+
 // ---------------------------------------------------------------------------
 // Chantier 13 archétypes — héritage quiz « La Meute » (migration 0033).
 // Appelle la RPC `claim_meute_heritage(p_spawter_id, p_phone)` (SECURITY
@@ -279,7 +307,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   };
 
   // ---------------------------------------------------------------------------
-  // Provision le user auth (création ou lookup) — Story 2.3a AC #3.
+  // Provision le compte auth (création ou lookup) — Story 2.3a AC #3.
   // ---------------------------------------------------------------------------
   let userId: string | null = null;
   let userHasEmail = false;
@@ -335,9 +363,26 @@ export async function handleRequest(req: Request): Promise<Response> {
 
   if (!userId) {
     // P6 — Fallback : lookup paginé (cap 1000 ; au-delà bascule SQL direct).
+    //
+    // ⚠️ GoTrue NORMALISE le téléphone en le stockant : il retire le `+`.
+    // `+2250700000101` entre, `2250700000101` ressort. La comparaison stricte
+    // qui était ici (`u.phone === payload.phone_e164`) ne pouvait donc JAMAIS
+    // correspondre — et ce repli est le seul chemin pour un compte qui existe
+    // déjà, puisque `createUser` échoue alors en `email_exists`.
+    //
+    // Conséquence mesurée sur la base réelle : première connexion OK (création),
+    // **toute connexion suivante en `user_provisioning_failed`**. Autrement dit
+    // chaque spawter était enfermé dehors dès sa deuxième visite. Invisible aux
+    // tests : ils ne rejouaient jamais une seconde connexion du même numéro.
+    //
+    // On compare donc sur les chiffres seuls, et on accepte aussi l'e-mail de
+    // substitution — déterministe, et c'est précisément lui qui a déclenché le
+    // `email_exists`. Deux critères valent mieux qu'un : si GoTrue change encore
+    // sa normalisation du téléphone, l'e-mail continue de retrouver le compte.
     const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
     const existing = users?.users?.find(
-      (u: { phone?: string; email?: string }) => u.phone === payload.phone_e164,
+      (u: { phone?: string; email?: string }) =>
+        matchesPhoneAccount(u, payload.phone_e164, placeholderEmail),
     );
     if (existing) {
       userId = existing.id;
