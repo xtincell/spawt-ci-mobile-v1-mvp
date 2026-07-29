@@ -22,6 +22,8 @@ import { EvenementsList } from "./pages/evenements";
 import { PromotionsList } from "./pages/promotions";
 import { DefisList } from "./pages/defis";
 import { SuggestionsList } from "./pages/suggestions";
+import { PaiementsList } from "./pages/paiements";
+import { RunbookPage } from "./pages/runbook";
 import { B2bList } from "./pages/b2b";
 import { PushCampaigns } from "./pages/push";
 import { ExploreCuration } from "./pages/explore";
@@ -111,6 +113,12 @@ export const App = () =>
         { name: "place_promotions", list: "/promotions", meta: { label: "Promotions" } },
         { name: "challenges", list: "/defis", meta: { label: "Défis" } },
         { name: "place_suggestions", list: "/suggestions", meta: { label: "Suggestions" } },
+        // Paiement à validation manuelle (0063) : CinetPay est devenu secondaire,
+        // l'essentiel arrive par Wave / Orange Money / MoMo et se valide ici.
+        { name: "payment_requests", list: "/paiements", meta: { label: "Paiements" } },
+        // Mode d'emploi de la suite — pas une ressource de données, juste une
+        // entrée de menu vers la page runbook.
+        { name: "runbook", list: "/runbook", meta: { label: "Mode d'emploi" } },
         { name: "b2b_accounts", list: "/b2b", meta: { label: "Comptes B2B" } },
         { name: "push_campaigns", list: "/push", meta: { label: "Push" } },
         { name: "explore_collections", list: "/explore", meta: { label: "Explore" } },
@@ -138,6 +146,8 @@ export const App = () =>
           <Route path="/promotions" element={<PromotionsList />} />
           <Route path="/defis" element={<DefisList />} />
           <Route path="/suggestions" element={<SuggestionsList />} />
+          <Route path="/paiements" element={<PaiementsList />} />
+          <Route path="/runbook" element={<RunbookPage />} />
           <Route path="/b2b" element={<B2bList />} />
           <Route path="/push" element={<PushCampaigns />} />
           <Route path="/explore" element={<ExploreCuration />} />
