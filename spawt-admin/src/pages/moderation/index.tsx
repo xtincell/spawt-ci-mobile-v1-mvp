@@ -22,6 +22,10 @@ interface ReviewRow {
   flag_reason: string | null;
   created_at: string;
   deleted_at: string | null;
+  /** FR-032 — avis d'amorçage. Doit se distinguer VISUELLEMENT d'un avis
+   *  communauté : un modérateur qui supprime un avis fondateur sans le savoir
+   *  fait retomber l'ADN du lieu en « en construction ». */
+  is_seed: boolean;
   places?: { id: string; name: string; neighborhood: string };
   spawters?: { id: string; display_name: string; stade: string; is_banned: boolean; warning_count: number };
 }
@@ -217,7 +221,14 @@ export const ModerationList = () => {
             return (
               <tr key={row.id}>
                 <td>{new Date(row.created_at).toLocaleString("fr-FR")}</td>
-                <td><a href="#" onClick={(e) => { e.preventDefault(); navigate(`/comptes/show/${row.spawter_id}`); }}>{row.spawters?.display_name}</a></td>
+                <td>
+                  <a href="#" onClick={(e) => { e.preventDefault(); navigate(`/comptes/show/${row.spawter_id}`); }}>{row.spawters?.display_name}</a>
+                  {/* FR-032 — la distinction visuelle exigée par le cahier. Le
+                      nom du compte de service suffisait à deviner, mais deviner
+                      n'est pas distinguer : supprimer un avis fondateur sans
+                      le savoir fait retomber l'ADN du lieu. */}
+                  {row.is_seed ? <span className="badge-seed" title="Avis d'amorçage — compte de service, exclu du compteur public">✨ fondateur</span> : null}
+                </td>
                 <td>{row.spawters?.stade}</td>
                 <td>{row.places?.name} ({row.places?.neighborhood})</td>
                 <td>{row.note_etoiles}/5</td>

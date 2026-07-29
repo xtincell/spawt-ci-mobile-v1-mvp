@@ -15,11 +15,18 @@ function mockMakeBuilder(): Record<string, unknown> {
     mockCalls.push({ kind: "select", args });
     return b;
   });
+  // Depuis 0066, la chaîne se termine sur `eq` : la lecture passe par la vue
+  // `public_reviews`, qui porte déjà le filtre « avis noté et non supprimé ».
+  // Le `.not(...)` d'avant a disparu — s'il revenait, ce serait le signe qu'on
+  // interroge à nouveau la table `spawt_checkin`, qui ne rend que sa propre
+  // ligne et renverrait donc un compte faux.
+  // `eq` est désormais le terminateur : la chaîne s'arrête là.
   b.eq = jest.fn((...args: unknown[]) => {
     mockCalls.push({ kind: "eq", args });
-    return b;
+    return Promise.resolve(mockResponse);
   });
-  // `not` est le terminateur de la chaîne count → résout la réponse.
+  // `not` reste monté pour que son APPEL soit détectable — s'il est appelé,
+  // c'est qu'on est revenu à la table `spawt_checkin` et que le compte est faux.
   b.not = jest.fn((...args: unknown[]) => {
     mockCalls.push({ kind: "not", args });
     return Promise.resolve(mockResponse);
@@ -66,7 +73,8 @@ describe("countReviewsForPlaceFromSupabase — Story 4.12", () => {
     expect(select?.args[1]).toEqual({ count: "exact", head: true });
     const eq = mockCalls.find((c) => c.kind === "eq");
     expect(eq?.args).toEqual(["place_id", "place-42"]);
-    const not = mockCalls.find((c) => c.kind === "not");
-    expect(not?.args).toEqual(["note_etoiles", "is", null]);
+    // Plus de `.not(...)` : la vue porte déjà le filtre. Son retour signalerait
+    // un retour à la table, donc un compte faux (une seule ligne visible).
+    expect(mockCalls.find((c) => c.kind === "not")).toBeUndefined();
   });
 });

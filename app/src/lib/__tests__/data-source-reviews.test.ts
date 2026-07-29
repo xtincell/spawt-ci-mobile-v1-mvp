@@ -1,7 +1,14 @@
 // Story 4.9 — AC #1 + AC #7 : `listReviewsForPlaceFromSupabase`.
-// Vérifie le mapping flat→nested (spawters!inner), le drop des rows sans
-// relation, le respect du tri/limit transmis au SDK Supabase, et la
-// gestion d'erreur (return []).
+//
+// Depuis la migration 0066, la lecture passe par la VUE `public_reviews` et
+// non plus par la table `spawt_checkin` : celle-ci porte la position du
+// spawter et l'horodatage de son passage, et la policy qui la rendait publique
+// ouvrait ses 30 colonnes à `anon`. La vue ne rend que les colonnes
+// affichables et joint l'auteur côté serveur — donc plus de relation
+// embarquée à aplatir.
+//
+// Ces tests verrouillent les deux choses qui comptent : on lit bien la vue
+// (jamais la table), et l'auteur arrive à plat.
 
 type MockBuilder = {
   select: jest.Mock;
@@ -72,7 +79,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           created_at: "2025-12-01T10:00:00Z",
           is_seed: true,
           photos: ["https://x/p1.jpg", "https://x/p2.jpg"],
-          spawters_public: { display_name: "Stéphanie", avatar_url: "https://x/y.jpg" },
+           display_name: "Stéphanie", avatar_url: "https://x/y.jpg" ,
         },
       ],
       error: null,
@@ -93,7 +100,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
     ]);
   });
 
-  it("supporte la relation jointe en array (SDK shapes variantes)", async () => {
+  it("mappe un avis sans texte ni avatar", async () => {
     mockResponse = {
       data: [
         {
@@ -104,7 +111,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           created_at: "2025-11-01T08:00:00Z",
           is_seed: false,
           photos: [],
-          spawters_public: [{ display_name: "Kidam", avatar_url: null }],
+           display_name: "Kidam", avatar_url: null ,
         },
       ],
       error: null,
@@ -115,7 +122,10 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
     expect(out[0]?.spawter_avatar_url).toBeNull();
   });
 
-  it("drope les rows sans display_name (relation manquante)", async () => {
+  // La vue joint l'auteur en SQL, donc un `display_name` manquant ne devrait
+  // pas arriver — mais un avis affiché sans auteur serait pire qu'un avis
+  // absent, alors on garde le garde-fou et on le teste.
+  it("drope les avis sans auteur", async () => {
     mockResponse = {
       data: [
         {
@@ -126,7 +136,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           created_at: "2025-10-01T08:00:00Z",
           is_seed: false,
           photos: [],
-          spawters_public: null,
+          display_name: null,
         },
         {
           id: "r-ok",
@@ -136,7 +146,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           created_at: "2025-10-01T08:00:00Z",
           is_seed: false,
           photos: [],
-          spawters_public: { display_name: "OK", avatar_url: null },
+           display_name: "OK", avatar_url: null ,
         },
       ],
       error: null,
@@ -161,15 +171,15 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
   it("appelle Supabase avec le tri qualité-puis-fraîcheur et limit", async () => {
     mockResponse = { data: [], error: null };
     await listReviewsForPlaceFromSupabase("place-42", 3);
-    // select query string contient bien spawters_public!inner (view publique).
+    // L'auteur arrive à plat : la vue a fait la jointure.
     const select = mockCalls.find((c) => c.kind === "select");
-    expect(select?.args[0]).toContain("spawters_public!inner");
+    expect(select?.args[0]).toContain("display_name");
+    expect(select?.args[0]).not.toContain("spawters_public");
     // eq sur place_id avec la valeur transmise.
     const eq = mockCalls.find((c) => c.kind === "eq");
     expect(eq?.args).toEqual(["place_id", "place-42"]);
-    // not is null sur note_etoiles.
-    const not = mockCalls.find((c) => c.kind === "not");
-    expect(not?.args).toEqual(["note_etoiles", "is", null]);
+    // Plus de filtre `note_etoiles is not null` : la vue le porte déjà.
+    expect(mockCalls.find((c) => c.kind === "not")).toBeUndefined();
     // 2 orders : note_etoiles desc puis created_at desc.
     const orders = mockCalls.filter((c) => c.kind === "order");
     expect(orders).toHaveLength(2);
@@ -191,7 +201,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
           created_at: "2025-12-01T10:00:00Z",
           is_seed: false,
           photos: [],
-          spawters_public: { display_name: "X", avatar_url: "" },
+           display_name: "X", avatar_url: "" ,
         },
       ],
       error: null,

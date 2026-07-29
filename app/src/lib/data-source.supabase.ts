@@ -459,29 +459,27 @@ export async function listTitresFromSupabase(
 /**
  * Liste les avis d'un lieu (Story 4.9 — AC #1).
  *
- * Critères :
- *   - `place_id = X`
- *   - `note_etoiles IS NOT NULL` (inclut `is_seed = true` pour la démo V1).
- *   - join `spawters!inner` → 1 round-trip réseau pour name + avatar.
- *   - Tri : note desc puis created_at desc (qualité puis fraîcheur).
- *   - Limit configurable (5 par défaut sur la fiche).
+ * Lit la vue `public_reviews` (migration 0066) et NON la table `spawt_checkin`.
+ * Ce n'est pas une préférence de style : la table porte la POSITION du spawter
+ * et l'horodatage de son passage, et la policy qui la rendait publique ouvrait
+ * ses 30 colonnes à `anon` — la RLS filtre des lignes, pas des colonnes. La
+ * vue ne porte que ce qu'un inconnu peut voir, et fait la jointure vers le
+ * profil public côté serveur.
  *
- * Le mapping Supabase remonte `spawters` comme objet (relation 1:1 via FK),
- * mais le typage SDK le déclare comme `object | object[]` pour couvrir les
- * deux cas (1:1 vs 1:n). On normalise via `Array.isArray()` pour rester
- * defensive — si la relation devenait array, on prend `[0]`.
+ * Effet de bord bienvenu : plus de relation embarquée à aplatir. Le SDK
+ * remontait `spawters_public` tantôt en objet, tantôt en tableau selon la
+ * version — le code devait gérer les deux.
+ *
+ * Tri : note décroissante puis fraîcheur (qualité d'abord).
  */
 export async function listReviewsForPlaceFromSupabase(
   placeId: string,
   limit: number,
 ): Promise<PlaceReview[]> {
   const { data, error } = await supabase
-    .from("spawt_checkin")
-    .select(
-      "id, spawter_id, note_etoiles, texte_avis, photos, created_at, is_seed, spawters_public!inner(display_name, avatar_url)",
-    )
+    .from("public_reviews")
+    .select("id, spawter_id, note_etoiles, texte_avis, photos, created_at, is_seed, display_name, avatar_url")
     .eq("place_id", placeId)
-    .not("note_etoiles", "is", null)
     .order("note_etoiles", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -494,16 +492,8 @@ export async function listReviewsForPlaceFromSupabase(
   const out: PlaceReview[] = [];
   for (const row of data) {
     const r = row as Record<string, unknown>;
-    // Le SDK peut remonter la relation jointe en objet OU en array selon la
-    // version. On normalise les deux cas plutôt que d'assumer une forme.
-    const rel = r.spawters_public as
-      | { display_name?: unknown; avatar_url?: unknown }
-      | { display_name?: unknown; avatar_url?: unknown }[]
-      | null
-      | undefined;
-    const flat = Array.isArray(rel) ? rel[0] : rel;
-    if (!flat || typeof flat.display_name !== "string") {
-      if (__DEV__) console.warn("[data-source] review row dropped — missing spawter join", r.id);
+    if (typeof r.display_name !== "string") {
+      if (__DEV__) console.warn("[data-source] review row dropped — auteur manquant", r.id);
       continue;
     }
     const rawPhotos = Array.isArray(r.photos) ? r.photos : [];
@@ -513,11 +503,9 @@ export async function listReviewsForPlaceFromSupabase(
     out.push({
       id: String(r.id),
       spawter_id: String(r.spawter_id),
-      spawter_display_name: flat.display_name,
+      spawter_display_name: r.display_name,
       spawter_avatar_url:
-        typeof flat.avatar_url === "string" && flat.avatar_url.length > 0
-          ? flat.avatar_url
-          : null,
+        typeof r.avatar_url === "string" && r.avatar_url.length > 0 ? r.avatar_url : null,
       note_etoiles: Number(r.note_etoiles ?? 0),
       texte_avis: typeof r.texte_avis === "string" ? r.texte_avis : null,
       photos,
@@ -535,11 +523,14 @@ export async function listReviewsForPlaceFromSupabase(
 export async function countReviewsForPlaceFromSupabase(
   placeId: string,
 ): Promise<number> {
+  // Vue `public_reviews` et non la table : compter les avis d'un lieu est une
+  // lecture INTER-spawters. Depuis 0066 la table ne rend que sa propre ligne,
+  // donc l'interroger ici renverrait « 1 avis » à un spawter qui en a écrit un
+  // et « 0 » à tous les autres.
   const { count, error } = await supabase
-    .from("spawt_checkin")
+    .from("public_reviews")
     .select("id", { count: "exact", head: true })
-    .eq("place_id", placeId)
-    .not("note_etoiles", "is", null);
+    .eq("place_id", placeId);
 
   if (error) {
     if (__DEV__) console.warn("[data-source] countReviewsForPlace failed", error);
@@ -561,12 +552,12 @@ export async function listPlacePhotosFromSpawtsFromSupabase(
   placeId: string,
   limit: number,
 ): Promise<string[]> {
+  // Vue `public_reviews` : lecture inter-spawters (cf. countReviews). La vue
+  // porte déjà les filtres « noté, non supprimé, non annulé ».
   const { data, error } = await supabase
-    .from("spawt_checkin")
+    .from("public_reviews")
     .select("photos")
     .eq("place_id", placeId)
-    .not("note_etoiles", "is", null)
-    .is("deleted_at", null)
     .not("photos", "eq", "{}")
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -747,13 +738,13 @@ export async function listMeuteActivityFromSupabase(
   const half = Math.ceil(limit / 2);
 
   const [reviews, coups] = await Promise.all([
+    // Vue `public_reviews` : le fil de la Meute montre l'activité des AUTRES.
+    // L'auteur y est déjà joint, plus besoin d'embarquer `spawters_public`.
     supabase
-      .from("spawt_checkin")
+      .from("public_reviews")
       .select(
-        "id, created_at, note_etoiles, texte_avis, place_id, places!inner(name, neighborhood), spawters_public!inner(display_name, avatar_url)",
+        "id, created_at, note_etoiles, texte_avis, place_id, display_name, avatar_url, places!inner(name, neighborhood)",
       )
-      .not("note_etoiles", "is", null)
-      .is("deleted_at", null)
       .eq("is_seed", false)
       .order("created_at", { ascending: false })
       .limit(half),
@@ -773,13 +764,14 @@ export async function listMeuteActivityFromSupabase(
   } else {
     for (const r of (reviews.data ?? []) as unknown as Array<Record<string, unknown>>) {
       const place = r.places as { name?: string; neighborhood?: string } | null;
-      const sp = r.spawters_public as { display_name?: string; avatar_url?: string | null } | null;
+      // `public_reviews` porte l'auteur à plat (la jointure est faite dans la
+      // vue) : plus de relation embarquée à aplatir ici.
       items.push({
         kind: "review",
         id: String(r.id),
         created_at: String(r.created_at),
-        spawter_display_name: sp?.display_name ?? "Spawter",
-        spawter_avatar_url: sp?.avatar_url ?? null,
+        spawter_display_name: (r.display_name as string | undefined) ?? "Spawter",
+        spawter_avatar_url: (r.avatar_url as string | null | undefined) ?? null,
         place_id: String(r.place_id),
         place_name: place?.name ?? "?",
         place_neighborhood: place?.neighborhood ?? "",

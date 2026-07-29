@@ -246,3 +246,18 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border-top: 1px solid rgba(250, 250, 248, 0.14);
   opacity: 0.8;
 }
+
+/* FR-032 — distinction visuelle entre avis fondateur et avis communauté.
+   Un modérateur qui supprime un avis d'amorçage sans le savoir fait retomber
+   l'ADN du lieu en « en construction » : le badge doit se voir sans se lire. */
+.badge-seed {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--spawt-gold);
+  color: var(--spawt-black);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}

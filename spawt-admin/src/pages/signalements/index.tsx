@@ -30,6 +30,9 @@ interface ReportRow {
     note_etoiles: number | null;
     texte_avis: string | null;
     deleted_at: string | null;
+    /** FR-032 — avis d'amorçage, à distinguer visuellement d'un avis
+     *  communauté (cf. page Modération). */
+    is_seed?: boolean;
     places?: { name: string; neighborhood: string };
     spawters?: { display_name: string };
   };
@@ -47,7 +50,7 @@ interface StaffIdentity {
 }
 
 const SELECT_WITH_JOINS =
-  "*, spawt_checkin!review_reports_spawt_checkin_id_fkey(id, spawter_id, place_id, note_etoiles, texte_avis, deleted_at, places(name, neighborhood), spawters(display_name)), reporter:spawters!review_reports_reporter_spawter_id_fkey(display_name)";
+  "*, spawt_checkin!review_reports_spawt_checkin_id_fkey(id, spawter_id, place_id, note_etoiles, texte_avis, deleted_at, is_seed, places(name, neighborhood), spawters(display_name)), reporter:spawters!review_reports_reporter_spawter_id_fkey(display_name)";
 
 export const SignalementsList = () => {
   const { data: identity } = useGetIdentity<StaffIdentity>();
@@ -226,7 +229,10 @@ export const SignalementsList = () => {
                 <td>{new Date(row.created_at).toLocaleString("fr-FR")}</td>
                 <td>{reasonLabel(row.reason_code)}</td>
                 <td>{row.reporter?.display_name ?? "—"}</td>
-                <td>{checkin?.spawters?.display_name ?? "—"}</td>
+                <td>
+                  {checkin?.spawters?.display_name ?? "—"}
+                  {checkin?.is_seed ? <span className="badge-seed" title="Avis d'amorçage — compte de service, exclu du compteur public">✨ fondateur</span> : null}
+                </td>
                 <td>
                   {checkin?.places
                     ? `${checkin.places.name} (${checkin.places.neighborhood})`
