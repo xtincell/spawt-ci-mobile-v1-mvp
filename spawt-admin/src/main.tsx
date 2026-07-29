@@ -16,7 +16,7 @@ import "./styles/layout.css";
 // `BUILD_STAMP` doit changer à chaque livraison : c'est aussi ce qui garantit
 // de nouvelles empreintes de fichiers pour `index-*.js` / `index-*.css`, donc
 // des URL qu'aucun cache existant ne peut servir.
-const BUILD_STAMP = "2026-07-29-c";
+const BUILD_STAMP = "2026-07-29-d";
 // eslint-disable-next-line no-console
 console.info(
   `%cSPAWT admin%c build ${BUILD_STAMP} — backend ${import.meta.env.VITE_SUPABASE_URL ?? "(non configuré)"}`,

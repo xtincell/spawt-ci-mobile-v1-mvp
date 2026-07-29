@@ -52,6 +52,16 @@ body {
   font-family: var(--font-body);
   background: var(--bg);
   color: var(--ink);
+  /* Interligne explicite, et surtout pas `normal`.
+     `normal` délègue la hauteur de ligne aux métriques verticales du fichier de
+     police. Le Gotham TTF livré avait une table `hhea` entièrement à zéro
+     (ascender = descender = lineGap = 0) : Blink et Android lisent `hhea` avant
+     `OS/2` sur une TrueType, donc chaque ligne de texte se retrouvait haute de
+     0 px. Le texte se peignait toujours, mais n'occupait plus aucun espace — la
+     page se superposait à elle-même et paraissait « sans mise en forme ».
+     Les .ttf sont réparés (cf. spawt-admin/FONTS.md), mais on ne redonne pas à
+     un binaire de police le pouvoir de casser la mise en page. */
+  line-height: 1.5;
 }
 
 /* Titres en Klinsman (display) — le corps reste en Gotham. */
