@@ -1,0 +1,71 @@
+# .easignore — contrôle le tarball uploadé à EAS Build.
+#
+# ⚠️  .easignore REMPLACE .gitignore pour l'archive EAS Build. On doit donc
+#     re-lister ici TOUT ce que .gitignore exclut (node_modules, builds,
+#     secrets) — sinon ils se retrouvent uploadés (node_modules = ~156 MB !).
+#
+# But : EAS ne build que le projet Expo `app/`. On exclut tout le reste du repo
+# (documentation/, spawt-admin/, _bmad-output/, prototype-web racine…) pour que
+# le tarball passe de ~16,8 MB à ~2 MB — uploads plus rapides et fiables.
+
+# ━━━ Node / npm (mirror .gitignore) ━━━
+node_modules/
+**/node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ━━━ Env / secrets (mirror .gitignore) ━━━
+.env
+.env.local
+.env.*.local
+**/.env
+*.pem
+*.key
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+# Service account Google Play + credentials de soumission : jamais dans le
+# tarball EAS (le .gitignore les exclut de git, mais .easignore le REMPLACE
+# pour l'archive — sans cette ligne ils partiraient chez EAS).
+# NB : google-services.json n'est PAS listé ici — il est requis au build FCM
+# (identifiants publics, pas un secret).
+app/secrets/
+**/secrets/
+
+# ━━━ Builds / caches (mirror .gitignore) ━━━
+dist/
+**/dist/
+build/
+.next/
+.expo/
+**/.expo/
+.expo-shared/
+web-build/
+coverage/
+.nyc_output/
+
+# ━━━ IDE / OS ━━━
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+nul
+*.tmp
+
+# ━━━ Contenu repo inutile au build Android de app/ ━━━
+/documentation/
+/spawt-admin/
+/_bmad-output/
+/_bmad/
+/docs/
+/supabase/
+/src/
+/public/
+/prototype-web/
+*.docx

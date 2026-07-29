@@ -1,0 +1,91 @@
+name: EAS Update (OTA preview)
+
+# Pousse un update OTA (JS uniquement, pas de rebuild natif) sur le channel
+# `preview` depuis un runner GitHub — upstream datacenter rapide, contourne la
+# contrainte de débit montant local (cf. retro : push EAS bloqué à ~1-23 KB/s
+# côté Abidjan). Déclenchement MANUEL volontaire : on ne pousse aux testeurs
+# qu'après sign-off, jamais automatiquement à chaque commit.
+#
+# Pré-requis (one-time, côté repo GitHub) :
+#   Settings > Secrets and variables > Actions > New repository secret
+#     EXPO_TOKEN = <token expo.dev/accounts/xtincell/settings/access-tokens>
+#
+# Le projet Expo est lié via app/app.json extra.eas.projectId — pas besoin de
+# le repréciser ici.
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Message de l'update OTA (visible dans le dashboard Expo)"
+        required: true
+        default: "OTA preview update"
+      platform:
+        description: "Plateforme cible"
+        required: true
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+
+concurrency:
+  # Un seul update preview à la fois — évite deux publish concurrents sur la
+  # même branche qui se marcheraient dessus.
+  group: eas-update-preview
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Publish OTA update
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        # --legacy-peer-deps : React 19 + jest-expo génèrent des warnings
+        # peer-deps cosmétiques (cf. project-context.md).
+        run: npm ci --legacy-peer-deps
+
+      # ── Triple gate (garde-fou bloquant avant tout OTA aux testeurs) ──────
+      # Aligné sur la convention projet : tsc + lint:vocab + i18n:check en série.
+      # Un seul KO bloque le publish — on ne pousse jamais de code cassé en alpha.
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Vocab audit (lint:vocab)
+        run: npm run lint:vocab
+
+      - name: i18n check
+        run: npm run i18n:check
+
+      - name: Tests (jest)
+        run: npm test -- --ci
+
+      # ── Auth EAS + publish ────────────────────────────────────────────────
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish OTA update
+        run: >-
+          eas update
+          --branch preview
+          --environment preview
+          --platform ${{ inputs.platform }}
+          --message "${{ inputs.message }}"
+          --non-interactive

@@ -1,0 +1,1087 @@
+// Adaptateur de source de données.
+//
+// Deux modes, et un troisième état volontairement bruyant :
+//
+//   LIVE   — `EXPO_PUBLIC_SUPABASE_URL` + `_ANON_KEY` définis : la base qui vit
+//            dans Coolify fait foi. C'est le mode normal, y compris en preview.
+//   DÉMO   — `EXPO_PUBLIC_DEMO_MODE=true` : fixtures locales + AsyncStorage.
+//            Sert aux démonstrations commerciales hors ligne et à la CI.
+//   MANQUE — ni l'un ni l'autre : le binaire est mal configuré. L'app le DIT
+//            au lieu de servir des fixtures.
+//
+// ── Pourquoi ce troisième état existe ───────────────────────────────────────
+// Le repli vers les fixtures était автоmatique et silencieux : il suffisait
+// qu'une variable manque pour qu'un binaire de production serve du faux
+// contenu sans un mot. C'est précisément ce qui s'est produit — `eas.json` n'a
+// jamais contenu de bloc `env`, donc TOUS les APK produits ont tourné en
+// fixtures, et l'app paraissait « vide » alors que le backend allait bien.
+//
+// On applique donc la même doctrine « fail closed » que le mock OTP côté Edge
+// (`MOCK_TERMII`, correctif sécurité C1) : le mode dégradé n'existe que sur
+// OPT-IN EXPLICITE. Sans backend et sans opt-in, on échoue visiblement.
+
+import Constants from "expo-constants";
+
+import type { Place, PlaceAdn } from "../types/place";
+import type { Spawter } from "../types/spawter";
+import type { UserPalais } from "../types/palais";
+import type { SpawtCheckin } from "../types/spawt";
+import type { FeatureFlag } from "../types/feature-flag";
+import type { CollectionTitreRow } from "../types/collection-titres";
+import type { Stade } from "../types/stade";
+
+import { SEED_PLACES, type SeedPlace } from "../data/seed/places";
+// Mode Explore — fixtures statiques (même doctrine que SEED_PLACES : le mode
+// démo embarque ses données ; l'import dynamique ne passe pas sous Jest).
+import { SEED_EXPLORE_COLLECTIONS } from "../data/seed/explore";
+
+const SUPABASE_URL =
+  Constants.expoConfig?.extra?.supabaseUrl ??
+  process.env.EXPO_PUBLIC_SUPABASE_URL ??
+  "";
+const SUPABASE_KEY =
+  Constants.expoConfig?.extra?.supabaseAnonKey ??
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+  "";
+
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
+
+/**
+ * Mode démo : opt-in explicite uniquement. Jamais déduit d'une absence.
+ *
+ * Sous Jest, aucune variable n'est posée et les tests exercent le chemin
+ * fixtures : on l'active donc aussi quand `NODE_ENV === "test"`, sinon toute
+ * la suite basculerait en « configuration manquante ».
+ */
+export const isDemoMode =
+  process.env.EXPO_PUBLIC_DEMO_MODE === "true" || process.env.NODE_ENV === "test";
+
+/**
+ * Ni backend, ni opt-in démo : le binaire est mal configuré.
+ * `app/_layout.tsx` s'en sert pour afficher un écran explicite plutôt que de
+ * laisser croire à un produit vide.
+ */
+export const isBackendMissing = !isSupabaseConfigured && !isDemoMode;
+
+/** Mode courant — exposé pour debug + bandeau UI */
+export const dataSourceMode: "supabase" | "fallback" = isSupabaseConfigured
+  ? "supabase"
+  : "fallback";
+
+// ─── Public API ─────────────────────────────────────
+
+export interface PlaceWithAdn extends Place {
+  adn: PlaceAdn;
+  rating_display: number;
+  total_spawts: number;
+}
+
+export async function listPlaces(): Promise<PlaceWithAdn[]> {
+  if (isSupabaseConfigured) {
+    const { listPlacesFromSupabase } = await import("./data-source.supabase");
+    return listPlacesFromSupabase();
+  }
+  return SEED_PLACES.map(seedToPlaceWithAdn);
+}
+
+export async function getPlace(id: string): Promise<PlaceWithAdn | null> {
+  if (isSupabaseConfigured) {
+    const { getPlaceFromSupabase } = await import("./data-source.supabase");
+    return getPlaceFromSupabase(id);
+  }
+  const seed = SEED_PLACES.find((p) => p.id === id);
+  return seed ? seedToPlaceWithAdn(seed) : null;
+}
+
+export async function listSpawtsForSpawter(spawter_id: string): Promise<SpawtCheckin[]> {
+  if (isSupabaseConfigured) {
+    const { listSpawtsFromSupabase } = await import("./data-source.supabase");
+    return listSpawtsFromSupabase(spawter_id);
+  }
+  return [];
+}
+
+export async function saveSpawter(spawter: Spawter): Promise<void> {
+  if (isSupabaseConfigured) {
+    const { saveSpawterToSupabase } = await import("./data-source.supabase");
+    await saveSpawterToSupabase(spawter);
+    return;
+  }
+  // Fallback : géré côté store (AsyncStorage via spawter-store)
+}
+
+export async function savePalais(palais: UserPalais): Promise<void> {
+  if (isSupabaseConfigured) {
+    const { savePalaisToSupabase } = await import("./data-source.supabase");
+    await savePalaisToSupabase(palais);
+    return;
+  }
+  // Fallback : géré côté store
+}
+
+/**
+ * Story 4.3 — Upsert idempotent `spawt_checkin`. En mode fallback (démo), le
+ * store gère le local-only via AsyncStorage et on retourne `true` silencieusement.
+ */
+export async function upsertSpawt(row: SpawtCheckin): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+  const mod = await import("./data-source.supabase");
+  return mod.upsertSpawtToSupabase(row);
+}
+
+/** Story 4.3 — Update partial `spawt_checkin` par id. */
+export async function updateSpawt(
+  row_id: string,
+  patch: Partial<SpawtCheckin>,
+): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+  const mod = await import("./data-source.supabase");
+  return mod.updateSpawtInSupabase(row_id, patch);
+}
+
+// ─── Chantier 13 archétypes — archétype courant (colonne 0033) ─────────────
+
+/**
+ * Écrit l'archétype courant du spawter (colonne `spawters.quiz_archetype`,
+ * migration 0033). UPDATE ciblé (pas d'upsert row entier) : ne clobber aucune
+ * autre colonne et sert aux DEUX flux — héritage quiz ET recalculs mue.
+ * Mode démo : no-op — l'archétype vit dans le store (AsyncStorage).
+ */
+export async function updateSpawterArchetype(
+  spawter_id: string,
+  quiz_archetype: string,
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { updateSpawterArchetypeInSupabase } = await import("./data-source.supabase");
+  await updateSpawterArchetypeInSupabase(spawter_id, quiz_archetype);
+}
+
+/**
+ * Lit l'archétype courant + le n° pionnier depuis `spawters` (0033).
+ * Sert au rattrapage hydrate : un claim `claim_meute_heritage` effectué
+ * server-side (autre device, OTP antérieur) est adopté si le local n'a rien.
+ * Retourne null en mode démo ou sur échec réseau (le caller garde le local).
+ */
+export async function fetchSpawterArchetype(
+  spawter_id: string,
+): Promise<{ quiz_archetype: string | null; pionnier_seq: number | null } | null> {
+  if (!isSupabaseConfigured) return null;
+  const { fetchSpawterArchetypeFromSupabase } = await import("./data-source.supabase");
+  return fetchSpawterArchetypeFromSupabase(spawter_id);
+}
+
+/**
+ * Lit le statut de compte interne (`spawters.is_internal`, 0060) — la seule
+ * source qui fasse foi. Le client ne peut pas se l'attribuer : un trigger
+ * serveur restaure la valeur si un PATCH tente de la changer.
+ * Mode démo → null (« on ne sait pas ») : pas de menu interne hors ligne, mais
+ * pas de retrait intempestif non plus.
+ */
+export async function fetchSpawterInternal(spawter_id: string): Promise<boolean | null> {
+  if (!isSupabaseConfigured) return null;
+  const { fetchSpawterInternalFromSupabase } = await import("./data-source.supabase");
+  return fetchSpawterInternalFromSupabase(spawter_id);
+}
+
+/**
+ * Réclame l'héritage quiz « La Meute » (RPC `claim_meute_heritage`, 0051) pour
+ * le spawter courant. À appeler APRÈS l'upsert de la ligne spawters (la RPC
+ * l'UPDATE). Mode démo → null. Best-effort : le caller ignore l'héritage et
+ * garde l'archétype calculé localement en cas de null.
+ */
+export async function claimMeuteHeritage(
+  spawter_id: string,
+  phone_e164: string,
+): Promise<{ claimed: boolean; archetype: string | null; pionnier_seq: number | null } | null> {
+  if (!isSupabaseConfigured) return null;
+  const { claimMeuteHeritageInSupabase } = await import("./data-source.supabase");
+  return claimMeuteHeritageInSupabase(spawter_id, phone_e164);
+}
+
+// ─── Story 5.1 — progression par stade ──────────────
+
+export interface ProgressionRow {
+  spawter_id: string;
+  unique_spots: number;
+  stade: Stade;
+  /** i18n key — défaut `title.<stade>` (Story 5.2 livre la mapping enrichie). */
+  current_title: string;
+  updated_at: string;
+}
+
+/**
+ * Story 5.1 — Upsert idempotent `spawter_progression` (overwrite par PK = spawter_id).
+ * Fire-and-forget côté caller. Mode fallback : no-op silencieux.
+ */
+export async function upsertProgression(row: ProgressionRow): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { upsertProgressionToSupabase } = await import("./data-source.supabase");
+  await upsertProgressionToSupabase(row);
+}
+
+// ─── Story 5.2 — collection de titres ──────────────
+
+export async function insertTitre(row: CollectionTitreRow): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { insertTitreToSupabase } = await import("./data-source.supabase");
+  await insertTitreToSupabase(row);
+}
+
+export async function setDisplayedTitre(
+  spawter_id: string,
+  title_key: string,
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { setDisplayedTitreInSupabase } = await import("./data-source.supabase");
+  await setDisplayedTitreInSupabase(spawter_id, title_key);
+}
+
+export async function listTitresForSpawter(
+  spawter_id: string,
+): Promise<CollectionTitreRow[]> {
+  if (!isSupabaseConfigured) return [];
+  const { listTitresFromSupabase } = await import("./data-source.supabase");
+  return listTitresFromSupabase(spawter_id);
+}
+
+// Flags PRODUIT actifs par défaut en mode démo (fallback sans Supabase, ex.
+// préversion web) : prix moyen F CFA + question « Pays d'origine ». Les flags
+// d'infra (guet-geofence, paywall-geo) restent absents en démo — comportement
+// historique conservé. En mode live, la table feature_flags (togglable depuis
+// le dashboard admin, page Fonctionnalités) fait foi.
+const DEMO_EPOCH = "2026-07-07T00:00:00Z";
+const DEMO_FEATURE_FLAGS: FeatureFlag[] = (
+  // mode-crew : ON en démo (la preview doit faire vivre le vote de crew) —
+  // en mode live, le seed feature_flags_v2.sql le laisse OFF partout.
+  // suggestions-lieux : même doctrine — la preview fait vivre le formulaire
+  // (stockage AsyncStorage) ; live OFF partout (seed v2).
+  // reservation-1tap : même doctrine — la preview fait vivre la résa
+  // (trace AsyncStorage, WhatsApp seed) ; live OFF partout (seed v2).
+  // evenements-promos : même doctrine — la preview montre l'événement et la
+  // promo vivants du seed (place-activity.ts) ; live OFF partout (seed v2).
+  [
+    "place-avg-price",
+    "onboarding-origin-country",
+    "mode-crew",
+    "suggestions-lieux",
+    "reservation-1tap",
+    "evenements-promos",
+  ] as const
+).flatMap((flag_code) =>
+  (["internal", "alpha", "beta", "prod"] as const).map((scope) => ({
+    id: `demo-${flag_code}-${scope}`,
+    flag_code,
+    scope,
+    enabled: true,
+    spawter_id: null,
+    expires_at: null,
+    created_at: DEMO_EPOCH,
+    updated_at: DEMO_EPOCH,
+  })),
+);
+
+/**
+ * Liste les feature flags pertinents pour un spawter.
+ * - Mode supabase : flags globaux (`spawter_id IS NULL`) + overrides du spawter.
+ * - Mode fallback : flags produit par défaut (DEMO_FEATURE_FLAGS).
+ */
+export async function listFeatureFlags(spawter_id: string | null): Promise<FeatureFlag[]> {
+  if (isSupabaseConfigured) {
+    const { listFeatureFlagsFromSupabase } = await import("./data-source.supabase");
+    return listFeatureFlagsFromSupabase(spawter_id);
+  }
+  return DEMO_FEATURE_FLAGS;
+}
+
+// ─── Story 4.9 — reviews d'un lieu ──────────────
+
+/**
+ * Avis spawter agrégé pour affichage sur la fiche lieu (Story 4.9).
+ *
+ * `is_seed = true` → avis fondateur seedé en DB (Story 6.3) ; il alimente
+ * l'ADN mais reste hors du compteur public `total_reviews`. La fiche lieu V1
+ * les affiche **avec** un badge « Avis fondateur » pour assumer la démo.
+ */
+export interface PlaceReview {
+  /** spawt_checkin.id (UUID) — clé React stable. */
+  id: string;
+  spawter_id: string;
+  spawter_display_name: string;
+  spawter_avatar_url: string | null;
+  /** 1-5, demi-points possibles côté DB mais arrondi par Stars. */
+  note_etoiles: number;
+  texte_avis: string | null;
+  /** URLs publiques des photos (0..3). Story 4.5 = bucket place-photos, seeds = Unsplash CDN. */
+  photos: readonly string[];
+  created_at: string;
+  is_seed: boolean;
+}
+
+/**
+ * Liste les avis (max `limit`) d'un lieu, tri qualité-puis-fraîcheur.
+ *
+ * Mode fallback (sans Supabase) : retourne `[]` — les seeds reviews ne sont
+ * pas embarqués côté mobile (volume trop élevé). La fiche affiche alors
+ * l'état vide via `reviews_empty`. Mode supabase : join `spawters!inner` en
+ * un round-trip.
+ */
+export async function listReviewsForPlace(
+  placeId: string,
+  limit = 5,
+): Promise<PlaceReview[]> {
+  if (isSupabaseConfigured) {
+    const { listReviewsForPlaceFromSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return listReviewsForPlaceFromSupabase(placeId, limit);
+  }
+  return [];
+}
+
+/**
+ * Story 4.12 — Compte total des avis d'un lieu (même filtre que
+ * `listReviewsForPlace` : `note_etoiles IS NOT NULL`, seeds inclus). Sert à
+ * décider l'affichage du lien « Voir tous les avis (N) » avec le vrai N.
+ *
+ * Requête `head: true, count: 'exact'` → pas de transfert de lignes. Mode
+ * fallback : retourne 0 (aucun avis embarqué côté mobile en démo).
+ */
+export async function countReviewsForPlace(placeId: string): Promise<number> {
+  if (isSupabaseConfigured) {
+    const { countReviewsForPlaceFromSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return countReviewsForPlaceFromSupabase(placeId);
+  }
+  return 0;
+}
+
+/**
+ * Refonte fiche lieu (R17/Q1) — photos des spawts d'un lieu, pour la
+ * « galerie des spawters » de l'onglet Média.
+ *
+ * Mode supabase : photos des avis publics du lieu (champ `photos TEXT[]` de
+ * `spawt_checkin`, migration 0011 — visibilité RLS 0021). Mode fallback
+ * (démo) : photos des spawts locaux du device (AsyncStorage) — dégradé
+ * acceptable, aucune photo communautaire embarquée côté mobile.
+ */
+export async function listPlacePhotosFromSpawts(
+  placeId: string,
+  limit = 30,
+): Promise<string[]> {
+  if (isSupabaseConfigured) {
+    const { listPlacePhotosFromSpawtsFromSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return listPlacePhotosFromSpawtsFromSupabase(placeId, limit);
+  }
+  try {
+    // Import dynamique — cohérent avec le pattern data-source ; évite de
+    // charger AsyncStorage pour les consumers qui n'appellent jamais ceci.
+    const { loadSpawts } = await import("./storage");
+    const spawts = await loadSpawts();
+    const photos: string[] = [];
+    for (const s of spawts) {
+      if (s.place_id !== placeId || s.is_cancelled) continue;
+      for (const p of s.photos ?? []) {
+        if (typeof p === "string" && p.length > 0) {
+          photos.push(p);
+          if (photos.length >= limit) return photos;
+        }
+      }
+    }
+    return photos;
+  } catch (err) {
+    if (__DEV__) console.warn("[data-source] listPlacePhotosFromSpawts (démo) failed", err);
+    return [];
+  }
+}
+
+/**
+ * Câblage MVP — favoris cross-device (Story 3.6 Option A, migration 0024).
+ * Retourne null si Supabase indisponible ou fetch en échec (le caller garde
+ * alors le cache local sans merge).
+ */
+export async function listSavedPlaceIds(spawter_id: string): Promise<string[] | null> {
+  if (!isSupabaseConfigured) return null;
+  const { listSavedPlaceIdsFromSupabase } = await import("./data-source.supabase");
+  return listSavedPlaceIdsFromSupabase(spawter_id);
+}
+
+export async function saveSavedPlace(spawter_id: string, place_id: string): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { insertSavedPlaceToSupabase } = await import("./data-source.supabase");
+  await insertSavedPlaceToSupabase(spawter_id, place_id);
+}
+
+export async function deleteSavedPlace(spawter_id: string, place_id: string): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { deleteSavedPlaceFromSupabase } = await import("./data-source.supabase");
+  await deleteSavedPlaceFromSupabase(spawter_id, place_id);
+}
+
+/**
+ * Câblage MVP — signalement d'avis (Feature 17, migration 0026).
+ * "duplicate" = déjà signalé par ce spawter (contrainte UNIQUE).
+ * Mode démo → "unavailable" (le bouton est masqué en amont).
+ */
+export async function reportReview(input: {
+  spawt_checkin_id: string;
+  reporter_spawter_id: string;
+  reason_code: "fake_review" | "hater" | "gatekeeping" | "autre";
+  commentaire?: string;
+}): Promise<"ok" | "duplicate" | "error" | "unavailable"> {
+  if (!isSupabaseConfigured) return "unavailable";
+  const { reportReviewToSupabase } = await import("./data-source.supabase");
+  return reportReviewToSupabase(input);
+}
+
+/** Phase 2 F12 — Coup de Cœur via RPC quota (migration 0028). */
+export interface CoupDeCoeurResult {
+  ok: boolean;
+  code: "given" | "already_given" | "quota_exhausted" | "not_authenticated" | string;
+  quota?: number;
+  used?: number;
+  remaining?: number;
+}
+
+export async function giveCoupDeCoeur(
+  place_id: string,
+): Promise<CoupDeCoeurResult | null> {
+  if (!isSupabaseConfigured) return null;
+  const { giveCoupDeCoeurToSupabase } = await import("./data-source.supabase");
+  return giveCoupDeCoeurToSupabase(place_id);
+}
+
+export async function countCoupsDeCoeurThisMonth(
+  place_id: string,
+): Promise<number | null> {
+  if (!isSupabaseConfigured) return null;
+  const { countCoupsDeCoeurFromSupabase } = await import("./data-source.supabase");
+  return countCoupsDeCoeurFromSupabase(place_id);
+}
+
+// ─── Feature 13 — push serveur : tokens Expo par device (migration 0034) ────
+
+/**
+ * Upsert du token push du device dans `push_tokens` (ON CONFLICT token :
+ * un device qui se ré-enregistre met à jour sa row — RLS owner-only).
+ * Mode démo : no-op silencieux, aucun push serveur sans Supabase.
+ */
+export async function upsertPushToken(
+  token: string,
+  platform: "ios" | "android",
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { upsertPushTokenToSupabase } = await import("./data-source.supabase");
+  await upsertPushTokenToSupabase(token, platform);
+}
+
+/** Retrait du token au logout / suppression de compte. Mode démo : no-op. */
+export async function deletePushToken(token: string): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { deletePushTokenFromSupabase } = await import("./data-source.supabase");
+  await deletePushTokenFromSupabase(token);
+}
+
+/** Phase 2 — suppression de compte self-service (migration 0029, ARTCI). */
+export async function requestAccountDeletion(): Promise<boolean> {
+  if (!isSupabaseConfigured) return true; // démo : reset local suffit
+  const { requestAccountDeletionFromSupabase } = await import("./data-source.supabase");
+  return requestAccountDeletionFromSupabase();
+}
+
+/** Phase 2 — fil d'activité de la Meute (onglet Meute). */
+export interface MeuteActivityItem {
+  kind: "review" | "coup";
+  id: string;
+  created_at: string;
+  spawter_display_name: string;
+  spawter_avatar_url: string | null;
+  place_id: string;
+  place_name: string;
+  place_neighborhood: string;
+  /** Renseigné pour kind="review". */
+  note_etoiles?: number;
+  texte_avis?: string | null;
+}
+
+export async function listMeuteActivity(limit = 30): Promise<MeuteActivityItem[]> {
+  if (!isSupabaseConfigured) return [];
+  const { listMeuteActivityFromSupabase } = await import("./data-source.supabase");
+  return listMeuteActivityFromSupabase(limit);
+}
+
+// ─── Mode Crew (migration 0038) — vote de groupe temps réel ─────────────────
+// Mode supabase : RPC create/join + INSERT propositions/votes sous RLS
+// (import dynamique, règle d'or du data layer). Mode démo : moteur local
+// crew-demo.ts — 2 bots qui rejoignent, proposent et votent après délai, la
+// feature vit en preview sans backend. Le moteur démo est importé STATIQUEMENT
+// (comme SEED_PLACES) : la branche démo doit marcher partout, y compris sous
+// jest où `import()` runtime n'est pas disponible.
+
+import type {
+  CrewJoinResult,
+  CrewMutationResult,
+  CrewSelf,
+  CrewSessionRef,
+  CrewSnapshot,
+} from "./crew/crew-types";
+import {
+  createDemoCrewSession,
+  joinDemoCrewSession,
+  fetchDemoCrewSnapshot,
+  proposeDemoCrewPlace,
+  voteDemoCrewProposal,
+  leaveDemoCrewSession,
+  resolveDemoCrewSession,
+} from "./crew/crew-demo";
+
+export async function createCrewSession(self: CrewSelf): Promise<CrewSessionRef | null> {
+  if (isSupabaseConfigured) {
+    const { createCrewSessionInSupabase } = await import("./data-source.supabase");
+    return createCrewSessionInSupabase(self.id);
+  }
+  return createDemoCrewSession(self);
+}
+
+export async function joinCrewSession(code: string, self: CrewSelf): Promise<CrewJoinResult> {
+  if (isSupabaseConfigured) {
+    const { joinCrewSessionInSupabase } = await import("./data-source.supabase");
+    return joinCrewSessionInSupabase(code, self.id);
+  }
+  return joinDemoCrewSession(code, self);
+}
+
+export async function fetchCrewSnapshot(
+  session_id: string,
+  self_id: string,
+): Promise<CrewSnapshot | null> {
+  if (isSupabaseConfigured) {
+    const { fetchCrewSnapshotFromSupabase } = await import("./data-source.supabase");
+    return fetchCrewSnapshotFromSupabase(session_id, self_id);
+  }
+  return fetchDemoCrewSnapshot(session_id);
+}
+
+/**
+ * Propose un lieu au crew. `place` porte la dénormalisation (name/neighborhood)
+ * dont le moteur démo a besoin — le mode supabase n'utilise que l'id (le
+ * snapshot re-joint `places` côté serveur).
+ */
+export async function proposeCrewPlace(
+  session_id: string,
+  place: { id: string; name: string; neighborhood: string },
+  proposed_by: string,
+): Promise<CrewMutationResult> {
+  if (isSupabaseConfigured) {
+    const { proposeCrewPlaceToSupabase } = await import("./data-source.supabase");
+    return proposeCrewPlaceToSupabase(session_id, place.id, proposed_by);
+  }
+  return proposeDemoCrewPlace(session_id, place, proposed_by);
+}
+
+export async function voteCrewProposal(
+  session_id: string,
+  proposal_id: string,
+  spawter_id: string,
+): Promise<CrewMutationResult> {
+  if (isSupabaseConfigured) {
+    const { voteCrewProposalToSupabase } = await import("./data-source.supabase");
+    return voteCrewProposalToSupabase(session_id, proposal_id, spawter_id);
+  }
+  return voteDemoCrewProposal(session_id, proposal_id);
+}
+
+export async function leaveCrewSession(session_id: string, spawter_id: string): Promise<void> {
+  if (isSupabaseConfigured) {
+    const { leaveCrewSessionInSupabase } = await import("./data-source.supabase");
+    await leaveCrewSessionInSupabase(session_id, spawter_id);
+    return;
+  }
+  leaveDemoCrewSession(session_id);
+}
+
+/**
+ * Persiste la résolution (best-effort en mode supabase — voir la limite RLS
+ * documentée dans data-source.supabase.ts ; la révélation aux membres passe
+ * par le broadcast de crew-realtime). Retourne true si l'écriture a pris.
+ */
+export async function resolveCrewSession(
+  session_id: string,
+  winning_place_id: string | null,
+): Promise<boolean> {
+  if (isSupabaseConfigured) {
+    const { resolveCrewSessionInSupabase } = await import("./data-source.supabase");
+    return resolveCrewSessionInSupabase(session_id, winning_place_id);
+  }
+  return resolveDemoCrewSession(session_id, winning_place_id);
+}
+
+// ─── Sprint 2 monétisation — entitlement Spawter Gold (migration 0032) ──────
+
+/**
+ * Droit Gold résolu côté serveur (vue `active_entitlements`, RLS own rows).
+ * `checked_at` horodate la lecture — sert à juger la fraîcheur du cache
+ * persisté (le store revalide à l'hydratation, au foreground et à
+ * l'ouverture du paywall).
+ */
+export interface GoldEntitlement {
+  active: boolean;
+  plan: string | null;
+  status: string | null;
+  expires_at: string | null;
+  grace_until: string | null;
+  checked_at: string;
+}
+
+/**
+ * Lit l'entitlement Gold du spawter connecté.
+ * - Mode supabase : SELECT sur la vue `active_entitlements` (RLS own).
+ * - Mode démo : Gold = false, déterministe — l'achat vit sur le portail web,
+ *   rien à simuler localement. Flag dev : `EXPO_PUBLIC_DEMO_GOLD=1` force un
+ *   Gold local pour tester les surfaces premium sans backend.
+ * Retourne `null` si l'état est INDÉTERMINÉ (erreur réseau/serveur) — le
+ * caller conserve alors le dernier état connu au lieu de dégrader le droit.
+ */
+export async function fetchGoldEntitlement(): Promise<GoldEntitlement | null> {
+  if (!isSupabaseConfigured) {
+    const demoGold = process.env.EXPO_PUBLIC_DEMO_GOLD === "1";
+    return {
+      active: demoGold,
+      plan: demoGold ? "gold_monthly" : null,
+      status: demoGold ? "active" : null,
+      expires_at: null,
+      grace_until: null,
+      checked_at: new Date().toISOString(),
+    };
+  }
+  const { fetchGoldEntitlementFromSupabase } = await import("./data-source.supabase");
+  return fetchGoldEntitlementFromSupabase();
+}
+
+// ─── Helpers ─────────────────────────────────────────
+
+function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {
+  const { adn, rating_display, total_spawts, ...place } = seed;
+  return { ...place, adn, rating_display, total_spawts };
+}
+
+// ─── Mode Explore (migration 0045) — collections éditoriales ────────────────
+// LECTURE app uniquement : la curation (create/publish) vit dans le dashboard
+// admin (chantier séparé). Mode démo : fixtures seed/explore.ts (2 collections
+// publiées + 1 brouillon filtré). Mode supabase : RLS 0045 (publiées only
+// pour les spawters — le filtre client is_published est une défense en
+// profondeur, même doctrine que PlaceCard).
+
+export interface ExploreCollectionSummary {
+  id: string;
+  slug: string;
+  /** Clé i18n (`explore.<slug>.title`) — résolue côté écran via t(). */
+  title_key: string;
+  subtitle_key: string | null;
+  cover_url: string | null;
+  sort_order: number;
+  city_code: string;
+}
+
+export interface ExploreItem {
+  id: string;
+  place: PlaceWithAdn;
+  /** Le mot du Chat sur CE lieu dans CETTE collection (français direct). */
+  editorial_text: string | null;
+  sort_order: number;
+}
+
+export interface ExploreCollectionDetail extends ExploreCollectionSummary {
+  /** Lieux ordonnés par sort_order (l'ordre éditorial fait la narration). */
+  items: ExploreItem[];
+}
+
+/** Liste les collections publiées, ordonnées par sort_order. */
+export async function listExploreCollections(): Promise<ExploreCollectionSummary[]> {
+  if (isSupabaseConfigured) {
+    const { listExploreCollectionsFromSupabase } = await import("./data-source.supabase");
+    return listExploreCollectionsFromSupabase();
+  }
+  return SEED_EXPLORE_COLLECTIONS.filter((c) => c.is_published)
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(({ items: _items, is_published: _published, ...summary }) => summary);
+}
+
+/**
+ * Détail d'une collection publiée (items joints aux lieux, ordonnés).
+ * Retourne null si slug inconnu ou collection non publiée. Un item dont le
+ * lieu manque (fixture désalignée, place dépubliée) est droppé silencieusement.
+ */
+export async function getExploreCollection(
+  slug: string,
+): Promise<ExploreCollectionDetail | null> {
+  if (isSupabaseConfigured) {
+    const { getExploreCollectionFromSupabase } = await import("./data-source.supabase");
+    return getExploreCollectionFromSupabase(slug);
+  }
+  const seed = SEED_EXPLORE_COLLECTIONS.find(
+    (c) => c.slug === slug && c.is_published,
+  );
+  if (!seed) return null;
+  const items: ExploreItem[] = [];
+  const ordered = seed.items.slice().sort((a, b) => a.sort_order - b.sort_order);
+  for (const item of ordered) {
+    const place = SEED_PLACES.find((p) => p.id === item.place_id);
+    if (!place || !place.is_published) continue;
+    items.push({
+      id: `${seed.slug}:${item.place_id}`,
+      place: seedToPlaceWithAdn(place),
+      editorial_text: item.editorial_text,
+      sort_order: item.sort_order,
+    });
+  }
+  const { items: _items, is_published: _published, ...summary } = seed;
+  return { ...summary, items };
+}
+
+// ─── Progression complète (migrations 0035-0037 + 0040) ─────────────────────
+// Badges 30+, cartes collector, paws, défis collectifs. Les CONDITIONS de
+// badges vivent en SQL (check_and_award_badges) — l'app AFFICHE et déclenche.
+// Mode démo : fixtures seed/progression.ts (import statique, même doctrine
+// que SEED_PLACES — la branche démo doit marcher partout, y compris sous jest).
+
+import type {
+  ActiveChallenge,
+  BadgeSnapshot,
+  OwnedCard,
+  PawsLedgerEntry,
+  SpawterStreak,
+} from "../types/progression";
+import {
+  SEED_ACTIVE_CHALLENGE,
+  SEED_BADGE_CATALOGUE,
+  SEED_OWNED_CARDS,
+  SEED_PAWS_BALANCE,
+  SEED_PAWS_LEDGER,
+  SEED_STREAK,
+  SEED_UNLOCKED_BADGES,
+} from "../data/seed/progression";
+
+/**
+ * Catalogue des badges + état du spawter (débloqués/affichés).
+ * Mode supabase : `badge_catalogue` (lisible par tous) + `spawter_badges`
+ * (RLS own). Mode démo : fixtures vivantes (7 badges débloqués, 3 affichés).
+ */
+export async function listBadges(spawter_id: string): Promise<BadgeSnapshot> {
+  if (isSupabaseConfigured) {
+    const { listBadgesFromSupabase } = await import("./data-source.supabase");
+    return listBadgesFromSupabase(spawter_id);
+  }
+  return {
+    catalogue: SEED_BADGE_CATALOGUE.slice(),
+    unlocked: SEED_UNLOCKED_BADGES.slice(),
+  };
+}
+
+/**
+ * Déclenche l'évaluation serveur des badges (RPC `check_and_award_badges`,
+ * 0036) et retourne les NOUVEAUX codes gagnés — pour la célébration côté app.
+ * Appelée après un spawt vérifié et à l'ouverture de l'écran Progression,
+ * toujours en best-effort non bloquant. Mode démo : aucun moteur local, [].
+ */
+export async function triggerBadgeCheck(spawter_id: string): Promise<string[]> {
+  if (!isSupabaseConfigured) return [];
+  const { triggerBadgeCheckInSupabase } = await import("./data-source.supabase");
+  return triggerBadgeCheckInSupabase(spawter_id);
+}
+
+/**
+ * Toggle « afficher sur mon profil » d'un badge débloqué.
+ * "max" = le trigger SQL `assert_max_displayed_badges` a refusé (déjà 3
+ * affichés) — le store remonte un feedback lisible. Mode démo : "ok" (l'état
+ * vit dans le store, la garde max-3 est appliquée côté client).
+ */
+export async function setBadgeDisplayed(
+  spawter_id: string,
+  badge_code: string,
+  displayed: boolean,
+): Promise<"ok" | "max" | "error"> {
+  if (!isSupabaseConfigured) return "ok";
+  const { setBadgeDisplayedInSupabase } = await import("./data-source.supabase");
+  return setBadgeDisplayedInSupabase(spawter_id, badge_code, displayed);
+}
+
+/**
+ * Cartes collector possédées (join `spawter_cards` × `collectible_cards`).
+ * Mode démo : 3 cartes archétype (raretés variées) — l'écran Collection vit.
+ */
+export async function listSpawterCards(spawter_id: string): Promise<OwnedCard[]> {
+  if (isSupabaseConfigured) {
+    const { listSpawterCardsFromSupabase } = await import("./data-source.supabase");
+    return listSpawterCardsFromSupabase(spawter_id);
+  }
+  return SEED_OWNED_CARDS.slice();
+}
+
+/**
+ * Solde paws (vue `paws_balance` — somme du ledger, jamais une colonne
+ * mutable). `null` = indéterminé (erreur réseau) : le caller garde le dernier
+ * état connu. Mode démo : 120 (somme des fixtures, cohérence testée).
+ */
+export async function getPawsBalance(spawter_id: string): Promise<number | null> {
+  if (isSupabaseConfigured) {
+    const { getPawsBalanceFromSupabase } = await import("./data-source.supabase");
+    return getPawsBalanceFromSupabase(spawter_id);
+  }
+  return SEED_PAWS_BALANCE;
+}
+
+/** Historique lisible du ledger paws (append-only, tri fraîcheur). */
+export async function listPawsLedger(
+  spawter_id: string,
+  limit = 30,
+): Promise<PawsLedgerEntry[]> {
+  if (isSupabaseConfigured) {
+    const { listPawsLedgerFromSupabase } = await import("./data-source.supabase");
+    return listPawsLedgerFromSupabase(spawter_id, limit);
+  }
+  return SEED_PAWS_LEDGER.slice()
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, limit);
+}
+
+/**
+ * Défis collectifs actifs + progression AGRÉGÉE (Meute entière — Contrat
+ * SPAWT : jamais de détail par spawter). Mode démo : 1 défi à 62 %.
+ */
+export async function listActiveChallenges(): Promise<ActiveChallenge[]> {
+  if (isSupabaseConfigured) {
+    const { listActiveChallengesFromSupabase } = await import("./data-source.supabase");
+    return listActiveChallengesFromSupabase();
+  }
+  return [{ ...SEED_ACTIVE_CHALLENGE }];
+}
+
+/**
+ * Streak hebdo PRIVÉ du spawter (RLS owner-only). `null` = pas encore de
+ * streak ou indéterminé. Mode démo : 3 semaines de suite (record 5).
+ */
+export async function getMyStreak(spawter_id: string): Promise<SpawterStreak | null> {
+  if (isSupabaseConfigured) {
+    const { getMyStreakFromSupabase } = await import("./data-source.supabase");
+    return getMyStreakFromSupabase(spawter_id);
+  }
+  return { ...SEED_STREAK };
+}
+
+// ─── Feature 18 — suggestion de lieu par la Meute (migration 0039) ──────────
+// La communauté propose, l'humain décide : INSERT pending sous RLS own,
+// quota 5 pending par trigger DB. Mode démo : moteur AsyncStorage local
+// (place-suggestions.ts, import statique — doctrine crew-demo).
+
+import {
+  listDemoPlaceSuggestions,
+  submitDemoPlaceSuggestion,
+  type PlaceSuggestionInput,
+  type PlaceSuggestionRow,
+  type SubmitSuggestionResult,
+} from "./place-suggestions";
+
+/**
+ * Envoie une suggestion de lieu. "quota_exceeded" = déjà 5 suggestions en
+ * attente (trigger 0039 côté DB, miroir local en démo).
+ */
+export async function submitPlaceSuggestion(
+  spawter_id: string,
+  input: PlaceSuggestionInput,
+): Promise<SubmitSuggestionResult> {
+  if (isSupabaseConfigured) {
+    const { submitPlaceSuggestionToSupabase } = await import("./data-source.supabase");
+    return submitPlaceSuggestionToSupabase(spawter_id, input);
+  }
+  return submitDemoPlaceSuggestion(input);
+}
+
+/**
+ * Suggestions du spawter (statut pending/approved/rejected + motif de refus),
+ * plus récentes d'abord. Mode démo : stockage local du device.
+ */
+export async function listMySuggestions(
+  spawter_id: string,
+): Promise<PlaceSuggestionRow[]> {
+  if (isSupabaseConfigured) {
+    const { listMySuggestionsFromSupabase } = await import("./data-source.supabase");
+    return listMySuggestionsFromSupabase(spawter_id);
+  }
+  return listDemoPlaceSuggestions();
+}
+
+// ─── SPAWT Wrapped (post-MVP #11/#15) — rétrospective annuelle ──────────────
+
+import type { WrappedResult } from "./wrapped";
+// Import statique (doctrine SEED_PLACES) : la branche démo doit marcher
+// partout, y compris sous jest où `import()` runtime n'est pas disponible.
+import { SEED_WRAPPED } from "../data/seed/wrapped";
+
+/**
+ * Rétrospective de l'année du spawter. Mode supabase : Edge `wrapped-stats`
+ * (agrégats best-effort côté serveur) ; toute erreur → null, le caller
+ * affiche un état d'attente sobre. Mode démo : fixture vivante.
+ */
+export async function getWrappedStats(year?: number): Promise<WrappedResult | null> {
+  if (isSupabaseConfigured) {
+    const { getWrappedStatsFromSupabase } = await import("./data-source.supabase");
+    return getWrappedStatsFromSupabase(year);
+  }
+  return SEED_WRAPPED;
+}
+
+// ─── Réservation 1-tap (migration 0042) ─────────────────────────────────────
+// SPAWT ouvre le canal WhatsApp et TRACE la demande. Best-effort intégral :
+// une trace en échec ne bloque JAMAIS l'ouverture de WhatsApp.
+
+import {
+  createDemoReservationRequest,
+  listDemoReservations,
+  type ReservationRequestInput,
+  type ReservationRow,
+} from "./reservations";
+
+/**
+ * Trace une demande de réservation. Retourne la row créée, ou null en échec
+ * (réseau, RLS…) — le caller continue vers WhatsApp quoi qu'il arrive.
+ */
+export async function createReservationRequest(
+  spawter_id: string,
+  input: ReservationRequestInput,
+): Promise<ReservationRow | null> {
+  if (isSupabaseConfigured) {
+    const { createReservationRequestInSupabase } = await import(
+      "./data-source.supabase"
+    );
+    return createReservationRequestInSupabase(spawter_id, input);
+  }
+  return createDemoReservationRequest(input);
+}
+
+/** Demandes du spawter (RLS select own), plus récentes d'abord. */
+export async function listMyReservations(
+  spawter_id: string,
+): Promise<ReservationRow[]> {
+  if (isSupabaseConfigured) {
+    const { listMyReservationsFromSupabase } = await import("./data-source.supabase");
+    return listMyReservationsFromSupabase(spawter_id);
+  }
+  return listDemoReservations();
+}
+
+// ─── Événements & promotions de lieux (migrations 0049 + 0050) ──────────────
+// Dernier maillon du cycle admin → spawters : le staff publie dans la console,
+// l'app AFFICHE. ⚠️ Contrat SPAWT (0050) : une promotion est un affichage
+// ÉTIQUETÉ — elle n'entre JAMAIS dans le score de matching ni dans la note
+// (aucun poids dans matching.ts / weighted-rating.ts ; test-garde statique
+// matching-promo-guard.test.ts). Mode supabase : SELECT simples, la RLS
+// filtre déjà (publiés + à venir/en cours pour les événements, publiées +
+// fenêtre civile ouverte pour les promos). Mode démo : fixtures vivantes
+// (import statique, doctrine SEED_PLACES — la branche démo doit marcher
+// partout, y compris sous jest).
+
+import type {
+  PlaceActivityMap,
+  PlaceEvent,
+  PlacePromotion,
+  UpcomingEvent,
+} from "./place-activity";
+import {
+  isEventCurrent,
+  isPromoActive,
+  todayCivilDate,
+} from "./place-activity";
+import {
+  SEED_PLACE_EVENTS,
+  SEED_PLACE_PROMOTIONS,
+} from "../data/seed/place-activity";
+
+/** Événements visibles d'un lieu (fiche « En ce moment »), tri chronologique. */
+export async function listPlaceEvents(placeId: string): Promise<PlaceEvent[]> {
+  if (isSupabaseConfigured) {
+    const { listPlaceEventsFromSupabase } = await import("./data-source.supabase");
+    return listPlaceEventsFromSupabase(placeId);
+  }
+  const now = new Date();
+  return SEED_PLACE_EVENTS.filter(
+    (e) => e.place_id === placeId && e.is_published && isEventCurrent(e, now),
+  )
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    .map(({ is_published: _published, ...event }) => event);
+}
+
+/** Promotions actives d'un lieu (bandeau étiqueté « PROMO » de la fiche). */
+export async function listPlacePromotions(
+  placeId: string,
+): Promise<PlacePromotion[]> {
+  if (isSupabaseConfigured) {
+    const { listPlacePromotionsFromSupabase } = await import("./data-source.supabase");
+    return listPlacePromotionsFromSupabase(placeId);
+  }
+  const today = todayCivilDate(new Date());
+  return SEED_PLACE_PROMOTIONS.filter(
+    (p) => p.place_id === placeId && p.is_published && isPromoActive(p, today),
+  ).map(({ is_published: _published, ...promo }) => promo);
+}
+
+/**
+ * Événements à venir/en cours toutes adresses confondues (rangée feed
+ * « Ça bouge cette semaine ») — jointure place minimale (nom + quartier),
+ * les plus proches dans le temps d'abord.
+ */
+export async function listUpcomingEvents(limit = 10): Promise<UpcomingEvent[]> {
+  if (isSupabaseConfigured) {
+    const { listUpcomingEventsFromSupabase } = await import("./data-source.supabase");
+    return listUpcomingEventsFromSupabase(limit);
+  }
+  const now = new Date();
+  const out: UpcomingEvent[] = [];
+  for (const e of SEED_PLACE_EVENTS) {
+    if (!e.is_published || !isEventCurrent(e, now)) continue;
+    const place = SEED_PLACES.find((p) => p.id === e.place_id);
+    if (!place || !place.is_published) continue;
+    const { is_published: _published, ...event } = e;
+    out.push({
+      ...event,
+      place_name: place.name,
+      place_neighborhood: place.location.neighborhood,
+    });
+  }
+  return out.sort((a, b) => a.starts_at.localeCompare(b.starts_at)).slice(0, limit);
+}
+
+/**
+ * Pastilles feed par LOT : un seul aller-retour pour toutes les cartes
+ * affichées (jamais un fetch par carte). Retourne uniquement les lieux qui
+ * ont au moins une activité — un lieu absent de la map n'a rien en cours.
+ */
+export async function listPlaceActivity(
+  placeIds: readonly string[],
+): Promise<PlaceActivityMap> {
+  if (placeIds.length === 0) return {};
+  if (isSupabaseConfigured) {
+    const { listPlaceActivityFromSupabase } = await import("./data-source.supabase");
+    return listPlaceActivityFromSupabase(placeIds);
+  }
+  const now = new Date();
+  const today = todayCivilDate(now);
+  const wanted = new Set(placeIds);
+  const map: PlaceActivityMap = {};
+  const entry = (place_id: string) =>
+    (map[place_id] ??= { has_event: false, has_promo: false });
+  for (const e of SEED_PLACE_EVENTS) {
+    if (wanted.has(e.place_id) && e.is_published && isEventCurrent(e, now)) {
+      entry(e.place_id).has_event = true;
+    }
+  }
+  for (const p of SEED_PLACE_PROMOTIONS) {
+    if (wanted.has(p.place_id) && p.is_published && isPromoActive(p, today)) {
+      entry(p.place_id).has_promo = true;
+    }
+  }
+  return map;
+}

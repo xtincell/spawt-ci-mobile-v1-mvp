@@ -1,0 +1,164 @@
+name: EAS Build
+
+# Build natif APK depuis un runner GitHub — upstream datacenter rapide et
+# stable, contourne la connexion locale qui coupe (ECONNRESET) à l'upload du
+# tarball vers EAS. Produit un .apk sideloadable pour l'alpha Android.
+#
+# Pré-requis (one-time, côté repo GitHub) :
+#   Settings > Secrets and variables > Actions > New repository secret
+#     EXPO_TOKEN = <token expo.dev/accounts/xtincell/settings/access-tokens>
+#
+# Le keystore Android est managé côté EAS (Build Credentials existantes) —
+# aucun secret de signature n'est passé ni stocké ici.
+#
+# Le tarball uploadé est réduit par .easignore (repo root) à ~app/ uniquement.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Plateforme cible"
+        required: true
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      profile:
+        description: "Profil EAS (eas.json)"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - development
+          - production
+  # Trigger par tag : pousser un tag `build-android-*` lance un build preview
+  # Android depuis la CI, SANS dépendre de la branche par défaut (workflow_dispatch
+  # exige la branche par défaut ; un push de tag exécute le workflow présent sur
+  # le commit taggé). Pratique pour builder depuis une branche feature.
+  push:
+    tags:
+      - "build-android-*"
+      # Tag `build-ios-YYYY-MM-DD-N` → build iOS profil production (.ipa
+      # store-ready pour TestFlight via `eas submit`). Nécessite les
+      # credentials Apple côté EAS (HUMAN_TODO.md).
+      - "build-ios-*"
+
+concurrency:
+  group: eas-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # ── Triple gate (garde-fou bloquant avant tout build distribué) ───────
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Vocab audit (lint:vocab)
+        run: npm run lint:vocab
+
+      - name: i18n check
+        run: npm run i18n:check
+
+      - name: Tests (jest)
+        run: npm test -- --ci
+
+      # ── Conformité cahier (boucle adversariale version finale) ────────────
+      # Vérifie la checklist exécutable des 37 features + textes de la note
+      # MAJ + Contrat SPAWT + DA + enveloppe (voir scripts/README.md).
+      # Exit 1 au moindre ❌ — les ⚠️ expected_pending (ex. eas.json submit
+      # en placeholders) ne bloquent pas.
+      - name: Conformité cahier
+        working-directory: .
+        run: node scripts/conformity-check.mjs
+
+      # ── Le binaire est-il branché sur un backend ? ────────────────────────
+      # Garde-fou ajouté après coup : eas.json n'avait aucun bloc `env`, donc
+      # tous les APK livrés tournaient sur des fixtures, silencieusement.
+      # Échoue AVANT le build plutôt que de réexpédier un binaire vide.
+      - name: Backend branché sur le profil visé
+        working-directory: .
+        run: node scripts/check-eas-env.mjs
+
+      # ── Story 7.1 — versioning : injecte versionCode + build date ─────────
+      # Tag `build-android-YYYY-MM-DD-N` → versionCode/buildNumber = N,
+      # extra.buildDate = YYYY-MM-DD (lu in-app par BuildBadge via Constants).
+      # Fallback workflow_dispatch (sans tag) : date du jour CI, versionCode
+      # courant de app.json (incrément manuel en attendant — décision OTA/EAS
+      # remote non tranchée). N'altère aucun secret.
+      - name: Inject build metadata
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/build-* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            DATE=$(echo "$TAG" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
+            N=$(echo "$TAG" | grep -oE '[0-9]+$')
+            DAY=$(echo "$DATE" | grep -oE '[0-9]+$')
+            # Tag sans suffixe -N (ex. backfill build-android-2026-05-28) :
+            # le trailing match == le jour → on garde le versionCode courant.
+            if [ -z "$N" ] || [ "$N" = "$DAY" ]; then
+              N=$(node -p "require('./app.json').expo.android.versionCode")
+            fi
+          else
+            DATE=$(date -u +%Y-%m-%d)
+            N=$(node -p "require('./app.json').expo.android.versionCode")
+          fi
+          echo "build metadata → date=$DATE versionCode=$N"
+          N="$N" DATE="$DATE" node -e "const fs=require('fs');const p='./app.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.expo.android.versionCode=Number(process.env.N);j.expo.ios.buildNumber=String(process.env.N);j.expo.extra=j.expo.extra||{};j.expo.extra.buildDate=process.env.DATE;fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
+          echo "EXPO_PUBLIC_BUILD_DATE=$DATE" >> "$GITHUB_ENV"
+
+      # ── Auth EAS + build natif ────────────────────────────────────────────
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Resolve platform/profile
+        # Tag build-ios-* → ios/production ; build-android-prod-* → android/
+        # production (.aab store) ; build-android-* → android/preview (APK
+        # alpha) ; workflow_dispatch → inputs.
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/build-ios-* ]]; then
+            echo "BUILD_PLATFORM=ios" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=production" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_REF" == refs/tags/build-android-prod-* ]]; then
+            echo "BUILD_PLATFORM=android" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=production" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_REF" == refs/tags/build-android-* ]]; then
+            echo "BUILD_PLATFORM=android" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=preview" >> "$GITHUB_ENV"
+          else
+            echo "BUILD_PLATFORM=${{ github.event.inputs.platform || 'android' }}" >> "$GITHUB_ENV"
+            echo "BUILD_PROFILE=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build APK
+        # Pas de --no-wait : on attend la fin pour que l'URL de l'artefact .apk
+        # apparaisse dans les logs du job (pratique pour récupérer le lien).
+        # Fallbacks android/preview pour le trigger par tag (pas d'inputs).
+        run: >-
+          eas build
+          --profile ${{ env.BUILD_PROFILE }}
+          --platform ${{ env.BUILD_PLATFORM }}
+          --non-interactive

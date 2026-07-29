@@ -1,0 +1,1213 @@
+{
+  "common": {
+    "continue": "Continuer",
+    "back": "Retour",
+    "skip": "Passer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "clear": "Effacer",
+    "loading": "Un instant…",
+    "error_generic": "Quelque chose a couiné. Réessaie.",
+    "error_network": "Pas de réseau. Le Chat patiente.",
+    "dataSourceBanner": "Mode démo · données locales · Supabase pas encore branché"
+  },
+  "nav": {
+    "feed": "Feed",
+    "map": "Carte",
+    "fab": "Spawter",
+    "meute": "La bande",
+    "palais": "Palais"
+  },
+  "fab": {
+    "stub_title": "Je spawt ici",
+    "stub_body": "Active la géoloc pour que le Chat te propose les lieux les plus proches.",
+    "action_label": "Spawter depuis le centre",
+    "nearby_title": "Tu es près de…",
+    "nearby_empty": "Aucun spot connu dans les 2 km autour de toi.",
+    "nearby_loading": "Localisation en cours…",
+    "nearby_perm_required": "Active la géoloc dans tes paramètres pour spawter depuis ici.",
+    "nearby_perm_open_settings": "Ouvrir les réglages",
+    "nearby_close_label": "Fermer",
+    "nearby_cta_spawt": "Spawter ici",
+    "nearby_suggest_cta": "Mon spot n'est pas là — ajoute-le"
+  },
+  "cuisine": {
+    "ivoirienne": "Ivoirienne",
+    "ouest_africaine": "Ouest-africaine",
+    "francaise": "Française",
+    "italienne": "Italienne",
+    "asiatique": "Asiatique",
+    "libanaise": "Libanaise",
+    "fusion": "Fusion",
+    "burger_pizza": "Burger / Pizza",
+    "patisserie": "Pâtisserie",
+    "cafe": "Café",
+    "autre": "Autre"
+  },
+  "guet": {
+    "indicator_label": "Le Chat fait le guet chez {{place_name}}…",
+    "cta_manual_demo": "Spawter ici",
+    "cta_manual_demo_alert_title": "Spawt enregistré",
+    "cta_manual_demo_alert_body": "Ton spawt est validé. Tu peux laisser un avis maintenant ou plus tard.",
+    "cta_manual_demo_success": "Spawt enregistré. Laisse un avis pour enrichir ton Palais.",
+    "stub_blocked_geoloc": "La géoloc n'est pas activée. Active-la dans tes paramètres."
+  },
+  "notif": {
+    "guet": {
+      "prompt_title": "Le Guet a sonné",
+      "prompt_body": "Comment c'était chez {{place_name}} ? Le Chat attend ton avis.",
+      "action_confirm": "Confirmer",
+      "action_snooze": "Snooze 15min"
+    }
+  },
+  "badge": {
+    "premier_spawt_title": "Premier Spawt",
+    "premier_spawt_body": "Le Chat sait que tu es passé chez {{place_name}}. Ton Palais s'éveille.",
+    "premier_spawt_cta": "Continuer",
+    "premier_spawt": {
+      "title": "Premier Spawt",
+      "description": "Ton tout premier spawt vérifié. Le Chat t'a vu, la Meute sait que tu existes."
+    },
+    "traversee": {
+      "title": "La Traversée",
+      "description": "5 communes explorées. Abidjan commence à reconnaître ta démarche."
+    },
+    "cartographe": {
+      "title": "Cartographe",
+      "description": "10 communes au compteur. Tu dessines la carte que personne n'a écrite."
+    },
+    "maitre_des_communes": {
+      "title": "Maître des Communes",
+      "description": "Les 13 communes, toutes spawtées. Abidjan n'a plus un seul angle mort pour toi."
+    },
+    "noctambule": {
+      "title": "Noctambule",
+      "description": "10 spawts après 21 h. La nuit c'est ton heure — le garba de minuit te connaît par ton prénom."
+    },
+    "chasseur_de_pepites": {
+      "title": "Chasseur de Pépites",
+      "description": "5 spots presque sans avis. Tu flaires ce que personne n'a encore goûté."
+    },
+    "hors_des_sentiers": {
+      "title": "Hors des Sentiers",
+      "description": "15 lieux confidentiels à ton actif. Le bitume te raconte ses secrets."
+    },
+    "pionnier_commune": {
+      "title": "Pionnier de Commune",
+      "description": "3 lieux spawtés dans leur premier mois. Toujours premier sur le terrain."
+    },
+    "marathon_maquis": {
+      "title": "Marathon Maquis",
+      "description": "25 spawts vérifiés. Tes semelles commencent à parler de toi."
+    },
+    "semelles_de_feu": {
+      "title": "Semelles de Feu",
+      "description": "75 spawts vérifiés. À ce rythme, c'est la ville qui te suit."
+    },
+    "spawteur_du_weekend": {
+      "title": "Spawteur du Weekend",
+      "description": "10 spawts le weekend. Samedi-dimanche, c'est terrain — pas canapé."
+    },
+    "leve_tot": {
+      "title": "Lève-Tôt",
+      "description": "Le Chat t'a vu à l'aube. Ce badge ne se demande pas, il se constate."
+    },
+    "palais_diversifie": {
+      "title": "Palais Diversifié",
+      "description": "5 types de cuisine goûtés. Ton Palais refuse la routine."
+    },
+    "ambassadeur_cuisine": {
+      "title": "Ambassadeur des Cuisines",
+      "description": "10 types de cuisine explorés. Ton Palais parle toutes les langues."
+    },
+    "calibre": {
+      "title": "Calibré",
+      "description": "10 avis publiés. Ton mot commence à compter dans la Meute."
+    },
+    "plume_du_palais": {
+      "title": "Plume du Palais",
+      "description": "25 avis publiés. Tu écris la mémoire gustative d'Abidjan."
+    },
+    "voix_d_or": {
+      "title": "Voix d'Or",
+      "description": "50 avis publiés. Quand tu parles d'un spot, la Meute tend l'oreille."
+    },
+    "oeil_de_braise": {
+      "title": "Œil de Braise",
+      "description": "50 spawts vérifiés. Rien ne t'échappe — surtout pas une bonne table."
+    },
+    "photographe_gourmand": {
+      "title": "Photographe Gourmand",
+      "description": "10 photos publiées. Tes clichés donnent faim avant même le premier mot."
+    },
+    "objectif_pepite": {
+      "title": "Objectif Pépite",
+      "description": "30 photos publiées. Ton téléphone mange avant toi, et toute la Meute en profite."
+    },
+    "gardien_du_garba": {
+      "title": "Gardien du Garba",
+      "description": "Un titre que le Chat réserve aux vrais. Le garba, chez toi, c'est une religion."
+    },
+    "fidele_au_poste": {
+      "title": "Fidèle au Poste",
+      "description": "Attribué par le Chat à ceux qui reviennent, encore et encore, là où ça compte."
+    },
+    "eclaireur": {
+      "title": "Éclaireur",
+      "description": "5 de tes avis sauvegardés par la Meute. Tu ouvres la piste, la Meute te suit."
+    },
+    "aimant": {
+      "title": "Aimant",
+      "description": "5 coups de cœur reçus. Tes trouvailles font battre des cœurs."
+    },
+    "coeur_de_la_meute": {
+      "title": "Cœur de la Meute",
+      "description": "15 coups de cœur reçus. La bande spawte sur tes pas."
+    },
+    "bouche_a_oreille": {
+      "title": "Bouche à Oreille",
+      "description": "3 spawters entrés dans la Meute grâce à toi. Ton flair se transmet."
+    },
+    "faiseur_de_pluie": {
+      "title": "Faiseur de Pluie",
+      "description": "10 spawters parrainés. Là où tu passes, la Meute grandit."
+    },
+    "voix_de_la_colonie": {
+      "title": "Voix de la Colonie",
+      "description": "25 spawters parrainés. Toute une colonie t'a suivi jusqu'ici."
+    },
+    "defi_releve": {
+      "title": "Défi Relevé",
+      "description": "Un défi collectif bouclé avec la Meute. Ensemble, ça mange plus loin."
+    },
+    "pilier_de_colonie": {
+      "title": "Pilier de Colonie",
+      "description": "5 défis collectifs bouclés. La Meute sait qu'elle peut compter sur toi."
+    },
+    "meneur_de_crew": {
+      "title": "Meneur de Crew",
+      "description": "Le Chat t'a vu rassembler la bande. « On mange où ce soir ? » — chez toi, la réponse."
+    },
+    "murmure_urbain": {
+      "title": "Murmure Urbain",
+      "description": "Réservé à ceux dont le nom circule dans la rue. Le Chat sait pourquoi."
+    }
+  },
+  "review": {
+    "title": "Ton avis sur {{place_name}}",
+    "subtitle": "Le Chat écoute.",
+    "stars_hint": "De 1 (jamais retour) à 5 (à refaire vite)",
+    "text_placeholder": "En 1 phrase, ce que tu retiens ?",
+    "cta_save": "Enregistrer mon avis",
+    "cta_later": "Plus tard",
+    "photo_add": "Ajouter une photo",
+    "submit_success_toast": "Ton avis a renforcé l'ADN de {{place_name}}.",
+    "permission_title": "Permission requise",
+    "permission_body": "Pour ajouter une photo, autorise l'accès à ta galerie.",
+    "section_note": "Ta note",
+    "section_tags": "Mots-clés",
+    "section_text": "Ton mot"
+  },
+  "offline_queue": {
+    "title": "En attente de synchronisation",
+    "empty": "Tout est synchronisé. Le Chat dort tranquille.",
+    "sync_now": "Synchroniser maintenant",
+    "purge": "Vider la file",
+    "purge_confirm": "Tu vas effacer {{count}} spawts non synchronisés, ils ne seront jamais envoyés.",
+    "row_insert": "Spawt chez {{place_id}}",
+    "row_update": "Mise à jour {{row_id}}",
+    "open_button": "Synchronisation des spawts",
+    "row_spawter": "Compte à synchroniser"
+  },
+  "empty_state": {
+    "map_title": "Le Chat regarde la carte…",
+    "map_body": "Mais pas encore. Reviens bientôt — la carte s'allume au sprint d'après.",
+    "meute_title": "La bande se rassemble…",
+    "meute_body": "Pour l'instant, retrouve les autres spawters via les avis et les Coups de Cœur sur les fiches lieu."
+  },
+  "home": {
+    "masthead_kicker": "ÉDITION DU JOUR",
+    "modes_title": "Je sors pour…",
+    "suggestions_title": "Voici mes 3 suggestions du jour."
+  },
+  "modes": {
+    "traine": {
+      "label": "Manger",
+      "sub": "Faim"
+    },
+    "decouvre": {
+      "label": "Découvrir",
+      "sub": "Nouveau"
+    },
+    "tribu": {
+      "label": "En groupe",
+      "sub": "Entre amis"
+    },
+    "chic": {
+      "label": "En duo",
+      "sub": "À deux"
+    },
+    "vite": {
+      "label": "Vite fait",
+      "sub": "Rapide"
+    },
+    "entry_rapide": {
+      "label": "Rapide"
+    },
+    "entry_explore": {
+      "label": "Explore"
+    }
+  },
+  "rapide": {
+    "title": "Mode Rapide",
+    "subtitle": "Garde ou passe. Ton nez décide.",
+    "keep_label": "Je le garde",
+    "pass_label": "Passe",
+    "keep_aria": "Garder ce spot dans tes favoris",
+    "pass_aria": "Passer ce spot",
+    "card_open_aria": "Ouvrir la fiche de {{name}}",
+    "deck_end_title": "Tu as tout reniflé par ici.",
+    "deck_end_body": "Reviens plus tard — le Chat garde le nez ouvert.",
+    "deck_end_cta": "Retour au feed",
+    "empty_title": "Rien à renifler pour l'instant",
+    "empty_body": "Aucun spot à te proposer dans le coin. Repasse plus tard.",
+    "empty_cta": "Retour au feed"
+  },
+  "explore": {
+    "title": "Mode Explore",
+    "kicker": "LES CARNETS DU CHAT",
+    "subtitle": "Des sélections écrites à la patte.",
+    "empty_title": "Les carnets arrivent",
+    "empty_body": "Le Chat prépare ses premières sélections. Repasse bientôt.",
+    "not_found_title": "Ce carnet n'existe plus",
+    "not_found_body": "Cette sélection a été rangée. Retourne voir les autres.",
+    "back_to_collections": "Voir les carnets",
+    "items_count_one": "{{count}} adresse",
+    "items_count_other": "{{count}} adresses",
+    "collection_open_aria": "Ouvrir le carnet {{title}}",
+    "maquis-braise": {
+      "title": "Les maquis qui ont le feu",
+      "subtitle": "Braise, fumée et grandes assiettes — la tournée des vrais."
+    },
+    "sucre-cocody": {
+      "title": "Sucré comme Cocody",
+      "subtitle": "Cafés, douceurs et terrasses — pour les après-midis qui traînent."
+    }
+  },
+  "search": {
+    "placeholder": "Cherche un spawt, un plat, une zone…",
+    "title": "Chercher",
+    "empty_recents_title": "Tes dernières recherches",
+    "empty_recents_clear": "Effacer",
+    "empty_suggestions_title": "Le Chat te propose",
+    "empty_cuisines_title": "Cuisines populaires",
+    "filters_button": "Filtres",
+    "filters_open": "Affiner",
+    "filters_section_cuisine": "Cuisine",
+    "filters_section_budget": "Budget",
+    "filters_section_distance": "Distance",
+    "filters_section_rating": "Note minimale",
+    "filters_clear_all": "Effacer tout",
+    "filters_cta_see": "Voir {{count}} spawts",
+    "filters_cta_see_one": "Voir 1 spawt",
+    "filters_cta_see_zero": "Aucun spawt — élargis tes filtres",
+    "budget_low": "₣ Économique",
+    "budget_mid": "₣₣ Moyen",
+    "budget_high": "₣₣₣ Premium",
+    "distance_unit": "≤ {{km}} km",
+    "distance_off": "Toutes distances",
+    "rating_min": "Note ≥ {{value}}",
+    "results_empty_title": "Aucun spawt ne correspond",
+    "results_empty_body": "Élargis tes filtres ou demande au Chat des suggestions.",
+    "results_empty_suggest_cta": "Ton spot n'existe pas encore ? Suggère-le"
+  },
+  "saved": {
+    "title": "Mes spawts sauvegardés",
+    "empty_title": "Tu n'as pas encore sauvegardé de spawt",
+    "empty_body": "Tape le cœur sur une fiche pour le retrouver ici.",
+    "count_zero": "0 spawt sauvegardé",
+    "count_one": "1 spawt sauvegardé",
+    "count_many": "{{count}} spawts sauvegardés",
+    "save_aria": "Sauvegarder ce spawt",
+    "unsave_aria": "Retirer ce spawt des favoris"
+  },
+  "profile_links": {
+    "saved_quick_link": "Mes favoris ({{count}})"
+  },
+  "share": {
+    "button_label": "Partager",
+    "dialog_title": "Partager via",
+    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\n{{url}}\n\nvia SPAWT — la bande du goût à Abidjan.",
+    "fallback_no_phone": "WhatsApp n'a pas pu s'ouvrir. Copie le lien manuellement.",
+    "copy_link": "Copier le lien"
+  },
+  "splash": {
+    "tagline": "Plus jamais goumin de restaurant.",
+    "cta_start": "Rejoindre la bande"
+  },
+  "consent": {
+    "title": "Avant de commencer…",
+    "intro": "Parlons de tes données personnelles.",
+    "cgv_label": "J'accepte les Conditions Générales d'Utilisation et de Vente",
+    "cgv_body": "En tapant Accepter, tu rejoins la bande. Tu utilises SPAWT pour découvrir des lieux, spawter quand tu y vas, et partager tes avis. SPAWT t'engage à respecter les autres, ne pas inventer d'avis, et garder un ton qui ne blesse pas. Aucun usage commercial sans accord. Le détail complet — version juriste — arrive bientôt.",
+    "geoloc_label": "J'accepte la collecte de mes données et de ma géolocalisation",
+    "geoloc_body": "Tes infos (nom, quartier, date de naissance) servent à mieux te recommander des lieux. Ta position sert UNIQUEMENT à valider un spawt quand tu es dans un lieu — jamais en arrière-plan pour te tracker. Tu peux tout couper plus tard. Wording final juriste à venir.",
+    "policy_link": "Politique de confidentialité",
+    "terms_link": "Conditions d'utilisation"
+  },
+  "onboarding": {
+    "step": "Étape {{current}} / {{total}}",
+    "profile_title": "Présente-toi",
+    "profile_body": "6 trucs rapides pour mieux te connaître. Tu choisis ce que tu partages.",
+    "phone_title": "Ton numéro",
+    "phone_body": "Je t'envoie un code par SMS. Pas de mot de passe.",
+    "phone_placeholder": "+225 ...",
+    "name_title": "Nom et prénom",
+    "name_placeholder": "Ton prénom",
+    "neighborhood_title": "Ta commune",
+    "neighborhood_body": "Pour t'afficher des lieux proches de toi.",
+    "neighborhood_placeholder": "Choisis ta commune",
+    "commune": {
+      "abobo": "Abobo",
+      "adjame": "Adjamé",
+      "anyama": "Anyama",
+      "attecoube": "Attécoubé",
+      "bingerville": "Bingerville",
+      "cocody": "Cocody",
+      "koumassi": "Koumassi",
+      "marcory": "Marcory",
+      "plateau": "Plateau",
+      "port_bouet": "Port-Bouët",
+      "songon": "Songon",
+      "treichville": "Treichville",
+      "yopougon": "Yopougon",
+      "autre": "Autre / hors Abidjan"
+    },
+    "country_title": "Pays de résidence",
+    "country_body": "Pour t'afficher les lieux du bon pays.",
+    "country_placeholder": "Choisis ton pays",
+    "origin_country_title": "Pays d'origine",
+    "origin_country_body": "Pour te proposer les goûts de chez toi. (Optionnel, promis)",
+    "origin_country_skip": "Préfère ne pas dire",
+    "gender_title": "Genre",
+    "gender_body": "Aucune diffusion publique.",
+    "gender_femme": "Femme",
+    "gender_homme": "Homme",
+    "gender_autre": "Autre",
+    "gender_non_renseigne": "Préfère ne pas dire",
+    "age_title": "Ta date de naissance",
+    "age_body": "Pour te souhaiter Joyeux anniversaire, promis. (Et ça restera secret)",
+    "age_too_young": "Spawt arrive bientôt pour toi — rendez-vous à tes 13 ans.",
+    "age_select_cta": "Choisir ma date",
+    "dob_placeholder": "jj/mm/aaaa",
+    "dob_pick": "Choisir une date",
+    "country": {
+      "CI": "Côte d'Ivoire",
+      "NG": "Nigeria",
+      "SN": "Sénégal",
+      "CM": "Cameroun",
+      "TG": "Togo",
+      "BJ": "Bénin",
+      "BF": "Burkina Faso",
+      "ML": "Mali",
+      "GN": "Guinée",
+      "GH": "Ghana"
+    }
+  },
+  "auth": {
+    "phone_title": "Ton numéro",
+    "phone_body": "Je t'envoie un code par SMS — pas de mot de passe, c'est plus simple.",
+    "phone_placeholder": "+225 ...",
+    "send_otp": "Recevoir mon code",
+    "or_separator": "Ou continue avec",
+    "google": "Continuer avec Google",
+    "apple": "Continuer avec Apple",
+    "otp_title": "Ton code",
+    "otp_body": "Je viens de t'envoyer un code à 8 chiffres.",
+    "otp_resend": "Renvoyer le code",
+    "otp_resend_cooldown": "Réessayer dans {{seconds}}s",
+    "otp_change_phone": "Changer de numéro",
+    "otp_demo_hint": "Mode test : tape 123456 pour continuer",
+    "otp_friction_title": "Trop d'essais",
+    "otp_friction_body": "Renvoyer un code ou changer de numéro pour réessayer.",
+    "error_rate_limited": "Trop de codes envoyés. Réessaie dans quelques minutes.",
+    "error_invalid_otp": "Code invalide. Réessaie.",
+    "error_otp_expired": "Code expiré. Demande un nouveau code.",
+    "error_otp_already_used": "Code déjà utilisé. Demande un nouveau code.",
+    "error_network": "Pas de réseau. Le Chat patiente.",
+    "error_google_unavailable": "Google indisponible pour l'instant.",
+    "error_apple_unavailable": "Apple indisponible pour l'instant.",
+    "error_crypto_unavailable": "Connexion sécurisée indisponible sur cet appareil. Utilise le code SMS.",
+    "demo_google_unavailable": "Google n'est pas branché en mode démo.",
+    "demo_apple_unavailable": "Apple n'est pas branché en mode démo."
+  },
+  "calibration": {
+    "title": "5 questions pour démarrer ton Palais",
+    "subtitle": "Ton Palais est un profil de goût. Il bouge avec tes spawts.",
+    "cta_finish": "Voir mon Palais",
+    "cta_skip": "Pas d'avis",
+    "q_racines_horizons": {
+      "question": "Quand tu as faim, tu penses à quoi en premier ?",
+      "select_placeholder": "Choisis un ou plusieurs plats",
+      "select_done": "Valider",
+      "option_neg": "Garba, placali, poulet braisé — les classiques",
+      "option_pos": "Burger, ramen, pâtisseries — le monde dans l'assiette",
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "garba": "🍤 Garba",
+        "placali": "🍘 Placali",
+        "poulet_braise": "🍗 Poulet braisé",
+        "burger": "🍔 Burger",
+        "ramen": "🍜 Ramen",
+        "patisseries": "🥐 Pâtisseries"
+      }
+    },
+    "q_taniere_nomade": {
+      "question": "Samedi soir, tu fais quoi ?",
+      "option_neg": "Mon spawt habituel. Ils me connaissent.",
+      "option_pos": "Un endroit que je n'ai jamais testé",
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "spot_pref": "🏠 Mon spawt préféré toutes les semaines",
+        "deux_trois": "🔁 Deux-trois spawts qui tournent",
+        "nouvelle_adresse": "✨ Une nouvelle adresse à chaque fois",
+        "teste_tout": "🧭 Je mange où c'est bon"
+      }
+    },
+    "q_exigeant_enthousiaste": {
+      "question": "Le coin est chic, mais le plat est bof. Que fais-tu ?",
+      "option_neg": "Je note mentalement. Je ne reviendrai pas.",
+      "option_pos": "C'est pas grave, l'ambiance compense",
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "service_compte": "🤵 La qualité du service avant tout",
+        "bon_pardonne": "😋 Si c'est bon, je pardonne tout",
+        "ambiance_fait": "🎶 Le cadre fait l'expérience",
+        "note_tout": "📝 Je note tout"
+      }
+    },
+    "q_foule_secret": {
+      "question": "Le spawt idéal c'est :",
+      "option_neg": "Plein de monde, ça prouve que c'est bon",
+      "option_pos": "Vide. Mon secret. Mon trésor.",
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "maquis_bonde": "🎉 Un maquis bondé — tout pour le show",
+        "spot_anime": "🔥 Un nouveau spawt — tout pour la hype",
+        "spot_cache": "🤫 Un spawt que personne ne connaît — tout pour l'intimité",
+        "table_intime": "💎 Un spawt testé et approuvé — tout pour la bonne bouffe"
+      }
+    },
+    "q_maquis_table": {
+      "question": "Ton cadre idéal pour manger :",
+      "option_neg": "Plastique, ventilo, télé qui grésille — maquis life",
+      "option_pos": "Nappe, menu carte, serveur en tablier",
+      "option_neutral": "Pas d'avis",
+      "card": {
+        "maquis_garba": "🍢 Garbadrome",
+        "foodtruck": "🚚 Foodtruck",
+        "restaurant_chic": "🍽️ Restaurant chic",
+        "brunch_cocody": "🥞 Brunch"
+      }
+    }
+  },
+  "chat": {
+    "touriste": {
+      "welcome_first_open": "Bienvenue. Ton Palais est vierge. Chaque spawt le dessine un peu plus. C'est parti ?",
+      "welcome_back": "Re. T'as faim ?",
+      "post_calibration": "Premier coup d'œil sur ton Palais. Encore très flou — c'est normal. Va spawter, je précise au fur et à mesure.",
+      "first_spawt_invite": "Le premier spawt te débloque l'app. Choisis un lieu et lance-toi.",
+      "post_first_spawt": "Premier spawt validé. Ton Palais bouge. Continue.",
+      "stade_up_explorateur": "11 spawts. Tu n'es plus Touriste — tu es Explorateur. Ton territoire commence à se dessiner.",
+      "stade_up_detective": "",
+      "stade_up_djidji": "",
+      "stade_up_guide": "",
+      "geoloc_consent_request": "Parlons de tes données personnelles.",
+      "demographics_consent_request": "Quelques infos sur toi pour que le Chat connaisse mieux sa bande. Toujours optionnel.",
+      "home_edito": "Aujourd'hui je te propose 3 spawts à ton goût. Trie ton choix.",
+      "search_suggestions": "Essaie : maquis, café, à 2 km",
+      "guet_prompt": "",
+      "archetype_mue": "Je te sens différent. Tes derniers spawts disent {{archetype}}."
+    },
+    "explorateur": {
+      "welcome_first_open": "",
+      "welcome_back": "Re. Ton nez s'affine, je commence à te reconnaître.",
+      "post_calibration": "",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "21 spawts. Détective. Ton flair ne ment plus.",
+      "stade_up_djidji": "",
+      "stade_up_guide": "",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": "",
+      "home_edito": "Pas mal de nouveaux endroits cette semaine. J'en mets 3 pour toi.",
+      "search_suggestions": "Tente : libanaise, Yopougon, soirée",
+      "guet_prompt": "",
+      "archetype_mue": "Je te sens différent. Tes derniers spawts disent {{archetype}}."
+    },
+    "detective": {
+      "welcome_first_open": "",
+      "welcome_back": "Le Chat te salue. Ta zone t'écoute.",
+      "post_calibration": "",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "",
+      "stade_up_djidji": "31 spawts. Djidji. La colonie écoute.",
+      "stade_up_guide": "",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": "",
+      "home_edito": "Les bons spawts sont là. Toi, choisis.",
+      "search_suggestions": "Cherche : ouest-africaine, premium, pépite vérifiée",
+      "guet_prompt": "",
+      "archetype_mue": "Ton flair a tourné. Tes derniers spawts disent {{archetype}}."
+    },
+    "djidji": {
+      "welcome_first_open": "",
+      "welcome_back": "Plus besoin de te guider. Tu ES le guide.",
+      "post_calibration": "",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "",
+      "stade_up_djidji": "",
+      "stade_up_guide": "51 spawts. Guide. Le Chat marche derrière toi maintenant.",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": "",
+      "home_edito": "La sélection est fine aujourd'hui. Prends ton temps.",
+      "search_suggestions": "Aujourd'hui : tu sais ce que tu veux",
+      "guet_prompt": "",
+      "archetype_mue": "Tu as changé de registre. Tes derniers spawts disent {{archetype}}."
+    },
+    "guide": {
+      "welcome_first_open": "",
+      "welcome_back": "",
+      "post_calibration": "",
+      "first_spawt_invite": "",
+      "post_first_spawt": "",
+      "stade_up_explorateur": "",
+      "stade_up_detective": "",
+      "stade_up_djidji": "",
+      "stade_up_guide": "Tu es Guide. 51 spawts, ton territoire. La bande te suit.",
+      "geoloc_consent_request": "",
+      "demographics_consent_request": "",
+      "home_edito": "",
+      "search_suggestions": "",
+      "guet_prompt": "",
+      "archetype_mue": ""
+    }
+  },
+  "stade": {
+    "touriste": "Touriste",
+    "explorateur": "Explorateur",
+    "detective": "Détective",
+    "djidji": "Djidji",
+    "guide": "Guide"
+  },
+  "title": {
+    "touriste": "Touriste",
+    "explorateur": "Explorateur",
+    "detective": "Détective",
+    "djidji": "Djidji",
+    "guide": "Guide",
+    "premier_spawt": "Premier Spawt",
+    "archetype": {
+      "omnivore": "Omnivore",
+      "gardien": "Gardien du Maquis",
+      "ancre": "Ancre Fidèle",
+      "bouchedor": "Bouche d'Or",
+      "braise": "Feu de Braise",
+      "memoire": "Mémoire Vive",
+      "pisteur": "Pisteur de Rue",
+      "vent": "Vent d'Ailleurs",
+      "fantome": "Fantôme Furtif",
+      "murmure": "Murmure de Cour",
+      "oeil": "Œil de Chat",
+      "lame": "Fine Lame",
+      "passeport": "Passeport Doré"
+    }
+  },
+  "archetype": {
+    "rarity": {
+      "commun": "Commun",
+      "rare": "Rare",
+      "epique": "Épique",
+      "legendaire": "Légendaire"
+    },
+    "omnivore": {
+      "name": "Omnivore",
+      "epithet": "Caméléon",
+      "motto": "Mange tout. Juge tout. N'appartient à aucune case.",
+      "portrait": "Tu manges tout, tu juges tout, et tu n'appartiens à aucune case — c'est exactement ce qui te définit."
+    },
+    "gardien": {
+      "name": "Gardien du Maquis",
+      "epithet": "Habitué",
+      "motto": "Pourquoi chercher ailleurs quand tu as trouvé le bon ?",
+      "portrait": "Tu as trouvé le bon, alors tu restes. Ton maquis te connaît, ta commande arrive avant que tu parles."
+    },
+    "ancre": {
+      "name": "Ancre Fidèle",
+      "epithet": "Point Fixe",
+      "motto": "La fidélité est une forme d'expertise.",
+      "portrait": "Tu as une belle table, et c'est LA tienne. Tu reviens, la maison te reconnaît, te soigne."
+    },
+    "bouchedor": {
+      "name": "Bouche d'Or",
+      "epithet": "Bec Fin",
+      "motto": "Le palais n'a pas de frontières, mais il a des standards.",
+      "portrait": "Tu explores large, mais tu ne descends jamais en gamme. Nouveau oui — médiocre jamais."
+    },
+    "braise": {
+      "name": "Feu de Braise",
+      "epithet": "Étincelle",
+      "motto": "Manger seul c'est se nourrir. Ensemble, c'est vivre.",
+      "portrait": "Manger seul ? Aucun sens. Tu sors pour les gens autant que pour l'assiette."
+    },
+    "memoire": {
+      "name": "Mémoire Vive",
+      "epithet": "Nostalgique",
+      "motto": "Le vrai goût ne se réinvente pas. Il se transmet.",
+      "portrait": "Pour toi, le vrai goût ne s'invente pas, il se transmet. Tu cherches le plat de ton enfance."
+    },
+    "pisteur": {
+      "name": "Pisteur de Rue",
+      "epithet": "Petit Pisteur",
+      "motto": "Le nez au vent, les pieds dans la poussière.",
+      "portrait": "Tu n'as pas de spot préféré, tu as un territoire. Le maquis sans enseigne, la ruelle que Google ignore."
+    },
+    "vent": {
+      "name": "Vent d'Ailleurs",
+      "epithet": "Brise",
+      "motto": "Chaque assiette est un billet d'avion.",
+      "portrait": "Chaque assiette est un billet d'avion. Tu chasses les cuisines du monde, le dépaysement dans ta ville."
+    },
+    "fantome": {
+      "name": "Fantôme Furtif",
+      "epithet": "Petite Ombre",
+      "motto": "Tu ne le trouves pas. C'est lui qui te trouve.",
+      "portrait": "Personne ne te trouve, c'est toi qui trouves. Trois recos sur un spot et tu n'iras jamais."
+    },
+    "murmure": {
+      "name": "Murmure de Cour",
+      "epithet": "Chuchoteur",
+      "motto": "Les meilleurs spots ne sont pas sur Google.",
+      "portrait": "Les meilleurs spots ne sont pas sur Google, et tu en es la preuve. Ton savoir se transmet à voix basse."
+    },
+    "oeil": {
+      "name": "Œil de Chat",
+      "epithet": "Œil Neuf",
+      "motto": "Si c'est moyen, ça n'existe pas.",
+      "portrait": "Si c'est moyen, pour toi ça n'existe pas. Tu repères le détail qui cloche à dix mètres."
+    },
+    "lame": {
+      "name": "Fine Lame",
+      "epithet": "Tranchant",
+      "motto": "Le détail sépare le bon du mémorable.",
+      "portrait": "Le détail sépare le bon du mémorable, et tu ne vois que le détail. Tu vises le haut."
+    },
+    "passeport": {
+      "name": "Passeport Doré",
+      "epithet": "Curieux Doré",
+      "motto": "La grande table n'a pas de nationalité.",
+      "portrait": "La grande table n'a pas de nationalité pour toi. Tu cherches le raffinement partout."
+    }
+  },
+  "profile": {
+    "onboarding_pending": "Onboarding pas terminé.",
+    "neighborhood_unknown": "Commune non renseignée",
+    "card_id_prefix": "SPAWTER",
+    "avatar_change_aria": "Changer ma photo de profil",
+    "avatar_change_title": "Ta photo de profil",
+    "avatar_change_camera": "Prendre une photo",
+    "avatar_change_gallery": "Choisir dans la galerie",
+    "avatar_permission_title": "Autorisation requise",
+    "avatar_permission_body": "Autorise l'accès pour choisir ta photo de profil.",
+    "avatar_upload_failed": "La photo n'est pas passée. Réessaie.",
+    "card_flip_aria": "Retourner la carte pour voir le Palais",
+    "stat_spawts": "Spawts",
+    "stat_favoris": "Favoris",
+    "stat_avis": "Avis",
+    "stade_section_title": "TON STADE",
+    "collection_title": "TES TITRES",
+    "collection_empty": "Tes titres apparaîtront ici à chaque évolution.",
+    "title_select_aria": "Afficher le titre {{title}}",
+    "title_default_label": "Titre par défaut",
+    "title_default_aria": "Revenir au titre par défaut du stade actuel",
+    "palais_gold_teaser": "+3 axes débloqués avec Spawter Gold (bientôt)",
+    "link_saved": "Mes favoris",
+    "link_spawts": "Mes spawts",
+    "link_avis": "Mes avis",
+    "link_settings": "Réglages",
+    "link_spawts_stub": "Cet écran arrive au prochain sprint.",
+    "link_avis_stub": "Cet écran arrive au prochain sprint.",
+    "link_settings_stub": "Cet écran arrive au prochain sprint.",
+    "archetype_section_title": "TON ARCHÉTYPE",
+    "archetype_card_aria": "Carte d'archétype {{name}}",
+    "pionnier_badge": "Pionnier n°{{n}}",
+    "mue_ack": "C'est noté",
+    "gold_indicator": "Spawter Gold actif",
+    "gold_indicator_hint": "Tout Abidjan est à toi.",
+    "gold_manage": "Gérer mon abonnement",
+    "reset_demo": "Réinitialiser le compte (mode démo)",
+    "about_title": "À propos",
+    "build_format": "v{{version}} — build {{n}} ({{date}})",
+    "build_copied": "Touche pour copier le build dans un bug report"
+  },
+  "celebration": {
+    "cta": "Continuer",
+    "cta_aria": "Fermer la célébration",
+    "from_stade_aria": "Tu étais {{stade}}",
+    "to_stade_aria": "Tu es maintenant {{stade}}",
+    "progress_label": "{{current}} / {{next_threshold}} spawts vers {{next_stade}}",
+    "progress_label_guide": "Tu es Guide. La bande marche derrière toi."
+  },
+  "axis": {
+    "racines": "Racines",
+    "horizons": "Horizons",
+    "taniere": "Tanière",
+    "nomade": "Nomade",
+    "exigeant": "Exigeant",
+    "enthousiaste": "Enthousiaste",
+    "foule": "Foule",
+    "secret": "Secret",
+    "maquis": "Maquis",
+    "table": "Table"
+  },
+  "palais": {
+    "underConstruction": "En construction"
+  },
+  "palais_reveal": {
+    "first_title": "Voici ton palais",
+    "first_title_subtitle": "Plus tu Spawtes, plus il est précis.",
+    "heritage_mention": "Pionnier n°{{n}} de la Meute — ton flair de {{archetype}} te suit.",
+    "continue": "Rejoindre la bande",
+    "share_cta": "Partager ma carte",
+    "share_dialog_title": "Partage ta carte SPAWT",
+    "share_card_kicker": "Mon archétype SPAWT",
+    "share_card_pionnier": "Pionnier n°{{n}} de la Meute"
+  },
+  "place": {
+    "notRatedYet": "Pas encore noté",
+    "spawt_cta": "Spawt le !",
+    "info_address": "Adresse",
+    "info_hours": "Horaires",
+    "info_hours_closed": "Fermé",
+    "info_phone": "Téléphone",
+    "info_whatsapp": "WhatsApp",
+    "adn_section_title": "ADN du lieu",
+    "adn_in_construction": "ADN en construction",
+    "adn_in_construction_hint": "{{reviews}} avis sur les 5 qu'il faut pour révéler les axes.",
+    "match_with_palais": "{{score}}% pour ton Palais",
+    "card_aria_label": "{{name}}, {{score}}% pour ton Palais",
+    "back": "Retour",
+    "not_found": "Lieu introuvable",
+    "spawter_required_title": "Tu n'es pas encore dans la bande",
+    "spawter_required_body": "Finis ton inscription pour pouvoir spawter.",
+    "spawter_required_cta": "Rejoindre la bande",
+    "saved_aria": "Sauvegarder dans tes favoris",
+    "unsaved_aria": "Retirer de tes favoris",
+    "reviews_title": "Ce qu'en dit la bande",
+    "reviews_empty": "Pas encore d'avis. Sois le premier à raconter.",
+    "reviews_loading": "Chargement des avis…",
+    "reviews_see_all": "Voir tous les avis ({{count}})",
+    "heart_hint": "Sauvegarde pour plus tard",
+    "heart_active": "Sauvegardé",
+    "founder_review_badge": "✨ Avis fondateur",
+    "coup_de_coeur_chip": "❤️ Coup de Cœur",
+    "reviews_all_title": "Tous les avis",
+    "gallery_title": "Photos",
+    "map_open_aria": "Ouvrir dans Maps",
+    "tab_media": "Média",
+    "tab_menu": "Menu",
+    "tab_reviews": "Avis",
+    "media_spawters_title": "La galerie des spawters",
+    "media_spawters_empty": "Aucune photo de spawter pour l'instant. Spawte ce lieu et ouvre le bal.",
+    "media_empty_title": "Pas encore de photos",
+    "media_empty_body": "Ce spot attend ses premières images. Spawte-le et immortalise ton passage.",
+    "menu_empty_title": "Le menu arrive bientôt",
+    "menu_empty_body": "Le Chat n'a pas encore mis la patte sur le menu de ce spot. Repasse vite.",
+    "price_avg": "~{{amount}} F CFA",
+    "price_avg_note": "Prix moyen par personne, boissons non comprises",
+    "price_aria": "Budget {{value}}",
+    "divers_title": "Divers",
+    "day_mon": "Lun",
+    "day_tue": "Mar",
+    "day_wed": "Mer",
+    "day_thu": "Jeu",
+    "day_fri": "Ven",
+    "day_sat": "Sam",
+    "day_sun": "Dim"
+  },
+  "place_activity": {
+    "section_title": "En ce moment",
+    "promo_tag": "PROMO",
+    "promo_aria": "Promotion : {{label}}",
+    "promo_dates_range": "Du {{from}} au {{to}}",
+    "promo_dates_until": "Jusqu'au {{to}}",
+    "promo_dates_from": "Dès le {{from}}",
+    "event_aria": "Événement : {{title}}",
+    "pill_promo": "Promo",
+    "pill_event": "Événement",
+    "week_title": "Ça bouge cette semaine",
+    "week_card_aria": "Ouvrir la fiche de {{name}}"
+  },
+  "list": {
+    "remove_from_saved_aria": "Retirer ce spawt des favoris",
+    "selection_badge": "★ Sélection",
+    "selection_signal_coup_de_coeur": "Coup de Cœur",
+    "selection_signal_pepite_verifiee": "Pépite vérifiée",
+    "selection_signal_institution": "Institution",
+    "selection_signal_fidelite": "Fidélité",
+    "selection_signal_decouverte": "Découverte",
+    "selection_signal_table_diverse": "Table diverse",
+    "selection_signal_noctambule_verifie": "Noctambule"
+  },
+  "a11y": {
+    "matchScore": "Score {{score}}%",
+    "stars_one": "{{count}} étoile sur {{max}}",
+    "stars_other": "{{count}} étoiles sur {{max}}"
+  },
+  "report": {
+    "button": "Signaler",
+    "title": "Signaler cet avis",
+    "subtitle": "Dis au Chat ce qui cloche. La Meute vérifie.",
+    "reason_fake_review": "Avis suspect ou faux",
+    "reason_hater": "Méchanceté gratuite",
+    "reason_gatekeeping": "Fausses infos volontaires",
+    "reason_autre": "Autre chose",
+    "success": "C'est noté. La Meute veille.",
+    "duplicate": "Tu l'as déjà signalé — c'est dans les pattes du Chat.",
+    "error": "Ça n'a pas marché. Réessaie plus tard.",
+    "cancel": "Annuler"
+  },
+  "carte": {
+    "module_unavailable": "La carte a besoin d'un vrai build (APK/TestFlight) — Expo Go ne l'embarque pas. Le Chat patiente."
+  },
+  "cdc": {
+    "button": "❤️ Mon Coup de Cœur",
+    "button_given": "❤️ Coup de Cœur donné",
+    "month_count": "{{count}} ce mois-ci",
+    "given_remaining": "C'est dit. Il t'en reste {{count}} ce mois-ci — choisis bien.",
+    "given_last": "C'est dit. C'était ton dernier du mois — la rareté fait la valeur.",
+    "already_given": "Tu l'as déjà donné à ce spot ce mois-ci.",
+    "quota_exhausted": "Quota du mois épuisé ({{quota}}). Le Chat ne distribue pas les cœurs à la volée.",
+    "error": "Ça n'a pas marché. Réessaie plus tard."
+  },
+  "paywall": {
+    "locked_badge": "PREMIUM",
+    "locked_hint": "Hors de ta zone — {{price}} · Tout Abidjan",
+    "upsell_title": "Tout Abidjan t'attend",
+    "upsell_body": "Ta zone gratuite fait 3 km. Avec Spawter Gold, le Chat te guide dans toute la ville — {{price}}.",
+    "upsell_soon": "Bientôt disponible — le Chat prépare la suite.",
+    "upsell_close": "Plus tard",
+    "upsell_body_portal": "Ta zone gratuite fait 3 km. Avec Spawter Gold, le Chat te guide dans tout Abidjan — et ton abonnement se gère sur le site.",
+    "upsell_cta_portal": "Passe Gold sur spawt.online",
+    "gold_badge": "GOLD",
+    "gold_active_title": "Tu es Gold",
+    "gold_active_body": "Tout Abidjan est à toi. Ton abonnement se gère sur spawt.online.",
+    "gold_manage_cta": "Gérer mon abonnement"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "section_guet": "LE GUET",
+    "guet_optout_label": "Mettre Le Guet en pause sur cet appareil",
+    "guet_optout_hint": "Le Chat arrête de guetter tes spawts automatiques. Le spawt manuel reste possible.",
+    "system_settings": "Réglages système (localisation, notifications)",
+    "section_internal": "MODE INTERNE",
+    "internal_intro": "Réservé à l'équipe. Ces réglages ne changent que ce que TON écran affiche — rien n'est écrit en base, aucun abonnement n'est touché.",
+    "internal_gold_label": "Voir l'app comme un Spawter Gold",
+    "internal_gold_hint_on": "Vue Gold : tous les spots lisibles, quelle que soit la distance.",
+    "internal_gold_hint_off": "Vue gratuite : au-delà de {{km}} km, les noms des spots sont masqués.",
+    "internal_paywall_label": "Activer le paywall géo sur cet appareil",
+    "internal_paywall_hint": "Sans ça, le rayon gratuit de {{km}} km ne s'applique nulle part et la bascule ci-dessus ne se voit pas. Réglage local : la Meute n'est pas concernée.",
+    "internal_note": "Le vrai droit Gold reste celui du serveur. Cette bascule ne débloque aucun contenu qui ne soit déjà sur l'appareil : hors rayon, un spot est masqué, pas absent.",
+    "section_legal": "LÉGAL",
+    "cgu": "Conditions générales",
+    "privacy": "Politique de confidentialité",
+    "section_account": "COMPTE",
+    "logout": "Se déconnecter",
+    "delete_title": "Supprimer mon compte",
+    "delete_confirm_body": "Ton profil est anonymisé tout de suite et effacé définitivement sous 30 jours (Loi 2013-450). Tes titres, ton Palais, tes spawts : tout part. C'est sans retour.",
+    "delete_confirm_cta": "Supprimer définitivement",
+    "delete_cancel": "Annuler",
+    "delete_in_progress": "Suppression…",
+    "delete_failed": "La suppression a échoué. Réessaie ou écris-nous.",
+    "delete_legal_note": "Conformément à la Loi ivoirienne 2013-450, ton compte est anonymisé immédiatement puis purgé sous 30 jours.",
+    "section_spots": "MES SPOTS",
+    "suggest_place": "Suggérer un lieu",
+    "my_reservations": "Mes réservations"
+  },
+  "suggest": {
+    "title": "Suggère un spot",
+    "subtitle": "Un lieu que la Meute doit connaître ? Balance, le Chat va flairer.",
+    "field_name": "Nom du lieu",
+    "name_placeholder": "Ex. Chez Tantie Marie",
+    "field_commune": "Commune",
+    "commune_placeholder": "Choisis la commune",
+    "commune_aria": "Choisir la commune du lieu",
+    "field_landmark": "Quartier ou repère",
+    "landmark_placeholder": "Ex. en face de la pharmacie Sainte-Thérèse",
+    "field_description": "Ton mot sur le lieu",
+    "description_placeholder": "Ce que tu y manges, l'ambiance, pourquoi ça vaut le détour…",
+    "gps_label": "Je suis sur place",
+    "gps_hint": "Le Chat note ta position pour retrouver le spot plus vite.",
+    "gps_unavailable": "Géoloc inactive — ton repère écrit suffira.",
+    "section_photos": "Photos (0-3)",
+    "photo_add": "Ajouter une photo",
+    "photo_remove": "Retirer (appui long)",
+    "cta_submit": "Envoyer à la Meute",
+    "sending": "Envoi…",
+    "success_title": "Bien flairé",
+    "success_body": "Bien flairé. La Meute vérifie, tu seras le premier informé.",
+    "quota_title": "Doucement, chasseur",
+    "quota_body": "Tu as déjà 5 suggestions en vérification. Laisse la Meute flairer avant d'en envoyer d'autres.",
+    "error_title": "Ça a couiné",
+    "error_body": "Ta suggestion n'est pas passée. Réessaie dans un instant.",
+    "mine_title": "Tes suggestions",
+    "mine_empty": "Aucune suggestion pour l'instant. Ton flair peut nourrir la carte.",
+    "status_pending": "En vérification",
+    "status_approved": "Validée",
+    "status_rejected": "Refusée",
+    "rejection_prefix": "Motif : {{reason}}"
+  },
+  "meute": {
+    "title": "La Meute",
+    "empty_body": "La Meute chasse en silence pour l'instant. Les avis et Coups de Cœur des spawters apparaîtront ici.",
+    "item_review": "{{spawter}} a laissé un avis sur {{place}}",
+    "item_coup": "{{spawter}} a donné son Coup de Cœur à {{place}}"
+  },
+  "crew": {
+    "block_title": "Ton Crew",
+    "block_pitch": "47 messages pour choisir où manger ? Un code, des votes, une table. 5 minutes.",
+    "cta_launch": "Lancer un vote",
+    "launching": "Le Chat ouvre la session…",
+    "launch_failed": "La session n'a pas pu s'ouvrir. Réessaie.",
+    "join_label": "Rejoindre avec un code",
+    "join_placeholder": "Code à 5 lettres",
+    "cta_join": "Rejoindre",
+    "join_error_not_found": "Ce code ne mène nulle part. Vérifie avec ton crew.",
+    "join_error_closed": "Cette session est déjà terminée.",
+    "join_error_generic": "Impossible de rejoindre pour l'instant. Réessaie.",
+    "resume_label": "Vote en cours — code {{code}}",
+    "cta_resume": "Reprendre le vote",
+    "session_title": "Vote du crew",
+    "code_label": "Ton code de crew",
+    "code_hint": "Partage-le, le crew entre avec.",
+    "share_invite": "Rejoins mon crew sur SPAWT, code {{code}} — viens voter pour la table. {{url}}",
+    "cta_share_code": "Inviter sur WhatsApp",
+    "members_title": "Le crew",
+    "members_count_one": "{{count}} présent",
+    "members_count_other": "{{count}} présents",
+    "alone_hint": "Ton crew traîne — relance-les.",
+    "host_left": "L'hôte a quitté la session. Les votes continuent, mais personne ne tranchera.",
+    "proposals_title": "Les spots en lice",
+    "proposals_empty": "Aucun spot proposé pour l'instant. Ouvre le bal.",
+    "cta_propose": "Proposer un spot",
+    "votes_count_one": "{{count}} voix",
+    "votes_count_other": "{{count}} voix",
+    "cta_vote": "Voter",
+    "voted_label": "Voté",
+    "vote_error": "Ton vote n'est pas passé. Réessaie.",
+    "already_proposed": "Ce spot est déjà en lice.",
+    "propose_error": "La proposition n'est pas passée. Réessaie.",
+    "countdown_label": "Temps restant",
+    "expired_title": "Session terminée",
+    "expired_body": "Le temps a filé — la faim n'attend pas. Relance un vote, ton crew est à un code de toi.",
+    "cta_new_session": "Relancer un vote",
+    "cta_back_meute": "Retour à la Meute",
+    "cta_leave": "Quitter la session",
+    "host_cta_resolve": "Tranche",
+    "resolve_need_proposal": "Propose au moins un spot avant de trancher.",
+    "reveal_kicker": "LE CREW A TRANCHÉ",
+    "reveal_votes_one": "{{count}} voix du crew",
+    "reveal_votes_other": "{{count}} voix du crew",
+    "reveal_tiebreak_host": "Égalité départagée par le Palais de l'hôte.",
+    "reveal_tiebreak_first": "Égalité — le premier spot proposé l'emporte.",
+    "cta_see_place": "Voir la fiche",
+    "cta_spawt_there": "Spawt-y",
+    "share_result": "Le crew a tranché sur SPAWT : {{place}}, {{neighborhood}}. Rendez-vous là-bas. {{url}}",
+    "cta_share_result": "Annoncer sur WhatsApp",
+    "offline_banner": "Pas de réseau — les votes du crew t'arrivent dès que ça revient.",
+    "cta_retry": "Réessayer",
+    "picker_title": "Proposer un spot",
+    "picker_search_placeholder": "Un spot, une cuisine, un quartier…",
+    "picker_favorites": "Tes favoris",
+    "picker_results": "Résultats",
+    "picker_empty": "Rien trouvé. Essaie un autre mot.",
+    "picker_close": "Fermer"
+  },
+  "badge_condition": {
+    "communes_distinctes_one": "Spawte dans {{count}} commune",
+    "communes_distinctes_other": "Spawte dans {{count}} communes différentes",
+    "spawts_apres_21h_one": "{{count}} spawt vérifié après 21 h",
+    "spawts_apres_21h_other": "{{count}} spawts vérifiés après 21 h",
+    "lieux_peu_avises_one": "Spawte {{count}} lieu presque sans avis",
+    "lieux_peu_avises_other": "Spawte {{count}} lieux presque sans avis",
+    "types_cuisine_one": "Goûte {{count}} type de cuisine",
+    "types_cuisine_other": "Goûte {{count}} types de cuisine différents",
+    "avis_sauvegardes_one": "{{count}} de tes avis sauvegardé par la Meute",
+    "avis_sauvegardes_other": "{{count}} de tes avis sauvegardés par la Meute",
+    "spawts_total_one": "{{count}} spawt vérifié au total",
+    "spawts_total_other": "{{count}} spawts vérifiés au total",
+    "avis_total_one": "Publie {{count}} avis",
+    "avis_total_other": "Publie {{count}} avis",
+    "premier_spawt_one": "Ton premier spawt vérifié",
+    "premier_spawt_other": "Ton premier spawt vérifié",
+    "coups_de_coeur_recus_one": "Reçois {{count}} coup de cœur",
+    "coups_de_coeur_recus_other": "Reçois {{count}} coups de cœur",
+    "spawts_weekend_one": "{{count}} spawt le weekend",
+    "spawts_weekend_other": "{{count}} spawts le weekend",
+    "lieux_nouveaux_30j_one": "Spawte {{count}} lieu dans son premier mois",
+    "lieux_nouveaux_30j_other": "Spawte {{count}} lieux dans leur premier mois",
+    "photos_publiees_one": "Publie {{count}} photo avec tes avis",
+    "photos_publiees_other": "Publie {{count}} photos avec tes avis",
+    "parrainages_one": "Fais entrer {{count}} spawter dans la Meute",
+    "parrainages_other": "Fais entrer {{count}} spawters dans la Meute",
+    "defis_completes_one": "Boucle {{count}} défi collectif avec la Meute",
+    "defis_completes_other": "Boucle {{count}} défis collectifs avec la Meute",
+    "custom_one": "Attribution spéciale du Chat — continue de vivre, il te voit",
+    "custom_other": "Attribution spéciale du Chat — continue de vivre, il te voit"
+  },
+  "progression": {
+    "title": "Ta progression",
+    "subtitle": "Badges, collection, défis — ton chemin avec le Chat. Jamais une course contre les autres.",
+    "stade_label": "Ton stade",
+    "stade_progress": "{{current}} / {{threshold}} spots vers {{stade}}",
+    "stade_max": "Stade maximal. La bande marche derrière toi.",
+    "next_title": "À portée de fourchette",
+    "badges_title": "Badges",
+    "badges_count": "{{unlocked}} / {{total}}",
+    "category": {
+      "core": "Fondations",
+      "exploration": "Exploration",
+      "expertise": "Expertise",
+      "influence": "Influence"
+    },
+    "badge_tile_unlocked_aria": "Badge débloqué : {{title}}",
+    "badge_tile_locked_aria": "Badge verrouillé : {{title}}",
+    "badge_progress_label": "{{current}} / {{threshold}}",
+    "badge_display_toggle_aria": "Afficher ou retirer ce badge de ton profil",
+    "badge_display_on": "Affiché sur ton profil",
+    "badge_display_off": "Afficher sur mon profil",
+    "badges_display_max_title": "Trois badges maximum",
+    "badges_display_max_body": "Ton profil affiche déjà 3 badges. Retires-en un avant d'en épingler un nouveau.",
+    "badge_unlocked_kicker": "Badge débloqué",
+    "badge_unlocked_cta": "Continuer",
+    "badge_unlocked_cta_aria": "Fermer la célébration du badge",
+    "badge_unlocked_queue_one": "Encore {{count}} badge t'attend",
+    "badge_unlocked_queue_other": "Encore {{count}} badges t'attendent",
+    "collection_title": "Collection",
+    "collection_count_one": "{{count}} carte",
+    "collection_count_other": "{{count}} cartes",
+    "collection_empty": "Aucune carte pour l'instant. Spawte, vis, collectionne — elles viendront à toi.",
+    "card_flip_aria": "Retourner la carte {{title}}",
+    "card_source": {
+      "spawt": "Gagnée en spawtant",
+      "badge": "Gagnée avec un badge",
+      "defi": "Gagnée avec la Meute",
+      "heritage_quiz": "Héritage du quiz La Meute",
+      "admin": "Offerte par le Chat"
+    },
+    "defis_title": "Défis de la Meute",
+    "defis_empty": "Aucun défi en cours. La Meute reprend son souffle.",
+    "defi_kicker": "Toute la Meute ensemble",
+    "defi_progress": {
+      "spawts_total": "La Meute a spawté {{current}} fois sur {{target}}",
+      "communes_couvertes": "{{current}} communes couvertes sur {{target}}",
+      "avis_total": "{{current}} avis publiés sur {{target}}",
+      "nouveaux_lieux": "{{current}} nouveaux lieux découverts sur {{target}}"
+    },
+    "defi_reward_one": "{{count}} paw pour chaque participant à l'arrivée",
+    "defi_reward_other": "{{count}} paws pour chaque participant à l'arrivée",
+    "streak_title": "Ton rendez-vous (privé)",
+    "streak_current_one": "{{count}} semaine de suite",
+    "streak_current_other": "{{count}} semaines de suite",
+    "streak_best_one": "Record : {{count}} semaine",
+    "streak_best_other": "Record : {{count}} semaines",
+    "streak_private_hint": "Visible par toi seul. Un rendez-vous avec toi-même, pas une compétition.",
+    "paws_title": "Paws",
+    "paws_balance_label": "paws de reconnaissance",
+    "paws_hint": "Les paws saluent ton engagement. Ils ne s'achètent pas, ne s'échangent pas — ils se vivent.",
+    "paws_empty": "Aucun paw pour l'instant. Ton premier spawt vérifié ouvrira le compteur.",
+    "paws_reason": {
+      "spawt_verifie": "Spawt vérifié",
+      "avis_publie": "Avis publié",
+      "badge_obtenu": "Badge obtenu",
+      "defi_collectif": "Défi collectif bouclé",
+      "ajustement_admin": "Geste du Chat"
+    },
+    "profile_teaser_title": "Progression",
+    "profile_teaser_badges_one": "{{count}} badge débloqué",
+    "profile_teaser_badges_other": "{{count}} badges débloqués",
+    "profile_teaser_cta": "Voir ma progression"
+  },
+  "defi": {
+    "meute_juillet_spawts": {
+      "title": "Juillet en Meute",
+      "description": "1 000 spawts vérifiés à nous tous avant la fin du mois. Chaque table compte, chaque spawter aussi."
+    }
+  },
+  "wrapped": {
+    "title": "SPAWT Wrapped {{year}}",
+    "intro_title": "Ton année {{year}} avec la Meute",
+    "intro_body": "Le Chat a tout noté. Glisse, remonte le fil de tes tables.",
+    "empty_body": "Pas encore assez de spawts cette année pour raconter quelque chose. La suite s'écrit à table.",
+    "slide_spawts_kicker": "Tes spawts vérifiés",
+    "slide_spawts_caption_one": "{{count}} fois où le Chat t'a vu à table. Chacune comptait.",
+    "slide_spawts_caption_other": "{{count}} fois où le Chat t'a vu à table. Chacune comptait.",
+    "slide_places_kicker": "Tes lieux uniques",
+    "slide_places_caption_one": "Répartis sur {{count}} commune. Ton territoire s'étend.",
+    "slide_places_caption_other": "Répartis sur {{count}} communes. Ton territoire s'étend.",
+    "slide_cuisine_kicker": "Ta cuisine de l'année",
+    "slide_cuisine_caption": "Ton Palais a voté. Lui, il ne ment jamais.",
+    "slide_top_place_kicker": "Ton lieu fétiche",
+    "slide_top_place_caption_one": "{{count}} spawt là-bas. Ça s'appelle une histoire.",
+    "slide_top_place_caption_other": "{{count}} spawts là-bas. Ça s'appelle une histoire.",
+    "slide_note_kicker": "Ta note moyenne",
+    "slide_note_caption": "Exigeant mais juste. Le Chat approuve.",
+    "slide_identity_kicker": "Ton identité",
+    "slide_identity_caption": "C'est toi, à table comme dans la rue.",
+    "slide_identity_pionnier": "Pionnier n°{{n}} de la Meute — ça ne se rachète pas.",
+    "slide_badges_kicker": "Tes badges de l'année",
+    "slide_badges_caption_one": "{{count}} badge décroché cette année. Le terrain paie.",
+    "slide_badges_caption_other": "{{count}} badges décrochés cette année. Le terrain paie.",
+    "card_kicker": "SPAWT Wrapped {{year}}",
+    "card_headline_fallback": "Mon année avec la Meute",
+    "card_stat_spawts": "Spawts vérifiés",
+    "card_stat_places": "Lieux uniques",
+    "card_stat_communes": "Communes",
+    "card_stat_cuisine": "Cuisine de l'année",
+    "card_pionnier": "Pionnier n°{{n}}",
+    "share_cta": "Partager mon année",
+    "share_dialog_title": "Partage ton année SPAWT",
+    "banner_title": "Ton Wrapped {{year}} est prêt",
+    "banner_body": "Le Chat a compté tes tables. Viens voir ce que ton année raconte.",
+    "banner_aria": "Ouvrir ton SPAWT Wrapped {{year}}"
+  },
+  "resa": {
+    "button": "Réserver",
+    "open_aria": "Réserver une table chez {{name}}",
+    "sheet_title": "Ta table chez {{name}}",
+    "party_label": "Vous serez combien ?",
+    "party_minus_aria": "Réduire la taille du groupe",
+    "party_plus_aria": "Augmenter la taille du groupe",
+    "slot_label": "Quand ?",
+    "slot_aria": "Choisir le créneau souhaité",
+    "slot_unset": "À préciser sur WhatsApp",
+    "slot_hint": "Optionnel — tu peux aussi caler l'heure directement avec le lieu.",
+    "cta": "Envoyer sur WhatsApp",
+    "wa_message": "Bonjour {{name}} ! C'est un spawter de la Meute SPAWT. Je voudrais réserver une table pour {{count}} — créneau souhaité : {{slot}}. C'est bon pour vous ?",
+    "wa_slot_open": "à caler ensemble",
+    "mine_title": "Mes résas",
+    "mine_empty_title": "Aucune résa pour l'instant",
+    "mine_empty_body": "Repère ton spot, tape « Réserver », le Chat ouvre le canal. La table t'attend.",
+    "place_unknown": "Lieu",
+    "line_party_one": "{{count}} personne",
+    "line_party_other": "{{count}} personnes",
+    "status_sent": "Envoyée",
+    "status_confirmed": "Confirmée",
+    "status_cancelled": "Annulée"
+  }
+}

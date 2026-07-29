@@ -1,0 +1,13 @@
+# Format : 1 ligne par lieu + 3 avis seed inline (review_N_*).
+# Encoding UTF-8. Délimiteur virgule. Listes séparées par | (pipe).
+# Idempotence : clé naturelle = (name, neighborhood) — upsert ilike.
+#
+# Mission 1 ventilation (PRD FR-032) :
+#   - 5 Date night/Premium (price_tier=3, signal 'institution' ou 'date_night')
+#   - 5 Dabali/Racines (cuisine 'ivoirienne', price_tier=1)
+#   - 3 Boys/Barbecue
+#   - 3 Nouveaux restaurants (signal 'nouveau')
+#   - 2 Hype/Instagram (signal 'hype')
+#   - 2 Sceptiques (lieux à valider)
+#
+name,cuisine,lat,lng,descriptive_address,neighborhood,city,price_tier,avg_ticket_xof,hours_json,phone,whatsapp,cover_photo_url,gallery_urls_pipe,signals_pipe,is_published,adn_local_international,adn_informel_etabli,adn_budget_premium,adn_populaire_prive,adn_decontracte_habille,review_1_note,review_1_tags_pipe,review_1_text,review_2_note,review_2_tags_pipe,review_2_text,review_3_note,review_3_tags_pipe,review_3_text

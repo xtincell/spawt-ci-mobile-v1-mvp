@@ -1,0 +1,102 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`palais-signals — mapping snapshots PLACE_SIGNAL_TO_SIGNALS — figé 1`] = `
+{
+  "decouverte": [
+    {
+      "axis": "taniere_nomade",
+      "direction": 1,
+      "weight": 0.03,
+    },
+    {
+      "axis": "foule_secret",
+      "direction": 1,
+      "weight": 0.02,
+    },
+  ],
+  "institution": [
+    {
+      "axis": "racines_horizons",
+      "direction": -1,
+      "weight": 0.04,
+    },
+    {
+      "axis": "maquis_table",
+      "direction": 1,
+      "weight": 0.02,
+    },
+  ],
+  "noctambule_verifie": [
+    {
+      "axis": "taniere_nomade",
+      "direction": 1,
+      "weight": 0.02,
+    },
+  ],
+}
+`;
+
+exports[`palais-signals — mapping snapshots TAG_TO_SIGNALS — figé (5 tags × ≥1 signal) 1`] = `
+{
+  "a_refaire": [
+    {
+      "axis": "taniere_nomade",
+      "direction": -1,
+      "weight": 0.03,
+    },
+    {
+      "axis": "exigeant_enthousiaste",
+      "direction": 1,
+      "weight": 0.03,
+    },
+  ],
+  "ambiance_top": [
+    {
+      "axis": "foule_secret",
+      "direction": -1,
+      "weight": 0.03,
+    },
+    {
+      "axis": "exigeant_enthousiaste",
+      "direction": 1,
+      "weight": 0.02,
+    },
+  ],
+  "cher": [
+    {
+      "axis": "maquis_table",
+      "direction": 1,
+      "weight": 0.04,
+    },
+    {
+      "axis": "exigeant_enthousiaste",
+      "direction": -1,
+      "weight": 0.02,
+    },
+  ],
+  "copieux": [
+    {
+      "axis": "maquis_table",
+      "direction": -1,
+      "weight": 0.03,
+    },
+    {
+      "axis": "exigeant_enthousiaste",
+      "direction": 1,
+      "weight": 0.02,
+    },
+  ],
+  "rapide": [
+    {
+      "axis": "taniere_nomade",
+      "direction": 1,
+      "weight": 0.02,
+    },
+    {
+      "axis": "maquis_table",
+      "direction": -1,
+      "weight": 0.02,
+    },
+  ],
+}
+`;

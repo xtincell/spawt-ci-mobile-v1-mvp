@@ -1,0 +1,353 @@
+// Edge Function `payment-webhook` — notification CinetPay (Sprint 2, PRD §13.8).
+// Runtime : Deno (Supabase Edge).
+//
+// ENDPOINT PUBLIC : c'est CinetPay qui appelle (notify_url posée au checkout),
+// PAS un spawter — aucune auth Bearer ici. La sécurité repose sur :
+//   1. la signature HMAC `x-token` (CINETPAY_SECRET_KEY, cf. cinetpay.ts) ;
+//   2. la RÈGLE D'OR : le webhook ne fait JAMAIS foi seul — toute activation
+//      est re-confirmée par un appel server-to-server /v2/payment/check
+//      (provider.getStatus) AVANT d'écrire quoi que ce soit en base.
+// Même si le format HMAC de CinetPay évoluait, un attaquant ne peut donc pas
+// activer un abonnement : il faudrait aussi que CinetPay confirme ACCEPTED.
+//
+// Politique de réponse (anti retry-storm) :
+//   200 → message compris (succès, échec paiement, transaction inconnue,
+//         replay idempotent) — CinetPay ne re-notifie pas.
+//   400 → signature invalide ou payload illisible.
+//   405 → méthode ≠ POST.
+//
+// Plans couverts : B2C (gold_monthly / gold_annual) ET B2B lieux (pro /
+// b2b_gold). À l'activation d'un plan B2B, le rôle b2b_accounts du compte
+// payeur est synchronisé (pro→'pro', b2b_gold→'gold') ; à l'expiration le
+// rôle n'est JAMAIS rétrogradé automatiquement — acte humain (voir plus bas).
+//
+// ⚠️ Déploiement : cette fonction doit être déployée avec `--no-verify-jwt`
+// (CinetPay n'envoie pas de JWT Supabase).
+//
+// Secrets : CINETPAY_* + SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (injectés).
+
+// @ts-expect-error — résolu en Deno runtime (URL imports)
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+import { b2bRoleForPlan, isB2bPlan, isPaidPlan } from "../_shared/payment/types.ts";
+import { createPaymentProvider, PaymentConfigError } from "../_shared/payment/factory.ts";
+import { computeExpiresAt } from "../_shared/payment/subscription-lifecycle.ts";
+
+// @ts-expect-error — Deno global
+declare const Deno: {
+  env: { get(name: string): string | undefined };
+  serve: (h: (req: Request) => Promise<Response> | Response) => void;
+};
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+/**
+ * États d'une subscription depuis lesquels une confirmation `accepted` PEUT
+ * activer (finding P1#5). getStatus répond `accepted` à vie : sans ce garde, une
+ * re-notification signée d'une vieille transaction réactiverait gratuitement une
+ * sub passée 'expired'/'grace' par le cron (répétable). 'active' est déjà traité
+ * en amont (idempotence). Un vrai renouvellement crée une NOUVELLE sub 'pending'.
+ */
+export const ACTIVATABLE_STATUSES = ["pending", "cancelled"] as const;
+export function isActivatableStatus(status: string): boolean {
+  return (ACTIVATABLE_STATUSES as readonly string[]).includes(status);
+}
+
+/** Log structuré de transition — chaque décision du webhook laisse une trace. */
+function logTransition(fields: Record<string, unknown>): void {
+  console.log(JSON.stringify({ evt: "payment_webhook", ...fields }));
+}
+
+/**
+ * CinetPay notifie en `application/x-www-form-urlencoded` (champs cpm_*) ;
+ * on tolère aussi JSON et multipart pour rester robuste aux évolutions.
+ * Retourne null si le corps est illisible.
+ */
+export async function readWebhookFields(req: Request): Promise<Record<string, string> | null> {
+  const contentType = (req.headers.get("content-type") ?? "").toLowerCase();
+  try {
+    if (contentType.includes("application/json")) {
+      const parsed = (await req.json()) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        out[k] = v == null ? "" : String(v);
+      }
+      return out;
+    }
+    if (contentType.includes("form")) {
+      const form = await req.formData();
+      const out: Record<string, string> = {};
+      for (const [k, v] of form.entries()) {
+        out[k] = typeof v === "string" ? v : "";
+      }
+      return out;
+    }
+    // Fallback : tenter urlencoded brut.
+    const text = await req.text();
+    if (!text) return null;
+    const params = new URLSearchParams(text);
+    const out: Record<string, string> = {};
+    for (const [k, v] of params.entries()) out[k] = v;
+    return Object.keys(out).length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function handleRequest(req: Request): Promise<Response> {
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+      status: 405,
+      headers: { "content-type": "application/json", allow: "POST" },
+    });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRole) {
+    return json({ error: "edge_misconfigured" }, 500);
+  }
+
+  let provider;
+  try {
+    provider = createPaymentProvider();
+  } catch (err) {
+    if (err instanceof PaymentConfigError) return json({ error: "edge_misconfigured" }, 500);
+    throw err;
+  }
+
+  const fields = await readWebhookFields(req);
+  if (!fields) return json({ error: "invalid_payload" }, 400);
+
+  // ── 1. Authentification du message : signature HMAC x-token ──────────────
+  const event = await provider.parseWebhook(req.headers, fields);
+  if (!event.signatureValid) {
+    logTransition({ decision: "rejected_invalid_signature" });
+    return json({ error: "invalid_signature" }, 400);
+  }
+  if (!event.transactionId) {
+    logTransition({ decision: "ignored_no_transaction_id" });
+    return json({ received: true, ignored: "no_transaction_id" });
+  }
+  const txId = event.transactionId;
+
+  const admin = createClient(supabaseUrl, serviceRole);
+
+  // ── 2. Résolution de la subscription (provider_tx_id = idempotence 0032) ──
+  const { data: sub, error: subErr } = await admin
+    .from("subscriptions")
+    .select("id, customer_id, customer_type, plan, price_ht, tva_rate, currency, status")
+    .eq("provider_tx_id", txId)
+    .maybeSingle();
+  if (subErr) {
+    logTransition({ transaction_id: txId, decision: "db_error", detail: subErr.message });
+    return json({ error: "db_error" }, 500);
+  }
+  if (!sub) {
+    // Transaction inconnue chez nous : compris mais non traitable → 200
+    // (pas de retry storm) + trace pour investigation.
+    logTransition({ transaction_id: txId, decision: "ignored_unknown_transaction" });
+    return json({ received: true, ignored: "unknown_transaction" });
+  }
+
+  // ── 3. Idempotence : une transaction déjà activée re-notifiée = no-op ─────
+  if (sub.status === "active") {
+    logTransition({ transaction_id: txId, decision: "noop_already_active" });
+    return json({ received: true, idempotent: true });
+  }
+
+  // ── 4. RÈGLE D'OR : re-confirmation server-to-server avant toute écriture ─
+  let confirmation;
+  try {
+    confirmation = await provider.getStatus(txId);
+  } catch (err) {
+    // Check indisponible : on ne décide RIEN. 500 → CinetPay re-notifiera,
+    // et le polling portail / cron rattrape de toute façon.
+    logTransition({
+      transaction_id: txId,
+      decision: "recheck_unavailable",
+      detail: err instanceof Error ? err.message : String(err),
+    });
+    return json({ error: "provider_recheck_failed" }, 500);
+  }
+
+  logTransition({
+    transaction_id: txId,
+    announced: event.announcedStatus,
+    confirmed: confirmation.status,
+    from_status: sub.status,
+  });
+
+  if (confirmation.status === "accepted") {
+    // ── Anti-réactivation (finding P1#5) ──────────────────────────────────
+    // N'activer QUE depuis un état INITIAL de paiement. getStatus répond
+    // `accepted` À VIE pour une transaction acceptée : une re-notification
+    // signée d'une vieille transaction ne doit JAMAIS ressusciter une sub que
+    // le cron a passée en 'expired' ou 'grace' — ce serait un Gold gratuit,
+    // répétable. Un vrai renouvellement crée une NOUVELLE sub 'pending'
+    // (nouveau tx_id), il n'emprunte pas ce chemin. 'active' est déjà court-
+    // circuité plus haut (idempotence). La garde `.in(...)` sur l'UPDATE
+    // ci-dessous ferme en plus la fenêtre TOCTOU (fetch → update).
+    if (!isActivatableStatus(sub.status)) {
+      logTransition({ transaction_id: txId, decision: "noop_terminal_status", from_status: sub.status });
+      return json({ received: true, idempotent: true });
+    }
+    const startedAt = new Date();
+    if (!isPaidPlan(sub.plan)) {
+      // Plan hors catalogue (donnée legacy/corrompue) : on ne devine pas
+      // d'échéance — trace + 200 (rien à retenter côté CinetPay).
+      logTransition({ transaction_id: txId, decision: "ignored_unknown_plan", plan: sub.plan });
+      return json({ received: true, ignored: "unknown_plan" });
+    }
+    // B2C comme B2B : mensuels +1 mois, gold_annual +12 (PLAN_PRICING).
+    const expiresAt = computeExpiresAt(sub.plan, startedAt);
+
+    // Activation — garde atomique `.in('status', ['pending','cancelled'])` :
+    // (1) deux notifications concurrentes ne peuvent pas activer deux fois (la
+    // 2e voit 'active', hors liste, ne matche plus) ; (2) une sub 'expired'/
+    // 'grace' n'est jamais réactivée même si le check ci-dessus était contourné
+    // par une course (finding P1#5).
+    const { data: updated, error: updErr } = await admin
+      .from("subscriptions")
+      .update({
+        status: "active",
+        started_at: startedAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
+        grace_until: null,
+      })
+      .eq("id", sub.id)
+      .in("status", [...ACTIVATABLE_STATUSES])
+      .select("id");
+    if (updErr) {
+      logTransition({ transaction_id: txId, decision: "db_error_activate", detail: updErr.message });
+      return json({ error: "db_error" }, 500);
+    }
+    if (!updated || updated.length === 0) {
+      // Course perdue contre une notification jumelle : elle a déjà activé.
+      logTransition({ transaction_id: txId, decision: "noop_concurrent_activation" });
+      return json({ received: true, idempotent: true });
+    }
+
+    // Renouvellement depuis la grâce : l'ancien abonnement en grâce du même
+    // customer est clos (supersédé par le nouveau — un seul droit actif).
+    const { error: superErr } = await admin
+      .from("subscriptions")
+      .update({ status: "expired" })
+      .eq("customer_id", sub.customer_id)
+      .eq("status", "grace")
+      .neq("id", sub.id);
+    if (superErr) {
+      logTransition({ transaction_id: txId, decision: "warn_supersede_failed", detail: superErr.message });
+    }
+
+    // ── Synchronisation du rôle B2B (0043) — le paiement OUVRE le droit ─────
+    // pro → role 'pro', b2b_gold → role 'gold' sur le compte payeur
+    // (customers.spawter_id porte l'auth_user_id du compte B2B, cf. checkout).
+    // Le plan PAYÉ est la source de vérité du rôle à l'activation.
+    //
+    // DÉCISION PRODUIT (sens unique) : la synchro ne joue qu'à l'ACTIVATION.
+    // À l'expiration (payment-cron passe la subscription 'expired' après la
+    // grâce), le rôle n'est PAS rétrogradé automatiquement — la coupure
+    // d'accès B2B est un ACTE HUMAIN (relance commerciale, geste, résiliation
+    // négociée) ; le dashboard portail affiche « abonnement expiré » en
+    // attendant la décision de l'équipe.
+    if (isB2bPlan(sub.plan)) {
+      const { data: payerCustomer, error: payerErr } = await admin
+        .from("customers")
+        .select("spawter_id")
+        .eq("id", sub.customer_id)
+        .maybeSingle();
+      if (payerErr || !payerCustomer) {
+        logTransition({
+          transaction_id: txId,
+          decision: "warn_b2b_customer_lookup_failed",
+          detail: payerErr?.message ?? "customer_not_found",
+        });
+      } else {
+        const role = b2bRoleForPlan(sub.plan);
+        const { data: syncedAccounts, error: roleErr } = await admin
+          .from("b2b_accounts")
+          .update({ role })
+          .eq("auth_user_id", payerCustomer.spawter_id)
+          .select("id");
+        if (roleErr) {
+          // Droit actif mais rôle non synchronisé : log fort pour rattrapage
+          // admin — on ne casse pas le 200, CinetPay n'y peut rien.
+          logTransition({
+            transaction_id: txId,
+            decision: "warn_b2b_role_sync_failed",
+            detail: roleErr.message,
+          });
+        } else if (!syncedAccounts || syncedAccounts.length === 0) {
+          logTransition({ transaction_id: txId, decision: "warn_b2b_account_not_found" });
+        } else {
+          logTransition({ transaction_id: txId, decision: "b2b_role_synced", role });
+        }
+      }
+    }
+
+    // Facture payée — mécanique 0032 : le trigger BEFORE INSERT pose
+    // invoice_number (next_invoice_number, SPAWT-YYYY-NNNN), tva_amount et
+    // price_ttc quand on ne les fournit pas. Garde anti-doublon : une facture
+    // existe déjà pour ce provider_tx_id → skip (webhook rejoué).
+    // B2B comme B2C : on pose price_ht + tva_rate (18 %), le trigger complète
+    // tva_amount/price_ttc — la facture porte donc bien HT + TVA + TTC, et le
+    // portail B2B affiche HT + TVA (convention PRD prix professionnels).
+    const { data: existingInvoice, error: invCheckErr } = await admin
+      .from("invoices")
+      .select("id")
+      .eq("provider_tx_id", txId)
+      .maybeSingle();
+    if (invCheckErr) {
+      logTransition({ transaction_id: txId, decision: "warn_invoice_check_failed", detail: invCheckErr.message });
+    }
+    if (!existingInvoice) {
+      const { error: invErr } = await admin.from("invoices").insert({
+        subscription_id: sub.id,
+        customer_id: sub.customer_id,
+        customer_type: sub.customer_type,
+        price_ht: sub.price_ht,
+        tva_rate: sub.tva_rate,
+        currency: sub.currency,
+        status: "paid",
+        provider_tx_id: txId,
+        issued_at: startedAt.toISOString(),
+        paid_at: confirmation.paidAt ?? startedAt.toISOString(),
+      });
+      if (invErr) {
+        // La facture a raté mais le droit est actif : on log fort (rattrapage
+        // manuel/admin), on ne casse pas le 200 — CinetPay n'y peut rien.
+        logTransition({ transaction_id: txId, decision: "error_invoice_insert", detail: invErr.message });
+      }
+    }
+
+    logTransition({
+      transaction_id: txId,
+      decision: "activated",
+      plan: sub.plan,
+      expires_at: expiresAt.toISOString(),
+      payment_method: confirmation.paymentMethod,
+    });
+    return json({ received: true, status: "active" });
+  }
+
+  if (confirmation.status === "refused") {
+    // Schéma 0032 : pas de statut 'failed' — l'échec laisse la subscription
+    // en 'pending' (le spawter peut relancer un checkout, nouveau tx_id).
+    // Trace structurée pour le suivi des échecs (SPEC 4 §4.6).
+    logTransition({ transaction_id: txId, decision: "payment_refused", stays: sub.status });
+    return json({ received: true, status: "refused" });
+  }
+
+  // pending / en attente de validation Mobile Money : rien à écrire.
+  logTransition({ transaction_id: txId, decision: "still_pending" });
+  return json({ received: true, status: "pending" });
+}
+
+Deno.serve(handleRequest);

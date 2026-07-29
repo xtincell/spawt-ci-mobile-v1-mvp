@@ -1,0 +1,53 @@
+/* SPAWT — Webfonts (source : spawt-design-system CANON, tokens/fonts.css).
+   Klinsman = display (wordmark, titres). Gotham = corps/UI.
+   NB : les .otf Klinsman embarquent des noms PostScript
+   (KlinsmanTypefaceLight/Regular/Bold) — piège côté mobile (expo-font) mais
+   sans effet ici : en web, le nom de famille déclaré dans @font-face fait foi. */
+
+@font-face {
+  font-family: "Klinsman";
+  src: url("../assets/fonts/Klinsman-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Klinsman";
+  src: url("../assets/fonts/Klinsman-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Klinsman";
+  src: url("../assets/fonts/Klinsman-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gotham";
+  src: url("../assets/fonts/Gotham-Book.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gotham";
+  src: url("../assets/fonts/Gotham-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gotham";
+  src: url("../assets/fonts/Gotham-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

@@ -1,0 +1,393 @@
+// Seed data — 12 lieux d'Abidjan pour la première version fonctionnelle.
+// Ports adaptés depuis le prototype Vite (src/data/restaurants.js) avec
+// remappage vers les axes ADN canoniques du PRD §6.1 (axes [-1, 1]).
+//
+// Marqués `is_seed: true` (cohérent avec Claude amendment 5.4 — avis fondateurs).
+// Quand Supabase sera connecté, ces lieux sont insérables comme baseline.
+
+import type { Place, PlaceAdn } from "../../types/place";
+
+export interface SeedPlace extends Place {
+  adn: PlaceAdn;
+  /** Note moyenne brute affichée publiquement (PRD §3.1 Feature 4) */
+  rating_display: number;
+  /** Total spawts (compteur public) */
+  total_spawts: number;
+}
+
+const todayISO = "2026-05-03T18:00:00Z";
+
+export const SEED_PLACES: SeedPlace[] = [
+  {
+    id: "00000000-0000-0000-0000-000000000001",
+    name: "Bô Zinc",
+    cuisine: ["francaise", "fusion"],
+    location: {
+      lat: 5.328,
+      lng: -4.009,
+      descriptive_address: "Zone 4, en face du centre commercial",
+      neighborhood: "Zone 4",
+      city: "Abidjan",
+    },
+    price: { tier: 3, avg_ticket_xof: 25000 },
+    hours: defaultHours("12:00", "23:00"),
+    phone: "+22527XXXXXXX",
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: ["institution"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000001", { local_international: 0.6, informel_etabli: 0.85, budget_premium: 0.7, populaire_prive: -0.3, decontracte_habille: 0.6 }, 4.6, 87),
+    rating_display: 4.6,
+    total_spawts: 87,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000002",
+    name: "Bushman Café",
+    cuisine: ["fusion", "ouest_africaine"],
+    location: {
+      lat: 5.358,
+      lng: -3.97,
+      descriptive_address: "Cocody Riviera Palmeraie",
+      neighborhood: "Cocody Riviera",
+      city: "Abidjan",
+    },
+    price: { tier: 2, avg_ticket_xof: 12000 },
+    hours: defaultHours("11:00", "00:00"),
+    phone: null,
+    whatsapp: "+22507XXXXXXX",
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: ["coup_de_coeur"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000002", { local_international: 0.3, informel_etabli: 0.4, budget_premium: 0.3, populaire_prive: 0.2, decontracte_habille: 0.1 }, 4.4, 64),
+    rating_display: 4.4,
+    total_spawts: 64,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000003",
+    name: "Le Petit Paris",
+    cuisine: ["francaise"],
+    location: {
+      lat: 5.325,
+      lng: -4.011,
+      descriptive_address: "Zone 4, près du Sofitel",
+      neighborhood: "Zone 4",
+      city: "Abidjan",
+    },
+    price: { tier: 3, avg_ticket_xof: 18000 },
+    hours: defaultHours("12:00", "22:30"),
+    phone: "+22527XXXXXXX",
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: [],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000003", { local_international: 0.7, informel_etabli: 0.7, budget_premium: 0.55, populaire_prive: -0.1, decontracte_habille: 0.5 }, 4.3, 52),
+    rating_display: 4.3,
+    total_spawts: 52,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000004",
+    name: "Maquis Chez Tantie Rose",
+    cuisine: ["ivoirienne"],
+    location: {
+      lat: 5.422,
+      lng: -4.024,
+      descriptive_address: "Abobo Baoulé, à côté de la pharmacie du marché",
+      neighborhood: "Abobo Baoulé",
+      city: "Abidjan",
+    },
+    price: { tier: 1, avg_ticket_xof: 1200 },
+    hours: defaultHours("11:00", "22:00"),
+    phone: null,
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: ["pepite_verifiee"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000004", { local_international: -0.95, informel_etabli: -0.85, budget_premium: -0.85, populaire_prive: 0.4, decontracte_habille: -0.8 }, 4.8, 134),
+    rating_display: 4.8,
+    total_spawts: 134,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000005",
+    name: "Chez Ambroise",
+    cuisine: ["ivoirienne"],
+    location: {
+      lat: 5.347,
+      lng: -4.027,
+      descriptive_address: "Yopougon Selmer, premier maquis après le carrefour",
+      neighborhood: "Yopougon Selmer",
+      city: "Abidjan",
+    },
+    price: { tier: 1, avg_ticket_xof: 2000 },
+    hours: defaultHours("12:00", "00:00"),
+    phone: null,
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: ["fidelite"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000005", { local_international: -0.9, informel_etabli: -0.7, budget_premium: -0.7, populaire_prive: -0.5, decontracte_habille: -0.7 }, 4.5, 98),
+    rating_display: 4.5,
+    total_spawts: 98,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000006",
+    name: "Garba Palace",
+    cuisine: ["ivoirienne"],
+    location: {
+      lat: 5.345,
+      lng: -4.029,
+      descriptive_address: "Yopougon Niangon, en face du lycée",
+      neighborhood: "Yopougon Niangon",
+      city: "Abidjan",
+    },
+    price: { tier: 1, avg_ticket_xof: 800 },
+    hours: defaultHours("18:00", "02:00"),
+    phone: null,
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: ["noctambule_verifie"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000006", { local_international: -1.0, informel_etabli: -0.95, budget_premium: -0.95, populaire_prive: -0.6, decontracte_habille: -0.9 }, 4.4, 76),
+    rating_display: 4.4,
+    total_spawts: 76,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000007",
+    name: "Norias",
+    cuisine: ["libanaise"],
+    location: {
+      lat: 5.351,
+      lng: -3.997,
+      descriptive_address: "Cocody II Plateaux, après la station Total",
+      neighborhood: "II Plateaux",
+      city: "Abidjan",
+    },
+    price: { tier: 2, avg_ticket_xof: 8000 },
+    hours: defaultHours("11:00", "23:00"),
+    phone: "+22527XXXXXXX",
+    whatsapp: "+22507XXXXXXX",
+    cover_photo_url: null,
+    gallery_urls: [],
+    // Démo onglet Menu (R17) — 2 photos de menu d'exemple (CDN Unsplash,
+    // même convention que les photos d'avis seedées).
+    menu_urls: [
+      "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=800&q=80",
+      "https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80",
+    ],
+    signals: ["table_diverse"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000007", { local_international: 0.5, informel_etabli: 0.2, budget_premium: 0.0, populaire_prive: -0.1, decontracte_habille: 0.0 }, 4.2, 89),
+    rating_display: 4.2,
+    total_spawts: 89,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000008",
+    name: "Sushi Lounge",
+    cuisine: ["asiatique"],
+    location: {
+      lat: 5.331,
+      lng: -4.005,
+      descriptive_address: "Marcory Zone 4C, immeuble vitré",
+      neighborhood: "Zone 4C",
+      city: "Abidjan",
+    },
+    price: { tier: 3, avg_ticket_xof: 22000 },
+    hours: defaultHours("12:00", "23:00"),
+    phone: "+22527XXXXXXX",
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: [],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000008", { local_international: 0.95, informel_etabli: 0.7, budget_premium: 0.7, populaire_prive: 0.0, decontracte_habille: 0.5 }, 4.0, 45),
+    rating_display: 4.0,
+    total_spawts: 45,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000009",
+    name: "Pizza Caprice",
+    cuisine: ["italienne", "burger_pizza"],
+    location: {
+      lat: 5.346,
+      lng: -3.985,
+      descriptive_address: "Riviera 3, au bout du boulevard",
+      neighborhood: "Riviera 3",
+      city: "Abidjan",
+    },
+    price: { tier: 2, avg_ticket_xof: 6500 },
+    hours: defaultHours("11:30", "23:30"),
+    phone: "+22527XXXXXXX",
+    whatsapp: "+22507XXXXXXX",
+    cover_photo_url: null,
+    gallery_urls: [],
+    // Démo onglet Menu (R17) — 1 photo de menu d'exemple.
+    menu_urls: [
+      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80",
+    ],
+    signals: ["fidelite"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000009", { local_international: 0.6, informel_etabli: 0.3, budget_premium: 0.1, populaire_prive: -0.4, decontracte_habille: -0.3 }, 4.1, 112),
+    rating_display: 4.1,
+    total_spawts: 112,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000010",
+    name: "Attieke Paradise",
+    cuisine: ["ivoirienne"],
+    location: {
+      lat: 5.336,
+      lng: -3.994,
+      descriptive_address: "Marcory Anoumabo, près du grand marché",
+      neighborhood: "Marcory",
+      city: "Abidjan",
+    },
+    price: { tier: 1, avg_ticket_xof: 1500 },
+    hours: defaultHours("10:00", "22:00"),
+    phone: null,
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: ["decouverte"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000010", { local_international: -0.95, informel_etabli: -0.6, budget_premium: -0.8, populaire_prive: -0.3, decontracte_habille: -0.6 }, 4.3, 28),
+    rating_display: 4.3,
+    total_spawts: 28,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000011",
+    name: "Café des Arts",
+    cuisine: ["cafe", "patisserie"],
+    location: {
+      lat: 5.354,
+      lng: -3.992,
+      descriptive_address: "Cocody centre, en face du marché des fleurs",
+      neighborhood: "Cocody centre",
+      city: "Abidjan",
+    },
+    price: { tier: 2, avg_ticket_xof: 4500 },
+    hours: defaultHours("07:00", "19:00"),
+    phone: "+22527XXXXXXX",
+    whatsapp: null,
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: [],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000011", { local_international: 0.4, informel_etabli: 0.4, budget_premium: -0.1, populaire_prive: 0.3, decontracte_habille: 0.0 }, 4.2, 41),
+    rating_display: 4.2,
+    total_spawts: 41,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000012",
+    name: "Assinie Beach Club",
+    cuisine: ["fusion", "ouest_africaine"],
+    location: {
+      lat: 5.142,
+      lng: -3.435,
+      descriptive_address: "Assinie, accès plage privée",
+      neighborhood: "Assinie",
+      city: "Assinie-Mafia",
+    },
+    price: { tier: 3, avg_ticket_xof: 28000 },
+    hours: defaultHours("10:00", "02:00"),
+    phone: "+22527XXXXXXX",
+    whatsapp: "+22507XXXXXXX",
+    cover_photo_url: null,
+    gallery_urls: [],
+    menu_urls: [],
+    signals: ["coup_de_coeur"],
+    is_published: true,
+    created_at: todayISO,
+    updated_at: todayISO,
+    adn: adn("00000000-0000-0000-0000-000000000012", { local_international: 0.4, informel_etabli: 0.6, budget_premium: 0.85, populaire_prive: 0.5, decontracte_habille: -0.2 }, 4.5, 156),
+    rating_display: 4.5,
+    total_spawts: 156,
+  },
+];
+
+// ── Helpers ─────────────────────────────────────────
+
+function defaultHours(open: string, close: string) {
+  const slot = [{ open, close }];
+  return {
+    mon: slot,
+    tue: slot,
+    wed: slot,
+    thu: slot,
+    fri: slot,
+    sat: slot,
+    sun: slot,
+  };
+}
+
+function adn(
+  place_id: string,
+  axes: {
+    local_international: number;
+    informel_etabli: number;
+    budget_premium: number;
+    populaire_prive: number;
+    decontracte_habille: number;
+  },
+  weighted_rating: number,
+  // Conservé dans la signature pour ne pas toucher aux 12 appels ci-dessus,
+  // mais volontairement IGNORÉ — voir le commentaire ci-dessous.
+  _total_reviews_ignore: number,
+): PlaceAdn {
+  return {
+    place_id,
+    axe_local_international: axes.local_international,
+    axe_informel_etabli: axes.informel_etabli,
+    axe_budget_premium: axes.budget_premium,
+    axe_populaire_prive: axes.populaire_prive,
+    axe_decontracte_habille: axes.decontracte_habille,
+    // Le mode démo n'embarque AUCUN avis : `listReviewsForPlace` y renvoie
+    // toujours un tableau vide. Annoncer « 87 avis » au-dessus d'une liste
+    // vide était le même mensonge que celui qu'on vient de retirer de la base
+    // (compteurs écrits en dur dans seed/places.sql, sans une seule ligne
+    // d'avis derrière). On dit donc la vérité : 0 avis, ADN en construction.
+    // La démonstration commerciale se fait sur le vrai backend, qui porte
+    // maintenant les 10 lieux de la Mission 1 et leurs avis fondateurs.
+    confidence_score: 0,
+    total_reviews: 0,
+    sample_size: 0,
+    adn_revealed: false,
+    weighted_rating,
+    updated_at: todayISO,
+  };
+}

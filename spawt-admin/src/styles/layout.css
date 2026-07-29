@@ -1,0 +1,263 @@
+/* Tokens alignés sur le design system CANON (tokens/colors.css, brandbook v1.0)
+   + décision produit R14 : fond beige → blanc. --bg et --bg-card passent en
+   #FFFFFF (au lieu du blanc cassé #FAFAF8) ; le crème sablé #EFE8DC est
+   conservé en accent uniquement (--bg-warm). */
+
+:root {
+  /* ── Primaires ── */
+  --spawt-black: #0a0a0a;
+  --spawt-gold: #c8a44e;
+  --spawt-gold-light: #e8d5a0;
+  --spawt-gold-deep: #8a6f2c; /* or lisible sur fond clair (texte) */
+
+  /* ── Secondaires ── */
+  --chat-green: #2d6b4f;
+  --chat-green-deep: #1f4d39;
+
+  /* ── Accents ── */
+  --amber-warm: #e89a39;
+  --creme-sable: #efe8dc;
+  --rouge: #c0392b;
+
+  /* ── Neutres ── */
+  --pure-white: #ffffff;
+  --gris-moyen: #8a8a8a;
+  --graphite: #333333;
+
+  /* ── Aliases sémantiques (R14 : fond blanc) ── */
+  --bg: #ffffff;
+  --bg-card: #ffffff;
+  --bg-warm: var(--creme-sable);
+  --ink: var(--spawt-black);
+  --ink-soft: var(--graphite);
+  --ink-mute: var(--gris-moyen);
+  --gold: var(--spawt-gold);
+  --green: var(--chat-green);
+  --amber: var(--amber-warm);
+  --danger: var(--rouge);
+  --line: rgba(10, 10, 10, 0.1);
+  --line-strong: rgba(10, 10, 10, 0.18);
+  --on-dark: rgba(255, 255, 255, 0.92);
+  --on-dark-mute: rgba(255, 255, 255, 0.55);
+
+  /* ── Typo (tokens/typography.css) ── */
+  --font-display: "Klinsman", "Arial Black", sans-serif;
+  --font-body: "Gotham", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Titres en Klinsman (display) — le corps reste en Gotham. */
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Les contrôles n'héritent pas de la police par défaut. */
+button, input, select, textarea { font-family: inherit; }
+
+fieldset { border: 1px solid var(--line); border-radius: 8px; }
+legend {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--ink);
+  color: var(--on-dark);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Wordmark SPAWT — Klinsman or sur charbon (contraste ≈ 8:1). */
+.sidebar .brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 16px 0;
+}
+
+.sidebar .brand-wordmark {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--gold);
+}
+
+.sidebar .brand-sub {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-dark-mute);
+}
+
+.sidebar a {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--on-dark);
+  text-decoration: none;
+}
+
+.sidebar a:hover { background: rgba(255, 255, 255, 0.08); }
+.sidebar a.active { background: var(--gold); color: var(--ink); }
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+}
+
+.topbar .role-badge {
+  background: var(--gold);
+  color: var(--ink);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: 8px;
+}
+
+.content { padding: 24px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); }
+
+button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg-card); }
+button.btn-primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+button.btn-destructive { background: var(--danger); color: white; border-color: var(--danger); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Interrupteur sobre — page Fonctionnalités (feature flags). Vert chat = ON
+   (état "live"), gris ligne = OFF. Aucune lib : bouton role="switch" + knob. */
+.flag-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background 120ms ease;
+  vertical-align: middle;
+}
+
+.flag-switch .flag-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pure-white);
+  box-shadow: 0 1px 2px rgba(10, 10, 10, 0.25);
+  transition: transform 120ms ease;
+}
+
+.flag-switch.on { background: var(--green); }
+.flag-switch.on .flag-switch-knob { transform: translateX(18px); }
+.flag-switch:disabled { cursor: progress; }
+.flag-switch:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal {
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: 8px;
+  min-width: 480px;
+  max-width: 640px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.viewport-warning {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--on-dark);
+  font-size: 18px;
+  padding: 24px;
+  text-align: center;
+  z-index: 9999;
+}
+
+@media (max-width: 1023px) {
+  .viewport-warning { display: flex; }
+}
+
+/* « Mode d'emploi » n'est pas un écran d'exploitation : c'est la doc de la
+   suite. On le détache visuellement du reste du menu pour que personne ne le
+   cherche parmi les écrans de travail. */
+.nav-doc {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(250, 250, 248, 0.14);
+  opacity: 0.8;
+}
+
+/* FR-032 — distinction visuelle entre avis fondateur et avis communauté.
+   Un modérateur qui supprime un avis d'amorçage sans le savoir fait retomber
+   l'ADN du lieu en « en construction » : le badge doit se voir sans se lire. */
+.badge-seed {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--spawt-gold);
+  color: var(--spawt-black);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}

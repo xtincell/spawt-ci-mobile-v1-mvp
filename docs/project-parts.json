@@ -1,0 +1,38 @@
+{
+  "repository_type": "multi-part",
+  "parts": [
+    {
+      "part_id": "prototype-web",
+      "display_name": "SPAWT Web Prototype (Vite/React)",
+      "root_path": "./",
+      "project_type_id": "web",
+      "primary_framework": "Vite + React 18",
+      "language": "JavaScript",
+      "status": "frozen-reference",
+      "notes": "Pré-PRD V1 — vocabulaire et stades divergent du canonical (cf. data-models-prototype-web.md §2). Référence visuelle/UX uniquement."
+    },
+    {
+      "part_id": "mobile-app",
+      "display_name": "SPAWT Mobile App (Expo/React Native)",
+      "root_path": "./app",
+      "project_type_id": "mobile",
+      "primary_framework": "Expo SDK 55 + React Native 0.83",
+      "language": "TypeScript (strict)",
+      "status": "active-canonical-v1",
+      "notes": "Baseline V1 SPAWT — Sprint 1 en cours. Tous les invariants (vocab, i18n, design tokens) audités par scripts pre-commit."
+    }
+  ],
+  "integration_points": [],
+  "shared_resources": {
+    "design_tokens": {
+      "type": "manual-port",
+      "from": "src/theme.js",
+      "to": "app/src/theme/tokens.ts",
+      "risk": "drift if updated separately"
+    },
+    "product_truth": {
+      "type": "upstream-doc",
+      "path": "documentation/SPAWT_PRD_V1.docx"
+    }
+  }
+}

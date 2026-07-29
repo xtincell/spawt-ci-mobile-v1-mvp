@@ -1,0 +1,162 @@
+# SPAWT — Releases (vue testeur)
+
+Journal des **APK publiés** pour l'alpha, destiné aux testeurs. Pour citer un
+build dans un bug report, recopie la ligne affichée dans l'app (écran Profil →
+« À propos ») : **`v1.0.0 — build N (YYYY-MM-DD)`**.
+
+> Ce fichier est **distinct de [`CHANGELOG.md`](./CHANGELOG.md)** :
+> - `CHANGELOG.md` = vue **dev** par sprint/epic (`vMAJEURE.SPRINT.ITERATION`).
+> - `RELEASES.md` = vue **testeur** par APK publié (build N).
+
+## Schéma de versioning (Story 7.1)
+
+- **Version app** : `1.0.0`, figée jusqu'à la beta publique.
+- **`android.versionCode` / `ios.buildNumber`** : entier **N**, incrémenté à chaque APK publié.
+- **Format d'affichage canonique** : `v1.0.0 — build N (YYYY-MM-DD)`.
+- **Tag CI Android** : `build-android-YYYY-MM-DD-N` (N = `versionCode`). Pousser ce tag
+  déclenche le build EAS (`.github/workflows/eas-build.yml`), qui injecte
+  `versionCode = N` et `extra.buildDate = YYYY-MM-DD` avant le build.
+- **Tag CI iOS** : `build-ios-YYYY-MM-DD-N` (N = `buildNumber`). Même workflow,
+  profil `production` (.ipa store-ready pour TestFlight via `eas submit`).
+  Prérequis : credentials Apple configurés côté EAS (cf. `HUMAN_TODO.md`) —
+  sans eux le build échoue à l'étape signing, la triple gate tourne quand même.
+- **Source de vérité runtime** : `Application.nativeBuildVersion` (expo-application)
+  + `extra.buildDate` (Constants) / `EXPO_PUBLIC_BUILD_DATE`.
+
+Format d'une entrée :
+
+```
+## v1.0.0 — build N — YYYY-MM-DD
+**APK** : <url eas> · **Tag CI** : build-android-YYYY-MM-DD-N · **Commit** : <sha>
+### Nouveau / ### Corrigé / ### À tester en priorité / ### Limitations connues
+```
+
+---
+
+## v1.0.0 — build 7 — 2026-07-08
+
+**APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/eb0e4541-5ab8-41e7-a0c7-0d25403dcc01 · **Tag CI** : `build-android-2026-07-08-7` · **Branche** : `spawt/v1-maj-consolidee`
+
+**Complément au build 6** — les décisions produit Q4/R3 appliquées + ouverture animée.
+
+### Nouveau
+- **Prix moyen F CFA (Q4 appliqué)** : convention éditoriale type TheFork — repas type par personne, **boissons non comprises** (mention affichée sous le prix). Chiffre saisi par l'équipe dans l'admin (champ « Ticket moyen », convention rappelée sous le champ).
+- **« Pays d'origine » (R3 appliqué)** : conservé avec l'angle nostalgie — « Pour te retrouver les goûts de chez toi. (Optionnel, promis) ».
+- **Pilotage sans redéploiement** : les deux fonctionnalités sont togglables depuis le dashboard admin → page **Fonctionnalités** (interrupteurs par scope). Flags : `place-avg-price`, `onboarding-origin-country` — seedés ON sur les 2 backends.
+- **Ouverture animée vectorielle** : le logo carte se TRACE (pin blanc cassé sur fond nuit, route en S, soleil d'or, étoiles) puis laisse place à Moka. Sur APK comme sur web.
+
+### À tester en priorité
+1. Ouverture : l'animation du logo (tracé → soleil → étoiles → Moka).
+2. Fiche lieu : « ~N F CFA » + la mention « boissons non comprises » dessous.
+3. Admin → Fonctionnalités : couper « Prix moyen » → la fiche repasse en ₣₣ (au relancement de l'app).
+4. Inscription : la question « Pays d'origine » avec sa nouvelle aide ; la couper depuis l'admin → elle disparaît du parcours.
+
+## v1.0.0 — build 6 — 2026-07-07
+
+**APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/f0363d01-f171-4d40-ad73-a298cba44594 · **Tag CI** : `build-android-2026-07-07-6` · **Branche** : `spawt/v1-maj-consolidee`
+
+**MAJ consolidée MVP V1** — retours du build 04/06 (note Stephanie Bidje / Alexandre Djengue) : les correctifs **R1→R21** et décisions **Q1→Q3** sont couverts, plus l'alignement design system (Moka PNG partout, fond blanc).
+
+### Corrigé (références de la note)
+- **#V07 (P0)** : la connexion marche — code de test **12345678** (8 cases), vraie session Supabase ouverte (vérifié sur les 2 backends).
+- **R1 (P0)** : « Ta commune » en liste déroulante (13 communes + Autre) · **R2** aide dédiée · **R3** pays de résidence/origine en listes · **R4** date de naissance jj/mm/aaaa + aide.
+- **R5 (P0)** : cadres sans quartier : Garbadrome, Foodtruck, Restaurant chic, Brunch · **R16** type de cuisine en liste déroulante.
+- **R6** : « Je sors pour… » → Manger · Découvrir · En groupe · En duo (nouvelles icônes) · **R7** : le Chat annonce « Voici mes 3 suggestions du jour. » AVANT la sélection.
+- **R8 (P0)** : le graphe radar du Palais est retiré du parcours (axes en barres sur la carte spawter) · **R9** : écran « Voici ton palais » épuré (Moka celebration).
+- **R10 (P0)** : bouton « Appeler » en doublon supprimé · **R11** CTA « Spawt le ! » · **R12** horaires 7 jours · **R17/R19** fiche lieu en onglets **Média · Menu · Avis** puis carte · **R18** contact en section « Divers » · **R21** prix moyen en **F CFA** (échelle ₣ en secours).
+- **R13** : plus aucun « on » dans les écrans (tutoiement) · **R14** : fond blanc (beige réservé aux accents) · **R15** : écran d'ouverture animé (logo carte → Moka) · **R20** : le feed remonte les lieux **ouverts**.
+- **Q1** : onglet Média = 3 photos de présentation + galerie des spawters · **Q2** : page « Tous les avis » (onglet Avis) · **Q3** : compteurs « Spawts » (lieux spawtés) vs « Favoris » clarifiés.
+
+### À tester en priorité (checklist login mock #V07)
+1. Splash animé → « Rejoindre la bande » → consentements → numéro CI (+225…) → « Recevoir mon code ».
+2. Saisir **12345678** → la session s'ouvre et l'onboarding continue (profil). Tester aussi : mauvais code (message d'erreur), « Renvoyer le code » (cooldown 30 s), triple erreur (panneau friction).
+3. Onboarding : commune/pays/cuisine en listes déroulantes, date jj/mm/aaaa.
+4. Fiche lieu : onglets, prix « ~N F CFA », « Spawt le ! », carte + Divers en bas.
+5. Feed : 4 modes, bloc Chat avant les 3 suggestions, lieux ouverts d'abord.
+
+### Limitations connues
+- La méthode de calcul du **prix moyen** (Q4) n'est pas tranchée — l'affichage lit `avg_ticket_xof`, à remplir côté data (checkpoint Kidam).
+- Le maintien du champ « Pays d'origine » (R3) reste à confirmer par la produit.
+- SMS réel (Termii) : phase suivante — bascule documentée (`TERMII_API_KEY` + `MOCK_TERMII=false`).
+
+## v1.0.0 — build 4 — 2026-07-01
+
+**APK** : https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/793fba86-ea29-4508-b355-6863e977aee1 · **Déclenchement** : workflow_dispatch (proxy git de session refusait les tags) · **Commit** : 8f67759
+
+### Nouveau
+- **Le Guet fonctionne** : geofencing armé automatiquement post-onboarding, notif "Le Guet a sonné" après 15 min dans un lieu, confirm/snooze/spawt passif — LA feature à tester en priorité (nécessite backend actif + permission localisation "Toujours")
+- Icône, splash screen et adaptive icon officiels (brandbook)
+- Position GPS réelle dans le feed/recherche/fiche lieu (fin des coordonnées Cocody codées en dur)
+- Favoris synchronisés cross-device
+- Bouton « Signaler » sur les avis → file de modération admin
+- Crash reporting Sentry prêt (inactif tant que le DSN n'est pas posé)
+
+### À tester en priorité
+1. Boucle du Guet complète (aller dans un des lieux seedés, attendre 15 min, répondre à la notif)
+2. Onboarding complet OTP (mode démo : code 123456 si Termii non configuré)
+3. Avis avec photo → vérifier que l'ADN du lieu bouge (recalcul serveur nouveau)
+4. Signaler un avis → vérifier son arrivée dans le portail admin (page Signalements)
+
+### Limitations connues
+- Backend requis : projet Supabase `ucymjsxmnzdxvvupgaof` (réactivé le 2026-07-01, migrations 0024-0027 appliquées, flag guet-geofence ON tous scopes)
+- SMS OTP réels : secrets Termii non configurés (mode mock)
+- Onglets Carte et Meute : stubs assumés (V1.5)
+
+---
+
+## v1.0.0 — build 3 — 2026-06-03
+
+**APK** : n/a (récupérable dans les logs du job EAS Build) · **Tag CI** : `build-android-2026-06-03-3` · **Commit** : (lot v2 dev — voir `git log`)
+
+### Nouveau
+- **Fiche lieu v2** (Story 4.12) : carte de localisation (image statique, tappable → Maps), horaires **jour par jour** (7 jours, jour courant en évidence), **galerie photos** (≥ 3), et écran **« Voir tous les avis »** quand un lieu a plus de 5 avis.
+- **Release ops** (Story 7.1) : numéro de build visible in-app — **Profil → « À propos »** affiche `v1.0.0 — build N (date)`, copiable pour les bug reports. Ce fichier `RELEASES.md` + le schéma de versioning.
+
+### Corrigé
+- (rien de spécifique — itération de forme/UX sur la fiche lieu.)
+
+### À tester en priorité
+- **Fiche d'un lieu** : la carte s'affiche-t-elle ? Le tap ouvre-t-il Maps ? Les horaires des 7 jours sont-ils corrects (jour du jour mis en avant, « Fermé » quand fermé) ? La galerie montre-t-elle au moins 3 vignettes ? « Voir tous les avis » ouvre-t-il bien la liste complète ?
+- **Profil → À propos** : le build affiché correspond-il bien à `build 3 (2026-06-03)` ? (Recopie-le tel quel dans tout bug report.)
+
+### Limitations connues
+- La carte n'apparaît que si une clé API carte est configurée côté build ; sinon seule l'adresse texte s'affiche (comportement attendu).
+- Les ajustements onboarding/Home du lot v2 (communes en liste déroulante, libellés calibration, icônes des modes, etc.) **ne sont pas encore** dans ce build.
+- `react-native-maps` interactif : prévu plus tard (carte statique pour l'instant).
+
+## v1.0.0 — build 2 — 2026-06-01
+
+**APK** : n/a (récupérable dans les logs du job EAS Build) · **Tag CI** : `build-android-2026-06-01` · **Commit** : `67851ec`
+
+### Nouveau
+- Bascule sur **Supabase live** (mode démo désactivé) — premier test sur données réelles.
+
+### Corrigé
+- `GoogleButton` : garde aussi contre les `clientIds` Google absents (crash post-consent évité).
+
+### À tester en priorité
+- Parcours auth Google de bout en bout (consentement → session).
+- Affichage des lieux / avis depuis Supabase réel.
+
+### Limitations connues
+- Avant Story 7.1 : pas de numéro de build visible in-app (d'où ce journal).
+- Fiche lieu v2 (carte / horaires 7 jours / galerie / tous les avis) pas encore dans ce build.
+
+## v1.0.0 — build 1 — 2026-05-28
+
+**APK** : n/a (premier APK alpha) · **Tag CI** : `build-android-2026-05-28` · **Commit** : `b92fbf1`
+
+### Nouveau
+- Premier APK alpha sideloadable (EAS Build preview Android, via CI).
+- Epics 1–6 livrés en `review` (onboarding, découverte, Le Spawt, identité, panel admin).
+
+### Corrigé
+- `i18n` : linters no-op sur Windows + 8 violations cachées Epic 4.
+
+### À tester en priorité
+- Onboarding complet (consentement ARTCI, calibrage du Palais).
+- Le Guet (géofence + spawt), fiabilité sur Android mid-range.
+
+### Limitations connues
+- Mode démo (seeds) selon configuration — pas encore Supabase live.
+- OTP non câblé à un provider réel (stub).

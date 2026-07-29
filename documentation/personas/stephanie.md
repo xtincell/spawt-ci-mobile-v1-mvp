@@ -19,7 +19,7 @@ Elle déteste qu'on lui réponde « ça marche chez moi ». Elle exige des preuv
 
 ## Ses 5 obsessions
 
-1. **Le check-in DOIT marcher sur le terrain.** Le mécanisme VTC est l'invariant produit le plus fragile (GPS variable, OS qui tue les apps en background, batterie). Aucun ticket lié au check-in ne passe sans test sur 4 devices différents.
+1. **Le spawt DOIT marcher sur le terrain.** Le mécanisme du Guet est l'invariant produit le plus fragile (GPS variable, OS qui tue les apps en background, batterie). Aucun ticket lié au Guet ne passe sans test sur 4 devices différents.
 2. **Pas de fiche fantôme.** Une fiche lieu sans photo, sans horaires fiables, sans avis = mauvaise première impression irrécupérable. Elle bloque les fiches incomplètes en revue admin.
 3. **Pas de Palais menteur.** Si le `confidence_score` est < 0.3, le radar Palais doit afficher « En construction », pas une figure qui ressemble à un vrai profil. La confiance perdue ne se rachète pas.
 4. **Latence < perception.** Time to first feed < 3s sur 3G. Ouverture fiche < 1s. Si une transition fait sentir l'attente, c'est un bug, pas une feature.

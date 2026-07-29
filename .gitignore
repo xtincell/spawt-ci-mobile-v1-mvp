@@ -47,6 +47,26 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# ━━━ Supabase ━━━
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# ━━━ Panel admin (Story 6.1+) ━━━
+spawt-admin/node_modules/
+spawt-admin/dist/
+spawt-admin/.env
+spawt-admin/.vite/
+
+# ━━━ Internal review workflow artifacts ━━━
+_bmad-output/implementation-artifacts/.review-*.patch
+
 # ━━━ Misc ━━━
 nul
 *.tmp
+
+# ━━━ Claude Code agent worktrees ━━━
+.claude/worktrees/
+
+# ━━━ Credentials de soumission stores (jamais versionnés) ━━━
+app/secrets/

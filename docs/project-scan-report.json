@@ -1,0 +1,89 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-05-13T00:30:49Z",
+    "last_updated": "2026-05-13T00:47:24Z",
+    "completed": "2026-05-13T00:47:24Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "deep",
+  "project_root": "c:/Claude COde/Spawt mobile CI",
+  "project_knowledge": "c:/Claude COde/Spawt mobile CI/docs",
+  "repository_type": "multi-part",
+  "project_parts": [
+    {
+      "part_id": "prototype-web",
+      "display_name": "SPAWT Web Prototype (Vite/React)",
+      "root_path": "c:/Claude COde/Spawt mobile CI",
+      "project_type_id": "web",
+      "primary_framework": "Vite + React 18",
+      "language": "JavaScript",
+      "status": "frozen-reference"
+    },
+    {
+      "part_id": "mobile-app",
+      "display_name": "SPAWT Mobile App (Expo/React Native)",
+      "root_path": "c:/Claude COde/Spawt mobile CI/app",
+      "project_type_id": "mobile",
+      "primary_framework": "Expo SDK 55 + React Native 0.83",
+      "language": "TypeScript (strict)",
+      "status": "active-canonical-v1"
+    }
+  ],
+  "completed_steps": [
+    {"step": "step_1", "status": "completed", "timestamp": "2026-05-13T00:32:00Z", "summary": "Classified as multi-part with 2 parts: prototype-web (web) + mobile-app (mobile)"},
+    {"step": "step_2", "status": "completed", "timestamp": "2026-05-13T00:33:00Z", "summary": "Found 8 existing docs (CHANGELOG, app/README, SPRINT_1_CAHIER, analytics/events, 4 personas) + PRD V1 docx"},
+    {"step": "step_3", "status": "completed", "timestamp": "2026-05-13T00:34:00Z", "summary": "Tech stack analyzed: Vite/React 18 (web) + Expo 55/RN 0.83/TS strict (mobile)"},
+    {"step": "step_4", "status": "completed", "timestamp": "2026-05-13T00:37:00Z", "summary": "Conditional analysis complete: data models (mobile + web), API contracts (mobile Supabase), 16 source files read"},
+    {"step": "step_5", "status": "completed", "timestamp": "2026-05-13T00:39:00Z", "summary": "source-tree-analysis.md generated (12 KB)"},
+    {"step": "step_6", "status": "completed", "timestamp": "2026-05-13T00:40:00Z", "summary": "Dev guides + deployment guide written"},
+    {"step": "step_7", "status": "completed", "timestamp": "2026-05-13T00:44:00Z", "summary": "integration-architecture.md + project-parts.json generated — no runtime communication between parts"},
+    {"step": "step_8", "status": "completed", "timestamp": "2026-05-13T00:43:00Z", "summary": "architecture docs written for 2 parts"},
+    {"step": "step_9", "status": "completed", "timestamp": "2026-05-13T00:42:00Z", "summary": "Component inventories + project-overview written"},
+    {"step": "step_10", "status": "completed", "timestamp": "2026-05-13T00:46:00Z", "summary": "Master index.md generated"},
+    {"step": "step_11", "status": "completed", "timestamp": "2026-05-13T00:47:00Z", "summary": "Validation: 0 incomplete markers found across all generated docs"},
+    {"step": "step_12", "status": "completed", "timestamp": "2026-05-13T00:47:24Z", "summary": "Workflow complete"}
+  ],
+  "current_step": "completed",
+  "findings": {
+    "project_classification": "multi-part repo with 2 distinct apps (web prototype + mobile canonical)",
+    "technology_stack": {
+      "prototype-web": "Vite 5 + React 18 + react-router 6 + maplibre-gl + vite-plugin-pwa (no TS, no tests)",
+      "mobile-app": "Expo SDK 55 + RN 0.83 + TS strict + Zustand + AsyncStorage + Supabase SDK + i18next + expo-router + react-native-svg"
+    },
+    "key_invariants": {
+      "vocab_audit": "lint-vocab.mjs blocks 'restaurant', 'check-in', 'leaderboard', 'gamif*'",
+      "i18n_audit": "i18n-check.mjs blocks hardcoded FR strings outside fr.json",
+      "design_tokens": "single source in app/src/theme/tokens.ts",
+      "data_source_adapter": "data-source.ts switches Supabase ↔ seed via env vars (no screen change)"
+    },
+    "divergences_documented": "prototype-web uses pre-PRD vocabulary (gargote, chaton/chat/matou) — flagged in data-models-prototype-web.md §2",
+    "missing_pieces": [
+      "Supabase migrations not yet versioned (Sprint 1 Phase 0)",
+      "OTP not implemented (Phase 1.1)",
+      "No CI pipeline yet",
+      "Sentry + analytics provider (PostHog/Mixpanel) not installed",
+      "16 npm vulnerabilities residual from Expo SDK transitives"
+    ]
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "project-overview.md",
+    "source-tree-analysis.md",
+    "integration-architecture.md",
+    "project-parts.json",
+    "architecture-mobile-app.md",
+    "architecture-prototype-web.md",
+    "data-models-mobile-app.md",
+    "data-models-prototype-web.md",
+    "api-contracts-mobile-app.md",
+    "component-inventory-mobile-app.md",
+    "component-inventory-prototype-web.md",
+    "development-guide-mobile-app.md",
+    "development-guide-prototype-web.md",
+    "deployment-guide.md",
+    "index.md"
+  ],
+  "incomplete_markers_found": 0,
+  "resume_instructions": "Workflow complete — initial scan generated 16 files in docs/ on 2026-05-13"
+}
