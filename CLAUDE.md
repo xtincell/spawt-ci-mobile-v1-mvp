@@ -136,10 +136,27 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `EXPO_PUBLIC_SUPABASE_URL`+`_ANON_KEY`, démo si `EXPO_PUBLIC_DEMO_MODE=true`, sinon
   écran « Configuration manquante ». Le repli silencieux d'avant a fait passer tous les
   APK livrés pour un produit vide alors que seule la config de build manquait.
-- **Coolify, deux pièges vérifiés** : (1) pour un « file storage » créé par l'API, le
+- **Coolify, trois pièges vérifiés** : (1) pour un « file storage » créé par l'API, le
   `fs_path` fourni est IGNORÉ — il est déduit du `mount_path`, et aucun bind-mount n'est
   ajouté au compose ; (2) un service ne voit les autres ressources du serveur que si
-  *Connect to predefined docker network* est activé.
+  *Connect to predefined docker network* est activé ; (3) **`PATCH /storages` n'écrit
+  RIEN sur le disque** — il ne met à jour que la base de Coolify. Le contenu n'est
+  matérialisé qu'à la **CRÉATION** du montage. Un déploiement par PATCH annonce donc
+  « mis à jour », l'API relit bien le nouveau contenu, et le conteneur sert la toute
+  première version *indéfiniment* — ni un redémarrage ni un redéploiement n'y changent
+  quoi que ce soit. `scripts/deploy-edge-functions.mjs` fait désormais DELETE puis POST.
+  Symptôme typique : un correctif d'Edge Function sans effet alors que tout dit qu'il
+  est déployé. Se diagnostique en posant une sonde dans une réponse et en constatant
+  qu'elle n'apparaît jamais.
+- **`auth.users` : jamais de NULL dans les colonnes de jetons.** GoTrue les lit dans des
+  `string` Go non-nullables ; un seul NULL fait échouer `GET /admin/users` pour la table
+  entière, donc le repli de `otp-verify`, donc **la reconnexion de TOUS les comptes**
+  (première connexion OK, toutes les suivantes en `user_provisioning_failed`). Une ligne
+  d'amorçage insérée en SQL direct suffisait. Réparé + `DEFAULT ''` posé en 0067. Tout
+  INSERT direct dans `auth.users` doit poser les 8 colonnes explicitement.
+- **GoTrue normalise le téléphone** en retirant le `+` : on écrit `+2250700000101`, il
+  stocke et rend `2250700000101`. Ne jamais comparer un `u.phone` à une forme E.164 —
+  comparer les chiffres seuls (`matchesPhoneAccount`, `otp-verify`).
 - **RLS : ne JAMAIS révoquer `EXECUTE` d'un prédicat de policy à `authenticated`.**
   Une expression de policy est évaluée avec les privilèges de l'APPELANT. La
   migration 0058 l'a fait sur `is_active_staff`/`is_admin_staff`/`is_b2b_of`/
