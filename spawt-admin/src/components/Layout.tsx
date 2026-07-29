@@ -48,6 +48,12 @@ export const Layout = () => {
           <NavLink to="/comptes" className={({ isActive }) => (isActive ? "active" : "")}>
             Comptes
           </NavLink>
+          {/* Versements déclarés hors passerelle (Wave, Orange Money, MoMo…).
+              Placé juste après Comptes : c'est le même geste — on regarde qui
+              est en face avant de décider. */}
+          <NavLink to="/paiements" className={({ isActive }) => (isActive ? "active" : "")}>
+            Paiements
+          </NavLink>
           <NavLink to="/b2b" className={({ isActive }) => (isActive ? "active" : "")}>
             Comptes B2B
           </NavLink>
@@ -59,6 +65,14 @@ export const Layout = () => {
           </NavLink>
           <NavLink to="/fonctionnalites" className={({ isActive }) => (isActive ? "active" : "")}>
             Fonctionnalités
+          </NavLink>
+          {/* En dernier, détaché du reste : ce n'est pas un écran d'exploitation
+              mais la documentation de la suite, pour qui reprend le code. */}
+          <NavLink
+            to="/runbook"
+            className={({ isActive }) => (isActive ? "active nav-doc" : "nav-doc")}
+          >
+            Mode d'emploi
           </NavLink>
         </nav>
       </aside>

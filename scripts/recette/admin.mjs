@@ -49,6 +49,10 @@ const ECRANS = [
   ["/b2b", "B2B"],
   ["/push", "Campagnes push"],
   ["/explore", "Explore"],
+  // Ajoutés 07/2026 : la validation des versements déclarés (Wave, Orange
+  // Money, MoMo…) et le mode d'emploi des développeurs.
+  ["/paiements", "Paiements"],
+  ["/runbook", "Mode d'emploi"],
 ];
 
 const main = async () => {

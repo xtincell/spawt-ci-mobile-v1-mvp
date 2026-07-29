@@ -46,7 +46,7 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   base `postgres`. Le domaine se pose via `PATCH /api/v1/services/{uuid}` champ `urls`
   (format `https://hôte:portConteneur`) — **pas** par la variable `SERVICE_FQDN_*`, que
   Coolify régénère depuis la colonne `fqdn`.
-- **Schéma** : migrations 0001→0062 appliquées, suivies dans `public.schema_migrations`.
+- **Schéma** : migrations 0001→0064 appliquées, suivies dans `public.schema_migrations`.
   Deux migrateurs équivalents : `supabase/migrator/migrate.sh` (conteneur Docker) et
   `supabase/migrator/migrate-http.mjs` (via `/pg/query`, **sans SSH** — c'est le chemin
   praticable, `supabase-db` ne publie aucun port).
@@ -68,8 +68,14 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `VITE_PREVIEW_GATE=true` → écran « Bientôt » pour tout le monde, portail réel
   pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). Au
   lancement : retirer la variable et **rebuild**. `spawt.online` continue de
-  servir sa page « Bientôt » statique — elle n'est dans AUCUN des 4 dépôts,
-  déployée à la main, hors Coolify.
+  servir sa page « Bientôt » statique.
+- **Page « Bientôt »** : désormais dans le dépôt (`project_spawt_mobile_ci/bientot/`) et
+  déployée par Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`).
+  ⚠️ **`spawt.online` sert encore l'ANCIENNE version**, posée à la main : aucune
+  ressource Coolify ne porte ce domaine, il est routé par une conf Traefik hors Coolify.
+  La bascule = retirer cette route puis ajouter `spawt.online` aux domaines de
+  `spawt-bientot`. Non faite : deux routeurs Traefik sur le même hôte = comportement
+  indéterminé sur la seule URL publique.
 - **Comptes internes** (0060) : `spawters.is_internal` déverrouille la section
   « Mode interne » des réglages de l'app — bascule gratuit ↔ Gold simulé,
   aperçu local du paywall géo (rayon gratuit 3 km). Non auto-attribuable
@@ -79,8 +85,21 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   (fallback SPA déjà configuré). ⚠️ Les variables `VITE_*` sont **figées au build** —
   les changer impose un **rebuild**, pas un redéploiement. Premier compte :
   `scripts/create-staff-account.mjs`.
-- **Feature flags** : 16 en base, 15 actifs sur les 4 scopes ; `paywall-geo` fermé tant
-  que CinetPay n'a pas de clés. Pilotables depuis la page Fonctionnalités de l'admin.
+- **Paiement à validation manuelle** (0063/0064) : **CinetPay est secondaire**. Le payeur
+  déclare son versement (Wave, Orange Money, MoMo, Moov, espèces, virement) depuis
+  `portail/gold/paiement-manuel`, l'équipe valide dans la page **Paiements** de la console.
+  `approve_payment_request()` fait tout en UNE transaction : abonnement + facture
+  numérotée + rôle B2B + audit. Idempotente (`provider_tx_id = manuel:<id>`, UNIQUE).
+  ⚠️ Le prix vient de la table `plans`, jamais du montant déclaré. `plans` DOIT rester
+  aligné sur `_shared/payment/types.ts` — les deux avaient divergé de 3 000 F sur
+  l'annuel. Coordonnées de versement : table `payment_instructions`, **toutes inactives
+  tant que les numéros ne sont pas renseignés**.
+- **Feature flags** : 16 en base ; `paywall-geo` désormais actif sur `internal`/`alpha`
+  (l'équipe peut le voir), **fermé sur `beta`/`prod`** tant que `payment_instructions`
+  n'a pas de numéro actif. Pilotables depuis la page Fonctionnalités de l'admin.
+- **Page « Mode d'emploi »** de la console (`/runbook`) : le runbook des développeurs,
+  derrière l'auth staff. Contenu dans `spawt-admin/src/pages/runbook/content.ts` —
+  **aucun secret**, la page est servie à tout compte staff y compris `operator`.
 - EAS : projet `15ac2301-e901-4caa-a8c8-864c6621bcd0`, owner `xtincell`, keystore managé.
   `app/eas.json` porte enfin un bloc `env` sur les profils distribuables.
 - CI : `.github/workflows/eas-build.yml` (tag `build-android-*` → quadruple gate +
