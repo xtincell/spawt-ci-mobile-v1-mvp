@@ -69,13 +69,29 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). Au
   lancement : retirer la variable et **rebuild**. `spawt.online` continue de
   servir sa page « Bientôt » statique.
-- **Page « Bientôt »** : désormais dans le dépôt (`project_spawt_mobile_ci/bientot/`) et
-  déployée par Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`).
-  ⚠️ **`spawt.online` sert encore l'ANCIENNE version**, posée à la main : aucune
-  ressource Coolify ne porte ce domaine, il est routé par une conf Traefik hors Coolify.
-  La bascule = retirer cette route puis ajouter `spawt.online` aux domaines de
-  `spawt-bientot`. Non faite : deux routeurs Traefik sur le même hôte = comportement
-  indéterminé sur la seule URL publique.
+- **Page « Bientôt »** : dans le dépôt (`project_spawt_mobile_ci/bientot/`), déployée par
+  Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`, uuid
+  `o10w9ckby0y44wewkg6p6upl`). Elle porte les **vrais** assets de marque : Klinsman +
+  Gotham en `@font-face` (nécessite `font-src 'self'` dans la CSP — sans quoi le
+  navigateur retombe sur les polices système **en silence**) et le logo `moka.png`.
+- ⚠️ **L'apex `spawt.online` sert encore l'ANCIENNE page** (audit du 2026-07-29, mesuré) :
+  - Un **seul** Traefik écoute `:443` sur 76.13.128.23 — un hôte inconnu du zone
+    retombe sur son certificat auto-signé. L'apex y passe donc forcément.
+  - **Aucune** des 17 applications ni des 6 services Coolify ne mentionne l'apex :
+    ni `fqdn`, ni `custom_labels` (base64), ni compose. La route est posée **à la main**
+    dans la conf dynamique du proxy, hors de ce que l'API expose.
+  - L'API Coolify n'offre **ni** endpoint de conf dynamique, **ni** exécution de commande
+    (404 sur `proxy`, `proxy/dynamic`, `dynamic-configurations`, `execute`, `command`).
+    Le dashboard Traefik n'est pas publié. **La bascule exige un accès à l'hôte.**
+  - Ne PAS ajouter `spawt.online` aux domaines de `spawt-bientot` sans retirer d'abord
+    l'ancienne route : deux routeurs, même règle `Host()`, même priorité par défaut
+    (Traefik la calcule sur la longueur de la règle) → départage non garanti, et
+    contention ACME possible sur la seule URL publique. Ordre : **retirer, puis ajouter**.
+  - La bascule doit couvrir `spawt.online` **et** `www.spawt.online` : les deux servent
+    aujourd'hui les mêmes octets.
+  - L'ancienne page contient `var ADMIN_WORD = "@ntigoumin225"` en clair. Portée réelle
+    faible (elle ne masque qu'un panneau « coulisses » dont le contenu — liens quiz et
+    console — est déjà dans la source publique), mais à ne pas réutiliser ailleurs.
 - **Comptes internes** (0060) : `spawters.is_internal` déverrouille la section
   « Mode interne » des réglages de l'app — bascule gratuit ↔ Gold simulé,
   aperçu local du paywall géo (rayon gratuit 3 km). Non auto-attribuable
