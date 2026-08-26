@@ -225,6 +225,19 @@ export async function handleRequest(req: Request): Promise<Response> {
   const reviewerLogin = isReviewerLogin(payload.phone_e164, payload.otp_code);
   let pinId: string | null = null;
 
+  // ── Le code de test est FIXE : il doit donc rester valide ────────────────
+  // En mode mock, aucun SMS ne part et le code accepté est toujours le même.
+  // Le consommer comme un vrai OTP n'a alors aucun sens : il n'y a pas de
+  // secret à protéger d'un rejeu, et la moindre requête envoyée deux fois
+  // (renvoi réseau, double soumission) enfermait la personne dehors avec un
+  // « aucun code en cours » alors que sa session venait d'être ouverte.
+  //
+  // On garde la demande d'envoi obligatoire — donc la limitation de débit et
+  // la trace dans `otp_attempts` — mais on accepte une demande déjà validée,
+  // à condition qu'elle soit récente. En mode réel (Termii), rien ne change :
+  // l'anti-rejeu reste strict.
+  const FENETRE_REJEU_MOCK_MS = 15 * 60 * 1000;
+
   if (!reviewerLogin) {
     // P3 — Lookup le pin_id Termii le plus récent NON ENCORE VÉRIFIÉ pour ce phone.
     const { data: attempts } = await admin
@@ -236,6 +249,21 @@ export async function handleRequest(req: Request): Promise<Response> {
       .limit(1);
 
     pinId = attempts?.[0]?.request_id ?? null;
+
+    if (!pinId && isMockMode()) {
+      // Rien en attente : on repêche la dernière demande récente, même déjà
+      // validée. C'est ce qui rend le code fixe réutilisable.
+      const depuis = new Date(Date.now() - FENETRE_REJEU_MOCK_MS).toISOString();
+      const { data: recentes } = await admin
+        .from("otp_attempts")
+        .select("request_id")
+        .eq("phone_e164", payload.phone_e164)
+        .gte("sent_at", depuis)
+        .order("sent_at", { ascending: false })
+        .limit(1);
+      pinId = recentes?.[0]?.request_id ?? null;
+    }
+
     if (!pinId) return json({ error: "no_pending_otp" }, req, 400);
 
     // Mock mode (opt-in explicite MOCK_TERMII=true, staging/CI) : skip Termii
@@ -286,7 +314,9 @@ export async function handleRequest(req: Request): Promise<Response> {
       .eq("request_id", pinId)
       .is("verified_at", null)
       .select("request_id");
-    if (!burned || burned.length === 0) {
+    // En mode mock, une demande déjà validée n'est PAS un rejeu : le code est
+    // fixe et public par conception. On poursuit. En mode réel, on refuse.
+    if ((!burned || burned.length === 0) && !isMockMode()) {
       return json({ error: "otp_already_used" }, req, 400);
     }
   }
