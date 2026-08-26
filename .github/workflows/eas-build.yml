@@ -64,7 +64,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22 (LTS) et non 20 : `eas-version: latest` a fini par
+          # résoudre eas-cli 22.5.0, dont une dépendance
+          # (@oclif/plugin-autocomplete) exige Node >= 22. Le build échouait
+          # alors AVANT toute compilation, sur l'installation de l'outil —
+          # sans que rien n'ait changé dans le dépôt. C'est la contrepartie de
+          # `latest` : l'environnement dérive tout seul.
+          node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
 
