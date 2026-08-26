@@ -59,6 +59,12 @@ export default function OtpScreen() {
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Détail technique affiché sous l'erreur, en clair, y compris dans un binaire
+  // distribué. Sans lui, trois échecs très différents — pas de jetons, session
+  // refusée, exception — s'affichaient tous « Pas de réseau », et la vraie
+  // raison n'était journalisée que sous __DEV__, donc jamais là où on en a
+  // besoin. Une personne bloquée peut désormais lire ce code et le transmettre.
+  const [detail, setDetail] = useState<string | null>(null);
   // Le verrou doit être SYNCHRONE. `submitting` est un état : il n'est visible
   // qu'au rendu suivant, donc deux appels partis dans le même tour le lisent
   // tous les deux à false. Une ref change tout de suite.
@@ -171,6 +177,7 @@ export default function OtpScreen() {
     submittingRef.current = true;
     setSubmitting(true);
     setError(null);
+    setDetail(null);
 
     // P-13 — abort un éventuel fetch submit précédent encore en vol.
     submitAbortRef.current?.abort();
@@ -307,7 +314,8 @@ export default function OtpScreen() {
         } | null;
       };
       if (!body.access_token || !body.refresh_token) {
-        setError(t("auth.error_network"));
+        setError(t("auth.error_no_tokens"));
+        setDetail("OTP-1 · missing_tokens");
         return;
       }
       const { error: sessionErr } = await supabase.auth.setSession({
@@ -315,8 +323,10 @@ export default function OtpScreen() {
         refresh_token: body.refresh_token,
       });
       if (sessionErr) {
-        if (__DEV__) console.warn("[otp] setSession failed", sessionErr);
-        setError(t("auth.error_network"));
+        // La raison ne doit PAS rester derrière __DEV__ : c'est précisément
+        // dans un APK distribué qu'on en a besoin.
+        setError(t("auth.error_session_open"));
+        setDetail(`OTP-2 · ${String(sessionErr.message ?? sessionErr).slice(0, 120)}`);
         return;
       }
 
@@ -348,7 +358,9 @@ export default function OtpScreen() {
     } catch (err) {
       // AbortError suite à unmount → silence.
       if ((err as { name?: string })?.name === "AbortError") return;
-      if (mountedRef.current) setError(t("auth.error_network"));
+      if (!mountedRef.current) return;
+      setError(t("auth.error_network"));
+      setDetail(`OTP-3 · ${String((err as { message?: string })?.message ?? err).slice(0, 120)}`);
     } finally {
       // Ne pas reset l'abortRef si un autre call l'a déjà remplacé.
       if (submitAbortRef.current === abort) submitAbortRef.current = null;
@@ -504,6 +516,21 @@ export default function OtpScreen() {
             }}
           >
             {error}
+          </Text>
+        ) : null}
+
+        {detail ? (
+          <Text
+            selectable
+            testID="otp-detail"
+            style={{
+              marginTop: theme.spacing.xs,
+              textAlign: "center",
+              color: theme.colors.text.tertiary,
+              fontSize: theme.typography.size.xs,
+            }}
+          >
+            {detail}
           </Text>
         ) : null}
 

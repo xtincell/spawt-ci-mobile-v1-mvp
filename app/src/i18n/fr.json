@@ -441,6 +441,8 @@
     "error_otp_already_used": "Code déjà utilisé. Demande un nouveau code.",
     "error_network": "Pas de réseau. Le Chat patiente.",
     "error_server": "Souci de notre côté, pas du tien. Réessaie dans un instant.",
+    "error_session_open": "Ton code est bon, mais la session n'a pas pu s'ouvrir sur ce téléphone.",
+    "error_no_tokens": "Le serveur a accepté ton code sans renvoyer de session.",
     "error_network_retry": "Connexion instable — le Chat réessaie…",
     "error_google_unavailable": "Google indisponible pour l'instant.",
     "error_apple_unavailable": "Apple indisponible pour l'instant.",
