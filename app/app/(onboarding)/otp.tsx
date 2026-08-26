@@ -42,11 +42,14 @@ export default function OtpScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ phone?: string; demo?: string }>();
+  const params = useLocalSearchParams<{ phone?: string; demo?: string; mock?: string }>();
   const phone = typeof params.phone === "string" ? params.phone : "";
   // D5 — gate strict : `?demo=1` n'est honoré QUE si le backend Supabase n'est
   // pas configuré. Empêche un deep-link prod de bypasser la session live.
   const demoMode = params.demo === "1" && !isSupabaseConfigured;
+  // Backend réel, mais envoi de SMS pas encore branché côté serveur : l'app
+  // doit le dire plutôt que de faire attendre un SMS qui ne partira pas.
+  const mockSms = params.mock === "1";
   const setDraftField = useOnboardingDraft((s) => s.setField);
 
   const refs = useRef<Array<TextInput | null>>([]);
@@ -422,7 +425,7 @@ export default function OtpScreen() {
           ))}
         </View>
 
-        {demoMode ? (
+        {demoMode || mockSms ? (
           <Text
             style={{
               marginTop: theme.spacing.base,
@@ -431,7 +434,7 @@ export default function OtpScreen() {
               fontSize: theme.typography.size.sm,
             }}
           >
-            {t("auth.otp_demo_hint")}
+            {t(demoMode ? "auth.otp_demo_hint" : "auth.otp_mock_hint")}
           </Text>
         ) : null}
 

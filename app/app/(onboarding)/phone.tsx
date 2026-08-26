@@ -138,9 +138,21 @@ export default function PhoneScreen() {
         name: "auth_otp_sent",
         properties: { phone_masked: maskPhone(phone) },
       });
+      // Le serveur signale lui-même qu'aucun SMS n'est réellement parti : en
+      // mode mock, `otp-send` renvoie un `request_id` préfixé « mock- ».
+      // Sans ce relais, l'app promet un SMS qu'elle ne peut pas délivrer et
+      // laisse attendre un code qui n'arrivera jamais — c'est exactement ce
+      // qui s'est produit sur l'APK de recette.
+      let mock = false;
+      try {
+        const corps = (await resp.clone().json()) as { request_id?: string };
+        mock = String(corps?.request_id ?? "").startsWith("mock-");
+      } catch {
+        // Réponse sans corps exploitable : on n'affirme rien.
+      }
       router.push({
         pathname: "/(onboarding)/otp",
-        params: { phone },
+        params: mock ? { phone, mock: "1" } : { phone },
       });
     } catch (err) {
       if ((err as { name?: string })?.name === "AbortError") {
