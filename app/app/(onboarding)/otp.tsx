@@ -212,16 +212,44 @@ export default function OtpScreen() {
       const anonKey =
         Constants.expoConfig?.extra?.supabaseAnonKey ??
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-      const resp = await fetch(`${url}/functions/v1/otp-verify`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          apikey: anonKey ?? "",
-          authorization: `Bearer ${anonKey ?? ""}`,
-        },
-        body: JSON.stringify({ phone_e164: phone, otp_code: code }),
-        signal: abort.signal,
-      });
+      // ⚠️ Cet appel n'avait AUCUN délai d'attente — contrairement à l'envoi
+      // du code, borné à 30 s. Sur une connexion mobile qui traîne, la requête
+      // pouvait rester en vol indéfiniment : bouton figé, aucun retour.
+      //
+      // Et une coupure passagère suffisait à renvoyer la personne à la case
+      // départ. L'app est faite pour Abidjan, en mobile : un réseau qui vacille
+      // est le cas NORMAL, pas l'exception. On retente donc une fois, en
+      // silence, avant de déclarer forfait.
+      const VERIFY_TIMEOUT_MS = 30_000;
+      const appelVerify = async (): Promise<Response> => {
+        const minuterie = setTimeout(() => abort.abort(), VERIFY_TIMEOUT_MS);
+        try {
+          return await fetch(`${url}/functions/v1/otp-verify`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              apikey: anonKey ?? "",
+              authorization: `Bearer ${anonKey ?? ""}`,
+            },
+            body: JSON.stringify({ phone_e164: phone, otp_code: code }),
+            signal: abort.signal,
+          });
+        } finally {
+          clearTimeout(minuterie);
+        }
+      };
+
+      let resp: Response;
+      try {
+        resp = await appelVerify();
+      } catch (premierEchec) {
+        // Un abort volontaire (démontage, nouvelle soumission) ne se retente
+        // pas : seule une panne de transport mérite une seconde chance.
+        if (abort.signal.aborted) throw premierEchec;
+        if (!mountedRef.current) throw premierEchec;
+        setError(t("auth.error_network_retry"));
+        resp = await appelVerify();
+      }
 
       if (!mountedRef.current) return;
 
@@ -257,7 +285,9 @@ export default function OtpScreen() {
         return;
       }
       if (!resp.ok) {
-        setError(t("auth.error_network"));
+        // Un 5xx dit « le serveur a échoué », pas « tu n'as pas de réseau ».
+        // Les confondre envoyait chercher la panne du mauvais côté.
+        setError(t(resp.status >= 500 ? "auth.error_server" : "auth.error_network"));
         return;
       }
 
