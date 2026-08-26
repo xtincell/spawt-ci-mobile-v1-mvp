@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { doitEnvoyerLeCode } from "../../src/lib/otp-submit-guard";
 import {
   Pressable,
   Text,
@@ -58,6 +59,13 @@ export default function OtpScreen() {
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Le verrou doit être SYNCHRONE. `submitting` est un état : il n'est visible
+  // qu'au rendu suivant, donc deux appels partis dans le même tour le lisent
+  // tous les deux à false. Une ref change tout de suite.
+  const submittingRef = useRef(false);
+  // Un code donné ne part qu'UNE fois. Sans ça, l'auto-envoi se rejoue dès que
+  // le verrou retombe alors que les 6 chiffres sont toujours à l'écran.
+  const codeDejaTenteRef = useRef<string | null>(null);
 
   const code = useMemo(() => digits.join(""), [digits]);
   const ready = code.length === CELL_COUNT;
@@ -69,16 +77,30 @@ export default function OtpScreen() {
     return () => clearInterval(id);
   }, [cooldown]);
 
-  // P-14 round 3 — Auto-submit doit lire les valeurs courantes de `friction` et
-  // `submitting` ; sans deps, on lit la valeur stale au moment où `ready` passe
-  // à true → l'auto-submit peut fire malgré friction=true si attempts atteint 3
-  // entre setDigits et l'effet. `onSubmit` lui-même gate sur `submitting` au
-  // début, mais le `friction` check doit être au runtime.
+  // ⚠️ Cet effet dépendait de `submitting`. À la fin d'une vérification, le
+  // verrou retombe à false — l'effet se redéclenchait donc alors que les 6
+  // chiffres étaient toujours saisis, et RENVOYAIT LE MÊME CODE.
+  //
+  // Vu sur la base : une seule ligne `otp_attempts` par demande, validée une
+  // fois — et l'utilisateur voyait quand même « Aucun code en cours ». La
+  // première requête consommait l'OTP et ouvrait la session ; la seconde ne
+  // trouvait plus rien, et son erreur écrasait le succès à l'écran. Connexion
+  // réussie côté serveur, échec affiché côté app.
+  //
+  // On ne dépend donc plus du verrou, et un code donné ne part qu'une fois.
   useEffect(() => {
-    if (!ready || submitting || friction) return;
+    const feuVert = doitEnvoyerLeCode({
+      complet: ready,
+      friction,
+      enCours: submittingRef.current,
+      code,
+      codeDejaTente: codeDejaTenteRef.current,
+    });
+    if (!feuVert) return;
+    codeDejaTenteRef.current = code;
     void onSubmit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, friction, submitting]);
+  }, [ready, friction, code]);
 
   const onChangeCell = (index: number, value: string) => {
     // P-16 — supporte le paste de N digits : si la value contient plusieurs
@@ -120,6 +142,8 @@ export default function OtpScreen() {
 
   const reset = () => {
     setDigits(Array(CELL_COUNT).fill(""));
+    // Le champ est vidé : la prochaine saisie, même identique, doit repartir.
+    codeDejaTenteRef.current = null;
     refs.current[0]?.focus();
   };
 
@@ -143,7 +167,8 @@ export default function OtpScreen() {
   }, []);
 
   const onSubmit = useCallback(async () => {
-    if (submitting) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setError(null);
 
@@ -297,9 +322,10 @@ export default function OtpScreen() {
     } finally {
       // Ne pas reset l'abortRef si un autre call l'a déjà remplacé.
       if (submitAbortRef.current === abort) submitAbortRef.current = null;
+      submittingRef.current = false;
       if (mountedRef.current) setSubmitting(false);
     }
-  }, [attempts, code, demoMode, phone, router, setDraftField, submitting, t]);
+  }, [attempts, code, demoMode, phone, router, setDraftField, t]);
 
   const onResend = useCallback(async () => {
     if (cooldown > 0) return;
