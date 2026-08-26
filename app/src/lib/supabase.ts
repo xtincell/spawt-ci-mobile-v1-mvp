@@ -3,6 +3,7 @@
 // Les FK pointent vers `spawters(id)` (amendement team 4.1).
 
 import { createClient } from "@supabase/supabase-js";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
 const RAW_URL =
@@ -33,6 +34,21 @@ if (!RAW_URL || !RAW_KEY) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
+    // ⚠️ SANS cet adaptateur, `persistSession: true` est un piège sur mobile.
+    //
+    // supabase-js se rabat sur `localStorage` quand aucun `storage` n'est
+    // fourni. `localStorage` n'existe pas en React Native : ouvrir la session
+    // échoue APRÈS que le serveur l'a pourtant émise. L'utilisateur voit un
+    // échec, la base montre une connexion réussie — et les deux ont raison.
+    //
+    // Le pire est que ça marche partout où l'on teste : la recette navigateur
+    // tourne sur `react-native-web`, où `localStorage` existe. Ce défaut était
+    // donc invisible par construction à tout test hors appareil réel — seul un
+    // APK installé pouvait le révéler.
+    //
+    // Conséquence seconde, même sans erreur visible : aucune session ne
+    // survivrait au redémarrage de l'app.
+    storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
