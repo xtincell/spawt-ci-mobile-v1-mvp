@@ -363,7 +363,15 @@ export default function OtpScreen() {
               authorization: `Bearer ${body.access_token}`,
             },
           });
-          sonde = ` | GET /user → ${r.status} ${(await r.text()).slice(0, 60)}`;
+          // Empreinte de la clé anonyme réellement embarquée : « Unauthorized »
+          // de Kong signifie « clé présente mais inconnue de la passerelle ».
+          // Reproduit à l'identique en envoyant une clé valide mais non
+          // déclarée. Il faut donc savoir CE QUE l'app envoie, sans exposer la
+          // clé entière — elle est publique par conception, mais une empreinte
+          // suffit à comparer.
+          const k = anonKey ?? "";
+          const empreinte = k.length ? `${k.slice(0, 8)}…${k.slice(-6)} (${k.length})` : "VIDE";
+          sonde = ` | clé ${empreinte} | GET /user → ${r.status} ${(await r.text()).slice(0, 50)}`;
         } catch (e) {
           sonde = ` | GET /user injoignable : ${String((e as { message?: string })?.message ?? e).slice(0, 50)}`;
         }
