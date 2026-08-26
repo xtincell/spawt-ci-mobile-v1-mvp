@@ -325,8 +325,37 @@ export default function OtpScreen() {
       if (sessionErr) {
         // La raison ne doit PAS rester derrière __DEV__ : c'est précisément
         // dans un APK distribué qu'on en a besoin.
+        //
+        // `sessionErr.message` seul ne suffit pas : « Unauthorized » est le
+        // texte de statut HTTP, il ne dit ni QUELLE couche refuse ni pourquoi.
+        // On refait donc l'appel que setSession vient de faire — GET /user avec
+        // le jeton — et on rapporte le statut et le début du corps. C'est la
+        // différence entre « le serveur a dit non » et « quelque chose sur le
+        // trajet a dit non », et les deux n'ont pas le même correctif.
+        let sonde = "";
+        try {
+          const r = await fetch(`${url}/auth/v1/user`, {
+            headers: {
+              apikey: anonKey ?? "",
+              authorization: `Bearer ${body.access_token}`,
+            },
+          });
+          sonde = ` | GET /user → ${r.status} ${(await r.text()).slice(0, 60)}`;
+        } catch (e) {
+          sonde = ` | GET /user injoignable : ${String((e as { message?: string })?.message ?? e).slice(0, 50)}`;
+        }
+        // L'écart d'horloge du téléphone décide du chemin que prend setSession
+        // (validation directe, ou rafraîchissement s'il croit le jeton périmé).
+        const charge = JSON.parse(
+          globalThis.atob(body.access_token.split(".")[1] ?? ""),
+        ) as { iat?: number; exp?: number };
+        const ecartS = Math.round(Date.now() / 1000) - (charge.iat ?? 0);
         setError(t("auth.error_session_open"));
-        setDetail(`OTP-2 · ${String(sessionErr.message ?? sessionErr).slice(0, 120)}`);
+        setDetail(
+          `OTP-2 · ${String(sessionErr.message ?? sessionErr).slice(0, 60)}` +
+            ` | statut ${String((sessionErr as { status?: number }).status ?? "?")}` +
+            ` | horloge ${ecartS >= 0 ? "+" : ""}${ecartS}s${sonde}`,
+        );
         return;
       }
 
