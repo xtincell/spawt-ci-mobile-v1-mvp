@@ -318,10 +318,33 @@ export default function OtpScreen() {
         setDetail("OTP-1 · missing_tokens");
         return;
       }
-      const { error: sessionErr } = await supabase.auth.setSession({
+      // Deux chemins indépendants pour ouvrir la session, parce qu'un seul ne
+      // suffit pas dans la vraie vie.
+      //
+      // `setSession` valide le jeton en appelant GET /auth/v1/user. Or ce jeton
+      // vient d'être émis par NOTRE propre Edge Function, après vérification du
+      // code : le revalider côté client n'apprend rien et ajoute un aller-retour
+      // réseau de plus — un point de rupture pour rien.
+      //
+      // Observé sur un téléphone à Abidjan : le code est validé, la session est
+      // créée en base, et cet appel-là échoue en « Unauthorized ». Le même appel
+      // rejoué depuis ailleurs, avec la même bibliothèque et le même compte,
+      // renvoie 200. Quelque chose entre l'appareil et /auth/v1/user refuse.
+      //
+      // `refreshSession` n'emprunte PAS ce chemin : il ne touche que
+      // /auth/v1/token, et enregistre la session de la même façon. On s'en sert
+      // comme second essai. Si l'un des deux passe, la personne entre.
+      let { error: sessionErr } = await supabase.auth.setSession({
         access_token: body.access_token,
         refresh_token: body.refresh_token,
       });
+      if (sessionErr) {
+        const { error: repliErr } = await supabase.auth.refreshSession({
+          refresh_token: body.refresh_token,
+        });
+        // Le repli a ouvert la session : on oublie l'échec du premier chemin.
+        if (!repliErr) sessionErr = null;
+      }
       if (sessionErr) {
         // La raison ne doit PAS rester derrière __DEV__ : c'est précisément
         // dans un APK distribué qu'on en a besoin.
