@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { doitEnvoyerLeCode } from "../../src/lib/otp-submit-guard";
 import {
   Pressable,
   Text,
@@ -15,12 +16,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import Constants from "expo-constants";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { track } from "../../src/lib/analytics";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
+import {
+  backendAnonKey,
+  backendUrl,
+  empreinteBackend,
+} from "../../src/lib/backend-identity";
 import { supabase } from "../../src/lib/supabase";
 
 const CELL_COUNT = 6;
@@ -42,11 +47,14 @@ export default function OtpScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ phone?: string; demo?: string }>();
+  const params = useLocalSearchParams<{ phone?: string; demo?: string; mock?: string }>();
   const phone = typeof params.phone === "string" ? params.phone : "";
   // D5 — gate strict : `?demo=1` n'est honoré QUE si le backend Supabase n'est
   // pas configuré. Empêche un deep-link prod de bypasser la session live.
   const demoMode = params.demo === "1" && !isSupabaseConfigured;
+  // Backend réel, mais envoi de SMS pas encore branché côté serveur : l'app
+  // doit le dire plutôt que de faire attendre un SMS qui ne partira pas.
+  const mockSms = params.mock === "1";
   const setDraftField = useOnboardingDraft((s) => s.setField);
 
   const refs = useRef<Array<TextInput | null>>([]);
@@ -55,6 +63,19 @@ export default function OtpScreen() {
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Détail technique affiché sous l'erreur, en clair, y compris dans un binaire
+  // distribué. Sans lui, trois échecs très différents — pas de jetons, session
+  // refusée, exception — s'affichaient tous « Pas de réseau », et la vraie
+  // raison n'était journalisée que sous __DEV__, donc jamais là où on en a
+  // besoin. Une personne bloquée peut désormais lire ce code et le transmettre.
+  const [detail, setDetail] = useState<string | null>(null);
+  // Le verrou doit être SYNCHRONE. `submitting` est un état : il n'est visible
+  // qu'au rendu suivant, donc deux appels partis dans le même tour le lisent
+  // tous les deux à false. Une ref change tout de suite.
+  const submittingRef = useRef(false);
+  // Un code donné ne part qu'UNE fois. Sans ça, l'auto-envoi se rejoue dès que
+  // le verrou retombe alors que les 6 chiffres sont toujours à l'écran.
+  const codeDejaTenteRef = useRef<string | null>(null);
 
   const code = useMemo(() => digits.join(""), [digits]);
   const ready = code.length === CELL_COUNT;
@@ -66,16 +87,30 @@ export default function OtpScreen() {
     return () => clearInterval(id);
   }, [cooldown]);
 
-  // P-14 round 3 — Auto-submit doit lire les valeurs courantes de `friction` et
-  // `submitting` ; sans deps, on lit la valeur stale au moment où `ready` passe
-  // à true → l'auto-submit peut fire malgré friction=true si attempts atteint 3
-  // entre setDigits et l'effet. `onSubmit` lui-même gate sur `submitting` au
-  // début, mais le `friction` check doit être au runtime.
+  // ⚠️ Cet effet dépendait de `submitting`. À la fin d'une vérification, le
+  // verrou retombe à false — l'effet se redéclenchait donc alors que les 6
+  // chiffres étaient toujours saisis, et RENVOYAIT LE MÊME CODE.
+  //
+  // Vu sur la base : une seule ligne `otp_attempts` par demande, validée une
+  // fois — et l'utilisateur voyait quand même « Aucun code en cours ». La
+  // première requête consommait l'OTP et ouvrait la session ; la seconde ne
+  // trouvait plus rien, et son erreur écrasait le succès à l'écran. Connexion
+  // réussie côté serveur, échec affiché côté app.
+  //
+  // On ne dépend donc plus du verrou, et un code donné ne part qu'une fois.
   useEffect(() => {
-    if (!ready || submitting || friction) return;
+    const feuVert = doitEnvoyerLeCode({
+      complet: ready,
+      friction,
+      enCours: submittingRef.current,
+      code,
+      codeDejaTente: codeDejaTenteRef.current,
+    });
+    if (!feuVert) return;
+    codeDejaTenteRef.current = code;
     void onSubmit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, friction, submitting]);
+  }, [ready, friction, code]);
 
   const onChangeCell = (index: number, value: string) => {
     // P-16 — supporte le paste de N digits : si la value contient plusieurs
@@ -117,6 +152,8 @@ export default function OtpScreen() {
 
   const reset = () => {
     setDigits(Array(CELL_COUNT).fill(""));
+    // Le champ est vidé : la prochaine saisie, même identique, doit repartir.
+    codeDejaTenteRef.current = null;
     refs.current[0]?.focus();
   };
 
@@ -140,9 +177,11 @@ export default function OtpScreen() {
   }, []);
 
   const onSubmit = useCallback(async () => {
-    if (submitting) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setError(null);
+    setDetail(null);
 
     // P-13 — abort un éventuel fetch submit précédent encore en vol.
     submitAbortRef.current?.abort();
@@ -179,21 +218,46 @@ export default function OtpScreen() {
         return;
       }
 
-      const url =
-        Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const anonKey =
-        Constants.expoConfig?.extra?.supabaseAnonKey ??
-        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-      const resp = await fetch(`${url}/functions/v1/otp-verify`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          apikey: anonKey ?? "",
-          authorization: `Bearer ${anonKey ?? ""}`,
-        },
-        body: JSON.stringify({ phone_e164: phone, otp_code: code }),
-        signal: abort.signal,
-      });
+      const url = backendUrl.valeur;
+      const anonKey = backendAnonKey.valeur;
+      // ⚠️ Cet appel n'avait AUCUN délai d'attente — contrairement à l'envoi
+      // du code, borné à 30 s. Sur une connexion mobile qui traîne, la requête
+      // pouvait rester en vol indéfiniment : bouton figé, aucun retour.
+      //
+      // Et une coupure passagère suffisait à renvoyer la personne à la case
+      // départ. L'app est faite pour Abidjan, en mobile : un réseau qui vacille
+      // est le cas NORMAL, pas l'exception. On retente donc une fois, en
+      // silence, avant de déclarer forfait.
+      const VERIFY_TIMEOUT_MS = 30_000;
+      const appelVerify = async (): Promise<Response> => {
+        const minuterie = setTimeout(() => abort.abort(), VERIFY_TIMEOUT_MS);
+        try {
+          return await fetch(`${url}/functions/v1/otp-verify`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              apikey: anonKey,
+              authorization: `Bearer ${anonKey}`,
+            },
+            body: JSON.stringify({ phone_e164: phone, otp_code: code }),
+            signal: abort.signal,
+          });
+        } finally {
+          clearTimeout(minuterie);
+        }
+      };
+
+      let resp: Response;
+      try {
+        resp = await appelVerify();
+      } catch (premierEchec) {
+        // Un abort volontaire (démontage, nouvelle soumission) ne se retente
+        // pas : seule une panne de transport mérite une seconde chance.
+        if (abort.signal.aborted) throw premierEchec;
+        if (!mountedRef.current) throw premierEchec;
+        setError(t("auth.error_network_retry"));
+        resp = await appelVerify();
+      }
 
       if (!mountedRef.current) return;
 
@@ -229,7 +293,9 @@ export default function OtpScreen() {
         return;
       }
       if (!resp.ok) {
-        setError(t("auth.error_network"));
+        // Un 5xx dit « le serveur a échoué », pas « tu n'as pas de réseau ».
+        // Les confondre envoyait chercher la panne du mauvais côté.
+        setError(t(resp.status >= 500 ? "auth.error_server" : "auth.error_network"));
         return;
       }
 
@@ -249,16 +315,83 @@ export default function OtpScreen() {
         } | null;
       };
       if (!body.access_token || !body.refresh_token) {
-        setError(t("auth.error_network"));
+        setError(t("auth.error_no_tokens"));
+        setDetail("OTP-1 · missing_tokens");
         return;
       }
-      const { error: sessionErr } = await supabase.auth.setSession({
+      // Deux chemins indépendants pour ouvrir la session, parce qu'un seul ne
+      // suffit pas dans la vraie vie.
+      //
+      // `setSession` valide le jeton en appelant GET /auth/v1/user. Or ce jeton
+      // vient d'être émis par NOTRE propre Edge Function, après vérification du
+      // code : le revalider côté client n'apprend rien et ajoute un aller-retour
+      // réseau de plus — un point de rupture pour rien.
+      //
+      // Observé sur un téléphone à Abidjan : le code est validé, la session est
+      // créée en base, et cet appel-là échoue en « Unauthorized ». Le même appel
+      // rejoué depuis ailleurs, avec la même bibliothèque et le même compte,
+      // renvoie 200. Quelque chose entre l'appareil et /auth/v1/user refuse.
+      //
+      // `refreshSession` n'emprunte PAS ce chemin : il ne touche que
+      // /auth/v1/token, et enregistre la session de la même façon. On s'en sert
+      // comme second essai. Si l'un des deux passe, la personne entre.
+      let { error: sessionErr } = await supabase.auth.setSession({
         access_token: body.access_token,
         refresh_token: body.refresh_token,
       });
       if (sessionErr) {
-        if (__DEV__) console.warn("[otp] setSession failed", sessionErr);
-        setError(t("auth.error_network"));
+        const { error: repliErr } = await supabase.auth.refreshSession({
+          refresh_token: body.refresh_token,
+        });
+        // Le repli a ouvert la session : on oublie l'échec du premier chemin.
+        if (!repliErr) sessionErr = null;
+      }
+      if (sessionErr) {
+        // La raison ne doit PAS rester derrière __DEV__ : c'est précisément
+        // dans un APK distribué qu'on en a besoin.
+        //
+        // `sessionErr.message` seul ne suffit pas : « Unauthorized » est le
+        // texte de statut HTTP, il ne dit ni QUELLE couche refuse ni pourquoi.
+        // On refait donc l'appel que setSession vient de faire — GET /user avec
+        // le jeton — et on rapporte le statut et le début du corps. C'est la
+        // différence entre « le serveur a dit non » et « quelque chose sur le
+        // trajet a dit non », et les deux n'ont pas le même correctif.
+        //
+        // Ce que dit l'empreinte, et pourquoi elle est décisive ici.
+        //
+        // `/functions/v1/*` ne vérifie AUCUNE clé au niveau de la passerelle :
+        // envoyer et vérifier le code marche donc même avec une clé fausse.
+        // `/auth/v1/*`, lui, est derrière `key-auth`. Mesuré sur le serveur
+        // réel, une seule et unique forme de requête produit
+        // `401 {"message":"Unauthorized"}` : une clé `apikey` que la passerelle
+        // ne connaît pas. Le statut ne suffit donc pas — il faut savoir QUELLE
+        // clé le binaire installé porte, et d'où elle vient.
+        let sonde = "";
+        try {
+          const r = await fetch(`${url}/auth/v1/user`, {
+            headers: {
+              apikey: anonKey,
+              authorization: `Bearer ${body.access_token}`,
+            },
+          });
+          sonde = ` | ${empreinteBackend()} | GET /user → ${r.status} ${(await r.text()).slice(0, 50)}`;
+        } catch (e) {
+          sonde =
+            ` | ${empreinteBackend()} | GET /user injoignable : ` +
+            String((e as { message?: string })?.message ?? e).slice(0, 50);
+        }
+        // L'écart d'horloge du téléphone décide du chemin que prend setSession
+        // (validation directe, ou rafraîchissement s'il croit le jeton périmé).
+        const charge = JSON.parse(
+          globalThis.atob(body.access_token.split(".")[1] ?? ""),
+        ) as { iat?: number; exp?: number };
+        const ecartS = Math.round(Date.now() / 1000) - (charge.iat ?? 0);
+        setError(t("auth.error_session_open"));
+        setDetail(
+          `OTP-2 · ${String(sessionErr.message ?? sessionErr).slice(0, 60)}` +
+            ` | statut ${String((sessionErr as { status?: number }).status ?? "?")}` +
+            ` | horloge ${ecartS >= 0 ? "+" : ""}${ecartS}s${sonde}`,
+        );
         return;
       }
 
@@ -290,13 +423,16 @@ export default function OtpScreen() {
     } catch (err) {
       // AbortError suite à unmount → silence.
       if ((err as { name?: string })?.name === "AbortError") return;
-      if (mountedRef.current) setError(t("auth.error_network"));
+      if (!mountedRef.current) return;
+      setError(t("auth.error_network"));
+      setDetail(`OTP-3 · ${String((err as { message?: string })?.message ?? err).slice(0, 120)}`);
     } finally {
       // Ne pas reset l'abortRef si un autre call l'a déjà remplacé.
       if (submitAbortRef.current === abort) submitAbortRef.current = null;
+      submittingRef.current = false;
       if (mountedRef.current) setSubmitting(false);
     }
-  }, [attempts, code, demoMode, phone, router, setDraftField, submitting, t]);
+  }, [attempts, code, demoMode, phone, router, setDraftField, t]);
 
   const onResend = useCallback(async () => {
     if (cooldown > 0) return;
@@ -324,17 +460,14 @@ export default function OtpScreen() {
     const abort = new AbortController();
     resendAbortRef.current = abort;
     try {
-      const url =
-        Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const anonKey =
-        Constants.expoConfig?.extra?.supabaseAnonKey ??
-        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const url = backendUrl.valeur;
+      const anonKey = backendAnonKey.valeur;
       const resp = await fetch(`${url}/functions/v1/otp-send`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          apikey: anonKey ?? "",
-          authorization: `Bearer ${anonKey ?? ""}`,
+          apikey: anonKey,
+          authorization: `Bearer ${anonKey}`,
         },
         body: JSON.stringify({ phone_e164: phone }),
         signal: abort.signal,
@@ -422,7 +555,7 @@ export default function OtpScreen() {
           ))}
         </View>
 
-        {demoMode ? (
+        {demoMode || mockSms ? (
           <Text
             style={{
               marginTop: theme.spacing.base,
@@ -431,7 +564,7 @@ export default function OtpScreen() {
               fontSize: theme.typography.size.sm,
             }}
           >
-            {t("auth.otp_demo_hint")}
+            {t(demoMode ? "auth.otp_demo_hint" : "auth.otp_mock_hint")}
           </Text>
         ) : null}
 
@@ -445,6 +578,21 @@ export default function OtpScreen() {
             }}
           >
             {error}
+          </Text>
+        ) : null}
+
+        {detail ? (
+          <Text
+            selectable
+            testID="otp-detail"
+            style={{
+              marginTop: theme.spacing.xs,
+              textAlign: "center",
+              color: theme.colors.text.tertiary,
+              fontSize: theme.typography.size.xs,
+            }}
+          >
+            {detail}
           </Text>
         ) : null}
 

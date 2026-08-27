@@ -69,13 +69,29 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). Au
   lancement : retirer la variable et **rebuild**. `spawt.online` continue de
   servir sa page « Bientôt » statique.
-- **Page « Bientôt »** : désormais dans le dépôt (`project_spawt_mobile_ci/bientot/`) et
-  déployée par Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`).
-  ⚠️ **`spawt.online` sert encore l'ANCIENNE version**, posée à la main : aucune
-  ressource Coolify ne porte ce domaine, il est routé par une conf Traefik hors Coolify.
-  La bascule = retirer cette route puis ajouter `spawt.online` aux domaines de
-  `spawt-bientot`. Non faite : deux routeurs Traefik sur le même hôte = comportement
-  indéterminé sur la seule URL publique.
+- **Page « Bientôt »** : dans le dépôt (`project_spawt_mobile_ci/bientot/`), déployée par
+  Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`, uuid
+  `o10w9ckby0y44wewkg6p6upl`). Elle porte les **vrais** assets de marque : Klinsman +
+  Gotham en `@font-face` (nécessite `font-src 'self'` dans la CSP — sans quoi le
+  navigateur retombe sur les polices système **en silence**) et le logo `moka.png`.
+- ⚠️ **L'apex `spawt.online` sert encore l'ANCIENNE page** (audit du 2026-07-29, mesuré) :
+  - Un **seul** Traefik écoute `:443` sur 76.13.128.23 — un hôte inconnu du zone
+    retombe sur son certificat auto-signé. L'apex y passe donc forcément.
+  - **Aucune** des 17 applications ni des 6 services Coolify ne mentionne l'apex :
+    ni `fqdn`, ni `custom_labels` (base64), ni compose. La route est posée **à la main**
+    dans la conf dynamique du proxy, hors de ce que l'API expose.
+  - L'API Coolify n'offre **ni** endpoint de conf dynamique, **ni** exécution de commande
+    (404 sur `proxy`, `proxy/dynamic`, `dynamic-configurations`, `execute`, `command`).
+    Le dashboard Traefik n'est pas publié. **La bascule exige un accès à l'hôte.**
+  - Ne PAS ajouter `spawt.online` aux domaines de `spawt-bientot` sans retirer d'abord
+    l'ancienne route : deux routeurs, même règle `Host()`, même priorité par défaut
+    (Traefik la calcule sur la longueur de la règle) → départage non garanti, et
+    contention ACME possible sur la seule URL publique. Ordre : **retirer, puis ajouter**.
+  - La bascule doit couvrir `spawt.online` **et** `www.spawt.online` : les deux servent
+    aujourd'hui les mêmes octets.
+  - L'ancienne page contient `var ADMIN_WORD = "@ntigoumin225"` en clair. Portée réelle
+    faible (elle ne masque qu'un panneau « coulisses » dont le contenu — liens quiz et
+    console — est déjà dans la source publique), mais à ne pas réutiliser ailleurs.
 - **Comptes internes** (0060) : `spawters.is_internal` déverrouille la section
   « Mode interne » des réglages de l'app — bascule gratuit ↔ Gold simulé,
   aperçu local du paywall géo (rayon gratuit 3 km). Non auto-attribuable
@@ -120,10 +136,65 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `EXPO_PUBLIC_SUPABASE_URL`+`_ANON_KEY`, démo si `EXPO_PUBLIC_DEMO_MODE=true`, sinon
   écran « Configuration manquante ». Le repli silencieux d'avant a fait passer tous les
   APK livrés pour un produit vide alors que seule la config de build manquait.
-- **Coolify, deux pièges vérifiés** : (1) pour un « file storage » créé par l'API, le
+- **Coolify, trois pièges vérifiés** : (1) pour un « file storage » créé par l'API, le
   `fs_path` fourni est IGNORÉ — il est déduit du `mount_path`, et aucun bind-mount n'est
   ajouté au compose ; (2) un service ne voit les autres ressources du serveur que si
-  *Connect to predefined docker network* est activé.
+  *Connect to predefined docker network* est activé ; (3) **`PATCH /storages` n'écrit
+  RIEN sur le disque** — il ne met à jour que la base de Coolify. Le contenu n'est
+  matérialisé qu'à la **CRÉATION** du montage. Un déploiement par PATCH annonce donc
+  « mis à jour », l'API relit bien le nouveau contenu, et le conteneur sert la toute
+  première version *indéfiniment* — ni un redémarrage ni un redéploiement n'y changent
+  quoi que ce soit. `scripts/deploy-edge-functions.mjs` fait désormais DELETE puis POST.
+  Symptôme typique : un correctif d'Edge Function sans effet alors que tout dit qu'il
+  est déployé. Se diagnostique en posant une sonde dans une réponse et en constatant
+  qu'elle n'apparaît jamais.
+- **EAS a un SECOND jeu de variables, invisible depuis le dépôt.** En plus du bloc
+  `env` d'`eas.json`, EAS stocke des variables **par environnement**
+  (production/preview/development), modifiables au tableau de bord. Trouvé dormant
+  depuis le **2026-05-20** sur `preview` : `EXPO_PUBLIC_SUPABASE_URL` =
+  `https://ucymjsxm….supabase.co` (le projet cloud **supprimé**) et
+  `EXPO_PUBLIC_SUPABASE_ANON_KEY` = sa clé de 208 caractères — c'est-à-dire
+  exactement l'empreinte que le téléphone affichait.
+  ⚠️ **Ne pas se fier au message du log de build.** Il annonce « The values from
+  the build profile configuration will be used » — et l'APK partait quand même
+  avec la clé du serveur. Seule différence observée entre les deux variables : la
+  **visibilité**. L'URL était `PUBLIC` et a bien suivi `eas.json` ; la clé était
+  `SENSITIVE` et ne l'a pas suivi. Corrélation constante sur les builds observés,
+  pas isolée expérimentalement — d'où la règle : ces variables sont écrites en
+  **`plaintext`** (elles partent dans chaque requête de l'app de toute façon ; les
+  marquer sensibles ne protège rien et empêche de les relire pour vérifier).
+  Trois défenses, à ne pas confondre : `scripts/check-eas-env.mjs` (refuse une clé
+  que la passerelle rejette), `scripts/pin-backend-in-manifest.mjs` (recopie
+  `eas.json` dans le manifeste, que `backend-identity` lit EN PRIORITÉ — le binaire
+  devient insensible à ce qu'EAS injecte), `scripts/sync-eas-env.mjs` (aligne le
+  serveur sur le dépôt). `scripts/audit-eas-env.mjs` affiche les couches à chaque
+  build. Aucun secret EAS legacy sur ce projet (liste vide).
+- **Kong ne protège PAS `/functions/v1/*` — mesuré.** Aucun plugin `key-auth` sur
+  cette route : `otp-send` répond **200 avec une clé bidon**, et même avec la chaîne
+  `demo-anon-key-placeholder`. `/auth/v1/*` et `/rest/v1/*`, eux, sont derrière
+  `key-auth`. Conséquence : un binaire dont `EXPO_PUBLIC_SUPABASE_ANON_KEY` est fausse
+  **passe tout le tunnel OTP** (numéro, envoi, vérification du code) puis meurt à
+  l'ouverture de session — et toutes les lectures de données meurent avec, sans que
+  rien ne nomme la cause. Signature exacte et **unique** d'une clé inconnue de la
+  passerelle : `401 {"message":"Unauthorized","request_id":…}`. À ne pas confondre
+  avec `{"message":"No API key found in request"}` (clé absente/vide) ni avec les
+  réponses GoTrue `{"code":…,"error_code":…,"msg":…}` (clé acceptée, jeton en cause).
+  `scripts/check-eas-env.mjs` interroge désormais la vraie passerelle avant chaque
+  build distribuable — vérifier la *présence* de la clé ne prouvait rien.
+- **La résolution adresse/clé a une seule source** : `app/src/lib/backend-identity.ts`.
+  Elle était recopiée dans 4 fichiers, donc invisible depuis l'app : impossible de
+  répondre à « qu'envoie le binaire installé ? ». Le module expose aussi la
+  **provenance** (manifeste `extra` > variable de build) et une **empreinte**
+  publiable, affichée dans le diagnostic OTP.
+- **`auth.users` : jamais de NULL dans les colonnes de jetons.** GoTrue les lit dans des
+  `string` Go non-nullables ; un seul NULL fait échouer `GET /admin/users` pour la table
+  entière, donc le repli de `otp-verify`, donc **la reconnexion de TOUS les comptes**
+  (première connexion OK, toutes les suivantes en `user_provisioning_failed`). Une ligne
+  d'amorçage insérée en SQL direct suffisait. Réparé + `DEFAULT ''` posé en 0067. Tout
+  INSERT direct dans `auth.users` doit poser les 8 colonnes explicitement.
+- **GoTrue normalise le téléphone** en retirant le `+` : on écrit `+2250700000101`, il
+  stocke et rend `2250700000101`. Ne jamais comparer un `u.phone` à une forme E.164 —
+  comparer les chiffres seuls (`matchesPhoneAccount`, `otp-verify`).
 - **RLS : ne JAMAIS révoquer `EXECUTE` d'un prédicat de policy à `authenticated`.**
   Une expression de policy est évaluée avec les privilèges de l'APPELANT. La
   migration 0058 l'a fait sur `is_active_staff`/`is_admin_staff`/`is_b2b_of`/

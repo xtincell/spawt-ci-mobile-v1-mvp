@@ -179,6 +179,9 @@ type EventName =
   | "review_reported"
   // 8. Coup de Cœur
   | "coup_de_coeur_attempted" | "coup_de_coeur_posted" | "coup_de_coeur_quota_exhausted"
+  // 0068 — le retrait existe : sans cet événement, un cœur repris se lirait
+  // comme un don qui n'a jamais eu lieu.
+  | "coup_de_coeur_removed"
   // 9. Stade & Palais & Identité
   | "palais_updated" | "stade_unlocked" | "archetype_assigned" | "archetype_mue"
   | "title_displayed_changed" | "profile_opened" | "spawter_card_flipped"
@@ -256,7 +259,7 @@ const EVENT_TO_SIGNAL = {
   review_reported: "click",
   review_photo_added: "review",
   coup_de_coeur_attempted: "review", coup_de_coeur_posted: "review",
-  coup_de_coeur_quota_exhausted: "review",
+  coup_de_coeur_quota_exhausted: "review", coup_de_coeur_removed: "review",
   palais_updated: "review", stade_unlocked: "review",
   archetype_assigned: "review", archetype_mue: "review",
   // Identité (Story 5.2 / 5.3)

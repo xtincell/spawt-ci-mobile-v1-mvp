@@ -687,6 +687,45 @@ export async function countCoupsDeCoeurFromSupabase(
   return typeof data === "number" ? data : 0;
 }
 
+// ─── Migration 0068 — le Coup de Cœur se retire, et l'app peut lire son état ──
+
+export async function removeCoupDeCoeurFromSupabase(
+  place_id: string,
+): Promise<import("./data-source").CoupDeCoeurResult | null> {
+  const { data, error } = await supabase.rpc("remove_coup_de_coeur", {
+    p_place_id: place_id,
+  });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] removeCoupDeCoeur failed", error);
+    return null;
+  }
+  return data as import("./data-source").CoupDeCoeurResult;
+}
+
+export async function coupDeCoeurStateFromSupabase(
+  place_id: string,
+): Promise<import("./data-source").CoupDeCoeurState | null> {
+  const { data, error } = await supabase.rpc("my_coup_de_coeur_state", {
+    p_place_id: place_id,
+  });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] coupDeCoeurState failed", error);
+    return null;
+  }
+  return data as import("./data-source").CoupDeCoeurState;
+}
+
+export async function listMyCoupsDeCoeurFromSupabase(): Promise<
+  import("./data-source").MonCoupDeCoeur[] | null
+> {
+  const { data, error } = await supabase.rpc("my_coups_de_coeur");
+  if (error) {
+    if (__DEV__) console.warn("[data-source] listMyCoupsDeCoeur failed", error);
+    return null;
+  }
+  return (data ?? []) as import("./data-source").MonCoupDeCoeur[];
+}
+
 // ─── Phase 2 — suppression de compte (migration 0029) ───────────────────────
 
 // ─── Feature 13 — push serveur : tokens Expo (migration 0034) ────────────────

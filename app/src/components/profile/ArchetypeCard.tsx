@@ -10,7 +10,7 @@
 // 100 % tokens du thème, aucun hex en dur (règle non négociable).
 
 import { useState } from "react";
-import { Image, Text, View } from "react-native";
+import { Image, Text, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 
@@ -26,10 +26,35 @@ interface Props {
   pionnierSeq?: number | null;
 }
 
+/**
+ * Part de la HAUTEUR d'écran que le visuel peut occuper.
+ *
+ * Le visuel était un carré en pleine largeur (`aspectRatio: 1`). Sur un
+ * téléphone étroit et haut, ce carré fait déjà la largeur de l'écran : la carte
+ * dépassait, et le bloc d'identité — code SPWT, nom, épithète, devise — se
+ * retrouvait hors champ. Autrement dit, la carte d'IDENTITÉ n'affichait plus
+ * l'identité, seulement l'image.
+ *
+ * Un ratio fixe ne peut pas marcher : il ne connaît qu'une dimension. On borne
+ * donc par les deux — jamais plus large que le conteneur, jamais plus haut
+ * qu'un tiers de l'écran. Le texte tient alors dans tous les cas, et la
+ * proportion reste correcte en rotation comme sur tablette.
+ */
+const PART_HAUTEUR_VISUEL = 0.32;
+/** Plancher : en dessous, le visuel ne raconte plus rien. */
+const HAUTEUR_VISUEL_MIN = 140;
+
 export function ArchetypeCard({ archetypeKey, pionnierSeq }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [imageFailed, setImageFailed] = useState(false);
+  // Réactif : suit la rotation et le redimensionnement, contrairement à
+  // `Dimensions.get()` lu une fois au montage.
+  const { width, height } = useWindowDimensions();
+  const hauteurVisuel = Math.max(
+    HAUTEUR_VISUEL_MIN,
+    Math.min(width, height * PART_HAUTEUR_VISUEL),
+  );
 
   const descriptor = ARCHETYPES[archetypeKey];
   const name = t(descriptor.nameKey);
@@ -49,7 +74,7 @@ export function ArchetypeCard({ archetypeKey, pionnierSeq }: Props) {
         {imageFailed ? (
           <View
             style={{
-              aspectRatio: 1,
+              height: hauteurVisuel,
               alignItems: "center",
               justifyContent: "center",
               padding: theme.spacing.xl,
@@ -71,7 +96,7 @@ export function ArchetypeCard({ archetypeKey, pionnierSeq }: Props) {
             resizeMode="cover"
             accessible={false}
             onError={() => setImageFailed(true)}
-            style={{ width: "100%", aspectRatio: 1 }}
+            style={{ width: "100%", height: hauteurVisuel }}
             testID={`archetype-visual-${archetypeKey}`}
           />
         )}
@@ -122,6 +147,10 @@ export function ArchetypeCard({ archetypeKey, pionnierSeq }: Props) {
           </View>
 
           <Text
+            // Deux lignes au plus : un nom long ne doit pas repousser l'épithète
+            // et la devise hors de la carte — c'est ce qu'on vient de réparer.
+            numberOfLines={2}
+            adjustsFontSizeToFit
             style={{
               ...theme.typography.preset.h1,
               color: theme.colors.text.inverse,

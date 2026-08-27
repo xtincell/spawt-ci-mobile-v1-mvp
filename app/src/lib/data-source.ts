@@ -20,7 +20,6 @@
 // (`MOCK_TERMII`, correctif sécurité C1) : le mode dégradé n'existe que sur
 // OPT-IN EXPLICITE. Sans backend et sans opt-in, on échoue visiblement.
 
-import Constants from "expo-constants";
 
 import type { Place, PlaceAdn } from "../types/place";
 import type { Spawter } from "../types/spawter";
@@ -30,19 +29,17 @@ import type { FeatureFlag } from "../types/feature-flag";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import type { Stade } from "../types/stade";
 
+import { backendAnonKey, backendUrl } from "./backend-identity";
+
 import { SEED_PLACES, type SeedPlace } from "../data/seed/places";
 // Mode Explore — fixtures statiques (même doctrine que SEED_PLACES : le mode
 // démo embarque ses données ; l'import dynamique ne passe pas sous Jest).
 import { SEED_EXPLORE_COLLECTIONS } from "../data/seed/explore";
 
-const SUPABASE_URL =
-  Constants.expoConfig?.extra?.supabaseUrl ??
-  process.env.EXPO_PUBLIC_SUPABASE_URL ??
-  "";
-const SUPABASE_KEY =
-  Constants.expoConfig?.extra?.supabaseAnonKey ??
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-  "";
+// Résolution partagée — voir `backend-identity.ts`. Elle vivait ici en copie,
+// à l'identique de trois autres fichiers.
+const SUPABASE_URL = backendUrl.valeur;
+const SUPABASE_KEY = backendAnonKey.valeur;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
@@ -459,6 +456,66 @@ export async function countCoupsDeCoeurThisMonth(
   if (!isSupabaseConfigured) return null;
   const { countCoupsDeCoeurFromSupabase } = await import("./data-source.supabase");
   return countCoupsDeCoeurFromSupabase(place_id);
+}
+
+/**
+ * Migration 0068 — retrait du Coup de Cœur du mois COURANT, avec restitution
+ * de l'unité de quota.
+ *
+ * `code: "not_given"` n'est PAS une erreur : il dit « il n'y avait rien à
+ * retirer ». L'écran doit s'aligner sur cet état plutôt qu'afficher un échec —
+ * c'est le cas d'un bouton resté sur une vue périmée.
+ */
+export async function removeCoupDeCoeur(
+  place_id: string,
+): Promise<CoupDeCoeurResult | null> {
+  if (!isSupabaseConfigured) return null;
+  const { removeCoupDeCoeurFromSupabase } = await import("./data-source.supabase");
+  return removeCoupDeCoeurFromSupabase(place_id);
+}
+
+/**
+ * Mon état sur un lieu — migration 0068.
+ *
+ * Ce que ça répare : le bouton ne gardait son « déjà donné » que dans un
+ * `useState`, perdu au démontage. Après un simple retour en arrière il
+ * reproposait de donner, et le serveur répondait `already_given`. Le produit
+ * savait, l'écran non.
+ */
+export interface CoupDeCoeurState {
+  /** L'appelant a-t-il donné SON Coup de Cœur à ce lieu, ce mois-ci. */
+  given: boolean;
+  /** Compteur public du lieu pour le mois courant. */
+  place_count: number;
+  quota: number;
+  used: number;
+  remaining: number;
+}
+
+export async function getCoupDeCoeurState(
+  place_id: string,
+): Promise<CoupDeCoeurState | null> {
+  if (!isSupabaseConfigured) return null;
+  const { coupDeCoeurStateFromSupabase } = await import("./data-source.supabase");
+  return coupDeCoeurStateFromSupabase(place_id);
+}
+
+/** Une ligne de « mes Coups de Cœur » (profil) — migration 0068. */
+export interface MonCoupDeCoeur {
+  place_id: string;
+  place_name: string;
+  neighborhood: string | null;
+  cover_photo_url: string | null;
+  month_key: string;
+  created_at: string;
+  /** Seuls ceux du mois courant sont retirables (le quota est mensuel). */
+  is_current_month: boolean;
+}
+
+export async function listMyCoupsDeCoeur(): Promise<MonCoupDeCoeur[] | null> {
+  if (!isSupabaseConfigured) return null;
+  const { listMyCoupsDeCoeurFromSupabase } = await import("./data-source.supabase");
+  return listMyCoupsDeCoeurFromSupabase();
 }
 
 // ─── Feature 13 — push serveur : tokens Expo par device (migration 0034) ────
