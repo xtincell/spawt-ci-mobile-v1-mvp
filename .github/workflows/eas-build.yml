@@ -140,6 +140,21 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      # ── Quelles variables le build va-t-il RÉELLEMENT recevoir ? ──────────
+      # EAS superpose plusieurs couches au bloc `env` d'eas.json : les
+      # variables stockées côté serveur EAS et les secrets legacy, qui gagnent
+      # sans laisser de trace dans le dépôt. Un APK a ainsi embarqué la clé
+      # anonyme d'un ancien projet Supabase supprimé pendant que `eas.json`
+      # déclarait la bonne — et rien, nulle part, ne le disait.
+      #
+      # L'audit ne modifie rien et ne peut pas faire échouer le build
+      # (`|| true`) : c'est une lampe, pas une barrière. La barrière, c'est
+      # `check-eas-env.mjs` au-dessus. Les valeurs sont réduites à des
+      # empreintes avant d'atteindre les logs.
+      - name: Audit des couches de variables EAS
+        working-directory: .
+        run: node scripts/audit-eas-env.mjs "${{ github.event.inputs.profile || 'preview' }}" || true
+
       - name: Resolve platform/profile
         # Tag build-ios-* → ios/production ; build-android-prod-* → android/
         # production (.aab store) ; build-android-* → android/preview (APK
@@ -158,6 +173,17 @@ jobs:
             echo "BUILD_PLATFORM=${{ github.event.inputs.platform || 'android' }}" >> "$GITHUB_ENV"
             echo "BUILD_PROFILE=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_ENV"
           fi
+
+      # ── Le dépôt gagne sur les couches serveur EAS ────────────────────────
+      # Recopie l'URL et la clé du profil visé depuis eas.json vers le
+      # manifeste, que `backend-identity` lit en priorité. Sans ça, une
+      # variable oubliée côté serveur EAS écrase silencieusement eas.json —
+      # c'est exactement ce qui a livré un APK pointant sur un projet Supabase
+      # supprimé. Doit tourner APRÈS « Resolve platform/profile » (a besoin du
+      # profil) et AVANT le build.
+      - name: Épingler le backend dans le manifeste
+        working-directory: .
+        run: node scripts/pin-backend-in-manifest.mjs "${{ env.BUILD_PROFILE }}"
 
       - name: Build APK
         # Pas de --no-wait : on attend la fin pour que l'URL de l'artefact .apk
