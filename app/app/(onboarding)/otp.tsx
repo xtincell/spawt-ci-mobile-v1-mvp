@@ -16,12 +16,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import Constants from "expo-constants";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { track } from "../../src/lib/analytics";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
+import {
+  backendAnonKey,
+  backendUrl,
+  empreinteBackend,
+} from "../../src/lib/backend-identity";
 import { supabase } from "../../src/lib/supabase";
 
 const CELL_COUNT = 6;
@@ -214,11 +218,8 @@ export default function OtpScreen() {
         return;
       }
 
-      const url =
-        Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const anonKey =
-        Constants.expoConfig?.extra?.supabaseAnonKey ??
-        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const url = backendUrl.valeur;
+      const anonKey = backendAnonKey.valeur;
       // ⚠️ Cet appel n'avait AUCUN délai d'attente — contrairement à l'envoi
       // du code, borné à 30 s. Sur une connexion mobile qui traîne, la requête
       // pouvait rester en vol indéfiniment : bouton figé, aucun retour.
@@ -235,8 +236,8 @@ export default function OtpScreen() {
             method: "POST",
             headers: {
               "content-type": "application/json",
-              apikey: anonKey ?? "",
-              authorization: `Bearer ${anonKey ?? ""}`,
+              apikey: anonKey,
+              authorization: `Bearer ${anonKey}`,
             },
             body: JSON.stringify({ phone_e164: phone, otp_code: code }),
             signal: abort.signal,
@@ -355,25 +356,29 @@ export default function OtpScreen() {
         // le jeton — et on rapporte le statut et le début du corps. C'est la
         // différence entre « le serveur a dit non » et « quelque chose sur le
         // trajet a dit non », et les deux n'ont pas le même correctif.
+        //
+        // Ce que dit l'empreinte, et pourquoi elle est décisive ici.
+        //
+        // `/functions/v1/*` ne vérifie AUCUNE clé au niveau de la passerelle :
+        // envoyer et vérifier le code marche donc même avec une clé fausse.
+        // `/auth/v1/*`, lui, est derrière `key-auth`. Mesuré sur le serveur
+        // réel, une seule et unique forme de requête produit
+        // `401 {"message":"Unauthorized"}` : une clé `apikey` que la passerelle
+        // ne connaît pas. Le statut ne suffit donc pas — il faut savoir QUELLE
+        // clé le binaire installé porte, et d'où elle vient.
         let sonde = "";
         try {
           const r = await fetch(`${url}/auth/v1/user`, {
             headers: {
-              apikey: anonKey ?? "",
+              apikey: anonKey,
               authorization: `Bearer ${body.access_token}`,
             },
           });
-          // Empreinte de la clé anonyme réellement embarquée : « Unauthorized »
-          // de Kong signifie « clé présente mais inconnue de la passerelle ».
-          // Reproduit à l'identique en envoyant une clé valide mais non
-          // déclarée. Il faut donc savoir CE QUE l'app envoie, sans exposer la
-          // clé entière — elle est publique par conception, mais une empreinte
-          // suffit à comparer.
-          const k = anonKey ?? "";
-          const empreinte = k.length ? `${k.slice(0, 8)}…${k.slice(-6)} (${k.length})` : "VIDE";
-          sonde = ` | clé ${empreinte} | GET /user → ${r.status} ${(await r.text()).slice(0, 50)}`;
+          sonde = ` | ${empreinteBackend()} | GET /user → ${r.status} ${(await r.text()).slice(0, 50)}`;
         } catch (e) {
-          sonde = ` | GET /user injoignable : ${String((e as { message?: string })?.message ?? e).slice(0, 50)}`;
+          sonde =
+            ` | ${empreinteBackend()} | GET /user injoignable : ` +
+            String((e as { message?: string })?.message ?? e).slice(0, 50);
         }
         // L'écart d'horloge du téléphone décide du chemin que prend setSession
         // (validation directe, ou rafraîchissement s'il croit le jeton périmé).
@@ -455,17 +460,14 @@ export default function OtpScreen() {
     const abort = new AbortController();
     resendAbortRef.current = abort;
     try {
-      const url =
-        Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const anonKey =
-        Constants.expoConfig?.extra?.supabaseAnonKey ??
-        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const url = backendUrl.valeur;
+      const anonKey = backendAnonKey.valeur;
       const resp = await fetch(`${url}/functions/v1/otp-send`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          apikey: anonKey ?? "",
-          authorization: `Bearer ${anonKey ?? ""}`,
+          apikey: anonKey,
+          authorization: `Bearer ${anonKey}`,
         },
         body: JSON.stringify({ phone_e164: phone }),
         signal: abort.signal,

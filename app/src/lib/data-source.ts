@@ -20,7 +20,6 @@
 // (`MOCK_TERMII`, correctif sécurité C1) : le mode dégradé n'existe que sur
 // OPT-IN EXPLICITE. Sans backend et sans opt-in, on échoue visiblement.
 
-import Constants from "expo-constants";
 
 import type { Place, PlaceAdn } from "../types/place";
 import type { Spawter } from "../types/spawter";
@@ -30,19 +29,17 @@ import type { FeatureFlag } from "../types/feature-flag";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import type { Stade } from "../types/stade";
 
+import { backendAnonKey, backendUrl } from "./backend-identity";
+
 import { SEED_PLACES, type SeedPlace } from "../data/seed/places";
 // Mode Explore — fixtures statiques (même doctrine que SEED_PLACES : le mode
 // démo embarque ses données ; l'import dynamique ne passe pas sous Jest).
 import { SEED_EXPLORE_COLLECTIONS } from "../data/seed/explore";
 
-const SUPABASE_URL =
-  Constants.expoConfig?.extra?.supabaseUrl ??
-  process.env.EXPO_PUBLIC_SUPABASE_URL ??
-  "";
-const SUPABASE_KEY =
-  Constants.expoConfig?.extra?.supabaseAnonKey ??
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-  "";
+// Résolution partagée — voir `backend-identity.ts`. Elle vivait ici en copie,
+// à l'identique de trois autres fichiers.
+const SUPABASE_URL = backendUrl.valeur;
+const SUPABASE_KEY = backendAnonKey.valeur;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 

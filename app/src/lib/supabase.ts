@@ -4,17 +4,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
 
-const RAW_URL =
-  Constants.expoConfig?.extra?.supabaseUrl ??
-  process.env.EXPO_PUBLIC_SUPABASE_URL ??
-  "";
+// Résolution unique et traçable (voir `backend-identity.ts`). Cette expression
+// était recopiée ici et dans trois autres fichiers : quatre copies qui pouvaient
+// diverger sans que rien ne le signale, et aucune observable depuis l'app.
+import { backendAnonKey, backendUrl } from "./backend-identity";
 
-const RAW_KEY =
-  Constants.expoConfig?.extra?.supabaseAnonKey ??
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-  "";
+const RAW_URL = backendUrl.valeur;
+const RAW_KEY = backendAnonKey.valeur;
 
 // @supabase/supabase-js v2.45+ throw si URL/key vides — mais en mode démo
 // fallback, le client n'est jamais réellement appelé (toutes les call-sites

@@ -20,9 +20,9 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { track } from "../../src/lib/analytics";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
+import { backendAnonKey, backendUrl } from "../../src/lib/backend-identity";
 import { GoogleButton } from "../../src/components/auth/GoogleButton";
 import { AppleButton } from "../../src/components/auth/AppleButton";
-import Constants from "expo-constants";
 
 // P7 — CIV mobile numbers (post-2022 renumbering, ARTCI). Tous les opérateurs :
 //   Orange : 07, 08, 09 ; MTN : 04, 05, 06 ; Moov : 01, 02, 03 — prefix `0[1-9]`.
@@ -110,17 +110,14 @@ export default function PhoneScreen() {
     const timeoutId = setTimeout(() => abort.abort(), OTP_SEND_TIMEOUT_MS);
     timeoutRef.current = timeoutId;
     try {
-      const url =
-        Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const anonKey =
-        Constants.expoConfig?.extra?.supabaseAnonKey ??
-        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const url = backendUrl.valeur;
+      const anonKey = backendAnonKey.valeur;
       const resp = await fetch(`${url}/functions/v1/otp-send`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          apikey: anonKey ?? "",
-          authorization: `Bearer ${anonKey ?? ""}`,
+          apikey: anonKey,
+          authorization: `Bearer ${anonKey}`,
         },
         body: JSON.stringify({ phone_e164: phone }),
         signal: abort.signal,

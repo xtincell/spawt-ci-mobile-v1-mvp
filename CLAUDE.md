@@ -148,6 +148,23 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   Symptôme typique : un correctif d'Edge Function sans effet alors que tout dit qu'il
   est déployé. Se diagnostique en posant une sonde dans une réponse et en constatant
   qu'elle n'apparaît jamais.
+- **Kong ne protège PAS `/functions/v1/*` — mesuré.** Aucun plugin `key-auth` sur
+  cette route : `otp-send` répond **200 avec une clé bidon**, et même avec la chaîne
+  `demo-anon-key-placeholder`. `/auth/v1/*` et `/rest/v1/*`, eux, sont derrière
+  `key-auth`. Conséquence : un binaire dont `EXPO_PUBLIC_SUPABASE_ANON_KEY` est fausse
+  **passe tout le tunnel OTP** (numéro, envoi, vérification du code) puis meurt à
+  l'ouverture de session — et toutes les lectures de données meurent avec, sans que
+  rien ne nomme la cause. Signature exacte et **unique** d'une clé inconnue de la
+  passerelle : `401 {"message":"Unauthorized","request_id":…}`. À ne pas confondre
+  avec `{"message":"No API key found in request"}` (clé absente/vide) ni avec les
+  réponses GoTrue `{"code":…,"error_code":…,"msg":…}` (clé acceptée, jeton en cause).
+  `scripts/check-eas-env.mjs` interroge désormais la vraie passerelle avant chaque
+  build distribuable — vérifier la *présence* de la clé ne prouvait rien.
+- **La résolution adresse/clé a une seule source** : `app/src/lib/backend-identity.ts`.
+  Elle était recopiée dans 4 fichiers, donc invisible depuis l'app : impossible de
+  répondre à « qu'envoie le binaire installé ? ». Le module expose aussi la
+  **provenance** (manifeste `extra` > variable de build) et une **empreinte**
+  publiable, affichée dans le diagnostic OTP.
 - **`auth.users` : jamais de NULL dans les colonnes de jetons.** GoTrue les lit dans des
   `string` Go non-nullables ; un seul NULL fait échouer `GET /admin/users` pour la table
   entière, donc le repli de `otp-verify`, donc **la reconnexion de TOUS les comptes**
