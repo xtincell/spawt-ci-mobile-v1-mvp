@@ -37,11 +37,11 @@ const ENVIRONNEMENT = process.argv[2] ?? "preview";
 
 /**
  * Réduit toute suite assez longue de caractères base64url à une empreinte.
- * Le seuil (32) laisse passer les valeurs courtes et lisibles — `true`, une
+ * Le seuil (24) laisse passer les valeurs courtes et lisibles — `true`, une
  * URL, un identifiant de projet — et n'attrape que ce qui ressemble à un jeton.
  */
 function masquer(texte) {
-  return texte.replace(/[A-Za-z0-9_\-.]{32,}/g, (v) => `${v.slice(0, 8)}…${v.slice(-6)} (${v.length})`);
+  return texte.replace(/[A-Za-z0-9_\-.]{24,}/g, (v) => `${v.slice(0, 8)}…${v.slice(-6)} (${v.length})`);
 }
 
 function lancer(titre, args) {
@@ -62,12 +62,22 @@ function lancer(titre, args) {
 }
 
 console.log(`[audit-eas] couches de variables vues par le build — environnement « ${ENVIRONNEMENT} »`);
-console.log("[audit-eas] rappel : les couches serveur EAS gagnent sur le bloc `env` d'eas.json.");
+// Sur la précédence, s'en tenir à ce qui est mesuré. EAS ANNONCE dans ses logs
+// que le bloc `env` du profil l'emporte quand un nom est défini des deux côtés.
+// Un APK a pourtant été livré portant l'autre valeur. On ne se fie donc pas à
+// l'annonce : on regarde les deux couches, et `pin-backend-in-manifest.mjs`
+// retire la question au binaire.
+console.log("[audit-eas] deux sources portent ces noms ; comparer les valeurs, pas se fier à l'ordre annoncé.");
 
+// `env:list` n'accepte PAS `--non-interactive` (il ne demande rien), et sans
+// `--include-sensitive` il masque justement ce qu'on vient ici comparer. Les
+// valeurs passent de toute façon par `masquer()` avant les logs.
 lancer("Variables d'environnement EAS (côté serveur)", [
   "env:list",
   "--environment",
   ENVIRONNEMENT,
-  "--non-interactive",
+  "--format",
+  "long",
+  "--include-sensitive",
 ]);
 lancer("Secrets EAS (legacy — noms seulement)", ["secret:list", "--non-interactive"]);

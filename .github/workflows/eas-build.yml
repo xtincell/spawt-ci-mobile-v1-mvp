@@ -142,10 +142,12 @@ jobs:
 
       # ── Quelles variables le build va-t-il RÉELLEMENT recevoir ? ──────────
       # EAS superpose plusieurs couches au bloc `env` d'eas.json : les
-      # variables stockées côté serveur EAS et les secrets legacy, qui gagnent
-      # sans laisser de trace dans le dépôt. Un APK a ainsi embarqué la clé
-      # anonyme d'un ancien projet Supabase supprimé pendant que `eas.json`
-      # déclarait la bonne — et rien, nulle part, ne le disait.
+      # variables stockées par environnement côté serveur EAS, et les secrets
+      # legacy. Rien de tout cela n'apparaît dans le dépôt. Un APK a embarqué
+      # la clé anonyme d'un ancien projet Supabase supprimé pendant que
+      # `eas.json` déclarait la bonne — alors même que le log de build
+      # annonçait utiliser celle du profil. L'annonce et le binaire se
+      # contredisaient, et personne ne pouvait les confronter.
       #
       # L'audit ne modifie rien et ne peut pas faire échouer le build
       # (`|| true`) : c'est une lampe, pas une barrière. La barrière, c'est
@@ -154,6 +156,17 @@ jobs:
       - name: Audit des couches de variables EAS
         working-directory: .
         run: node scripts/audit-eas-env.mjs "${{ github.event.inputs.profile || 'preview' }}" || true
+
+      # ── Aligner le serveur EAS sur le dépôt ───────────────────────────────
+      # L'audit ci-dessus montre la dérive ; cette étape la referme à la source.
+      # Direction volontaire : eas.json est versionné, relu, et sa clé vient
+      # d'être vérifiée contre la vraie passerelle par `check-eas-env.mjs` — on
+      # ne pousse donc qu'une valeur prouvée. Idempotent (create --force), rien
+      # n'est supprimé, et un échec n'arrête pas le build : le manifeste épinglé
+      # plus bas suffit à protéger le binaire.
+      - name: Aligner les variables EAS sur eas.json
+        working-directory: .
+        run: node scripts/sync-eas-env.mjs
 
       - name: Resolve platform/profile
         # Tag build-ios-* → ios/production ; build-android-prod-* → android/
