@@ -148,6 +148,27 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   Symptôme typique : un correctif d'Edge Function sans effet alors que tout dit qu'il
   est déployé. Se diagnostique en posant une sonde dans une réponse et en constatant
   qu'elle n'apparaît jamais.
+- **EAS a un SECOND jeu de variables, invisible depuis le dépôt.** En plus du bloc
+  `env` d'`eas.json`, EAS stocke des variables **par environnement**
+  (production/preview/development), modifiables au tableau de bord. Trouvé dormant
+  depuis le **2026-05-20** sur `preview` : `EXPO_PUBLIC_SUPABASE_URL` =
+  `https://ucymjsxm….supabase.co` (le projet cloud **supprimé**) et
+  `EXPO_PUBLIC_SUPABASE_ANON_KEY` = sa clé de 208 caractères — c'est-à-dire
+  exactement l'empreinte que le téléphone affichait.
+  ⚠️ **Ne pas se fier au message du log de build.** Il annonce « The values from
+  the build profile configuration will be used » — et l'APK partait quand même
+  avec la clé du serveur. Seule différence observée entre les deux variables : la
+  **visibilité**. L'URL était `PUBLIC` et a bien suivi `eas.json` ; la clé était
+  `SENSITIVE` et ne l'a pas suivi. Corrélation constante sur les builds observés,
+  pas isolée expérimentalement — d'où la règle : ces variables sont écrites en
+  **`plaintext`** (elles partent dans chaque requête de l'app de toute façon ; les
+  marquer sensibles ne protège rien et empêche de les relire pour vérifier).
+  Trois défenses, à ne pas confondre : `scripts/check-eas-env.mjs` (refuse une clé
+  que la passerelle rejette), `scripts/pin-backend-in-manifest.mjs` (recopie
+  `eas.json` dans le manifeste, que `backend-identity` lit EN PRIORITÉ — le binaire
+  devient insensible à ce qu'EAS injecte), `scripts/sync-eas-env.mjs` (aligne le
+  serveur sur le dépôt). `scripts/audit-eas-env.mjs` affiche les couches à chaque
+  build. Aucun secret EAS legacy sur ce projet (liste vide).
 - **Kong ne protège PAS `/functions/v1/*` — mesuré.** Aucun plugin `key-auth` sur
   cette route : `otp-send` répond **200 avec une clé bidon**, et même avec la chaîne
   `demo-anon-key-placeholder`. `/auth/v1/*` et `/rest/v1/*`, eux, sont derrière
