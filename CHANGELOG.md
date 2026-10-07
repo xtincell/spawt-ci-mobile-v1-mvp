@@ -4,6 +4,29 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Continuité des favoris et de la session — réception Shinkiro (2026-10-07)
+
+Deux choix simultanés sont conservés. Cache et intentions non acquittées sont
+écrits ensemble dans le document existant `spawt:saved_places`, identifié par
+compte. Une lecture du serveur ne pousse plus automatiquement les anciens
+favoris absents : les suppressions faites sur un autre appareil sont respectées.
+Seuls les ajouts et retraits explicitement en attente sont repris au lancement,
+au retour réseau et au retour en avant-plan. Une réponse ancienne ne peut pas
+acquitter un choix contraire plus récent ; le réseau ne bloque pas les gestes locaux.
+Les erreurs renvoyées par Supabase ne sont plus assimilées à un succès.
+
+Un échec disque remonte aux trois écrans concernés. Une liste illisible reste
+intacte et affiche une erreur avec reprise dans Mes favoris ; les autres parcours
+restent disponibles. Les caches de compte et consentements sont aussi effacés à
+la déconnexion. Les retours tardifs de favoris, Gold, statut interne et archétype
+sont écartés après la sortie du compte.
+
+Limites : un ancien tableau de favoris ne distinguait pas cache et ajout hors
+ligne ; il reste lisible hors ligne mais ne constitue pas une preuve d'ajout à
+rejouer. La déconnexion conserve sa politique de purge locale explicite, y compris
+les favoris non synchronisés. La file des spawts, les autres mutations asynchrones,
+l'apprentissage du Palais et la recette avec deux comptes réels restent à recevoir.
+
 ## Raccords de l’entrée — réception Shinkiro (2026-10-07)
 
 L’écran de consentement ouvre les pages existantes de confidentialité et de CGU

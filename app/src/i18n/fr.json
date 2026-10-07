@@ -330,7 +330,10 @@
     "count_one": "1 spawt sauvegardé",
     "count_many": "{{count}} spawts sauvegardés",
     "save_aria": "Sauvegarder ce spawt",
-    "unsave_aria": "Retirer ce spawt des favoris"
+    "unsave_aria": "Retirer ce spawt des favoris",
+    "save_failed": "Ce choix n’a pas été enregistré. Réessaie.",
+    "unavailable": "Tes favoris ne sont pas lisibles pour le moment. Rien n’a été effacé.",
+    "retry": "Réessayer"
   },
   "profile_links": {
     "saved_quick_link": "Mes favoris ({{count}})"

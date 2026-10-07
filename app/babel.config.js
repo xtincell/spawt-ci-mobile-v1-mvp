@@ -10,6 +10,7 @@ module.exports = function (api) {
   return {
     presets: [["babel-preset-expo", { jsxImportSource: "react" }]],
     plugins: [
+      ...(api.env("test") ? ["./scripts/babel-jest-dynamic-import.cjs"] : []),
       // Transpile `import.meta` en polyfill — nécessaire pour le bundle web Expo
       // SDK 55 qui émet `import.meta` dans un <script> classique (sans
       // type="module"), provoquant SyntaxError dans le navigateur. No-op sur natif.

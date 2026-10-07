@@ -623,7 +623,7 @@ export async function insertSavedPlaceToSupabase(
   const { error } = await supabase
     .from("saved_places")
     .upsert({ spawter_id, place_id }, { onConflict: "spawter_id,place_id" });
-  if (error && __DEV__) console.warn("[data-source] insertSavedPlace failed", error);
+  if (error) throw error;
 }
 
 export async function deleteSavedPlaceFromSupabase(
@@ -635,7 +635,7 @@ export async function deleteSavedPlaceFromSupabase(
     .delete()
     .eq("spawter_id", spawter_id)
     .eq("place_id", place_id);
-  if (error && __DEV__) console.warn("[data-source] deleteSavedPlace failed", error);
+  if (error) throw error;
 }
 
 // ─── Câblage MVP — signalement d'avis (migration 0026) ──────────────────────

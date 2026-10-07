@@ -1,6 +1,7 @@
 // Wrapper AsyncStorage — local cache pour le mode fallback (sans Supabase).
 // Conserve le spawter, le Palais, les spawts locaux entre les ouvertures de l'app.
 
+import { purgeSavedPlaces } from "./saved-places";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
@@ -97,36 +98,8 @@ export async function getConsent(kind: ConsentKind): Promise<string | null> {
 }
 
 export async function resetAll(): Promise<void> {
-  await AsyncStorage.multiRemove(Object.values(KEYS));
-}
-
-// ─── Story 3.6 — favoris (saved places) ─────────────
-
-export async function loadSaved(): Promise<Set<string>> {
-  try {
-    const raw = await AsyncStorage.getItem(KEYS.saved_places);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((s): s is string => typeof s === "string"));
-  } catch {
-    return new Set();
-  }
-}
-
-/**
- * Retourne `true` si l'écriture AsyncStorage a réussi, `false` sinon. Le
- * caller (store.toggleSaved) doit gate la mutation du state Zustand sur ce
- * boolean — sinon state et disque divergent jusqu'au prochain hydrate.
- */
-export async function saveSavedLocal(set: Set<string>): Promise<boolean> {
-  try {
-    await AsyncStorage.setItem(KEYS.saved_places, JSON.stringify([...set]));
-    return true;
-  } catch (err) {
-    if (__DEV__) console.warn("[storage] saveSavedLocal failed", err);
-    return false;
-  }
+  await purgeSavedPlaces();
+  await AsyncStorage.multiRemove(Object.values(KEYS).filter((key) => key !== KEYS.saved_places));
 }
 
 // ─── Story 5.2 — collection de titres ─────────────

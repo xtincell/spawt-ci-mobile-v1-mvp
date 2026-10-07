@@ -3,7 +3,7 @@
 // Tap heart → toggleSaved retire le favori, la carte disparaît.
 
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -21,6 +21,8 @@ export default function SavedScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
+  const savedUnavailable = useSpawterStore((s) => s.savedUnavailable);
+  const refreshSaved = useSpawterStore((s) => s.refreshSaved);
   const toggleSaved = useSpawterStore((s) => s.toggleSaved);
 
   const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
@@ -74,7 +76,19 @@ export default function SavedScreen() {
         </Text>
       </View>
 
-      {saved.length === 0 ? (
+      {savedUnavailable && (
+        <View style={{ padding: theme.spacing.base, gap: theme.spacing.sm }}>
+          <Text accessibilityRole="alert" style={{ color: theme.colors.text.primary }}>
+            {t("saved.unavailable")}
+          </Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("saved.retry")} onPress={() => {
+            void refreshSaved().catch(() => Alert.alert(t("saved.unavailable")));
+          }}>
+            <Text style={{ color: theme.colors.brand.accent }}>{t("saved.retry")}</Text>
+          </Pressable>
+        </View>
+      )}
+      {saved.length === 0 && !savedUnavailable ? (
         <EmptyState
           icon="heart"
           title={t("saved.empty_title")}
@@ -100,7 +114,7 @@ export default function SavedScreen() {
                     name: "place_unsaved",
                     properties: { place_id: item.id },
                   });
-                });
+                }).catch(() => Alert.alert(t("saved.save_failed")));
               }}
             />
           )}
