@@ -211,6 +211,7 @@
   "offline_queue": {
     "title": "En attente de synchronisation",
     "empty": "Tout est synchronisé. Le Chat dort tranquille.",
+    "error": "La synchronisation n'a pas abouti. La file reste sur cet appareil. Réessaie ou contacte l'équipe.",
     "sync_now": "Synchroniser maintenant",
     "purge": "Vider la file",
     "purge_confirm": "Tu vas effacer {{count}} spawts non synchronisés, ils ne seront jamais envoyés.",

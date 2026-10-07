@@ -139,7 +139,7 @@ describe("flush", () => {
     expect(remaining[0]?.attempts).toBe(1);
   });
 
-  it("drop l'entry après MAX_ATTEMPTS", async () => {
+  it("conserve l'entry après MAX_ATTEMPTS pour une reprise ultérieure", async () => {
     const backend: SyncBackend = {
       upsertSpawt: jest.fn(() => Promise.resolve(false)),
       updateSpawt: jest.fn(() => Promise.resolve(false)),
@@ -161,7 +161,7 @@ describe("flush", () => {
     );
     const result = await flush();
     expect(result.ok).toBe(0);
-    expect(result.remaining).toBe(0); // dropped
+    expect(result.remaining).toBe(1);
   });
 
   it("respecte le backoff — skip si elapsed < delay", async () => {

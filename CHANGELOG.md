@@ -4,6 +4,27 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+
+## Reprise hors ligne — réception Shinkiro (2026-10-07)
+
+Deux actions simultanées et les ajouts pendant un envoi pouvaient s'écraser.
+La file locale sérialise désormais ses écritures et acquitte chaque entrée par
+une identité persistée avant l'envoi ; elle relit le disque au retour du réseau.
+Les déclencheurs simultanés partagent le même envoi. Une purge explicite ne peut
+plus être annulée par une réponse tardive.
+
+Une erreur de stockage remonte au caller. Une file illisible reste intacte et
+l'inspecteur affiche l'échec au lieu de « Tout est synchronisé ». Au plafond de
+200 entrées, le nouvel ajout est refusé sans supprimer les actions déjà acceptées.
+Les actions ne sont plus effacées après cinq tentatives : le délai de reprise
+reste plafonné à 60 secondes. Les anciennes entrées sont migrées à la lecture,
+sans changement de clé de stockage.
+
+Huit contre-exemples reproduits avant correction ; neuf tests de régression ajoutés,
+dont le rendu de l'erreur de lecture. CI indépendante des builds EAS pour les gates
+et l'export web. La livraison native, l'isolation de la file entre comptes et la
+remontée des erreurs des callers restent à recevoir séparément.
+
 ## Corrections boucle adversariale (2026-07-26)
 
 **Passe de chasse aux bugs vérifiée (file:line + scénario + correctif) — 10 findings corrigés, un par groupe logique. Branche `claude/app-finale-ios-android-f8ewrp`. Triple gate mobile verte (757 jest, tsc 0, vocab, i18n), gate admin verte (135 vitest, lint, build), migration 0051 + tests SQL validés sur Postgres local.**
