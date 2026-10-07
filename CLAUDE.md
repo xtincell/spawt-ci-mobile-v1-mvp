@@ -66,29 +66,32 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
 - **Portail** : `https://portail.spawt.online` (app Coolify `spawt-portail-apercu`,
   repo `project_spawt_mobile_ci`, Dockerfile). **Rideau d'avant-lancement** :
   `VITE_PREVIEW_GATE=true` → écran « Bientôt » pour tout le monde, portail réel
-  pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). Au
-  lancement : retirer la variable et **rebuild**. `spawt.online` continue de
-  servir sa page « Bientôt » statique.
+  pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). **Le rideau
+  est LEVÉ** (mesuré le 2026-10-07 : aucune trace de `PREVIEW_GATE` ni de
+  « Bientôt » dans le bundle servi). Le portail est public, et il est servi aussi
+  bien sur `portail.` que sur l'apex et `www`.
 - **Page « Bientôt »** : dans le dépôt (`project_spawt_mobile_ci/bientot/`), déployée par
   Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`, uuid
   `o10w9ckby0y44wewkg6p6upl`). Elle porte les **vrais** assets de marque : Klinsman +
   Gotham en `@font-face` (nécessite `font-src 'self'` dans la CSP — sans quoi le
   navigateur retombe sur les polices système **en silence**) et le logo `moka.png`.
-- ⚠️ **L'apex `spawt.online` sert encore l'ANCIENNE page** (audit du 2026-07-29, mesuré) :
-  - Un **seul** Traefik écoute `:443` sur 76.13.128.23 — un hôte inconnu du zone
-    retombe sur son certificat auto-signé. L'apex y passe donc forcément.
-  - **Aucune** des 17 applications ni des 6 services Coolify ne mentionne l'apex :
-    ni `fqdn`, ni `custom_labels` (base64), ni compose. La route est posée **à la main**
-    dans la conf dynamique du proxy, hors de ce que l'API expose.
-  - L'API Coolify n'offre **ni** endpoint de conf dynamique, **ni** exécution de commande
-    (404 sur `proxy`, `proxy/dynamic`, `dynamic-configurations`, `execute`, `command`).
-    Le dashboard Traefik n'est pas publié. **La bascule exige un accès à l'hôte.**
-  - Ne PAS ajouter `spawt.online` aux domaines de `spawt-bientot` sans retirer d'abord
-    l'ancienne route : deux routeurs, même règle `Host()`, même priorité par défaut
-    (Traefik la calcule sur la longueur de la règle) → départage non garanti, et
-    contention ACME possible sur la seule URL publique. Ordre : **retirer, puis ajouter**.
-  - La bascule doit couvrir `spawt.online` **et** `www.spawt.online` : les deux servent
-    aujourd'hui les mêmes octets.
+- ✅ **L'apex sert le PORTAIL** — la bascule est faite (mesuré le 2026-10-07) :
+  `spawt.online`, `www.spawt.online` et `portail.spawt.online` rendent des octets
+  **identiques** (même sha256 sur `/`), c'est-à-dire le SPA Vite du portail.
+  `bientot.spawt.online` reste un hôte distinct avec sa propre page statique.
+  ⚠️ Les notes d'audit du 2026-07-29 qui disaient « l'apex sert encore l'ANCIENNE
+  page » et « la bascule exige un accès à l'hôte » sont **périmées** : elles
+  décrivaient l'état d'avant la bascule, pas une contrainte permanente.
+  - Le rideau d'avant-lancement **n'est plus dans le bundle livré** : ni
+    `PREVIEW_GATE` ni « Bientôt » n'y apparaissent. Le portail est donc
+    publiquement atteignable, pages légales comprises.
+  - Les routes légales existent bien côté client — `/legal/cgu`, `/legal/cgv`,
+    `/legal/confidentialite`, `/legal/suppression-compte` — et le texte est dans
+    le bundle principal (un seul `index-*.js`, aucun fragment différé).
+  - ⚠️ **Un 200 ne prouve RIEN sur ce domaine** : le serveur renvoie le même
+    squelette SPA pour n'importe quel chemin. Vérifié — `/legal/confidentialite`
+    et `/chemin-qui-nexiste-pas` rendent des octets identiques. Pour savoir si une
+    route existe, chercher dans le bundle, pas dans le code HTTP.
   - L'ancienne page contient `var ADMIN_WORD = "@ntigoumin225"` en clair. Portée réelle
     faible (elle ne masque qu'un panneau « coulisses » dont le contenu — liens quiz et
     console — est déjà dans la source publique), mais à ne pas réutiliser ailleurs.
