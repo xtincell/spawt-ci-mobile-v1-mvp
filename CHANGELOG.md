@@ -4,6 +4,14 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Raccords de l’entrée — réception Shinkiro (2026-10-07)
+
+L’écran de consentement ouvre les pages existantes de confidentialité et de CGU
+sur le site actif `spawt.online`, à la place des deux liens `spawt.ci` dont le
+domaine ne résout pas lors de la vérification. Les textes et les décisions de
+consentement sont conservés. Les mentions de validation juridique dans les pages
+restent ouvertes ; rendre le document consultable ne constitue pas son approbation.
+
 
 ## Reprise hors ligne — réception Shinkiro (2026-10-07)
 
