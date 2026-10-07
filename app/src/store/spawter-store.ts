@@ -14,8 +14,6 @@ import {
   loadSpawter,
   loadPalais,
   loadSpawts,
-  loadSaved,
-  saveSavedLocal,
   saveSpawterLocal,
   savePalaisLocal,
   appendSpawtLocal,
@@ -30,9 +28,6 @@ import {
   upsertProgression,
   insertTitre,
   setDisplayedTitre,
-  listSavedPlaceIds,
-  saveSavedPlace,
-  deleteSavedPlace,
   updateSpawterArchetype,
   fetchSpawterArchetype,
   fetchSpawterInternal,
@@ -40,6 +35,7 @@ import {
   fetchGoldEntitlement,
   type GoldEntitlement,
 } from "../lib/data-source";
+import { loadSavedPlaces, toggleSavedPlace, syncSavedPlaces, purgeSavedPlaces, SavedPlacesCacheError } from "../lib/saved-places";
 import { applyMeuteHeritage } from "../lib/meute-heritage";
 // Sprint 2 Gold — cache module synchrone (isGoldSpawter) + persistance locale.
 import {
@@ -146,6 +142,9 @@ function ensureGoldForegroundRefresh(): void {
         .catch((err) => {
           if (__DEV__) console.warn("[spawter-store] gold foreground refresh failed", err);
         });
+      void useSpawterStore.getState().refreshSaved().catch((err) => {
+        if (__DEV__) console.warn("[spawter-store] saved foreground sync failed", err);
+      });
     }
   });
 }
@@ -163,6 +162,7 @@ interface SpawterStore {
   spawts: SpawtCheckin[];
   /** Story 3.6 — Set d'IDs des lieux sauvegardés. Toujours présent (vide = pas de favoris). */
   savedPlaceIds: Set<string>;
+  savedUnavailable: boolean;
   /** Sprint 2 — entitlement Spawter Gold (cache persisté, revalidé réseau). */
   gold: GoldEntitlement | null;
   /**
@@ -200,10 +200,12 @@ interface SpawterStore {
   hydrate: () => Promise<void>;
   /**
    * Story 3.6 — Toggle un place_id dans/hors favoris.
-   * Local-first immédiat (AsyncStorage + state), fire-and-forget Supabase (V1 stub).
+   * Cache et intention persistés ensemble avant affichage ; reprise serveur en arrière-plan.
+   * Un échec de stockage rejette sans faux succès ni mutation de l’affichage.
    * Retourne `true` si ajouté, `false` si retiré — utilisé par analytics.
    */
   toggleSaved: (place_id: string) => Promise<boolean>;
+  refreshSaved: () => Promise<void>;
   /** Test d'appartenance — synchrone, no I/O. */
   isSaved: (place_id: string) => boolean;
   /**
@@ -285,12 +287,22 @@ async function persistSpawterFiable(spawter: Spawter): Promise<void> {
   }
 }
 
+let sessionGeneration = 0;
+let resetPending: Promise<unknown> = Promise.resolve();
+let accountStorageTail: Promise<unknown> = Promise.resolve();
+function withAccountStorage<T>(action: () => Promise<T>): Promise<T> {
+  const result = accountStorageTail.then(action);
+  accountStorageTail = result.catch(() => undefined);
+  return result;
+}
+
 export const useSpawterStore = create<SpawterStore>((set, get) => ({
   hydrating: true,
   spawter: null,
   palais: null,
   spawts: [],
   savedPlaceIds: new Set(),
+  savedUnavailable: false,
   gold: null,
   pendingBadge: null,
   collectionTitres: [],
@@ -428,42 +440,63 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   },
 
   refreshGold: async () => {
+    const generation = sessionGeneration;
+    const owner = get().spawter?.id;
+    const isCurrent = () => generation === sessionGeneration && get().spawter?.id === owner;
     if (__goldRefreshInFlight) return __goldRefreshInFlight;
-    __goldRefreshInFlight = (async () => {
+    const flight: Promise<void> = Promise.resolve().then(async () => {
       try {
         const fresh = await fetchGoldEntitlement();
         // `null` = indéterminé (réseau/erreur) : on GARDE le dernier état
         // connu — on ne dégrade jamais un droit sur un échec transitoire.
-        if (fresh === null) return;
-        setGoldEntitlementState(fresh);
-        await saveGoldLocal(fresh);
-        set({ gold: fresh });
+        if (fresh === null || !isCurrent()) return;
+        await withAccountStorage(async () => {
+          if (!isCurrent()) return;
+          await saveGoldLocal(fresh);
+          if (isCurrent()) {
+            setGoldEntitlementState(fresh);
+            set({ gold: fresh });
+          }
+        });
       } catch (err) {
         if (__DEV__) console.warn("[spawter-store] refreshGold failed", err);
       } finally {
-        __goldRefreshInFlight = null;
+        if (__goldRefreshInFlight === flight) __goldRefreshInFlight = null;
       }
-    })();
-    return __goldRefreshInFlight;
+    });
+    __goldRefreshInFlight = flight;
+    return flight;
   },
 
   hydrate: async () => {
-    const [spawter, palais, spawts, savedPlaceIds, collectionTitres, pendingMue] =
+    const generation = sessionGeneration;
+    await resetPending;
+    const [spawter, palais, spawts, collectionTitres, pendingMue] =
       await Promise.all([
         loadSpawter(),
         loadPalais(),
         loadSpawts(),
-        loadSaved(),
         loadCollectionTitres(),
         loadPendingMue(),
       ]);
-    set({ spawter, palais, spawts, savedPlaceIds, collectionTitres, pendingMue, hydrating: false });
+    if (generation !== sessionGeneration) return;
+    let savedPlaceIds = new Set<string>();
+    let savedUnavailable = false;
+    try { savedPlaceIds = await loadSavedPlaces(spawter?.id ?? null); }
+    catch (err) {
+      savedUnavailable = true;
+      if (__DEV__) console.warn("[spawter-store] saved cache unavailable", err);
+    }
+    if (generation !== sessionGeneration) return;
+    const isCurrent = () => generation === sessionGeneration && get().spawter?.id === spawter?.id;
+    set({ spawter, palais, spawts, savedPlaceIds, savedUnavailable, collectionTitres, pendingMue, hydrating: false });
 
     // Sprint 2 Gold — cache local d'abord (offline-first : le badge doré ne
     // clignote pas au boot), puis revalidation réseau fire-and-forget +
     // armement du refresh au retour foreground. Jamais bloquant.
     void (async () => {
       const cachedGold = await loadGoldLocal();
+      if (!isCurrent()) return;
       if (cachedGold) {
         setGoldEntitlementState(cachedGold);
         set({ gold: cachedGold });
@@ -482,14 +515,22 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     if (spawter) {
       void (async () => {
         const remote = await fetchSpawterInternal(spawter.id);
+        if (!isCurrent()) return;
         const isInternal = remote ?? spawter.is_internal;
         setInternalAccount(isInternal);
-        if (isInternal) setInternalGoldPreview(await loadInternalGoldPreview());
+        if (isInternal) {
+          const preview = await loadInternalGoldPreview();
+          if (!isCurrent()) return;
+          setInternalGoldPreview(preview);
+        }
         const cur = get().spawter;
         if (cur && cur.is_internal !== isInternal) {
           const updated: Spawter = { ...cur, is_internal: isInternal };
-          await saveSpawterLocal(updated);
-          set({ spawter: updated });
+          await withAccountStorage(async () => {
+            if (!isCurrent()) return;
+            await saveSpawterLocal(updated);
+            if (isCurrent()) set({ spawter: updated });
+          });
         }
       })().catch((err) => {
         if (__DEV__) console.warn("[spawter-store] internal status refresh failed", err);
@@ -503,7 +544,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     if (spawter && isSupabaseConfigured && !spawter.quiz_archetype) {
       void (async () => {
         const remote = await fetchSpawterArchetype(spawter.id);
-        if (!remote || !isArchetypeKey(remote.quiz_archetype)) return;
+        if (!isCurrent() || !remote || !isArchetypeKey(remote.quiz_archetype)) return;
         const cur = get().spawter;
         if (!cur || cur.quiz_archetype) return; // le local a avancé entretemps
         const updated: Spawter = {
@@ -511,66 +552,46 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
           quiz_archetype: remote.quiz_archetype,
           pionnier_seq: remote.pionnier_seq ?? cur.pionnier_seq ?? null,
         };
-        await saveSpawterLocal(updated);
-        set({ spawter: updated });
+        await withAccountStorage(async () => {
+          if (!isCurrent()) return;
+          await saveSpawterLocal(updated);
+          if (isCurrent()) set({ spawter: updated });
+        });
       })().catch((err) => {
         if (__DEV__) console.warn("[spawter-store] archetype remote adopt failed", err);
       });
     }
 
-    // Câblage MVP — favoris cross-device : union-merge local ∪ remote en
-    // arrière-plan (local-first, jamais bloquant). Les favoris locaux absents
-    // du remote sont poussés (rattrapage offline). Une suppression faite sur
-    // un autre device pendant que celui-ci était offline peut ressusciter —
-    // arbitrage V1 assumé (pas de tombstones), cf. migration 0024.
-    if (spawter) {
-      void (async () => {
-        const remote = await listSavedPlaceIds(spawter.id);
-        if (remote === null) return;
-        const local = get().savedPlaceIds;
-        const merged = new Set([...local, ...remote]);
-        const remoteSet = new Set(remote);
-        for (const id of local) {
-          if (!remoteSet.has(id)) void saveSavedPlace(spawter.id, id);
-        }
-        if (merged.size !== local.size) {
-          const ok = await saveSavedLocal(merged);
-          if (ok) set({ savedPlaceIds: merged });
-        }
-      })().catch((err) => {
-        if (__DEV__) console.warn("[spawter-store] saved sync failed", err);
-      });
+    void get().refreshSaved().catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] saved sync failed", err);
+    });
+  },
+
+  refreshSaved: async () => {
+    const owner = get().spawter?.id;
+    if (!owner) return;
+    const generation = sessionGeneration;
+    const isCurrent = () => generation === sessionGeneration && get().spawter?.id === owner;
+    try {
+      await syncSavedPlaces(owner, generation, isCurrent, (ids) => set({ savedPlaceIds: ids, savedUnavailable: false }));
+      if (isCurrent()) set({ savedUnavailable: false });
+    } catch (err) {
+      if (isCurrent() && err instanceof SavedPlacesCacheError) set({ savedUnavailable: true });
+      throw err;
     }
   },
 
   toggleSaved: async (place_id: string) => {
-    const current = get().savedPlaceIds;
-    const next = new Set(current);
-    let wasAdded: boolean;
-    if (next.has(place_id)) {
-      next.delete(place_id);
-      wasAdded = false;
-    } else {
-      next.add(place_id);
-      wasAdded = true;
-    }
-    // Local-first : commit AsyncStorage AVANT le state. Si AsyncStorage
-    // échoue (quota, IO), on n'avance pas le state — sinon state et disque
-    // divergent jusqu'au prochain hydrate, qui silently reverterait le toggle.
-    const ok = await saveSavedLocal(next);
-    if (!ok) return get().savedPlaceIds.has(place_id);
-    set({ savedPlaceIds: next });
-    // Câblage MVP — sync remote fire-and-forget (union-merge au prochain
-    // hydrate en cas d'échec réseau ici).
-    const spawter = get().spawter;
-    if (spawter) {
-      if (wasAdded) {
-        void saveSavedPlace(spawter.id, place_id);
-      } else {
-        void deleteSavedPlace(spawter.id, place_id);
-      }
-    }
-    return wasAdded;
+    const generation = sessionGeneration;
+    const owner = get().spawter?.id ?? null;
+    const isCurrent = () => generation === sessionGeneration && (get().spawter?.id ?? null) === owner;
+    await resetPending;
+    const added = await toggleSavedPlace(owner, place_id, () => get().savedPlaceIds,
+      isCurrent, (ids) => set({ savedPlaceIds: ids }));
+    void get().refreshSaved().catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] saved sync pending", err);
+    });
+    return added;
   },
 
   isSaved: (place_id: string) => get().savedPlaceIds.has(place_id),
@@ -1105,6 +1126,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   },
 
   reset: () => {
+    sessionGeneration += 1;
+    __goldRefreshInFlight = null;
     // Sprint 2 Gold — purge du cache module synchrone (isGoldSpawter) AVANT
     // le state : un nouveau compte sur le même device ne doit jamais hériter
     // du droit Gold du précédent.
@@ -1119,6 +1142,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       palais: null,
       spawts: [],
       savedPlaceIds: new Set(),
+      savedUnavailable: false,
       gold: null,
       pendingBadge: null,
       collectionTitres: [],
@@ -1127,10 +1151,15 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     });
     // Privacy V1 — CR finding M2 : purger TOUS les caches AsyncStorage qui
     // gardent une trace d'identité utilisateur (fuite cross-user sur même device).
-    // Les autres clés (spawter, palais, spawts, consent) sont écrasées par leurs
-    // propres flux au prochain onboarding.
+    // Les données de compte et consentements sont purgés aussi : une simple
+    // relance après déconnexion ne doit pas restaurer le compte précédent.
     const keysToPurge = [
-      "spawt:saved_places",
+      "spawt:spawter",
+      "spawt:palais",
+      "spawt:spawts",
+      "spawt:consent:cgv",
+      "spawt:consent:geoloc",
+      "spawt:consent:data",
       "spawt:collection_titres",
       // Sprint 2 Gold — l'entitlement est un droit de COMPTE (fuite cross-user
       // sinon : le badge doré survivrait au changement de spawter).
@@ -1159,7 +1188,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       "spawt:push:token", // push-token.ts PUSH_TOKEN_STORAGE_KEY
       ...STADE_ORDER.map((s) => `${STADE_CELEBRATED_KEY}:${s}`),
     ];
-    void AsyncStorage.multiRemove(keysToPurge).catch((err) => {
+    resetPending = Promise.all([purgeSavedPlaces(), withAccountStorage(() => AsyncStorage.multiRemove(keysToPurge))]);
+    void resetPending.catch((err) => {
       if (__DEV__) console.warn("[spawter-store] reset multiRemove failed", err);
     });
     // Crew : vide l'état transient en mémoire (session/membres/propositions) et
