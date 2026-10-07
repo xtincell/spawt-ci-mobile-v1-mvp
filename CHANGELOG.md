@@ -25,6 +25,10 @@ dont le rendu de l'erreur de lecture. CI indépendante des builds EAS pour les g
 et l'export web. La livraison native, l'isolation de la file entre comptes et la
 remontée des erreurs des callers restent à recevoir séparément.
 
+La déclaration de la fiche lieu dans le Stack utilise aussi son nom de route
+réel `place/[id]/index` : l'ancien nom désignait une route inexistante et
+produisait un avertissement à chaque rendu observé de l'aperçu web.
+
 ## Corrections boucle adversariale (2026-07-26)
 
 **Passe de chasse aux bugs vérifiée (file:line + scénario + correctif) — 10 findings corrigés, un par groupe logique. Branche `claude/app-finale-ios-android-f8ewrp`. Triple gate mobile verte (757 jest, tsc 0, vocab, i18n), gate admin verte (135 vitest, lint, build), migration 0051 + tests SQL validés sur Postgres local.**

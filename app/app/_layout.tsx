@@ -286,7 +286,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(onboarding)" />
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="place/[id]" options={{ presentation: "card" }} />
+            <Stack.Screen name="place/[id]/index" options={{ presentation: "card" }} />
             <Stack.Screen
               name="place/[id]/reviews"
               options={{ presentation: "card" }}
