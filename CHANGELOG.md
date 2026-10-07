@@ -4,6 +4,14 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Imports différés du dispositif Jest (2026-10-08)
+
+L'adaptateur de test enveloppe aussi les modules CommonJS en namespace avec leur
+export par défaut, comme un import différé. Le mock officiel AsyncStorage pouvait
+sinon faire échouer un test avant d'atteindre la mutation étudiée. Un contre-exemple
+verrouille cette interopérabilité. Ce changement est réservé à Jest : le chemin
+Expo/Metro du binaire reste inchangé.
+
 ## Continuité des favoris et de la session — réception Shinkiro (2026-10-07)
 
 Deux choix simultanés sont conservés. Cache et intentions non acquittées sont
