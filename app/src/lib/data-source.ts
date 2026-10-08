@@ -189,7 +189,7 @@ export async function fetchSpawterInternal(spawter_id: string): Promise<boolean 
 export async function claimMeuteHeritage(
   spawter_id: string,
   phone_e164: string,
-): Promise<{ claimed: boolean; archetype: string | null; pionnier_seq: number | null } | null> {
+): Promise<import("../types/spawter").MeuteHeritage | null> {
   if (!isSupabaseConfigured) return null;
   const { claimMeuteHeritageInSupabase } = await import("./data-source.supabase");
   return claimMeuteHeritageInSupabase(spawter_id, phone_e164);

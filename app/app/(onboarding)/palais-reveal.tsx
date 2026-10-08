@@ -14,7 +14,7 @@
 // (FadeInDown reanimated), texte du Chat selon le stade via chat-voice
 // (`post_calibration`), mention « Pionnier n°X » si héritage.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, useRouter } from "expo-router";
 import { BackHandler, Pressable, ScrollView, Text, View, StyleSheet } from "react-native";
@@ -29,11 +29,7 @@ import { ChatBubble } from "../../src/components/ChatBubble";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { dominantAxes } from "../../src/lib/palais-engine";
-import {
-  computeArchetypeFromPalais,
-  isArchetypeKey,
-  type ArchetypeKey,
-} from "../../src/lib/archetype-engine";
+import { hasMeuteCalibration, initialMeutePalais } from "../../src/lib/meute-heritage";
 import { ARCHETYPES } from "../../src/data/archetypes";
 import { ageRangeFromDateOfBirth } from "../../src/lib/age-range";
 import { track } from "../../src/lib/analytics";
@@ -47,6 +43,7 @@ export default function PalaisRevealScreen() {
   const theme = useTheme();
   const router = useRouter();
   const draft = useOnboardingDraft((s) => s.draft);
+  const setDraftField = useOnboardingDraft((s) => s.setField);
   const finalizeOnboarding = useSpawterStore((s) => s.finalizeOnboarding);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,30 +62,9 @@ export default function PalaisRevealScreen() {
   // Wrapped/share — ref de la carte 9:16 hors-écran (capture au tap).
   const shareCardRef = useRef<RNView>(null);
 
-  const ans = draft.calibration_answers;
-
-  // Chantier 13 archétypes — même logique de priorité que finalizeOnboarding
-  // (héritage quiz > calcul calibration) pour que la carte révélée soit
-  // EXACTEMENT celle qui sera persistée au tap CTA.
-  const heritage = draft.meute_heritage;
-  const inheritedArchetype: ArchetypeKey | null =
-    heritage?.claimed && isArchetypeKey(heritage.archetype) ? heritage.archetype : null;
-  const archetypeKey: ArchetypeKey = useMemo(
-    () =>
-      inheritedArchetype ??
-      computeArchetypeFromPalais({
-        axe_racines_horizons: ans.racines_horizons ?? 0,
-        axe_taniere_nomade: ans.taniere_nomade ?? 0,
-        axe_exigeant_enthousiaste: ans.exigeant_enthousiaste ?? 0,
-        axe_foule_secret: ans.foule_secret ?? 0,
-        axe_maquis_table: ans.maquis_table ?? 0,
-      }).key,
-    [inheritedArchetype, ans],
-  );
-  const pionnierSeq =
-    inheritedArchetype && typeof heritage?.pionnier_seq === "number"
-      ? heritage.pionnier_seq
-      : null;
+  const initial = initialMeutePalais(draft);
+  const archetypeKey = initial.archetype;
+  const pionnierSeq = initial.pionnierSeq;
 
   // P-23 — `submittingRef` mis à jour dans un effet pour éviter la stale
   // closure capturée par le BackHandler listener. Sans ça, un back-press
@@ -114,13 +90,7 @@ export default function PalaisRevealScreen() {
     setError(null);
 
     try {
-      const dominant = dominantAxes({
-        axe_racines_horizons: ans.racines_horizons ?? 0,
-        axe_taniere_nomade: ans.taniere_nomade ?? 0,
-        axe_exigeant_enthousiaste: ans.exigeant_enthousiaste ?? 0,
-        axe_foule_secret: ans.foule_secret ?? 0,
-        axe_maquis_table: ans.maquis_table ?? 0,
-      });
+      const dominant = dominantAxes(initial.axes);
 
       // P17 — sentinelle -1 si started_at jamais initialisé (cas edge resume)
       // pour ne pas polluer le KPI funnel avec un faux zéro.
@@ -204,6 +174,29 @@ export default function PalaisRevealScreen() {
         >
           <ArchetypeCard archetypeKey={archetypeKey} pionnierSeq={pionnierSeq} />
         </Animated.View>
+
+        {hasMeuteCalibration(draft) ? (
+          <View style={{ marginTop: theme.spacing.base }}>
+            <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.inverseSecondary, textAlign: "center" }}>
+              {t("palais_reveal.quiz_axes_received")}
+            </Text>
+            <Pressable
+              disabled={submitting}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: submitting }}
+              testID="palais-reveal-recalibrate"
+              onPress={() => {
+                setDraftField("use_meute_axes", false);
+                router.push("/(onboarding)/calibration");
+              }}
+              style={{ paddingVertical: theme.spacing.sm }}
+            >
+              <Text style={{ ...theme.typography.preset.small, color: theme.colors.brand.primary, textAlign: "center", textDecorationLine: "underline" }}>
+                {t("palais_reveal.recalibrate")}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* Héritage quiz « La Meute » — mention du pionnier, ton complice. */}
         {pionnierSeq ? (

@@ -13,6 +13,7 @@ jest.mock("react-i18next", () => ({
 }));
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 // P-21 round 3 — Capture les `options` passées à `<Stack.Screen>` pour pouvoir
 // assert sur `gestureEnabled` (sans ça, le mock `() => null` rend impossible
 // la vérification de P-24 — régression silencieuse).
@@ -20,7 +21,7 @@ const mockStackScreen: jest.Mock<null, [Record<string, unknown>]> = jest.fn(
   (_props: Record<string, unknown>) => null,
 );
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ replace: mockReplace, push: mockPush }),
   // P-24 — palais-reveal monte un <Stack.Screen options={{ gestureEnabled }} />
   // pour désactiver le swipe-back iOS pendant finalize.
   Stack: { Screen: (props: Record<string, unknown>) => mockStackScreen(props) },
@@ -32,11 +33,12 @@ jest.mock("../../src/lib/analytics", () => ({
 }));
 
 let mockDraft: OnboardingDraft;
+const mockSetDraftField = jest.fn();
 const mockFinalize = jest.fn(() => Promise.resolve());
 
 jest.mock("../../src/store/onboarding-draft", () => ({
   useOnboardingDraft: (selector: (s: { draft: OnboardingDraft }) => unknown) =>
-    selector({ draft: mockDraft }),
+    selector({ draft: mockDraft, setField: mockSetDraftField } as { draft: OnboardingDraft }),
 }));
 
 jest.mock("../../src/store/spawter-store", () => ({
@@ -125,10 +127,25 @@ describe("<PalaisRevealScreen /> — Story 2.6", () => {
   beforeEach(() => {
     mockTranslate.mockClear();
     mockReplace.mockClear();
+    mockPush.mockClear();
+    mockSetDraftField.mockClear();
     mockTrack.mockClear();
     mockFinalize.mockClear();
     mockStackScreen.mockClear();
     mockDraft = freshDraft();
+  });
+
+  it("permet de revoir les préférences héritées sans finaliser ni perdre le rang", () => {
+    mockDraft = { ...freshDraft(), meute_heritage: { claimed: false, archetype: "murmure", pionnier_seq: 42,
+      axes: { R: -1, T: 0, E: 1, F: 2, M: -2 } } };
+    const instance = render();
+    TestRenderer.act(() => {
+      (instance.root.findByProps({ testID: "palais-reveal-recalibrate" }).props.onPress as () => void)();
+    });
+    expect(mockSetDraftField).toHaveBeenCalledWith("use_meute_axes", false);
+    expect(mockPush).toHaveBeenCalledWith("/(onboarding)/calibration");
+    expect(mockFinalize).not.toHaveBeenCalled();
+    expect(mockDraft.meute_heritage?.pionnier_seq).toBe(42);
   });
 
   it("rend le CTA continuer", () => {

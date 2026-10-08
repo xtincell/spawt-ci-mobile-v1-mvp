@@ -24,10 +24,16 @@ jest.mock("@react-native-async-storage/async-storage", () => {
 
 const mockSaveSpawter = jest.fn((..._args: unknown[]) => Promise.resolve(true));
 const mockSavePalais = jest.fn((..._args: unknown[]) => Promise.resolve(true));
+const mockClaim = jest.fn(async (..._args: unknown[]): Promise<unknown> => null);
+const mockUpdateArchetype = jest.fn(async (..._args: unknown[]) => undefined);
+jest.mock("../../src/lib/analytics", () => ({ track: jest.fn() }));
 let mockSupabaseConfigured = false;
 jest.mock("../../src/lib/data-source", () => ({
   saveSpawter: (arg: unknown) => mockSaveSpawter(arg),
   savePalais: (arg: unknown) => mockSavePalais(arg),
+  claimMeuteHeritage: (...args: unknown[]) => mockClaim(...args),
+  updateSpawterArchetype: (...args: unknown[]) => mockUpdateArchetype(...args),
+  insertTitre: jest.fn(async () => undefined),
   get isSupabaseConfigured() {
     return mockSupabaseConfigured;
   },
@@ -82,9 +88,76 @@ describe("finalizeOnboarding — Story 2.6", () => {
     mockSaveSpawter.mockClear();
     mockSavePalais.mockClear();
     mockGetUser.mockClear();
+    mockClaim.mockReset().mockResolvedValue(null);
+    mockUpdateArchetype.mockClear();
     mockSupabaseConfigured = false;
     useSpawterStore.setState({ spawter: null, palais: null, spawts: [], hydrating: false });
     useOnboardingDraft.getState().reset();
+  });
+
+  it("un preview est confirmé après le profil puis le Palais, sans dépendance FK inversée", async () => {
+    let release!: (v: boolean) => void;
+    mockSaveSpawter.mockImplementationOnce(() => new Promise<boolean>((resolve) => { release = resolve; }));
+    const inherited = {
+      ...freshDraft(),
+      meute_heritage: { claimed: false, archetype: "murmure", pionnier_seq: 42, axes: { R: -1, T: 0, E: 1, F: 2, M: -2 } },
+    };
+    await useSpawterStore.getState().finalizeOnboarding(inherited);
+    expect(mockSavePalais).not.toHaveBeenCalled();
+    expect(mockClaim).not.toHaveBeenCalled();
+    release(true);
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+    expect(mockSavePalais).toHaveBeenCalled();
+    expect(mockClaim).toHaveBeenCalledWith(SAMPLE_SPAWTER.id, inherited.phone_e164);
+    expect(mockSaveSpawter.mock.invocationCallOrder[0]).toBeLessThan(mockSavePalais.mock.invocationCallOrder[0]!);
+    expect(mockSavePalais.mock.invocationCallOrder[0]).toBeLessThan(mockClaim.mock.invocationCallOrder[0]!);
+  });
+
+  it("la confirmation serveur d'un preview ne remplace pas une recalibration volontaire", async () => {
+    mockClaim.mockResolvedValue({ claimed: true, archetype: "murmure", pionnier_seq: 42 });
+    const draft = { ...freshDraft(), use_meute_axes: false,
+      meute_heritage: { claimed: false, archetype: "murmure", pionnier_seq: 42, axes: { R: -1, T: 0, E: 1, F: 2, M: -2 } } };
+    await useSpawterStore.getState().finalizeOnboarding(draft);
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    const current = useSpawterStore.getState().spawter?.quiz_archetype;
+    expect(current).not.toBe("murmure");
+    expect(mockUpdateArchetype).toHaveBeenCalledWith(SAMPLE_SPAWTER.id, current);
+    expect(useSpawterStore.getState().palais?.axe_foule_secret).toBe(0.4);
+  });
+
+  it("le Palais conserve les cinq axes du quiz, y compris F, avant le claim définitif", async () => {
+    const inherited = {
+      ...freshDraft(),
+      meute_heritage: {
+        claimed: false, code: "spawter_pending", archetype: "murmure",
+        pionnier_seq: 42, axes: { R: -1, T: 0, E: 1, F: 2, M: -2 },
+      },
+    };
+    await useSpawterStore.getState().finalizeOnboarding(inherited);
+    const { spawter, palais } = useSpawterStore.getState();
+    expect(spawter?.quiz_archetype).toBe("murmure");
+    expect(spawter?.pionnier_seq).toBe(42);
+    expect(palais).toMatchObject({
+      axe_racines_horizons: -0.5, axe_taniere_nomade: 0,
+      axe_exigeant_enthousiaste: 0.5, axe_foule_secret: 1,
+      axe_maquis_table: -1, archetype_id: "murmure",
+      dominant_axes: ["foule_secret", "maquis_table"],
+    });
+    expect(mockSavePalais).toHaveBeenCalledWith(expect.objectContaining({ axe_foule_secret: 1 }));
+  });
+
+  it("le choix explicite de recalibrer garde le rang sans imposer l'ancien archétype", async () => {
+    const recalibrated = {
+      ...freshDraft(), use_meute_axes: false,
+      meute_heritage: {
+        claimed: true, archetype: "murmure", pionnier_seq: 42,
+        axes: { R: -1, T: 0, E: 1, F: 2, M: -2 },
+      },
+    };
+    await useSpawterStore.getState().finalizeOnboarding(recalibrated);
+    expect(useSpawterStore.getState().palais?.axe_foule_secret).toBe(0.4);
+    expect(useSpawterStore.getState().spawter?.quiz_archetype).not.toBe("murmure");
+    expect(useSpawterStore.getState().spawter?.pionnier_seq).toBe(42);
   });
 
   it("mode démo (isSupabaseConfigured false) : utilise SAMPLE_SPAWTER.id sans appeler getUser", async () => {

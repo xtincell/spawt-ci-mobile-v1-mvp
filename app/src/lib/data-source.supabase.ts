@@ -7,7 +7,8 @@
 
 import { supabase } from "./supabase";
 import { getActiveCity } from "./city";
-import type { Spawter } from "../types/spawter";
+import type { Spawter, MeuteHeritage } from "../types/spawter";
+import { parseMeuteHeritage } from "./meute-heritage";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
 import type { FeatureFlag } from "../types/feature-flag";
@@ -293,7 +294,7 @@ export async function fetchSpawterInternalFromSupabase(
 export async function claimMeuteHeritageInSupabase(
   spawter_id: string,
   phone_e164: string,
-): Promise<{ claimed: boolean; archetype: string | null; pionnier_seq: number | null } | null> {
+): Promise<MeuteHeritage | null> {
   const { data, error } = await supabase.rpc("claim_meute_heritage", {
     p_spawter_id: spawter_id,
     p_phone: phone_e164,
@@ -302,12 +303,7 @@ export async function claimMeuteHeritageInSupabase(
     if (__DEV__ && error) console.warn("[data-source] claim_meute_heritage failed", error);
     return null;
   }
-  const row = data as { claimed?: unknown; archetype?: unknown; pionnier_seq?: unknown };
-  return {
-    claimed: row.claimed === true,
-    archetype: typeof row.archetype === "string" ? row.archetype : null,
-    pionnier_seq: typeof row.pionnier_seq === "number" ? row.pionnier_seq : null,
-  };
+  return parseMeuteHeritage(data);
 }
 
 export async function savePalaisToSupabase(palais: UserPalais): Promise<void> {

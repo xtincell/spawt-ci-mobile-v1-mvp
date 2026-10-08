@@ -36,7 +36,7 @@ import {
   type GoldEntitlement,
 } from "../lib/data-source";
 import { loadSavedPlaces, toggleSavedPlace, syncSavedPlaces, purgeSavedPlaces, SavedPlacesCacheError } from "../lib/saved-places";
-import { applyMeuteHeritage } from "../lib/meute-heritage";
+import { applyMeuteHeritage, initialMeutePalais } from "../lib/meute-heritage";
 // Sprint 2 Gold — cache module synchrone (isGoldSpawter) + persistance locale.
 import {
   GOLD_STORAGE_KEY,
@@ -52,7 +52,6 @@ import { AppState } from "react-native";
 import {
   computeArchetypeFromPalais,
   isArchetypeKey,
-  type ArchetypeKey,
 } from "../lib/archetype-engine";
 import {
   evaluateArchetypeTransition,
@@ -78,7 +77,7 @@ import { applyReviewToPalais } from "../lib/palais-signals";
 import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
 import { supabase } from "../lib/supabase";
-import { dominantAxes, computeConfidence } from "../lib/palais-engine";
+import { dominantAxes } from "../lib/palais-engine";
 import { getStade, maxStade } from "../types/stade";
 import { EMPTY_PALAIS, SAMPLE_SPAWTER } from "../data/seed/sample-spawter";
 import { useOnboardingDraft } from "./onboarding-draft";
@@ -694,14 +693,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       ? ageRangeFromDateOfBirth(draft.date_of_birth)
       : null;
 
-    // Chantier 13 archétypes — archétype INITIAL du spawter.
-    // Priorité à l'héritage quiz « La Meute » s'il a été réclamé au passage
-    // OTP (draft.meute_heritage, cf. otp.tsx) ; sinon calcul depuis la
-    // calibration (axes ±0.4 app → ×2 échelle quiz, garde-fous omnivore
-    // inclus — moteur archetype-engine, parité quiz vérifiée par fixtures).
     const heritage = draft.meute_heritage;
-    const inheritedArchetype =
-      heritage?.claimed && isArchetypeKey(heritage.archetype) ? heritage.archetype : null;
+    const initial = initialMeutePalais(draft);
+    const initialArchetype = initial.archetype;
 
     const spawter: Spawter = {
       ...SAMPLE_SPAWTER,
@@ -716,41 +710,19 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       age_range: derivedAgeRange,
       cgv_accepted_at: draft.consent.cgv_accepted_at,
       geoloc_consent_at: draft.consent.geoloc_consent_at,
-      pionnier_seq: heritage?.claimed ? (heritage.pionnier_seq ?? null) : null,
+      pionnier_seq: initial.pionnierSeq,
       created_at: now,
       updated_at: now,
     };
 
-    // P-33 — `null` = skip explicite, normalisé en `0` côté DB (axe_* est
-    // `real NOT NULL`).
-    // DN-5 round 3 — filter strict `v !== null` (skip exclu, neutral résolu
-    // value=0 compté comme une réponse délibérée). Cohérent avec le filter
-    // côté `palais-reveal.tsx` pour éviter une divergence entre la confidence
-    // affichée et la confidence persistée. Voir aussi `documentation/analytics/events.md`
-    // section `calibration_answered.value — sémantique`.
-    const ax = {
-      axe_racines_horizons: draft.calibration_answers.racines_horizons ?? 0,
-      axe_taniere_nomade: draft.calibration_answers.taniere_nomade ?? 0,
-      axe_exigeant_enthousiaste: draft.calibration_answers.exigeant_enthousiaste ?? 0,
-      axe_foule_secret: draft.calibration_answers.foule_secret ?? 0,
-      axe_maquis_table: draft.calibration_answers.maquis_table ?? 0,
-    };
-
-    // Archétype calculé depuis la calibration — utilisé si pas d'héritage.
-    const computedArchetype = computeArchetypeFromPalais(ax);
-    const initialArchetype: ArchetypeKey = inheritedArchetype ?? computedArchetype.key;
+    const ax = initial.axes;
     spawter.quiz_archetype = initialArchetype;
 
     const palais: UserPalais = {
       ...EMPTY_PALAIS,
       spawter_id: id,
       ...ax,
-      // P1 — count des axes répondus (skip exclu, neutral résolu compté).
-      confidence_score: computeConfidence(
-        Object.values(draft.calibration_answers).filter(
-          (v): v is number => v !== null,
-        ).length,
-      ),
+      confidence_score: initial.confidence,
       dominant_axes: dominantAxes(ax),
       // Sync miroir : `user_palais.archetype_id` (colonne 0008) reflète
       // toujours `spawters.quiz_archetype` (colonne 0033, source de vérité).
@@ -763,17 +735,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     // 2. Local-first (AsyncStorage commit avant tout sync réseau).
     await Promise.all([saveSpawterLocal(spawter), savePalaisLocal(palais)]);
 
-    // 3. Fire-and-forget Supabase — règle d'or project-context.
-    // P16 — capture unhandled rejection en `__DEV__` log warn pour traçabilité.
-    void savePalais(palais).catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] savePalais finalize failed", err);
-    });
-    // saveSpawter PUIS rattrapage héritage « La Meute » (finding P0). Le claim
-    // d'otp-verify au 1er login échoue (la ligne spawters n'existe pas encore) ;
-    // ici la ligne vient d'être upsertée, on re-claim : la RPC 0051 (GRANT
-    // authenticated) écrase l'archétype calculé localement par l'archétype quiz
-    // hérité + pose le n° Pionnier. Best-effort, jamais bloquant ; sauté si
-    // l'héritage a déjà été appliqué au passage OTP (inheritedArchetype).
+    // 3. Synchroniser profil → Palais (FK) → claim définitif. Le preview OTP
+    // n'a créé aucune ligne. La synchronisation reste best-effort : sa reprise
+    // durable et sa visibilité ne sont pas reçues par ce lot.
     void (async () => {
       try {
         await saveSpawter(spawter);
@@ -781,12 +745,26 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         if (__DEV__) console.warn("[spawter-store] saveSpawter finalize failed", err);
         return; // la ligne n'est peut-être pas côté serveur → ne pas re-claim
       }
-      if (inheritedArchetype) return;
+      // Le Palais dépend du profil (FK). Un preview n'est pas encore un claim.
+      try {
+        await savePalais(palais);
+      } catch (err) {
+        if (__DEV__) console.warn("[spawter-store] savePalais finalize failed", err);
+      }
+      if (heritage?.claimed) return;
       try {
         const claim = await claimMeuteHeritage(id, spawter.phone_e164);
         const cur = get().spawter;
         if (!cur || cur.id !== id) return; // compte changé entretemps
-        const applied = applyMeuteHeritage(cur, get().palais, claim);
+        // Une recalibration volontaire garde ses axes et son archétype courant.
+        // La RPC conserve néanmoins le rang et le parrainage historiques.
+        if (claim?.claimed && draft.use_meute_axes === false && isArchetypeKey(cur.quiz_archetype)) {
+          await updateSpawterArchetype(id, cur.quiz_archetype);
+          if (get().spawter?.id !== id) return;
+        }
+        const adoptedClaim = claim && draft.use_meute_axes === false
+          ? { ...claim, archetype: cur.quiz_archetype } : claim;
+        const applied = applyMeuteHeritage(cur, get().palais, adoptedClaim);
         if (!applied) return;
         await saveSpawterLocal(applied.spawter);
         if (applied.palais) await savePalaisLocal(applied.palais);
@@ -826,8 +804,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       name: "archetype_assigned",
       properties: {
         archetype: initialArchetype,
-        source: inheritedArchetype ? "meute_heritage" : "calibration",
-        runner_up: inheritedArchetype ? null : computedArchetype.runnerUp,
+        source: initial.inherited ? "meute_heritage" : "calibration",
+        runner_up: initial.runnerUp,
         pionnier_seq: spawter.pionnier_seq,
       },
     });
