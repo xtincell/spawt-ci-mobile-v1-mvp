@@ -10,7 +10,7 @@
 --      « déjà réclamé » est heritage_claimed_at, PAS quiz_archetype).
 --   2. Idempotence : un 3e claim = no-op already_claimed.
 --   3. No-op si le téléphone est inconnu de la waitlist.
---   4. Propriétaire authentifié : réclame par le téléphone de SA ligne
+--   4. Propriétaire authentifié : réclame par le téléphone confirmé Auth
 --      (p_phone client ignoré → anti-usurpation) ; un non-propriétaire est
 --      rejeté.
 
@@ -117,7 +117,7 @@ END $$;
 ROLLBACK;
 
 -- ───────────────────────────────────────────────────────────────────────────
--- Scenario 4 — propriétaire authentifié : réclame par le téléphone de SA ligne
+-- Scenario 4 — propriétaire authentifié : réclame par le téléphone confirmé Auth
 -- (le p_phone fourni par le client est IGNORÉ → anti-usurpation) ; un
 -- non-propriétaire authentifié est rejeté (42501).
 -- ───────────────────────────────────────────────────────────────────────────
@@ -135,13 +135,14 @@ DECLARE
   v_res   jsonb;
 BEGIN
   SELECT seq INTO v_seq FROM public.meute_waitlist WHERE id = 'claim-test-4';
-  INSERT INTO auth.users (id) VALUES (v_owner), (v_other);
+  INSERT INTO auth.users (id, phone, phone_confirmed_at) VALUES
+    (v_owner, '2250700000004', now()), (v_other, '2250700000099', now());
   INSERT INTO public.spawters (id, phone_e164, display_name)
     VALUES (v_owner, '+2250700000004', 'Pionnier Owner'),
            (v_other, '+2250700000099', 'Intrus');
 
   -- Propriétaire authentifié : réclame avec un p_phone client BIDON — la
-  -- fonction doit utiliser le téléphone de SA ligne (+2250700000004) et donc
+  -- fonction doit utiliser le téléphone confirmé Auth (+2250700000004) et donc
   -- matcher la waitlist quand même.
   PERFORM set_config('request.jwt.claims',
     json_build_object('role', 'authenticated', 'sub', v_owner::text)::text, true);
@@ -149,7 +150,7 @@ BEGIN
   IF NOT (v_res ->> 'claimed')::boolean
      OR v_res ->> 'archetype' <> 'lame'
      OR (v_res ->> 'pionnier_seq')::integer <> v_seq THEN
-    RAISE EXCEPTION 'ASSERT FAIL: owner authentifié doit réclamer par le téléphone de sa ligne — %', v_res;
+    RAISE EXCEPTION 'ASSERT FAIL: owner authentifié doit réclamer par le téléphone confirmé Auth — %', v_res;
   END IF;
 
   -- Non-propriétaire authentifié : tente de réclamer la ligne de l'owner → rejet.
@@ -163,6 +164,6 @@ BEGIN
       NULL; -- attendu (42501)
   END;
 
-  RAISE NOTICE 'Scenario 4 OK — owner réclame par sa ligne, intrus rejeté';
+  RAISE NOTICE 'Scenario 4 OK — owner réclame par Auth, intrus rejeté';
 END $$;
 ROLLBACK;

@@ -4,6 +4,32 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Transmettre les réponses La Meute au Palais (2026-10-08)
+
+Le quiz et l’application utilisent les mêmes cinq axes. Le retour OTP conserve
+maintenant le vecteur complet, y compris Foule ↔ Secret porté par la sixième
+question. Un héritage complet rejoint directement la révélation ; « Revoir mes
+préférences » rouvre la calibration existante. Un héritage absent ou incomplet
+conserve le parcours habituel. Carte, analytics et première sauvegarde utilisent
+un calcul partagé ; conversion inverse exacte du moteur existant (÷2).
+
+La migration 0069 étend `claim_meute_heritage` sans nouveau schéma ni droit :
+preview sans création de profil, puis claim après profil et Palais. Le téléphone
+confirmé dans Auth remplace le téléphone public modifiable pour le propriétaire.
+Le chemin Edge service_role post-OTP reste compatible. Les profils déjà vivants
+ne voient pas leurs axes réinitialisés. Un choix explicite de recalibrer conserve
+le rang de pionnier et son nouvel archétype.
+
+Trois critères applicatifs et deux contre-exemples SQL rouges avant correction.
+Après : 878 tests source verts, quatre sauts et quatre snapshots, typage,
+vocabulaire et i18n verts. PostgreSQL local jetable : preview, isolation, numéro
+non confirmé, JSON invalide, idempotence et retour arrière/réapplication reçus.
+3 125 vecteurs vérifient la conversion sans perte. CI complète et déploiement
+restent à recevoir à ce point. Aucun OTP réel, consentement, GPS, EAS, OTA ou
+magasin. Ces contrôles ne valident pas scientifiquement la déduction du quiz,
+ne reconstituent pas une sixième réponse historique et ne reçoivent pas la
+reprise durable du Palais ni le cycle réel sur deux appareils.
+
 ## Différer la télémétrie sans session (2026-10-08)
 
 L’entrée non connectée n’envoie plus un lot de signaux pour apprendre son absence

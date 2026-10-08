@@ -27,6 +27,7 @@ import {
   empreinteBackend,
 } from "../../src/lib/backend-identity";
 import { supabase } from "../../src/lib/supabase";
+import { parseMeuteHeritage } from "../../src/lib/meute-heritage";
 
 const CELL_COUNT = 6;
 const RESEND_COOLDOWN_S = 30;
@@ -312,6 +313,8 @@ export default function OtpScreen() {
           claimed?: boolean;
           archetype?: string | null;
           pionnier_seq?: number | null;
+          axes?: unknown;
+          code?: string;
         } | null;
       };
       if (!body.access_token || !body.refresh_token) {
@@ -396,23 +399,10 @@ export default function OtpScreen() {
       }
 
       setDraftField("phone_e164", phone);
-      // Chantier 13 archétypes — si l'héritage quiz a été réclamé, on le
-      // stashe dans le draft : finalizeOnboarding en fera l'archétype INITIAL
-      // (au lieu du calcul calibration) + persistera pionnier_seq. En mode
-      // démo (demoMode plus haut), pas d'héritage — comportement inchangé.
-      if (body.meute_heritage?.claimed === true) {
-        setDraftField("meute_heritage", {
-          claimed: true,
-          archetype:
-            typeof body.meute_heritage.archetype === "string"
-              ? body.meute_heritage.archetype
-              : null,
-          pionnier_seq:
-            typeof body.meute_heritage.pionnier_seq === "number"
-              ? body.meute_heritage.pionnier_seq
-              : null,
-        });
-      }
+      // Le preview avant création du profil et already_claimed sont valides.
+      // Effacer aussi un ancien draft si ce téléphone n'a aucun héritage.
+      setDraftField("meute_heritage", parseMeuteHeritage(body.meute_heritage));
+      setDraftField("use_meute_axes", true);
       track({ name: "auth_otp_validated", properties: { method: "phone", success: true } });
       track({ name: "auth_signed_in", properties: { method: "phone" } });
       track({

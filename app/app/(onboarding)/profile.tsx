@@ -19,6 +19,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { hasMeuteCalibration } from "../../src/lib/meute-heritage";
 import {
   Pressable,
   ScrollView,
@@ -252,7 +253,7 @@ export default function ProfileScreen() {
       name: "onboarding_step_completed",
       properties: { step: "profile", step_index: 3 },
     });
-    router.push("/(onboarding)/calibration");
+    router.push(hasMeuteCalibration(draft) ? "/(onboarding)/palais-reveal" : "/(onboarding)/calibration");
   };
 
   return (

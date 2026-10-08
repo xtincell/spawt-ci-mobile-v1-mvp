@@ -795,6 +795,8 @@
     "underConstruction": "En construction"
   },
   "palais_reveal": {
+    "quiz_axes_received": "Ton flair de la Meute est là. Pas besoin de tout recommencer.",
+    "recalibrate": "Revoir mes préférences",
     "first_title": "Voici ton palais",
     "first_title_subtitle": "Plus tu Spawtes, plus il est précis.",
     "heritage_mention": "Pionnier n°{{n}} de la Meute — ton flair de {{archetype}} te suit.",
