@@ -210,7 +210,8 @@ export function _resetSeenFlaggedForTest(): void {
 }
 
 export async function saveSpawterToSupabase(spawter: Spawter): Promise<void> {
-  await supabase.from("spawters").upsert(spawter);
+  const { error } = await supabase.from("spawters").upsert(spawter);
+  if (error) throw error;
 }
 
 // ─── Chantier 13 archétypes — colonne `quiz_archetype` (migration 0033) ─────
@@ -310,7 +311,8 @@ export async function claimMeuteHeritageInSupabase(
 }
 
 export async function savePalaisToSupabase(palais: UserPalais): Promise<void> {
-  await supabase.from("user_palais").upsert(palais);
+  const { error } = await supabase.from("user_palais").upsert(palais);
+  if (error) throw error;
 }
 
 /**

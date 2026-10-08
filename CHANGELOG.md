@@ -4,6 +4,22 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Refus de sauvegarde du profil et du Palais (2026-10-08)
+
+Les deux écrivains Supabase remontent désormais une réponse d’erreur de la base,
+comme une panne réseau, au lieu de résoudre leur promesse comme si la sauvegarde
+avait été acceptée. La reprise existante du profil peut ainsi mettre l’action en
+file ; les callers du Palais peuvent détecter leur échec. Aucun schéma, règle
+métier, calcul d’axe ou appel réseau supplémentaire.
+
+Deux contre-exemples rouges avant correction, six contrôles du contrat après.
+Typage, vocabulaire et i18n verts ; suite locale source : 849 tests verts,
+quatre sauts conservés, quatre snapshots. Les médias absents du checkout partiel
+sont substitués uniquement dans Jest ; compilation et médias réels attendent la CI.
+Ce lot ne corrige pas le rejeu d’avis, les écritures concurrentes de Palais ni sa
+reprise durable : les appels qui ne font qu’avertir restent à recevoir. La recette
+authentifiée, deux appareils et la distribution native restent ouvertes.
+
 ## Imports différés du dispositif Jest (2026-10-08)
 
 L'adaptateur de test enveloppe aussi les modules CommonJS en namespace avec leur
