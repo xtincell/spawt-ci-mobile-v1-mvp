@@ -19,6 +19,7 @@ import {
 
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
+import { useSpawterStore } from "../../src/store/spawter-store";
 import { track } from "../../src/lib/analytics";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
 import {
@@ -64,6 +65,8 @@ export default function OtpScreen() {
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [accountPending, setAccountPending] = useState(false);
+  const authenticatedRef = useRef<{ owner: string | null } | null>(null);
   // Détail technique affiché sous l'erreur, en clair, y compris dans un binaire
   // distribué. Sans lui, trois échecs très différents — pas de jetons, session
   // refusée, exception — s'affichaient tous « Pas de réseau », et la vraie
@@ -177,6 +180,26 @@ export default function OtpScreen() {
     };
   }, []);
 
+  const recoverAccount = useCallback(async (abort: AbortController) => {
+    const authenticated = authenticatedRef.current;
+    if (!authenticated) return;
+    try {
+      const result = await useSpawterStore.getState().recoverAuthenticatedAccount(authenticated.owner, abort.signal);
+      if (!mountedRef.current || abort.signal.aborted) return;
+      if (result === "restored") router.replace("/(tabs)");
+      else router.push("/(onboarding)/profile");
+    } catch (failure) {
+      if (!mountedRef.current || abort.signal.aborted) return;
+      const reason = failure instanceof Error && /^ACCOUNT_[A-Z_]+$/.test(failure.message)
+        ? failure.message : "ACCOUNT_READ_FAILED";
+      const message = reason === "ACCOUNT_INCOMPLETE" ? "auth.error_account_incomplete"
+        : reason === "ACCOUNT_NO_SESSION" || reason === "ACCOUNT_SESSION_CHANGED"
+          ? "auth.error_account_session" : "auth.error_account_recovery";
+      setError(t(message));
+      setDetail(`OTP-4 · ${reason}`);
+    }
+  }, [router, t]);
+
   const onSubmit = useCallback(async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -190,6 +213,11 @@ export default function OtpScreen() {
     submitAbortRef.current = abort;
 
     try {
+      // L'OTP a déjà été consommé : retenter uniquement la lecture du compte.
+      if (authenticatedRef.current) {
+        await recoverAccount(abort);
+        return;
+      }
       if (demoMode) {
         if (code !== DEMO_CODE) {
           // P-12 round 3 — `submitting` gate empêche le double-tap ; simple
@@ -398,6 +426,10 @@ export default function OtpScreen() {
         return;
       }
 
+      if (!mountedRef.current) return;
+      authenticatedRef.current = { owner: body.user_id ?? null };
+      setAccountPending(true);
+
       setDraftField("phone_e164", phone);
       // Le preview avant création du profil et already_claimed sont valides.
       // Effacer aussi un ancien draft si ce téléphone n'a aucun héritage.
@@ -409,7 +441,7 @@ export default function OtpScreen() {
         name: "onboarding_step_completed",
         properties: { step: "phone", step_index: 2 },
       });
-      router.push("/(onboarding)/profile");
+      await recoverAccount(abort);
     } catch (err) {
       // AbortError suite à unmount → silence.
       if ((err as { name?: string })?.name === "AbortError") return;
@@ -422,10 +454,10 @@ export default function OtpScreen() {
       submittingRef.current = false;
       if (mountedRef.current) setSubmitting(false);
     }
-  }, [attempts, code, demoMode, phone, router, setDraftField, t]);
+  }, [attempts, code, demoMode, phone, recoverAccount, router, setDraftField, t]);
 
   const onResend = useCallback(async () => {
-    if (cooldown > 0) return;
+    if (cooldown > 0 || submittingRef.current || authenticatedRef.current) return;
     // P-15 round 3 — reset l'erreur précédente avant de relancer un envoi.
     setError(null);
     // P-11 + P-12 — track avec phone_masked + call effectif otp-send en live.
@@ -516,6 +548,7 @@ export default function OtpScreen() {
                 refs.current[i] = el;
               }}
               value={d}
+              editable={!accountPending && !submitting}
               onChangeText={(v) => onChangeCell(i, v)}
               onKeyPress={(e) => onKeyPress(i, e)}
               keyboardType="number-pad"
@@ -586,6 +619,21 @@ export default function OtpScreen() {
           </Text>
         ) : null}
 
+        {accountPending ? (
+          <Pressable
+            onPress={onSubmit}
+            disabled={submitting}
+            testID="otp-recover"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: submitting }}
+            style={{ marginTop: theme.spacing.lg, padding: theme.spacing.base }}
+          >
+            <Text style={{ ...theme.typography.preset.body, textAlign: "center", color: theme.colors.brand.accent }}>
+              {t(submitting ? "auth.account_recovering" : "auth.account_retry")}
+            </Text>
+          </Pressable>
+        ) : null}
+
         {/* AC #6 (Story 2.3a) — quand friction, Resend + Change phone sont
             rendus DANS le panneau pour matcher la spec Story 2.3 AC #2. */}
         {(() => {
@@ -599,10 +647,10 @@ export default function OtpScreen() {
             >
               <Pressable
                 onPress={onResend}
-                disabled={cooldown > 0}
+                disabled={cooldown > 0 || accountPending || submitting}
                 testID="otp-resend"
                 accessibilityRole="button"
-                accessibilityState={{ disabled: cooldown > 0 }}
+                accessibilityState={{ disabled: cooldown > 0 || accountPending || submitting }}
               >
                 <Text
                   style={{

@@ -34,7 +34,7 @@ jest.mock("../../src/lib/analytics", () => ({
 
 let mockDraft: OnboardingDraft;
 const mockSetDraftField = jest.fn();
-const mockFinalize = jest.fn(() => Promise.resolve());
+const mockFinalize = jest.fn(async (): Promise<void | "restored"> => undefined);
 
 jest.mock("../../src/store/onboarding-draft", () => ({
   useOnboardingDraft: (selector: (s: { draft: OnboardingDraft }) => unknown) =>
@@ -182,6 +182,15 @@ describe("<PalaisRevealScreen /> — Story 2.6", () => {
 
     expect(mockFinalize).toHaveBeenCalledWith(mockDraft);
     expect(mockReplace).toHaveBeenCalledWith("/(tabs)");
+  });
+
+  it("un Palais déjà créé est repris sans compter une seconde activation", async () => {
+    mockFinalize.mockResolvedValueOnce("restored");
+    const instance = render();
+    const cta = instance.root.findByProps({ testID: "palais-reveal-continue" });
+    await TestRenderer.act(async () => { await (cta.props.onPress as () => Promise<void>)(); });
+    expect(mockReplace).toHaveBeenCalledWith("/(tabs)");
+    expect(mockTrack.mock.calls.some(([e]) => (e as { name: string }).name === "onboarding_completed")).toBe(false);
   });
 
   it("started_at null → time_to_complete_seconds = -1 (sentinelle KPI)", async () => {
