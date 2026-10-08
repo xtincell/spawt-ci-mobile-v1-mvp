@@ -449,9 +449,9 @@ export async function listTitresFromSupabase(
  * Insert un batch de signaux analytics dans la table append-only `user_signals`
  * (Story 1.7 — refactor Decisions D2+D3). Fire-and-forget — pas de await côté
  * caller métier. La column DB `spawter_id` a `DEFAULT auth.uid()` ; la RLS
- * valide aussi en `WITH CHECK`. Sans session auth (pre-OTP), l'insert échoue
- * côté RLS — le wrapper analytics persiste alors le batch dans AsyncStorage
- * et retentera au prochain `SIGNED_IN` (Story 2.3).
+ * valide aussi en `WITH CHECK`. Sans session auth (pre-OTP), aucun insert
+ * n'est tenté : le wrapper analytics persiste le batch dans AsyncStorage et
+ * retentera au prochain `SIGNED_IN` (Story 2.3).
  *
  * @returns `true` si l'insert a réussi, `false` sinon. Le wrapper analytics
  * utilise ce signal pour décider de persister ou non.
@@ -594,7 +594,16 @@ export async function insertUserSignals(
   }[],
 ): Promise<boolean> {
   if (payloads.length === 0) return true;
-  const { error } = await supabase.from("user_signals").insert(payloads as object[]);
+  // Un refus RLS n'est pas un mécanisme de détection de connexion. Garder le
+  // batch local tant que la session est absente/illisible, sans requête REST.
+  const { data, error: sessionError } = await supabase.auth.getSession();
+  const owner = data.session?.user.id;
+  if (sessionError || !owner) return false;
+  // Fixer le compte lu : si le SDK change de session avant l'envoi, la RLS
+  // refuse cette ligne plutôt que de l'attribuer implicitement au nouveau compte.
+  const { error } = await supabase.from("user_signals").insert(
+    payloads.map((payload) => ({ ...payload, spawter_id: owner })),
+  );
   if (error) {
     if (__DEV__) console.warn("[user_signals] batch insert failed", error);
     return false;

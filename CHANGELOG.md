@@ -4,6 +4,25 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Différer la télémétrie sans session (2026-10-08)
+
+L’entrée non connectée n’envoie plus un lot de signaux pour apprendre son absence
+de session par un refus 401. L’adaptateur vérifie la session existante, puis renvoie
+`false` sans insertion lorsqu’elle est absente, refusée ou sans identité. Le wrapper
+conserve son chemin local de persistance et de reprise à la connexion. Le compte lu
+est fixé sur les lignes envoyées ; une session remplacée ne doit pas les attribuer
+implicitement au nouveau compte. Les choix et textes de consentement restent intacts.
+
+Cinq critères rouges avant correction, sept contrôles verts après. Suite complète
+locale sans cache : 856 tests, quatre sauts et quatre snapshots ; typage, vocabulaire
+et i18n verts. Les médias restent simulés dans le checkout de sources, export complet
+attendu en CI. La première suite avait conservé un ancien transform Jest ; le même
+contrôle d’interopérabilité passe sans cache, sans retoucher l’adaptateur.
+
+La file analytics historique n’est toujours pas identifiée par compte ; concurrence,
+acquittement durable, reprise après relance et données illisibles restent à recevoir.
+Ce lot ne reçoit pas l’apprentissage du Palais ni un parcours authentifié.
+
 ## Refus de sauvegarde du profil et du Palais (2026-10-08)
 
 Les deux écrivains Supabase remontent désormais une réponse d’erreur de la base,
@@ -15,7 +34,8 @@ métier, calcul d’axe ou appel réseau supplémentaire.
 Deux contre-exemples rouges avant correction, six contrôles du contrat après.
 Typage, vocabulaire et i18n verts ; suite locale source : 849 tests verts,
 quatre sauts conservés, quatre snapshots. Les médias absents du checkout partiel
-sont substitués uniquement dans Jest ; compilation et médias réels attendent la CI.
+sont substitués uniquement dans Jest. CI 37711836611 reçue : 849 tests et export
+complet ; aperçu servi depuis cb26f04, bundle natif et public rapprochés.
 Ce lot ne corrige pas le rejeu d’avis, les écritures concurrentes de Palais ni sa
 reprise durable : les appels qui ne font qu’avertir restent à recevoir. La recette
 authentifiée, deux appareils et la distribution native restent ouvertes.

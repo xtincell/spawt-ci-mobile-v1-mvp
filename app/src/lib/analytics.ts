@@ -23,7 +23,7 @@
 //   flushBuffer()
 //     │
 //     ▼  batch insert via insertUserSignals(payloads[])
-//   ┌─ success ─┐         ┌─ RLS rejection (pre-auth) ─┐
+//   ┌─ success ─┐         ┌─ no session / insert refused ─┐
 //   │   clear  │         │  persist to AsyncStorage   │
 //   └──────────┘         │  spawt:analytics:pending   │
 //                        └────────────────────────────┘
@@ -345,7 +345,7 @@ let appStateSubscribed = false;
  *   - dès que le buffer atteint {@link FLUSH_THRESHOLD} events
  *   - quand l'app passe en background (AppState)
  *
- * Pre-auth (avant session OTP) : le flush échoue côté RLS, les payloads
+ * Pre-auth (avant session OTP) : aucun insert distant n'est tenté ; les payloads
  * sont persistés dans AsyncStorage (`spawt:analytics:pending`). Story 2.3
  * (OTP) appellera {@link flushPendingSignals} après `SIGNED_IN` pour drainer.
  *
@@ -439,7 +439,7 @@ async function flushBuffer(): Promise<void> {
       })),
     );
     if (!inserted) {
-      // Insert refusé (RLS pre-auth, réseau down, etc.) — persist + retry à
+      // Session absente ou insert refusé (réseau down, etc.) — persist + retry à
       // l'événement SIGNED_IN.
       await persistToStorage(batch);
     }
