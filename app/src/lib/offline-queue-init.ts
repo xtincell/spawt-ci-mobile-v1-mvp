@@ -51,7 +51,16 @@ export async function bootOfflineQueue(): Promise<void> {
       const sub = NetInfo.addEventListener?.((state) => {
         const online = state.isConnected !== false;
         // Trigger seulement sur transitions false → true.
-        if (!wasOnline && online) cb();
+        if (!wasOnline && online) {
+          cb();
+          // Même déclencheur réseau, sans second listener ni attente de la
+          // file des spawts : les favoris reprennent leurs choix en attente.
+          void import("../store/spawter-store").then(({ useSpawterStore }) =>
+            useSpawterStore.getState().refreshSaved(),
+          ).catch((err) => {
+            if (__DEV__) console.warn("[saved-places] network resume failed", err);
+          });
+        }
         wasOnline = online;
       });
       return () => {

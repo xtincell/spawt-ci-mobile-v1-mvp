@@ -7,7 +7,7 @@
 // utilisateur (réservé exploitation interne) : le verso rend les axes en
 // barres horizontales (AxisBar) pour tous les tiers.
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -59,8 +59,23 @@ export function SpawterCard({
   const theme = useTheme();
   const flipProgress = useSharedValue(0);
 
+  // Quelle face est devant. Ce n'est PAS un doublon de `flipProgress` : il
+  // sert au test de contact, qui vit côté React, pas côté animation.
+  //
+  // Le défaut qu'il répare : les deux faces sont `position: absolute, inset: 0`
+  // et le verso est rendu APRÈS le recto — il couvre donc toute la carte. Son
+  // `opacity: 0` le rend invisible mais ne l'exclut PAS du test de contact
+  // (Android teste la géométrie, pas l'opacité). Résultat : chaque tap
+  // atterrissait sur le verso, n'y trouvait aucun gestionnaire, remontait au
+  // Pressable du retournement — et le bouton « changer ma photo » posé sur
+  // l'avatar du recto était injoignable. On ne pouvait pas changer sa photo de
+  // profil, et rien ne le disait : la carte se retournait, ce qui ressemble à
+  // une réaction normale.
+  const [versoDevant, setVersoDevant] = useState(false);
+
   const handleFlip = useCallback(() => {
     const target = flipProgress.value > 0.5 ? 0 : 1;
+    setVersoDevant(target === 1);
     flipProgress.value = withTiming(target, {
       duration: FLIP_DURATION_MS,
       easing: Easing.inOut(Easing.cubic),
@@ -115,6 +130,9 @@ export function SpawterCard({
       style={{ aspectRatio: 0.7 }}
     >
       <Animated.View
+        // La face cachée ne doit rien intercepter — sinon elle vole les taps
+        // destinés aux boutons de la face visible.
+        pointerEvents={versoDevant ? "none" : "auto"}
         style={[
           { position: "absolute", inset: 0, borderRadius: theme.radius.card, overflow: "hidden" },
           rectoStyle,
@@ -242,6 +260,7 @@ export function SpawterCard({
       </Animated.View>
 
       <Animated.View
+        pointerEvents={versoDevant ? "auto" : "none"}
         style={[
           { position: "absolute", inset: 0, borderRadius: theme.radius.card, overflow: "hidden" },
           versoStyle,

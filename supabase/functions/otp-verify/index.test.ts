@@ -224,3 +224,64 @@ Deno.test("isReviewerLogin: code hors format OTP (trop court) → jamais actif",
   assertEquals(isReviewerLogin("+2250700000001", "42"), false);
   resetReviewerEnv();
 });
+
+// ---------------------------------------------------------------------------
+// Retrouver un compte déjà provisionné — le bug qui enfermait tout le monde
+// dehors dès la deuxième connexion.
+// ---------------------------------------------------------------------------
+// Ce que ces tests verrouillent : GoTrue stocke le téléphone SANS le `+`. Le
+// repli `listUsers` comparait la forme E.164 telle quelle et ne trouvait donc
+// jamais rien. Comme `createUser` échoue en `email_exists` pour un compte qui
+// existe, ce repli est le seul chemin — d'où `user_provisioning_failed` à
+// chaque retour d'un spawter.
+//
+// Aucun test ne l'attrapait parce qu'aucun ne rejouait une SECONDE connexion du
+// même numéro. C'est le scénario, pas l'assertion, qui manquait.
+import { matchesPhoneAccount } from "./index.ts";
+
+const EMAIL_SUBSTITUT = "phone-2250700000101@phone.spawt.local";
+
+Deno.test("matchesPhoneAccount: GoTrue stocke sans le `+` → on retrouve quand même", () => {
+  // La forme exacte renvoyée par GoTrue, vérifiée sur la base réelle.
+  const compte = { phone: "2250700000101", email: EMAIL_SUBSTITUT };
+  assert(matchesPhoneAccount(compte, "+2250700000101", EMAIL_SUBSTITUT));
+});
+
+Deno.test("matchesPhoneAccount: forme E.164 conservée → correspond aussi", () => {
+  const compte = { phone: "+2250700000101", email: EMAIL_SUBSTITUT };
+  assert(matchesPhoneAccount(compte, "+2250700000101", EMAIL_SUBSTITUT));
+});
+
+Deno.test("matchesPhoneAccount: téléphone absent → l'e-mail de substitution rattrape", () => {
+  // Le cas où GoTrue ne renvoie pas le téléphone : l'e-mail est déterministe,
+  // et c'est précisément lui qui a provoqué le `email_exists`.
+  const compte = { email: EMAIL_SUBSTITUT };
+  assert(matchesPhoneAccount(compte, "+2250700000101", EMAIL_SUBSTITUT));
+});
+
+Deno.test("matchesPhoneAccount: e-mail insensible à la casse", () => {
+  const compte = { email: "PHONE-2250700000101@Phone.Spawt.Local" };
+  assert(matchesPhoneAccount(compte, "+2250700000101", EMAIL_SUBSTITUT));
+});
+
+Deno.test("matchesPhoneAccount: un AUTRE numéro ne correspond pas", () => {
+  // Le garde-fou qui compte : élargir la correspondance ne doit jamais faire
+  // ouvrir la session de quelqu'un d'autre.
+  const autre = { phone: "2250700000102", email: "phone-2250700000102@phone.spawt.local" };
+  assertEquals(matchesPhoneAccount(autre, "+2250700000101", EMAIL_SUBSTITUT), false);
+});
+
+Deno.test("matchesPhoneAccount: compte sans téléphone ni e-mail → refus", () => {
+  assertEquals(matchesPhoneAccount({}, "+2250700000101", EMAIL_SUBSTITUT), false);
+});
+
+Deno.test("matchesPhoneAccount: numéro vide → ne matche pas un compte vide", () => {
+  // Sans ce garde, `digitsOf("") === digitsOf(undefined)` serait vrai et le
+  // premier compte venu ferait l'affaire.
+  assertEquals(matchesPhoneAccount({ phone: "" }, "", ""), false);
+});
+
+Deno.test("matchesPhoneAccount: un préfixe n'est pas une correspondance", () => {
+  const compte = { phone: "22507000001010", email: "x@y.z" };
+  assertEquals(matchesPhoneAccount(compte, "+2250700000101", EMAIL_SUBSTITUT), false);
+});

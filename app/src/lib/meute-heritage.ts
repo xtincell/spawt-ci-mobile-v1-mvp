@@ -1,22 +1,80 @@
-// finding P0 — application de l'héritage quiz « La Meute » réclamé server-side.
-//
-// Au 1er login OTP, `claim_meute_heritage` échoue (la ligne spawters n'existe
-// pas encore) ; le rattrapage se fait au finalizeOnboarding APRÈS l'upsert, via
-// la RPC 0051. Ce module contient la logique PURE d'application du résultat du
-// claim sur le couple spawter/palais — écrase l'archétype calculé localement
-// par l'archétype quiz hérité et pose le n° Pionnier. Pur = testable sans store
-// ni réseau.
+// Héritage La Meute : décodage à la frontière et Palais initial partagé.
+// Le preview 0069 précède le profil ; l'écriture définitive suit son upsert.
+// applyMeuteHeritage conserve le rattrapage archétype/rang pour les anciens
+// retours et ne réinitialise jamais les axes d'un Palais déjà vivant.
 
-import type { Spawter } from "../types/spawter";
+import type { Spawter, MeuteHeritage, OnboardingDraft } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
-import { isArchetypeKey } from "./archetype-engine";
+import { computeArchetypeFromPalais, isArchetypeKey, type QuizAxes } from "./archetype-engine";
+import { computeConfidence } from "./palais-engine";
 import { ARCHETYPES } from "../data/archetypes";
 
 /** Résultat de la RPC `claim_meute_heritage` (0051). */
-export interface MeuteHeritageClaim {
-  claimed: boolean;
-  archetype: string | null;
-  pionnier_seq: number | null;
+export type MeuteHeritageClaim = MeuteHeritage;
+
+/** Une donnée incomplète ne devient jamais un faux Palais neutre. */
+export function parseQuizAxes(value: unknown): QuizAxes | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  for (const key of ["R", "T", "E", "F", "M"] as const) {
+    const n = row[key];
+    if (typeof n !== "number" || !Number.isFinite(n) || Math.abs(n) > 2) return null;
+  }
+  return { R: row.R as number, T: row.T as number, E: row.E as number, F: row.F as number, M: row.M as number };
+}
+
+/** Décodeur commun OTP/RPC. `claimed` décrit une écriture serveur, pas la
+ * présence d'un héritage (preview avant profil ou already_claimed). */
+export function parseMeuteHeritage(value: unknown): MeuteHeritage | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  if (!isArchetypeKey(row.archetype)) return null;
+  return {
+    claimed: row.claimed === true,
+    archetype: row.archetype,
+    pionnier_seq: typeof row.pionnier_seq === "number" && Number.isSafeInteger(row.pionnier_seq) && row.pionnier_seq > 0
+      ? row.pionnier_seq : null,
+    axes: parseQuizAxes(row.axes),
+    ...(typeof row.code === "string" ? { code: row.code } : {}),
+  };
+}
+
+export function hasMeuteCalibration(draft: OnboardingDraft): boolean {
+  return draft.use_meute_axes !== false && isArchetypeKey(draft.meute_heritage?.archetype)
+    && parseQuizAxes(draft.meute_heritage?.axes) !== null;
+}
+
+/** Calcul partagé par la carte, l'analytics et la première persistance.
+ * Inverse exact de palaisToQuizAxes : division par deux, mêmes polarités.
+ * La confiance garde l'approximation existante sur cinq axes ; six réponses
+ * ne sont pas six lieux observés ni une validation scientifique. */
+export function initialMeutePalais(draft: OnboardingDraft) {
+  const quiz = hasMeuteCalibration(draft) ? parseQuizAxes(draft.meute_heritage?.axes) : null;
+  const ans = draft.calibration_answers;
+  const axes = quiz ? {
+    axe_racines_horizons: quiz.R / 2,
+    axe_taniere_nomade: quiz.T / 2,
+    axe_exigeant_enthousiaste: quiz.E / 2,
+    axe_foule_secret: quiz.F / 2,
+    axe_maquis_table: quiz.M / 2,
+  } : {
+    axe_racines_horizons: ans.racines_horizons ?? 0,
+    axe_taniere_nomade: ans.taniere_nomade ?? 0,
+    axe_exigeant_enthousiaste: ans.exigeant_enthousiaste ?? 0,
+    axe_foule_secret: ans.foule_secret ?? 0,
+    axe_maquis_table: ans.maquis_table ?? 0,
+  };
+  const computed = computeArchetypeFromPalais(axes);
+  const heritage = parseMeuteHeritage(draft.meute_heritage);
+  const inherited = heritage && (quiz || (draft.use_meute_axes !== false && heritage.claimed));
+  return {
+    axes,
+    archetype: inherited && isArchetypeKey(heritage.archetype) ? heritage.archetype : computed.key,
+    runnerUp: inherited ? null : computed.runnerUp,
+    inherited: !!inherited,
+    pionnierSeq: heritage?.pionnier_seq ?? null,
+    confidence: computeConfidence(quiz ? 5 : Object.values(ans).filter((v) => v !== null).length),
+  };
 }
 
 export interface AppliedHeritage {

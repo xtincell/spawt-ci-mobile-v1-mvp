@@ -31,6 +31,7 @@ const initial: OnboardingDraft = {
   // Chantier 13 archétypes — héritage quiz « La Meute » (posé par otp.tsx si
   // otp-verify retourne meute_heritage.claimed).
   meute_heritage: null,
+  use_meute_axes: true,
 };
 
 interface DraftStore {
@@ -50,6 +51,7 @@ export const useOnboardingDraft = create<DraftStore>((set) => ({
     set((s) => ({
       draft: {
         ...s.draft,
+        use_meute_axes: false,
         calibration_answers: { ...s.draft.calibration_answers, [axis]: value },
       },
     })),

@@ -5,7 +5,7 @@
 // la mutation est enqueue ici. NetInfo détecte le retour réseau et `flush()`
 // tente de drainer.
 //
-// Cap MAX_QUEUE_SIZE = 200, FIFO drop le plus ancien.
+// Cap MAX_QUEUE_SIZE = 200 : refuse l'ajout, jamais une action déjà acceptée.
 // Backoff exponentiel : 0/5/15/30/60 secondes selon `attempts`.
 //
 // Coordonné mais distinct de la queue analytics (`analytics.ts`) :
@@ -24,7 +24,7 @@ const MAX_QUEUE_SIZE = 200;
 // Backoff exponentiel : index = attempts précédents → délai avant retry.
 const BACKOFF_TABLE_MS: readonly number[] = [0, 5_000, 15_000, 30_000, 60_000];
 
-export type QueueEntry =
+export type QueueEntry = (
   | {
       kind: "spawt_insert";
       row: SpawtCheckin;
@@ -53,7 +53,7 @@ export type QueueEntry =
       enqueued_at: string;
       attempts: number;
       last_attempt_at: string | null;
-    };
+    }) & { queue_id?: string };
 
 export type EnqueueInput =
   | { kind: "spawt_insert"; row: SpawtCheckin }
@@ -71,54 +71,69 @@ export function backoffDelayMs(attempts: number): number {
   return BACKOFF_TABLE_MS[idx] ?? BACKOFF_TABLE_MS[BACKOFF_TABLE_MS.length - 1]!;
 }
 
+// Sérialise uniquement les lectures/écritures locales. Aucun appel réseau ne
+// tient ce verrou : une nouvelle action reste enregistrable pendant un envoi.
+let storageTail: Promise<unknown> = Promise.resolve();
+function withStorage<T>(action: () => Promise<T>): Promise<T> {
+  const result = storageTail.then(action);
+  storageTail = result.catch(() => undefined);
+  return result;
+}
+
+let idCounter = 0;
+function nextQueueId(): string {
+  idCounter += 1;
+  return `${Date.now()}-${idCounter}-${Math.random().toString(36).slice(2)}`;
+}
+
 async function loadQueue(): Promise<QueueEntry[]> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as QueueEntry[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch (err) {
-    if (__DEV__) console.warn("[offline-queue] loadQueue failed, returning empty", err);
-    return [];
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (raw === null) return [];
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed) || parsed.some((e: unknown) => {
+    if (!e || typeof e !== "object") return true;
+    const v = e as Record<string, unknown>;
+    return !["spawt_insert", "spawt_update", "spawter_upsert"].includes(String(v.kind)) ||
+      typeof v.enqueued_at !== "string" || !Number.isFinite(Date.parse(v.enqueued_at)) ||
+      typeof v.attempts !== "number" || !Number.isInteger(v.attempts) || v.attempts < 0 ||
+      !(v.last_attempt_at === null || (typeof v.last_attempt_at === "string" && Number.isFinite(Date.parse(v.last_attempt_at)))) ||
+      (v.queue_id !== undefined && (typeof v.queue_id !== "string" || !v.queue_id)) ||
+      (v.kind === "spawt_update"
+        ? typeof v.row_id !== "string" || !v.row_id || !v.patch || typeof v.patch !== "object" || Array.isArray(v.patch)
+        : !v.row || typeof v.row !== "object" || typeof (v.row as Record<string, unknown>).id !== "string");
+  })) {
+    throw new Error("offline_queue_invalid");
   }
+  const entries = parsed as QueueEntry[];
+  const ids = entries.flatMap((e) => e.queue_id ? [e.queue_id] : []);
+  if (new Set(ids).size !== ids.length) throw new Error("offline_queue_invalid");
+  return entries;
 }
 
 async function persistQueue(entries: readonly QueueEntry[]): Promise<void> {
-  // FIFO drop si on dépasse le cap.
-  const capped =
-    entries.length > MAX_QUEUE_SIZE
-      ? entries.slice(entries.length - MAX_QUEUE_SIZE)
-      : entries;
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(capped));
-  } catch (err) {
-    if (__DEV__) console.warn("[offline-queue] persistQueue failed", err);
-  }
+  // Un rejet remonte au caller ; « queued » implique une écriture réussie.
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
-/** Enqueue une mutation. Fire-and-forget. */
+/** Acquitte une mutation uniquement après sa persistance locale. */
 export async function enqueue(input: EnqueueInput): Promise<void> {
-  const now = new Date().toISOString();
-  const queue = await loadQueue();
-  const entry: QueueEntry = {
-    ...input,
-    enqueued_at: now,
-    attempts: 0,
-    last_attempt_at: null,
-  };
-  queue.push(entry);
-  await persistQueue(queue);
+  await withStorage(async () => {
+    const queue = await loadQueue();
+    if (queue.length >= MAX_QUEUE_SIZE) throw new Error("offline_queue_full");
+    queue.push({ ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
+                 attempts: 0, last_attempt_at: null });
+    await persistQueue(queue);
+  });
 }
 
 /** Inspect lecture seule pour Settings → OfflineQueueInspector. */
 export async function inspect(): Promise<readonly QueueEntry[]> {
-  return [...(await loadQueue())];
+  return withStorage(loadQueue);
 }
 
 /** Vide manuellement la queue (Settings purge). */
 export async function purge(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEY);
+  await withStorage(() => AsyncStorage.removeItem(STORAGE_KEY));
 }
 
 export interface SyncBackend {
@@ -146,42 +161,52 @@ export async function _resetForTest(): Promise<void> {
 /**
  * Tente de drainer la queue. Iteration FIFO (`enqueued_at` ascendant).
  * - Backoff exponentiel par entry via `last_attempt_at` + `attempts`.
- * - MAX_ATTEMPTS = 5 → drop + log __DEV__ (anti-loop).
+ * - Jamais de suppression sur échec : le backoff reste plafonné à 60 s.
+ * - Les déclencheurs simultanés partagent le même envoi.
  */
-export async function flush(now: Date = new Date()): Promise<FlushResult> {
-  const queue = await loadQueue();
-  if (queue.length === 0 || backendRef === null) {
+let flushInFlight: Promise<FlushResult> | null = null;
+export function flush(now: Date = new Date()): Promise<FlushResult> {
+  if (flushInFlight) return flushInFlight;
+  const promise = drainQueue(now);
+  flushInFlight = promise;
+  const release = () => { if (flushInFlight === promise) flushInFlight = null; };
+  void promise.then(release, release);
+  return promise;
+}
+
+async function drainQueue(now: Date): Promise<FlushResult> {
+  const backend = backendRef;
+  const queue = await withStorage(async () => {
+    const entries = await loadQueue();
+    // Migration des anciennes entrées : identité persistée AVANT le réseau.
+    if (backend && entries.some((e) => !e.queue_id)) {
+      for (const e of entries) e.queue_id ??= nextQueueId();
+      await persistQueue(entries);
+    }
+    return entries;
+  });
+  if (queue.length === 0 || backend === null) {
     return { ok: 0, failed: 0, remaining: queue.length };
   }
-  const remaining: QueueEntry[] = [];
+  const outcomes = new Map<string, QueueEntry | null>();
   let ok = 0;
   let failed = 0;
 
   for (const entry of queue) {
-    // Drop si MAX_ATTEMPTS atteint (no infinite retry loop).
-    if (entry.attempts >= MAX_ATTEMPTS) {
-      if (__DEV__) {
-        console.warn(
-          "[offline-queue] dropping entry after MAX_ATTEMPTS",
-          entry.kind,
-        );
-      }
-      continue;
-    }
     // Backoff — skip cette iteration si on n'a pas attendu assez.
     if (entry.last_attempt_at !== null) {
       const elapsed = now.getTime() - new Date(entry.last_attempt_at).getTime();
       if (elapsed < backoffDelayMs(entry.attempts)) {
-        remaining.push(entry);
         continue;
       }
     }
-    const success = await tryDrainEntry(entry, backendRef);
+    const success = await tryDrainEntry(entry, backend);
     if (success) {
       ok += 1;
+      outcomes.set(entry.queue_id!, null);
     } else {
       failed += 1;
-      remaining.push({
+      outcomes.set(entry.queue_id!, {
         ...entry,
         attempts: entry.attempts + 1,
         last_attempt_at: now.toISOString(),
@@ -189,8 +214,18 @@ export async function flush(now: Date = new Date()): Promise<FlushResult> {
     }
   }
 
-  await persistQueue(remaining);
-  return { ok, failed, remaining: remaining.length };
+  return withStorage(async () => {
+    // Relit le disque : un ajout ou une purge survenu pendant le réseau fait
+    // foi. Seules les entrées du snapshot encore présentes sont acquittées.
+    const current = await loadQueue();
+    const remaining = current.flatMap((entry) => {
+      if (!entry.queue_id || !outcomes.has(entry.queue_id)) return [entry];
+      const result = outcomes.get(entry.queue_id);
+      return result ? [result] : [];
+    });
+    await persistQueue(remaining);
+    return { ok, failed, remaining: remaining.length };
+  });
 }
 
 async function tryDrainEntry(
@@ -230,11 +265,15 @@ export function initOfflineQueue(options: InitOptions): () => void {
   void (async () => {
     const online = await options.isOnline().catch(() => false);
     if (online) await flush();
-  })();
+  })().catch(reportFlushFailure);
 
   return options.subscribe(() => {
-    void flush();
+    void flush().catch(reportFlushFailure);
   });
+}
+
+function reportFlushFailure(error: unknown): void {
+  if (__DEV__) console.warn("[offline-queue] reprise non acquittée", error);
 }
 
 /**
@@ -263,4 +302,5 @@ export async function saveSpawtToSupabaseOrEnqueue(
 }
 
 export const OFFLINE_QUEUE_MAX_SIZE = MAX_QUEUE_SIZE;
+/** Seuil historique conservé pour les outils existants ; ce n'est plus un seuil de suppression. */
 export const OFFLINE_QUEUE_MAX_ATTEMPTS = MAX_ATTEMPTS;

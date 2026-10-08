@@ -14,7 +14,7 @@
 // FAIBLE via applySwipeSignal — moteur rapide-signals).
 
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Alert, ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -105,7 +105,7 @@ export default function RapideScreen() {
     // Le deck exclut les favoris au build, mais on re-garde l'idempotence
     // (double événement, re-entrée) : jamais de un-save par accident.
     if (!isSaved(item.place.id)) {
-      void toggleSaved(item.place.id);
+      void toggleSaved(item.place.id).catch(() => Alert.alert(t("saved.save_failed")));
     }
     void applySwipeSignal(item.adn, "like");
     track({

@@ -23,7 +23,7 @@
 //   flushBuffer()
 //     │
 //     ▼  batch insert via insertUserSignals(payloads[])
-//   ┌─ success ─┐         ┌─ RLS rejection (pre-auth) ─┐
+//   ┌─ success ─┐         ┌─ no session / insert refused ─┐
 //   │   clear  │         │  persist to AsyncStorage   │
 //   └──────────┘         │  spawt:analytics:pending   │
 //                        └────────────────────────────┘
@@ -179,6 +179,9 @@ type EventName =
   | "review_reported"
   // 8. Coup de Cœur
   | "coup_de_coeur_attempted" | "coup_de_coeur_posted" | "coup_de_coeur_quota_exhausted"
+  // 0068 — le retrait existe : sans cet événement, un cœur repris se lirait
+  // comme un don qui n'a jamais eu lieu.
+  | "coup_de_coeur_removed"
   // 9. Stade & Palais & Identité
   | "palais_updated" | "stade_unlocked" | "archetype_assigned" | "archetype_mue"
   | "title_displayed_changed" | "profile_opened" | "spawter_card_flipped"
@@ -256,7 +259,7 @@ const EVENT_TO_SIGNAL = {
   review_reported: "click",
   review_photo_added: "review",
   coup_de_coeur_attempted: "review", coup_de_coeur_posted: "review",
-  coup_de_coeur_quota_exhausted: "review",
+  coup_de_coeur_quota_exhausted: "review", coup_de_coeur_removed: "review",
   palais_updated: "review", stade_unlocked: "review",
   archetype_assigned: "review", archetype_mue: "review",
   // Identité (Story 5.2 / 5.3)
@@ -342,7 +345,7 @@ let appStateSubscribed = false;
  *   - dès que le buffer atteint {@link FLUSH_THRESHOLD} events
  *   - quand l'app passe en background (AppState)
  *
- * Pre-auth (avant session OTP) : le flush échoue côté RLS, les payloads
+ * Pre-auth (avant session OTP) : aucun insert distant n'est tenté ; les payloads
  * sont persistés dans AsyncStorage (`spawt:analytics:pending`). Story 2.3
  * (OTP) appellera {@link flushPendingSignals} après `SIGNED_IN` pour drainer.
  *
@@ -436,7 +439,7 @@ async function flushBuffer(): Promise<void> {
       })),
     );
     if (!inserted) {
-      // Insert refusé (RLS pre-auth, réseau down, etc.) — persist + retry à
+      // Session absente ou insert refusé (réseau down, etc.) — persist + retry à
       // l'événement SIGNED_IN.
       await persistToStorage(batch);
     }

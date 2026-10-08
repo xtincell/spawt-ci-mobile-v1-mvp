@@ -4,6 +4,159 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Reprendre le compte après connexion (2026-10-08)
+
+Après OTP, l’app relit le profil et le Palais par les RLS existantes. Un compte
+complet retrouve ses axes mûris, son stade, son rang et ses consentements sans
+upsert d’initialisation. Le lecteur utilisé seulement par l’accès de développement
+est factorisé avec le parcours normal ; ses identifiants et son opt-in restent
+strictement dans la voie `__DEV__`.
+
+Une absence confirmée ouvre l’inscription. Un profil sans premier Palais et sans
+progression reprend le formulaire prérempli ; la sauvegarde conserve sa date,
+son rang et ses consentements d’origine. Une relecture finale adopte un Palais
+apparu entre-temps sans le remplacer ni compter une seconde activation.
+Une panne de lecture reste distincte d’un compte absent : le bouton de reprise
+réutilise la session ouverte sans renvoyer l’OTP déjà consommé.
+
+Les réponses après déconnexion/changement de session sont rejetées. La publication
+locale sérialisée pose le profil après le Palais et les consentements ; une panne
+intermédiaire ne laisse pas l’ancien profil associé au nouveau Palais.
+Aucune migration, permission, table ni fonction serveur ajoutée.
+
+Cinq contre-exemples d’écran rouges avant correction. Tests source et CI qualifiés
+dans la réception Shinkiro ; les médias du checkout local sont simulés, l’export
+complet doit passer en CI. OTP réel, deux appareils, récupération de tout
+l’historique/collection, persistance durable du Palais et finalisations simultanées
+restent ouverts. Un compte déjà avancé dont le Palais manque exige une réparation,
+jamais une remise à zéro. Cette reprise ne reçoit pas le parcours entier.
+
+## Transmettre les réponses La Meute au Palais (2026-10-08)
+
+Le quiz et l’application utilisent les mêmes cinq axes. Le retour OTP conserve
+maintenant le vecteur complet, y compris Foule ↔ Secret porté par la sixième
+question. Un héritage complet rejoint directement la révélation ; « Revoir mes
+préférences » rouvre la calibration existante. Un héritage absent ou incomplet
+conserve le parcours habituel. Carte, analytics et première sauvegarde utilisent
+un calcul partagé ; conversion inverse exacte du moteur existant (÷2).
+
+La migration 0069 étend `claim_meute_heritage` sans nouveau schéma ni droit :
+preview sans création de profil, puis claim après profil et Palais. Le téléphone
+confirmé dans Auth remplace le téléphone public modifiable pour le propriétaire.
+Le chemin Edge service_role post-OTP reste compatible. Les profils déjà vivants
+ne voient pas leurs axes réinitialisés. Un choix explicite de recalibrer conserve
+le rang de pionnier et son nouvel archétype.
+
+Trois critères applicatifs et deux contre-exemples SQL rouges avant correction.
+Après : 878 tests source verts, quatre sauts et quatre snapshots, typage,
+vocabulaire et i18n verts. PostgreSQL local jetable : preview, isolation, numéro
+non confirmé, JSON invalide, idempotence et retour arrière/réapplication reçus.
+3 125 vecteurs vérifient la conversion sans perte. CI complète et déploiement
+restent à recevoir à ce point. Aucun OTP réel, consentement, GPS, EAS, OTA ou
+magasin. Ces contrôles ne valident pas scientifiquement la déduction du quiz,
+ne reconstituent pas une sixième réponse historique et ne reçoivent pas la
+reprise durable du Palais ni le cycle réel sur deux appareils.
+
+## Différer la télémétrie sans session (2026-10-08)
+
+L’entrée non connectée n’envoie plus un lot de signaux pour apprendre son absence
+de session par un refus 401. L’adaptateur vérifie la session existante, puis renvoie
+`false` sans insertion lorsqu’elle est absente, refusée ou sans identité. Le wrapper
+conserve son chemin local de persistance et de reprise à la connexion. Le compte lu
+est fixé sur les lignes envoyées ; une session remplacée ne doit pas les attribuer
+implicitement au nouveau compte. Les choix et textes de consentement restent intacts.
+
+Cinq critères rouges avant correction, sept contrôles verts après. Suite complète
+locale sans cache : 856 tests, quatre sauts et quatre snapshots ; typage, vocabulaire
+et i18n verts. Les médias restent simulés dans le checkout de sources, export complet
+attendu en CI. La première suite avait conservé un ancien transform Jest ; le même
+contrôle d’interopérabilité passe sans cache, sans retoucher l’adaptateur.
+
+La file analytics historique n’est toujours pas identifiée par compte ; concurrence,
+acquittement durable, reprise après relance et données illisibles restent à recevoir.
+Ce lot ne reçoit pas l’apprentissage du Palais ni un parcours authentifié.
+
+## Refus de sauvegarde du profil et du Palais (2026-10-08)
+
+Les deux écrivains Supabase remontent désormais une réponse d’erreur de la base,
+comme une panne réseau, au lieu de résoudre leur promesse comme si la sauvegarde
+avait été acceptée. La reprise existante du profil peut ainsi mettre l’action en
+file ; les callers du Palais peuvent détecter leur échec. Aucun schéma, règle
+métier, calcul d’axe ou appel réseau supplémentaire.
+
+Deux contre-exemples rouges avant correction, six contrôles du contrat après.
+Typage, vocabulaire et i18n verts ; suite locale source : 849 tests verts,
+quatre sauts conservés, quatre snapshots. Les médias absents du checkout partiel
+sont substitués uniquement dans Jest. CI 37711836611 reçue : 849 tests et export
+complet ; aperçu servi depuis cb26f04, bundle natif et public rapprochés.
+Ce lot ne corrige pas le rejeu d’avis, les écritures concurrentes de Palais ni sa
+reprise durable : les appels qui ne font qu’avertir restent à recevoir. La recette
+authentifiée, deux appareils et la distribution native restent ouvertes.
+
+## Imports différés du dispositif Jest (2026-10-08)
+
+L'adaptateur de test enveloppe aussi les modules CommonJS en namespace avec leur
+export par défaut, comme un import différé. Le mock officiel AsyncStorage pouvait
+sinon faire échouer un test avant d'atteindre la mutation étudiée. Un contre-exemple
+verrouille cette interopérabilité. Ce changement est réservé à Jest : le chemin
+Expo/Metro du binaire reste inchangé.
+
+## Continuité des favoris et de la session — réception Shinkiro (2026-10-07)
+
+Deux choix simultanés sont conservés. Cache et intentions non acquittées sont
+écrits ensemble dans le document existant `spawt:saved_places`, identifié par
+compte. Une lecture du serveur ne pousse plus automatiquement les anciens
+favoris absents : les suppressions faites sur un autre appareil sont respectées.
+Seuls les ajouts et retraits explicitement en attente sont repris au lancement,
+au retour réseau et au retour en avant-plan. Une réponse ancienne ne peut pas
+acquitter un choix contraire plus récent ; le réseau ne bloque pas les gestes locaux.
+Les erreurs renvoyées par Supabase ne sont plus assimilées à un succès.
+
+Un échec disque remonte aux trois écrans concernés. Une liste illisible reste
+intacte et affiche une erreur avec reprise dans Mes favoris ; les autres parcours
+restent disponibles. Les caches de compte et consentements sont aussi effacés à
+la déconnexion. Les retours tardifs de favoris, Gold, statut interne et archétype
+sont écartés après la sortie du compte.
+
+Limites : un ancien tableau de favoris ne distinguait pas cache et ajout hors
+ligne ; il reste lisible hors ligne mais ne constitue pas une preuve d'ajout à
+rejouer. La déconnexion conserve sa politique de purge locale explicite, y compris
+les favoris non synchronisés. La file des spawts, les autres mutations asynchrones,
+l'apprentissage du Palais et la recette avec deux comptes réels restent à recevoir.
+
+## Raccords de l’entrée — réception Shinkiro (2026-10-07)
+
+L’écran de consentement ouvre les pages existantes de confidentialité et de CGU
+sur le site actif `spawt.online`, à la place des deux liens `spawt.ci` dont le
+domaine ne résout pas lors de la vérification. Les textes et les décisions de
+consentement sont conservés. Les mentions de validation juridique dans les pages
+restent ouvertes ; rendre le document consultable ne constitue pas son approbation.
+
+
+## Reprise hors ligne — réception Shinkiro (2026-10-07)
+
+Deux actions simultanées et les ajouts pendant un envoi pouvaient s'écraser.
+La file locale sérialise désormais ses écritures et acquitte chaque entrée par
+une identité persistée avant l'envoi ; elle relit le disque au retour du réseau.
+Les déclencheurs simultanés partagent le même envoi. Une purge explicite ne peut
+plus être annulée par une réponse tardive.
+
+Une erreur de stockage remonte au caller. Une file illisible reste intacte et
+l'inspecteur affiche l'échec au lieu de « Tout est synchronisé ». Au plafond de
+200 entrées, le nouvel ajout est refusé sans supprimer les actions déjà acceptées.
+Les actions ne sont plus effacées après cinq tentatives : le délai de reprise
+reste plafonné à 60 secondes. Les anciennes entrées sont migrées à la lecture,
+sans changement de clé de stockage.
+
+Huit contre-exemples reproduits avant correction ; neuf tests de régression ajoutés,
+dont le rendu de l'erreur de lecture. CI indépendante des builds EAS pour les gates
+et l'export web. La livraison native, l'isolation de la file entre comptes et la
+remontée des erreurs des callers restent à recevoir séparément.
+
+La déclaration de la fiche lieu dans le Stack utilise aussi son nom de route
+réel `place/[id]/index` : l'ancien nom désignait une route inexistante et
+produisait un avertissement à chaque rendu observé de l'aperçu web.
+
 ## Corrections boucle adversariale (2026-07-26)
 
 **Passe de chasse aux bugs vérifiée (file:line + scénario + correctif) — 10 findings corrigés, un par groupe logique. Branche `claude/app-finale-ios-android-f8ewrp`. Triple gate mobile verte (757 jest, tsc 0, vocab, i18n), gate admin verte (135 vitest, lint, build), migration 0051 + tests SQL validés sur Postgres local.**

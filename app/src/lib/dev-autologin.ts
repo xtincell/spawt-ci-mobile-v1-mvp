@@ -12,6 +12,8 @@ import { supabase } from "./supabase";
 import { isSupabaseConfigured } from "./data-source";
 import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
+import { readAuthenticatedAccount } from "./account-recovery";
+import { saveRecoveredAccountLocal } from "./storage";
 
 const FLAG_KEY = "spawt:dev_autologin:done";
 
@@ -48,26 +50,17 @@ export async function devAutologin(): Promise<DevAutologinResult> {
   if (!session) return { ok: false, reason: "no_session_after_signin" };
 
   // 2. Fetch spawter + palais via RLS (id = auth.uid())
-  const [{ data: spawter, error: spErr }, { data: palais, error: paErr }] = await Promise.all([
-    supabase.from("spawters").select("*").eq("id", session.user.id).maybeSingle<Spawter>(),
-    supabase.from("user_palais").select("*").eq("spawter_id", session.user.id).maybeSingle<UserPalais>(),
-  ]);
-
-  if (spErr || paErr) {
-    // eslint-disable-next-line no-console
-    console.warn("[dev-autologin] fetch failed", spErr ?? paErr);
-    return { ok: false, reason: "fetch_failed" };
-  }
-  if (!spawter || !palais) {
+  let account;
+  try { account = await readAuthenticatedAccount(session.user.id); }
+  catch { return { ok: false, reason: "fetch_failed" }; }
+  if (account.kind !== "existing") {
     return { ok: false, reason: "spawter_or_palais_missing_in_db" };
   }
+  const { spawter, palais } = account;
 
   // 3. Persist en local pour que le hydrate() suivant les retrouve.
-  await Promise.all([
-    AsyncStorage.setItem("spawt:spawter", JSON.stringify(spawter)),
-    AsyncStorage.setItem("spawt:palais", JSON.stringify(palais)),
-    AsyncStorage.setItem(FLAG_KEY, new Date().toISOString()),
-  ]);
+  await saveRecoveredAccountLocal(spawter, palais);
+  await AsyncStorage.setItem(FLAG_KEY, new Date().toISOString());
 
   return { ok: true, spawter, palais };
 }

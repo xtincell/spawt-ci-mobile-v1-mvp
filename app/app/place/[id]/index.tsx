@@ -425,7 +425,7 @@ export default function PlaceDetailScreen() {
         name: wasAdded ? "place_saved" : "place_unsaved",
         properties: { place_id: place.id },
       });
-    });
+    }).catch(() => Alert.alert(t("saved.save_failed")));
   };
 
   // R17 — changement d'onglet. PlaceTabs ne déclenche `onChange` que sur un

@@ -3,17 +3,15 @@
 // Les FK pointent vers `spawters(id)` (amendement team 4.1).
 
 import { createClient } from "@supabase/supabase-js";
-import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const RAW_URL =
-  Constants.expoConfig?.extra?.supabaseUrl ??
-  process.env.EXPO_PUBLIC_SUPABASE_URL ??
-  "";
+// Résolution unique et traçable (voir `backend-identity.ts`). Cette expression
+// était recopiée ici et dans trois autres fichiers : quatre copies qui pouvaient
+// diverger sans que rien ne le signale, et aucune observable depuis l'app.
+import { backendAnonKey, backendUrl } from "./backend-identity";
 
-const RAW_KEY =
-  Constants.expoConfig?.extra?.supabaseAnonKey ??
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-  "";
+const RAW_URL = backendUrl.valeur;
+const RAW_KEY = backendAnonKey.valeur;
 
 // @supabase/supabase-js v2.45+ throw si URL/key vides — mais en mode démo
 // fallback, le client n'est jamais réellement appelé (toutes les call-sites
@@ -33,6 +31,21 @@ if (!RAW_URL || !RAW_KEY) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
+    // ⚠️ SANS cet adaptateur, `persistSession: true` est un piège sur mobile.
+    //
+    // supabase-js se rabat sur `localStorage` quand aucun `storage` n'est
+    // fourni. `localStorage` n'existe pas en React Native : ouvrir la session
+    // échoue APRÈS que le serveur l'a pourtant émise. L'utilisateur voit un
+    // échec, la base montre une connexion réussie — et les deux ont raison.
+    //
+    // Le pire est que ça marche partout où l'on teste : la recette navigateur
+    // tourne sur `react-native-web`, où `localStorage` existe. Ce défaut était
+    // donc invisible par construction à tout test hors appareil réel — seul un
+    // APK installé pouvait le révéler.
+    //
+    // Conséquence seconde, même sans erreur visible : aucune session ne
+    // survivrait au redémarrage de l'app.
+    storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

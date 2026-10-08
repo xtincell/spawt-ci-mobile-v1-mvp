@@ -192,3 +192,22 @@ describe("PlaceDetailScreen — R22 (fiche lieu sans données ne crash pas)", ()
     TestRenderer.act(() => renderer.unmount());
   });
 });
+
+it("signale l'échec d'enregistrement du favori sans annoncer un succès", async () => {
+  const { Alert } = jest.requireActual("react-native") as typeof import("react-native");
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  const analytics = jest.requireMock("../../src/lib/analytics").track as jest.Mock;
+  analytics.mockClear();
+  mockPlace = emptyDataPlace();
+  mockStoreState.toggleSaved.mockRejectedValueOnce(new Error("quota"));
+  let renderer!: ReturnType<typeof TestRenderer.create>;
+  await TestRenderer.act(async () => { renderer = TestRenderer.create(<PlaceDetailScreen />); });
+  await flushMicrotasks();
+  const button = renderer.root.findAllByProps({ accessibilityLabel: "place.heart_hint" }).find((n: { props: { onPress?: unknown } }) => typeof n.props.onPress === "function");
+  expect(button).toBeDefined();
+  await TestRenderer.act(async () => { button!.props.onPress(); await Promise.resolve(); });
+  expect(alert).toHaveBeenCalledWith("saved.save_failed");
+  expect(analytics).not.toHaveBeenCalledWith(expect.objectContaining({ name: "place_saved" }));
+  TestRenderer.act(() => renderer.unmount());
+  alert.mockRestore();
+});

@@ -20,9 +20,9 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { track } from "../../src/lib/analytics";
 import { isSupabaseConfigured } from "../../src/lib/data-source";
+import { backendAnonKey, backendUrl } from "../../src/lib/backend-identity";
 import { GoogleButton } from "../../src/components/auth/GoogleButton";
 import { AppleButton } from "../../src/components/auth/AppleButton";
-import Constants from "expo-constants";
 
 // P7 — CIV mobile numbers (post-2022 renumbering, ARTCI). Tous les opérateurs :
 //   Orange : 07, 08, 09 ; MTN : 04, 05, 06 ; Moov : 01, 02, 03 — prefix `0[1-9]`.
@@ -110,17 +110,14 @@ export default function PhoneScreen() {
     const timeoutId = setTimeout(() => abort.abort(), OTP_SEND_TIMEOUT_MS);
     timeoutRef.current = timeoutId;
     try {
-      const url =
-        Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const anonKey =
-        Constants.expoConfig?.extra?.supabaseAnonKey ??
-        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const url = backendUrl.valeur;
+      const anonKey = backendAnonKey.valeur;
       const resp = await fetch(`${url}/functions/v1/otp-send`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          apikey: anonKey ?? "",
-          authorization: `Bearer ${anonKey ?? ""}`,
+          apikey: anonKey,
+          authorization: `Bearer ${anonKey}`,
         },
         body: JSON.stringify({ phone_e164: phone }),
         signal: abort.signal,
@@ -138,9 +135,21 @@ export default function PhoneScreen() {
         name: "auth_otp_sent",
         properties: { phone_masked: maskPhone(phone) },
       });
+      // Le serveur signale lui-même qu'aucun SMS n'est réellement parti : en
+      // mode mock, `otp-send` renvoie un `request_id` préfixé « mock- ».
+      // Sans ce relais, l'app promet un SMS qu'elle ne peut pas délivrer et
+      // laisse attendre un code qui n'arrivera jamais — c'est exactement ce
+      // qui s'est produit sur l'APK de recette.
+      let mock = false;
+      try {
+        const corps = (await resp.clone().json()) as { request_id?: string };
+        mock = String(corps?.request_id ?? "").startsWith("mock-");
+      } catch {
+        // Réponse sans corps exploitable : on n'affirme rien.
+      }
       router.push({
         pathname: "/(onboarding)/otp",
-        params: { phone },
+        params: mock ? { phone, mock: "1" } : { phone },
       });
     } catch (err) {
       if ((err as { name?: string })?.name === "AbortError") {

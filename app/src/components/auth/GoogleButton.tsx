@@ -61,21 +61,33 @@ function generateSecureNonce(): string | null {
   }
 }
 
-export function GoogleButton({ onError }: Props) {
-  // Mode démo (pas de Supabase) : pas d'auth possible → ne pas mount le hook
-  // `Google.useAuthRequest` qui throw sans clientId configuré.
-  //
-  // FIX 2026-06-01 — crash post-consent observé en preview : un build où
-  // EXPO_PUBLIC_SUPABASE_URL était set mais où AUCUN EXPO_PUBLIC_GOOGLE_*_CLIENT_ID
-  // ne l'était passait l'ancienne garde et atteignait `Google.useAuthRequest({})`,
-  // qui throw → mount PhoneScreen plante. On élargit la garde aux clientIds Google.
-  const hasAnyGoogleClientId = Boolean(
+/**
+ * Enveloppe SANS aucun hook : elle seule décide si le bouton existe.
+ *
+ * La garde vivait à l'intérieur du composant, sous forme d'un `return null`
+ * placé AVANT `useTranslation`, `useState`, `useEffect` et `useMemo`. C'est une
+ * violation des règles des hooks : le nombre de hooks appelés doit être le même
+ * à chaque rendu. Elle ne se voyait pas, parce que la condition est constante
+ * pour une session donnée — mais elle deviendrait vraie le jour où les
+ * identifiants Google apparaissent, c'est-à-dire exactement au moment où on
+ * activerait la fonctionnalité. React aurait alors levé « rendered fewer hooks
+ * than expected » au montage de l'écran de connexion.
+ *
+ * Un composant externe sans hooks peut sortir tôt sans rien casser, et le
+ * composant interne — celui qui appelle `Google.useAuthRequest`, lequel lève
+ * sans clientId — n'est monté que lorsqu'il est réellement configurable.
+ */
+export function GoogleButton(props: Props) {
+  const identifiantPresent = Boolean(
     readClientId("googleClientId") ||
       readClientId("googleIosClientId") ||
       readClientId("googleAndroidClientId"),
   );
-  if (!isSupabaseConfigured || !hasAnyGoogleClientId) return null;
+  if (!isSupabaseConfigured || !identifiantPresent) return null;
+  return <GoogleButtonConfigure {...props} />;
+}
 
+function GoogleButtonConfigure({ onError }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
