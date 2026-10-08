@@ -104,7 +104,11 @@ export default function PalaisRevealScreen() {
       // P-22 — emit `onboarding_completed` AVANT le throw potentiel de finalize
       // gonflerait artificiellement le funnel KPI Kidam vs taux de finalize
       // réel. Désormais : finalize d'abord, track ensuite SI succès.
-      await finalizeOnboarding(draft);
+      const result = await finalizeOnboarding(draft);
+      if (result === "restored") {
+        if (mountedRef.current) router.replace("/(tabs)");
+        return;
+      }
 
       // Story 4.8 — `age_range` est dérivé du `date_of_birth` du draft (helper
       // pur). On émet la tranche calculée, pas la date brute (invariant PII).

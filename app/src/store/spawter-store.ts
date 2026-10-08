@@ -16,6 +16,7 @@ import {
   loadSpawts,
   saveSpawterLocal,
   savePalaisLocal,
+  saveRecoveredAccountLocal,
   appendSpawtLocal,
   setConsent as setConsentLocal,
   loadCollectionTitres,
@@ -77,6 +78,7 @@ import { applyReviewToPalais } from "../lib/palais-signals";
 import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
 import { supabase } from "../lib/supabase";
+import { canResumeMissingPalais, readAuthenticatedAccount, requireAccountSession } from "../lib/account-recovery";
 import { dominantAxes } from "../lib/palais-engine";
 import { getStade, maxStade } from "../types/stade";
 import { EMPTY_PALAIS, SAMPLE_SPAWTER } from "../data/seed/sample-spawter";
@@ -197,6 +199,8 @@ interface SpawterStore {
   consumePendingBadge: () => Promise<void>;
 
   hydrate: () => Promise<void>;
+  /** Reprendre le profil et le Palais après authentification, sans les réinitialiser. */
+  recoverAuthenticatedAccount: (expectedOwner?: string | null, signal?: AbortSignal) => Promise<"new" | "resume" | "restored">;
   /**
    * Story 3.6 — Toggle un place_id dans/hors favoris.
    * Cache et intention persistés ensemble avant affichage ; reprise serveur en arrière-plan.
@@ -242,7 +246,7 @@ interface SpawterStore {
    * Supabase fire-and-forget, même pattern que recordConsent.
    */
   updateAvatar: (avatar_url: string) => Promise<void>;
-  finalizeOnboarding: (draft: OnboardingDraft) => Promise<void>;
+  finalizeOnboarding: (draft: OnboardingDraft) => Promise<void | "restored">;
   registerSpawt: (s: SpawtCheckin) => Promise<void>;
   /**
    * Story 4.5 — Attache un avis structuré à un spawt existant (note + tags + texte + photos).
@@ -470,7 +474,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   hydrate: async () => {
     const generation = sessionGeneration;
     await resetPending;
-    const [spawter, palais, spawts, collectionTitres, pendingMue] =
+    const [spawter, cachedPalais, spawts, collectionTitres, pendingMue] =
       await Promise.all([
         loadSpawter(),
         loadPalais(),
@@ -479,6 +483,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         loadPendingMue(),
       ]);
     if (generation !== sessionGeneration) return;
+    const palais = spawter && cachedPalais?.spawter_id === spawter.id ? cachedPalais : null;
     let savedPlaceIds = new Set<string>();
     let savedUnavailable = false;
     try { savedPlaceIds = await loadSavedPlaces(spawter?.id ?? null); }
@@ -564,6 +569,56 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     void get().refreshSaved().catch((err) => {
       if (__DEV__) console.warn("[spawter-store] saved sync failed", err);
     });
+  },
+
+  recoverAuthenticatedAccount: async (expectedOwner, signal) => {
+    const initialGeneration = sessionGeneration;
+    const account = await readAuthenticatedAccount(expectedOwner, signal);
+    if (signal?.aborted || sessionGeneration !== initialGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
+    if (account.kind === "new") return "new";
+    if (canResumeMissingPalais(account)) {
+      const source = account.spawter;
+      const draft = useOnboardingDraft.getState();
+      draft.setField("display_name", source.display_name);
+      draft.setField("neighborhood", source.neighborhood ?? "");
+      draft.setField("country_code", source.country_code);
+      draft.setField("origin_country_code", source.origin_country_code);
+      draft.setField("gender", source.gender);
+      draft.setField("date_of_birth", source.date_of_birth);
+      draft.setField("consent", {
+        cgv_accepted_at: source.cgv_accepted_at ?? draft.draft.consent.cgv_accepted_at,
+        geoloc_consent_at: source.geoloc_consent_at ?? draft.draft.consent.geoloc_consent_at,
+      });
+      return "resume";
+    }
+    if (account.kind === "incomplete") throw new Error("ACCOUNT_INCOMPLETE");
+    // Le cache local d'une autre installation/personne n'est pas un héritage.
+    // Le reset existant invalide aussi les réponses Gold, favoris et rôles tardives.
+    await requireAccountSession(account.owner);
+    if (signal?.aborted || sessionGeneration !== initialGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
+    get().reset();
+    const generation = sessionGeneration;
+    const isCurrent = () => generation === sessionGeneration && !signal?.aborted;
+    await resetPending;
+    await withAccountStorage(async () => {
+      if (!isCurrent()) throw new Error("ACCOUNT_SESSION_CHANGED");
+      await requireAccountSession(account.owner);
+      await saveRecoveredAccountLocal(account.spawter, account.palais, isCurrent);
+      try {
+        await requireAccountSession(account.owner);
+      } catch (error) {
+        if (isCurrent()) get().reset();
+        throw error;
+      }
+      if (!isCurrent()) throw new Error("ACCOUNT_SESSION_CHANGED");
+      set({ spawter: account.spawter, palais: account.palais, hydrating: false });
+    });
+    useOnboardingDraft.getState().reset();
+    // Favoris et droits utilisent leurs mécanismes de reprise existants.
+    void get().hydrate().catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] recovered cache hydrate failed", err);
+    });
+    return "restored";
   },
 
   refreshSaved: async () => {
@@ -669,6 +724,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
 
   finalizeOnboarding: async (draft) => {
     const now = new Date().toISOString();
+    const generation = sessionGeneration;
+    let existingProfile: Spawter | null = null;
 
     // 1. Récupérer l'auth user (mode live) ou fallback mock (mode démo Expo Go).
     // Import statique de `supabase` : OK car le module ne crée le client qu'avec
@@ -682,6 +739,14 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         throw new Error("FINALIZE_NO_AUTH_USER");
       }
       id = data.user.id;
+      const current = await readAuthenticatedAccount(id);
+      if (generation !== sessionGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
+      if (current.kind === "existing") {
+        await get().recoverAuthenticatedAccount(id);
+        return "restored";
+      }
+      if (canResumeMissingPalais(current)) existingProfile = current.spawter;
+      else if (current.kind === "incomplete") throw new Error("ACCOUNT_INCOMPLETE");
     } else {
       id = SAMPLE_SPAWTER.id;
     }
@@ -698,7 +763,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     const initialArchetype = initial.archetype;
 
     const spawter: Spawter = {
-      ...SAMPLE_SPAWTER,
+      ...(existingProfile ?? SAMPLE_SPAWTER),
       id,
       phone_e164: draft.phone_e164,
       display_name: draft.display_name,
@@ -708,10 +773,10 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       gender: draft.gender,
       date_of_birth: draft.date_of_birth,
       age_range: derivedAgeRange,
-      cgv_accepted_at: draft.consent.cgv_accepted_at,
-      geoloc_consent_at: draft.consent.geoloc_consent_at,
-      pionnier_seq: initial.pionnierSeq,
-      created_at: now,
+      cgv_accepted_at: existingProfile?.cgv_accepted_at ?? draft.consent.cgv_accepted_at,
+      geoloc_consent_at: existingProfile?.geoloc_consent_at ?? draft.consent.geoloc_consent_at,
+      pionnier_seq: existingProfile?.pionnier_seq ?? initial.pionnierSeq,
+      created_at: existingProfile?.created_at ?? now,
       updated_at: now,
     };
 
@@ -733,7 +798,17 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     };
 
     // 2. Local-first (AsyncStorage commit avant tout sync réseau).
-    await Promise.all([saveSpawterLocal(spawter), savePalaisLocal(palais)]);
+    if (isSupabaseConfigured) {
+      await resetPending;
+      await withAccountStorage(async () => {
+        if (generation !== sessionGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
+        await requireAccountSession(id);
+        await saveRecoveredAccountLocal(spawter, palais, () => generation === sessionGeneration);
+      });
+    } else {
+      await Promise.all([saveSpawterLocal(spawter), savePalaisLocal(palais)]);
+    }
+    if (generation !== sessionGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
 
     // 3. Synchroniser profil → Palais (FK) → claim définitif. Le preview OTP
     // n'a créé aucune ligne. La synchronisation reste best-effort : sa reprise

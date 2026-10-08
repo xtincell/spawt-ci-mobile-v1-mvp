@@ -75,6 +75,24 @@ export async function savePalaisLocal(p: UserPalais): Promise<void> {
   await writeJSON(KEYS.palais, p);
 }
 
+/** Le profil sert de dernier témoin de publication du couple restauré.
+ * Une interruption avant sa pose laisse un compte absent, jamais un ancien
+ * profil associé au Palais d'un autre compte. L'appelant sérialise avec reset. */
+export async function saveRecoveredAccountLocal(s: Spawter, p: UserPalais, isCurrent = () => true): Promise<void> {
+  const guard = () => { if (!isCurrent()) throw new Error("ACCOUNT_SESSION_CHANGED"); };
+  if (s.id !== p.spawter_id) throw new Error("ACCOUNT_INVALID");
+  guard();
+  await AsyncStorage.removeItem(KEYS.spawter);
+  guard();
+  await savePalaisLocal(p);
+  guard();
+  await AsyncStorage.setItem(KEYS.consent_cgv, s.cgv_accepted_at ?? "");
+  guard();
+  await AsyncStorage.setItem(KEYS.consent_geoloc, s.geoloc_consent_at ?? "");
+  guard();
+  await saveSpawterLocal(s);
+}
+
 export async function loadSpawts(): Promise<SpawtCheckin[]> {
   return (await readJSON<SpawtCheckin[]>(KEYS.spawts)) ?? [];
 }

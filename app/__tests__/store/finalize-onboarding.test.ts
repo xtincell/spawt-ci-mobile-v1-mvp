@@ -40,6 +40,13 @@ jest.mock("../../src/lib/data-source", () => ({
 }));
 
 const mockGetUser = jest.fn();
+const mockReadAccount = jest.fn();
+const mockRequireSession = jest.fn();
+jest.mock("../../src/lib/account-recovery", () => ({
+  ...jest.requireActual("../../src/lib/account-recovery"),
+  readAuthenticatedAccount: (...args: unknown[]) => mockReadAccount(...args),
+  requireAccountSession: (...args: unknown[]) => mockRequireSession(...args),
+}));
 jest.mock("../../src/lib/supabase", () => ({
   supabase: {
     auth: {
@@ -91,6 +98,8 @@ describe("finalizeOnboarding — Story 2.6", () => {
     mockClaim.mockReset().mockResolvedValue(null);
     mockUpdateArchetype.mockClear();
     mockSupabaseConfigured = false;
+    mockReadAccount.mockReset().mockResolvedValue({ kind: "new", owner: "auth-uuid-xyz" });
+    mockRequireSession.mockReset().mockResolvedValue("auth-uuid-xyz");
     useSpawterStore.setState({ spawter: null, palais: null, spawts: [], hydrating: false });
     useOnboardingDraft.getState().reset();
   });
@@ -184,6 +193,34 @@ describe("finalizeOnboarding — Story 2.6", () => {
     await expect(useSpawterStore.getState().finalizeOnboarding(freshDraft())).rejects.toThrow(
       "FINALIZE_NO_AUTH_USER",
     );
+  });
+
+  it("la reprise du premier Palais conserve les consentements, le rang et la date d'origine du profil", async () => {
+    mockSupabaseConfigured = true;
+    mockGetUser.mockResolvedValue({ data: { user: { id: "auth-uuid-xyz" } }, error: null });
+    mockReadAccount.mockResolvedValue({ kind: "incomplete", owner: "auth-uuid-xyz", palais: null,
+      spawter: { ...SAMPLE_SPAWTER, id: "auth-uuid-xyz", pionnier_seq: 42, cgv_accepted_at: "2026-06-01T09:00:00Z" } });
+    await useSpawterStore.getState().finalizeOnboarding(freshDraft());
+    expect(useSpawterStore.getState().spawter).toMatchObject({ pionnier_seq: 42,
+      cgv_accepted_at: "2026-06-01T09:00:00Z", created_at: SAMPLE_SPAWTER.created_at });
+  });
+  it("une panne de la relecture finale n'initialise aucun Palais", async () => {
+    mockSupabaseConfigured = true;
+    mockGetUser.mockResolvedValue({ data: { user: { id: "auth-uuid-xyz" } }, error: null });
+    mockReadAccount.mockRejectedValue(new Error("ACCOUNT_READ_FAILED"));
+    await expect(useSpawterStore.getState().finalizeOnboarding(freshDraft())).rejects.toThrow("ACCOUNT_READ_FAILED");
+    expect(mockSaveSpawter).not.toHaveBeenCalled(); expect(mockSavePalais).not.toHaveBeenCalled();
+  });
+  it("un Palais apparu pendant la calibration est repris sans upsert de remplacement", async () => {
+    mockSupabaseConfigured = true;
+    mockGetUser.mockResolvedValue({ data: { user: { id: "auth-uuid-xyz" } }, error: null });
+    const recovered = { kind: "existing", owner: "auth-uuid-xyz",
+      spawter: { ...SAMPLE_SPAWTER, id: "auth-uuid-xyz", quiz_archetype: "murmure" },
+      palais: { ...require("../../src/data/seed/sample-spawter").EMPTY_PALAIS, spawter_id: "auth-uuid-xyz", axe_foule_secret: 0.83 } };
+    mockReadAccount.mockResolvedValue(recovered);
+    await useSpawterStore.getState().finalizeOnboarding(freshDraft());
+    expect(useSpawterStore.getState().palais?.axe_foule_secret).toBe(0.83);
+    expect(mockSaveSpawter).not.toHaveBeenCalled(); expect(mockSavePalais).not.toHaveBeenCalled();
   });
 
   it("draft.consent.* sont persistés sur le row spawter", async () => {

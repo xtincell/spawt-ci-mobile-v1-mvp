@@ -4,6 +4,33 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Reprendre le compte après connexion (2026-10-08)
+
+Après OTP, l’app relit le profil et le Palais par les RLS existantes. Un compte
+complet retrouve ses axes mûris, son stade, son rang et ses consentements sans
+upsert d’initialisation. Le lecteur utilisé seulement par l’accès de développement
+est factorisé avec le parcours normal ; ses identifiants et son opt-in restent
+strictement dans la voie `__DEV__`.
+
+Une absence confirmée ouvre l’inscription. Un profil sans premier Palais et sans
+progression reprend le formulaire prérempli ; la sauvegarde conserve sa date,
+son rang et ses consentements d’origine. Une relecture finale adopte un Palais
+apparu entre-temps sans le remplacer ni compter une seconde activation.
+Une panne de lecture reste distincte d’un compte absent : le bouton de reprise
+réutilise la session ouverte sans renvoyer l’OTP déjà consommé.
+
+Les réponses après déconnexion/changement de session sont rejetées. La publication
+locale sérialisée pose le profil après le Palais et les consentements ; une panne
+intermédiaire ne laisse pas l’ancien profil associé au nouveau Palais.
+Aucune migration, permission, table ni fonction serveur ajoutée.
+
+Cinq contre-exemples d’écran rouges avant correction. Tests source et CI qualifiés
+dans la réception Shinkiro ; les médias du checkout local sont simulés, l’export
+complet doit passer en CI. OTP réel, deux appareils, récupération de tout
+l’historique/collection, persistance durable du Palais et finalisations simultanées
+restent ouverts. Un compte déjà avancé dont le Palais manque exige une réparation,
+jamais une remise à zéro. Cette reprise ne reçoit pas le parcours entier.
+
 ## Transmettre les réponses La Meute au Palais (2026-10-08)
 
 Le quiz et l’application utilisent les mêmes cinq axes. Le retour OTP conserve
