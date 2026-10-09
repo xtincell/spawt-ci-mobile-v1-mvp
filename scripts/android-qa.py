@@ -32,7 +32,7 @@ def find(value, timeout=25, exact=False):
     while time.monotonic()<end:
         tree,_=nodes()
         for n in tree.iter('node'):
-            if (any(n.get(k)==value for k in ['text','content-desc','resource-id']) if exact else value in label(n)):
+            if (any(n.get(k,'').casefold()==value.casefold() for k in ['text','content-desc','resource-id']) if exact else value.casefold() in label(n).casefold()):
                 if n.get('bounds') not in (None,'[0,0][0,0]'): return n
         time.sleep(.4)
     raise AssertionError('Native control not found: '+value)
