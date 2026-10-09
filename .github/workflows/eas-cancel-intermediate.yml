@@ -1,7 +1,7 @@
 name: EAS cancel intermediate build 21
 on:
   push:
-    tags: ['cleanup-eas-2026-10-09-21']
+    tags: ['cleanup-eas-2026-10-09-21', 'cleanup-eas-2026-10-09-21-2']
 jobs:
   cancel:
     runs-on: ubuntu-latest
@@ -11,6 +11,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Charger les plugins de la configuration Expo
+        working-directory: app
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
       - uses: expo/expo-github-action@v8
         with:
           eas-version: 22.5.0
