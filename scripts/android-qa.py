@@ -62,7 +62,7 @@ def snap(name):
     tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
     texts=[n.get('text') or n.get('content-desc') for n in tree.iter('node') if n.get('text') or n.get('content-desc')]
     print(name+': '+ ' | '.join(texts)[:1200],flush=True)
-    if MODE=='full':
+    if MODE in ('full','matrix','photos'):
         check(name+': labels translated',not any('a11y.stars' in text or 'review.section_photos' in text.casefold() for text in texts))
     return tree
 
@@ -191,10 +191,10 @@ def photo_and_network_cases():
     # Autre compte natif, avec stockage local entièrement neuf.
     adb('shell','pm','clear',PACKAGE); login('+2250000000194')
     home(); tap('Palais',exact=True); find('Recette Android 1.1.1 B'); snap('second-account-moka')
-    deep('place/'+PLACE); scroll_tap('Avis'); scroll_find(photo_text); scroll_find('Photo jointe à cet avis'); snap('photo-review-from-second-account')
-    check('published review readable from another native account',True)
-    scroll_find('Alexandre',attempts=10); tree=snap('founder-public-author')
+    deep('place/'+PLACE); scroll_tap('Avis'); scroll_find('Alexandre',attempts=10); tree=snap('founder-public-author')
     check('founder publicly displays Alexandre',any('Alexandre' in label(n) for n in tree.iter('node')) and not any('Mission 1' in label(n) for n in tree.iter('node')))
+    scroll_find(photo_text); scroll_find('Photo jointe à cet avis'); snap('photo-review-from-second-account')
+    check('published review readable from another native account',True)
 
 try:
     geometry(393,1)
