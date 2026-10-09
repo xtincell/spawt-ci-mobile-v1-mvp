@@ -41,7 +41,7 @@ jobs:
             url=match?.status==='FINISHED' ? match.artifacts?.buildUrl : null;
           }
           if(url){
-            if(!/^https:\/\/expo\.dev\/artifacts\/eas\/[A-Za-z0-9]+\.apk$/.test(url)) throw new Error('APK origin unsupported');
+            if(!/^https:\/\/expo\.dev\/artifacts\/eas\/[A-Za-z0-9_-]+\.apk$/.test(url)) throw new Error('APK origin unsupported');
             const response=await fetch(url);
             if(!response.ok) throw new Error('APK HTTP '+response.status);
             fs.writeFileSync('spawt.apk',Buffer.from(await response.arrayBuffer()));
