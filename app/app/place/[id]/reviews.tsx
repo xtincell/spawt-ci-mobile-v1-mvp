@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { Ico } from "../../../src/components/primitives/Ico";
+import { subscribeReviewChanges } from "../../../src/lib/review-events";
 import { ReviewCard } from "../../../src/components/ReviewCard";
 import {
   listReviewsForPlace,
@@ -35,6 +36,8 @@ export default function PlaceReviewsScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const [state, setState] = useState<FetchState>({ kind: "loading" });
+  const [revision, setRevision] = useState(0);
+  useEffect(() => subscribeReviewChanges(placeId => { if (placeId === id) setRevision(n => n + 1); }), [id]);
   const idRef = useRef(id);
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function PlaceReviewsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, revision]);
 
   return (
     <SafeAreaView

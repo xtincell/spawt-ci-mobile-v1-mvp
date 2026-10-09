@@ -70,10 +70,10 @@ export function ListeCard({ place, onPress, onUnsave, activity }: Props) {
           <Ico name="pin" size={20} color={theme.colors.text.tertiary} />
         </View>
       )}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{ ...theme.typography.preset.h3, color: theme.colors.text.primary }}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {place.name}
         </Text>
@@ -83,7 +83,7 @@ export function ListeCard({ place, onPress, onUnsave, activity }: Props) {
             color: theme.colors.text.secondary,
             marginTop: 2,
           }}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {place.location.neighborhood}
           {cuisineLabel ? ` · ${cuisineLabel}` : ""}
@@ -92,6 +92,7 @@ export function ListeCard({ place, onPress, onUnsave, activity }: Props) {
           style={{
             marginTop: theme.spacing.xs,
             flexDirection: "row",
+            flexWrap: "wrap",
             alignItems: "center",
             gap: theme.spacing.sm,
           }}

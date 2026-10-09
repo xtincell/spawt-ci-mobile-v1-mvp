@@ -16,6 +16,8 @@ import type { PlaceReview, PlaceWithAdn, ProgressionRow } from "./data-source";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import { PlaceWithAdnSchema } from "../types/place.schema";
 import { DataReadError, withReadTimeout } from "./data-read-error";
+import { resolveReviewPhotoUrls } from "./storage-photos";
+import { readReviewRatings, globalReviewRating } from "./review-ratings";
 
 /**
  * Liste les lieux publiés via le SDK Supabase + Zod parse fail-safe.
@@ -351,15 +353,17 @@ export async function updateSpawtInSupabase(
   patch: Partial<SpawtCheckin>,
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("spawt_checkin")
       .update(patch)
-      .eq("id", row_id);
+      .eq("id", row_id)
+      .select("id")
+      .maybeSingle();
     if (error) {
       if (__DEV__) console.warn("[spawt_checkin] update failed", error);
       return false;
     }
-    return true;
+    return Boolean(data?.id);
   } catch (err) {
     if (__DEV__) console.warn("[spawt_checkin] update threw", err);
     return false;
@@ -488,17 +492,20 @@ export async function listReviewsForPlaceFromSupabase(
 ): Promise<PlaceReview[]> {
   const { data, error } = await supabase
     .from("public_reviews")
-    .select("id, spawter_id, note_etoiles, texte_avis, photos, created_at, is_seed, display_name, avatar_url")
+    .select("id, spawter_id, note_etoiles, note_globale, note_cuisine, note_cadre, note_service, texte_avis, photos, created_at, is_seed, display_name, avatar_url")
     .eq("place_id", placeId)
-    .order("note_etoiles", { ascending: false })
+    .order("note_globale", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error || !data) {
     if (__DEV__ && error) console.warn("[data-source] listReviewsForPlace failed", error);
+    if (error) throw new DataReadError("reviews");
     return [];
   }
 
+  const allPhotos = data.flatMap(row => Array.isArray(row.photos) ? row.photos.filter((p: unknown): p is string => typeof p === "string") : []);
+  const resolvedPhotos = await resolveReviewPhotoUrls(allPhotos);
   const out: PlaceReview[] = [];
   for (const row of data) {
     const r = row as Record<string, unknown>;
@@ -507,9 +514,12 @@ export async function listReviewsForPlaceFromSupabase(
       continue;
     }
     const rawPhotos = Array.isArray(r.photos) ? r.photos : [];
-    const photos = rawPhotos.filter(
+    const paths = rawPhotos.filter(
       (p): p is string => typeof p === "string" && p.length > 0,
     );
+    const photos = paths.flatMap(p => resolvedPhotos.has(p) ? [resolvedPhotos.get(p)!] : []);
+    const ratings = readReviewRatings(r);
+    const global = Number(r.note_globale ?? (ratings ? globalReviewRating(ratings) : r.note_etoiles));
     out.push({
       id: String(r.id),
       spawter_id: String(r.spawter_id),
@@ -517,6 +527,7 @@ export async function listReviewsForPlaceFromSupabase(
       spawter_avatar_url:
         typeof r.avatar_url === "string" && r.avatar_url.length > 0 ? r.avatar_url : null,
       note_etoiles: Number(r.note_etoiles ?? 0),
+      ...(ratings ? { ...ratings, note_globale: global } : {}),
       texte_avis: typeof r.texte_avis === "string" ? r.texte_avis : null,
       photos,
       created_at: String(r.created_at ?? ""),
@@ -544,7 +555,7 @@ export async function countReviewsForPlaceFromSupabase(
 
   if (error) {
     if (__DEV__) console.warn("[data-source] countReviewsForPlace failed", error);
-    return 0;
+    throw new DataReadError("reviews");
   }
   return count ?? 0;
 }
@@ -580,17 +591,18 @@ export async function listPlacePhotosFromSpawtsFromSupabase(
   }
 
   const out: string[] = [];
-  for (const row of data) {
+  photosLoop: for (const row of data) {
     const raw = (row as { photos?: unknown }).photos;
     if (!Array.isArray(raw)) continue;
     for (const p of raw) {
       if (typeof p === "string" && p.length > 0) {
         out.push(p);
-        if (out.length >= limit) return out;
+        if (out.length >= limit) break photosLoop;
       }
     }
   }
-  return out;
+  const urls = await resolveReviewPhotoUrls(out);
+  return out.flatMap(p => urls.has(p) ? [urls.get(p)!] : []);
 }
 
 export async function insertUserSignals(

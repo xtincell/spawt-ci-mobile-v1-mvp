@@ -21,6 +21,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { SpawterAvatar } from "../../src/components/SpawterAvatar";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { Button } from "../../src/components/primitives/Button";
 import { Ico } from "../../src/components/primitives/Ico";
@@ -522,31 +523,7 @@ export default function CrewSessionScreen() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md }}>
             {members.map((m) => (
               <View key={m.spawter_id} style={{ alignItems: "center", gap: 4, width: 56 }}>
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor:
-                      m.spawter_id === session.host_id
-                        ? theme.colors.brand.primary
-                        : theme.colors.brand.accent,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      ...theme.typography.preset.h3,
-                      color:
-                        m.spawter_id === session.host_id
-                          ? theme.colors.text.onBrand
-                          : theme.colors.text.inverse,
-                    }}
-                  >
-                    {(m.display_name || "?").slice(0, 1).toUpperCase()}
-                  </Text>
-                </View>
+                <SpawterAvatar url={m.avatar_url} size={40} />
                 <Text
                   numberOfLines={1}
                   style={{

@@ -132,11 +132,12 @@ export default function SpawtsScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    flexWrap: "wrap",
                     gap: theme.spacing.sm,
                   }}
                 >
                   <Text
-                    numberOfLines={1}
+                    numberOfLines={2}
                     style={{
                       ...theme.typography.preset.body,
                       color: theme.colors.text.primary,
@@ -158,6 +159,13 @@ export default function SpawtsScreen() {
                     </Text>
                   ) : null}
                 </View>
+                {item.note_etoiles === null && !item.is_seed && !item.is_cancelled ? (
+                  <Pressable accessibilityRole="button" testID={`resume-review-${item.id}`}
+                    onPress={(event) => { event.stopPropagation(); router.push(`/review/${item.id}`); }}
+                    style={{ minHeight: 44, justifyContent: "center", marginTop: theme.spacing.xs }}>
+                    <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("review.resume")}</Text>
+                  </Pressable>
+                ) : null}
                 {quand ? (
                   <Text
                     style={{

@@ -11,7 +11,8 @@
     "error_network": "Pas de réseau. Le Chat patiente.",
     "data_read_error": "Je n’ai pas pu charger les données. Réessaie dans un instant.",
     "retry": "Réessayer",
-    "dataSourceBanner": "Mode démo · données locales · Supabase pas encore branché"
+    "dataSourceBanner": "Mode démo · données locales · Supabase pas encore branché",
+    "ok": "OK"
   },
   "nav": {
     "feed": "Feed",
@@ -198,17 +199,45 @@
   "review": {
     "title": "Ton avis sur {{place_name}}",
     "subtitle": "Le Chat écoute.",
-    "stars_hint": "De 1 (jamais retour) à 5 (à refaire vite)",
+    "stars_hint": "Note les trois critères pour calculer la note globale.",
     "text_placeholder": "En 1 phrase, ce que tu retiens ?",
-    "cta_save": "Enregistrer mon avis",
-    "cta_later": "Plus tard",
+    "cta_save": "Publier mon avis",
+    "cta_later": "Fermer et garder le brouillon",
     "photo_add": "Ajouter une photo",
     "submit_success_toast": "Ton avis a renforcé l'ADN de {{place_name}}.",
     "permission_title": "Permission requise",
     "permission_body": "Pour ajouter une photo, autorise l'accès à ta galerie.",
     "section_note": "Ta note",
     "section_tags": "Mots-clés",
-    "section_text": "Ton mot"
+    "section_text": "Ton mot",
+    "title_fallback": "Ton avis sur ce lieu",
+    "note_cuisine": "Cuisine",
+    "note_cadre": "Cadre",
+    "note_service": "Service",
+    "global_rating": "Note globale : {{rating}} / 5",
+    "ratings_detail": "Cuisine {{cuisine}} · Cadre {{cadre}} · Service {{service}}",
+    "rate_label": "{{criterion}} : {{count}} sur 5",
+    "rate_label_one": "{{criterion}} : {{count}} sur 5",
+    "rate_label_other": "{{criterion}} : {{count}} sur 5",
+    "error_title": "Impossible d’ouvrir ton avis",
+    "start_failed": "Ton spawt n’a pas pu être enregistré. Réessaie.",
+    "draft_failed": "Impossible de lire ou d’enregistrer ton brouillon. Ferme puis rouvre cet écran.",
+    "photo_failed": "La photo n’a pas pu être ajoutée. Réessaie.",
+    "photo_remove": "Retirer",
+    "publish_failed": "L’envoi a échoué. Ton brouillon et tes photos sont conservés. Vérifie ta connexion puis réessaie.",
+    "published_title": "Avis publié",
+    "published_body": "Ton avis est visible sur la fiche du lieu.",
+    "queued_title": "Avis en attente d’envoi",
+    "queued_body": "Ton avis est enregistré sur cet appareil. Il sera envoyé dès le retour de la connexion.",
+    "demo_body": "Ton avis est enregistré dans la démo sur cet appareil.",
+    "resume": "Écrire ou reprendre mon avis",
+    "tags": {
+      "copieux": "Copieux",
+      "rapide": "Rapide",
+      "ambiance_top": "Ambiance top",
+      "cher": "Cher",
+      "a_refaire": "À refaire"
+    }
   },
   "offline_queue": {
     "title": "En attente de synchronisation",
@@ -863,7 +892,8 @@
     "day_thu": "Jeu",
     "day_fri": "Ven",
     "day_sat": "Sam",
-    "day_sun": "Dim"
+    "day_sun": "Dim",
+    "reviews_error": "Les avis ne sont pas disponibles pour le moment."
   },
   "place_activity": {
     "section_title": "En ce moment",

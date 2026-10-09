@@ -120,13 +120,13 @@ type PresetKey =
   | "overline";
 
 const _preset = {
-  display: { fontFamily: "KlinsmanTypefaceBold", fontSize: 34, lineHeight: 35.7, letterSpacing: -0.34 },
-  h1: { fontFamily: "KlinsmanTypefaceBold", fontSize: 26, lineHeight: 28.6 },
-  h2: { fontFamily: "KlinsmanTypefaceBold", fontSize: 20, lineHeight: 23 },
+  display: { fontFamily: "KlinsmanTypefaceBold", fontSize: 34, lineHeight: 43, letterSpacing: -0.34 },
+  h1: { fontFamily: "KlinsmanTypefaceBold", fontSize: 26, lineHeight: 33 },
+  h2: { fontFamily: "KlinsmanTypefaceBold", fontSize: 20, lineHeight: 25 },
   h3: {
     fontFamily: "KlinsmanTypefaceBold",
     fontSize: 16,
-    lineHeight: 19.2,
+    lineHeight: 20,
     letterSpacing: 0.32,
     textTransform: "uppercase",
   },

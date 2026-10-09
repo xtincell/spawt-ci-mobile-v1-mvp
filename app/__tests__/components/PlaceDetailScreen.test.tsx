@@ -169,7 +169,7 @@ describe("PlaceDetailScreen — R22 (fiche lieu sans données ne crash pas)", ()
       .findAllByType(
         (jest.requireActual("react-native") as typeof import("react-native")).Text,
       )
-      .map((n: { props: { children: unknown } }) => n.props.children);
+      .map((n: { props: { children?: unknown } }) => n.props.children);
     expect(JSON.stringify(texts)).toContain("Chez Test");
     // Zéro avis → chip « pas encore noté » (état vide élégant, pas de crash).
     expect(JSON.stringify(texts)).not.toContain("NaN");
@@ -189,7 +189,7 @@ describe("PlaceDetailScreen — R22 (fiche lieu sans données ne crash pas)", ()
       .findAllByType(
         (jest.requireActual("react-native") as typeof import("react-native")).Text,
       )
-      .map((n: { props: { children: unknown } }) => n.props.children);
+      .map((n: { props: { children?: unknown } }) => n.props.children);
     expect(JSON.stringify(texts)).toContain("place.not_found");
 
     TestRenderer.act(() => renderer.unmount());

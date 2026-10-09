@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { SpawtCheckin } from "../types/spawt";
 import type { Spawter } from "../types/spawter";
+import { notifyReviewChanged } from "./review-events";
 
 const STORAGE_KEY = "spawt:offline:queue";
 const MAX_ATTEMPTS = 5;
@@ -119,6 +120,27 @@ async function persistQueue(entries: readonly QueueEntry[]): Promise<void> {
 export async function enqueue(input: EnqueueInput): Promise<void> {
   await withStorage(async () => {
     const queue = await loadQueue();
+    // Une visite en attente ne doit jamais écraser plus tard son avis publié.
+    // Une nouvelle identité protège aussi contre l'ACK d'un ancien snapshot.
+    if (input.kind === "spawt_insert") {
+      const idx = queue.findIndex(e => e.kind === "spawt_insert" && e.row.id === input.row.id);
+      if (idx >= 0) {
+        queue[idx] = { ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
+          attempts: 0, last_attempt_at: null };
+        await persistQueue(queue);
+        return;
+      }
+    }
+    if (input.kind === "spawt_update") {
+      const idx = queue.findIndex(e => e.kind === "spawt_insert" && e.row.id === input.row_id);
+      const pending = queue[idx];
+      if (pending?.kind === "spawt_insert") {
+        queue[idx] = { ...pending, row: { ...pending.row, ...input.patch }, queue_id: nextQueueId(),
+          enqueued_at: new Date().toISOString(), attempts: 0, last_attempt_at: null };
+        await persistQueue(queue);
+        return;
+      }
+    }
     if (queue.length >= MAX_QUEUE_SIZE) throw new Error("offline_queue_full");
     queue.push({ ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
                  attempts: 0, last_attempt_at: null });
@@ -234,7 +256,9 @@ async function tryDrainEntry(
 ): Promise<boolean> {
   try {
     if (entry.kind === "spawt_insert") {
-      return await backend.upsertSpawt(entry.row);
+      const ok = await backend.upsertSpawt(entry.row);
+      if (ok && entry.row.note_etoiles !== null) notifyReviewChanged(entry.row.place_id);
+      return ok;
     }
     if (entry.kind === "spawter_upsert") {
       return await backend.upsertSpawter(entry.row);
@@ -287,18 +311,14 @@ export async function saveSpawtToSupabaseOrEnqueue(
     await enqueue(input);
     return { persisted: "queued" };
   }
-  const success = await tryDrainEntry(
-    {
-      ...input,
-      enqueued_at: new Date().toISOString(),
-      attempts: 0,
-      last_attempt_at: null,
-    } as QueueEntry,
-    backendRef,
-  );
-  if (success) return { persisted: "remote" };
   await enqueue(input);
-  return { persisted: "queued" };
+  await flush();
+  const pending = await inspect();
+  const remains = pending.some(e => input.kind === "spawter_upsert"
+    ? e.kind === "spawter_upsert" && e.row.id === input.row.id
+    : e.kind === "spawt_insert" ? e.row.id === (input.kind === "spawt_insert" ? input.row.id : input.row_id)
+      : e.kind === "spawt_update" && e.row_id === (input.kind === "spawt_insert" ? input.row.id : input.row_id));
+  return { persisted: remains ? "queued" : "remote" };
 }
 
 export const OFFLINE_QUEUE_MAX_SIZE = MAX_QUEUE_SIZE;

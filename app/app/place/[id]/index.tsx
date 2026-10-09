@@ -49,7 +49,8 @@ import { useFlag } from "../../../src/store/feature-flags";
 import { EMPTY_PALAIS } from "../../../src/data/seed/sample-spawter";
 import { track } from "../../../src/lib/analytics";
 import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
-import { buildManualSpawt } from "../../../src/lib/guet";
+import { startManualReview } from "../../../src/lib/manual-review";
+import { subscribeReviewChanges } from "../../../src/lib/review-events";
 import { OpeningHours } from "../../../src/components/OpeningHours";
 import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
 import { PlaceTabs } from "../../../src/components/place/PlaceTabs";
@@ -121,6 +122,8 @@ export default function PlaceDetailScreen() {
   const [attempt, setAttempt] = useState(0);
   const [coverFailed, setCoverFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<PlaceTabKey>("media");
+  const spawtBusy = useRef(false);
+  const [startingReview, setStartingReview] = useState(false);
 
   const registerSpawt = useSpawterStore((s) => s.registerSpawt);
   const spawter = useSpawterStore((s) => s.spawter);
@@ -152,6 +155,10 @@ export default function PlaceDetailScreen() {
       cancelled = true;
     };
   }, [id, attempt]);
+
+  useEffect(() => subscribeReviewChanges(placeId => {
+    if (placeId === id) setAttempt(n => n + 1);
+  }), [id]);
 
   const visited = useMemo(
     () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
@@ -476,6 +483,7 @@ export default function PlaceDetailScreen() {
   };
 
   const handleSpawt = async () => {
+    if (spawtBusy.current) return;
     if (!spawter) {
       // Pas d'onboarding fini → on ne peut pas créer de spawt. Alert plutôt
       // qu'un router.back() silencieux qui ferait croire au geste enregistré.
@@ -495,17 +503,23 @@ export default function PlaceDetailScreen() {
     // Story 4.2 — `buildManualSpawt` factorise la construction de row mode démo
     // (UUID, timestamps, geolocation_source = "manual", is_verified = false).
     // Le badge Premier Spawt n'est pas déclenché en mode démo (is_verified false).
-    const row = buildManualSpawt(
-      spawter.id,
-      place.id,
-      place.location.lat,
-      place.location.lng,
-    );
-    await registerSpawt(row);
-    goBack();
+    spawtBusy.current = true;
+    setStartingReview(true);
+    try {
+      const row = await startManualReview({ spawterId: spawter.id, placeId: place.id,
+        lat: position.source === "gps" ? position.lat : null,
+        lng: position.source === "gps" ? position.lng : null,
+        spawts, register: registerSpawt });
+      router.push({ pathname: "/review/[spawt_id]", params: { spawt_id: row.id, entry: "place_detail", place_name: place.name } });
+    } catch (error) {
+      if (__DEV__) console.warn("[place] start review failed", error);
+      Alert.alert(t("review.error_title"), t("review.start_failed"));
+    } finally {
+      spawtBusy.current = false;
+      setStartingReview(false);
+    }
   };
 
-  const STICKY_HEIGHT = 64;
 
   return (
     <SafeAreaView
@@ -516,7 +530,7 @@ export default function PlaceDetailScreen() {
 
       <ScrollView
         contentContainerStyle={{
-          paddingBottom: STICKY_HEIGHT + insets.bottom + theme.spacing.lg,
+          paddingBottom: theme.spacing.lg,
         }}
       >
         {/* Photo hero + header overlay — hauteur identique avec/sans cover
@@ -981,10 +995,6 @@ export default function PlaceDetailScreen() {
       {/* R11 — Sticky CTA bas « Spawt le ! » (texte produit définitif). */}
       <View
         style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.sm,
           paddingBottom: theme.spacing.sm + insets.bottom,
@@ -998,12 +1008,15 @@ export default function PlaceDetailScreen() {
             void handleSpawt();
           }}
           accessibilityRole="button"
+          testID="place-start-review"
+          disabled={startingReview}
+          accessibilityState={{ disabled: startingReview, busy: startingReview }}
           accessibilityLabel={t("place.spawt_cta")}
           style={({ pressed }) => ({
             backgroundColor: theme.colors.brand.accent,
             paddingVertical: theme.spacing.base,
             borderRadius: theme.radius.lg,
-            opacity: pressed ? 0.85 : 1,
+            opacity: startingReview ? 0.5 : pressed ? 0.85 : 1,
             alignItems: "center",
             justifyContent: "center",
             minHeight: 48,

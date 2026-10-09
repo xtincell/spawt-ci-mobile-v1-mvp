@@ -4,6 +4,34 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Android 1.1.1 — affichage, Moka et avis (2026-10-09)
+
+Les deux entrées « Spawt le ! » et Spawter créent ou reprennent la même visite
+avant d'ouvrir le formulaire avec le nom du lieu. Cuisine, cadre et service
+sont obligatoires dans le nouveau formulaire ; leur moyenne est affichée à
+une décimale, avec un entier compatible pour les anciennes APK. Les brouillons
+et photos survivent à la fermeture ; un upload refusé garde tout le brouillon.
+La file fusionne visite et avis et distingue publication distante et attente.
+Une mise à jour à zéro ligne n'est plus acquittée. Les avis se rafraîchissent
+après publication et reprise de la file.
+
+Les titres des cartes disposent de deux lignes, l'interlignage Klinsman est
+corrigé, les badges se replient et les boutons restent dans le flux au-dessus
+du clavier. Un avatar partagé cadre le visage de Moka ; les photos personnelles
+et les erreurs de chargement utilisent le même composant, y compris en Meute.
+Les uploads Android utilisent les octets Expo FileSystem.
+
+Migrations 0071–0074 déployées après sauvegarde et recette SQL annulée : notes
+détaillées, attribution publique des 30 avis fondateurs à Alexandre (profil
+mobile confirmé), accès signé aux seules photos d'avis visibles et réparation
+du journal de purge. Le propriétaire technique, les poids et les compteurs
+fondateurs restent conservés. Les jointures des anciennes APK restent valides.
+Les retours arrière sont fournis, avec protection de l'audit historique.
+
+Contrôles source : 1 000 tests mobile et 191 tests admin réussis (4 mobile
+ignorés), TypeScript, vocabulaire, i18n et conformité réussis. La recette
+Android native et le lien du nouvel APK sont consignés dans RELEASES.md.
+
 ## Audit avant recompilation et comptes démo alpha (2026-10-09)
 
 L’ouverture ne redémarre plus ses animations lors des rendus du layout et attend

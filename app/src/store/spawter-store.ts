@@ -73,7 +73,7 @@ import {
   stadeTitleKeysBetween,
   type TitleSource,
 } from "../lib/titres-catalogue";
-import { enqueue, saveSpawtToSupabaseOrEnqueue } from "../lib/offline-queue";
+import { enqueue } from "../lib/offline-queue";
 import { applyReviewToPalais } from "../lib/palais-signals";
 import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
@@ -101,6 +101,8 @@ import { useCrewStore } from "./crew-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { track } from "../lib/analytics";
+import { persistReviewSpawt, type ReviewPersistence } from "../lib/manual-review";
+import { readReviewRatings } from "../lib/review-ratings";
 
 let __idCounter = 0;
 function makeId(): string {
@@ -259,11 +261,14 @@ interface SpawterStore {
     spawt_id: string,
     patch: {
       note_etoiles: 1 | 2 | 3 | 4 | 5;
+      note_cuisine?: 1 | 2 | 3 | 4 | 5;
+      note_cadre?: 1 | 2 | 3 | 4 | 5;
+      note_service?: 1 | 2 | 3 | 4 | 5;
       texte_avis: string | null;
       tags: ReviewTag[];
       photos: string[];
     },
-  ) => Promise<void>;
+  ) => Promise<ReviewPersistence>;
   reset: () => void;
   /** Hide private state after an SDK identity change, preserving disk for recovery. */
   suspendSession: () => void;
@@ -1041,47 +1046,41 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     const list = get().spawts;
     const idx = list.findIndex((s) => s.id === spawt_id);
     if (idx === -1) {
-      if (__DEV__) console.warn("[spawter-store] attachReviewToSpawt — spawt not found", spawt_id);
-      return;
+      throw new Error("review_spawt_not_found");
     }
     const existing = list[idx]!;
+    const author = get().spawter;
+    if (!author || existing.spawter_id !== author.id || existing.is_seed || existing.is_cancelled) {
+      throw new Error("review_not_editable");
+    }
+    const ratings = readReviewRatings(patch);
     const updated_at = new Date().toISOString();
     const updatedRow: SpawtCheckin = {
       ...existing,
       note_etoiles: patch.note_etoiles,
+      note_cuisine: ratings?.note_cuisine ?? null,
+      note_cadre: ratings?.note_cadre ?? null,
+      note_service: ratings?.note_service ?? null,
       texte_avis: patch.texte_avis,
       tags: patch.tags,
       photos: patch.photos,
       updated_at,
     };
-    const updatedList = list.slice();
-    updatedList[idx] = updatedRow;
-    // Persist local (re-write all spawts AsyncStorage — simple, cohérent storage.ts).
+    // L'upsert complet assure l'existence de la visite avant l'avis. La file
+    // est durable AVANT d'annoncer que l'avis est enregistré.
+    const persistence = await persistReviewSpawt(updatedRow);
+    const updatedList = get().spawts.map(row => row.id === spawt_id ? updatedRow : row);
+    // Merge avec l'état courant : un autre spawt arrivé pendant le réseau est conservé.
     const { default: AsyncStorageMod } = await import(
       "@react-native-async-storage/async-storage"
     );
     await AsyncStorageMod.setItem("spawt:spawts", JSON.stringify(updatedList));
     set({ spawts: updatedList });
 
-    // Fire-and-forget Supabase via offline-queue wrapper (Story 4.3).
-    void saveSpawtToSupabaseOrEnqueue({
-      kind: "spawt_update",
-      row_id: spawt_id,
-      patch: {
-        note_etoiles: patch.note_etoiles,
-        texte_avis: patch.texte_avis,
-        tags: patch.tags,
-        photos: patch.photos,
-        updated_at,
-      },
-    }).catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] attachReviewToSpawt sync failed", err);
-    });
-
     // Story 4.6 — fire-and-forget Palais update.
     const palaisState = get().palais;
     const spawterState = get().spawter;
-    if (palaisState && spawterState) {
+    if (palaisState && spawterState && existing.note_etoiles === null) {
       const { palais: newPalais, didUpdate } = applyReviewToPalais({
         current: palaisState,
         unique_spots: spawterState.unique_spots,
@@ -1090,7 +1089,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         place_signals: [], // TODO Story 4.6 — alimenter via lookup place
       });
       if (didUpdate) {
-        await savePalaisLocal(newPalais);
+        await savePalaisLocal(newPalais).catch(err => { if (__DEV__) console.warn("[spawter-store] local Palais update failed", err); });
         void savePalais(newPalais).catch((err) => {
           if (__DEV__) console.warn("[spawter-store] savePalais review update failed", err);
         });
@@ -1193,6 +1192,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         photos_count: patch.photos.length,
       },
     });
+    return persistence;
   },
 
   observeAuthSession: (owner) => {

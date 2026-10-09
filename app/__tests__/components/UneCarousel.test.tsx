@@ -22,7 +22,7 @@ let renderer: Renderer | null;
 const onPress = jest.fn();
 function render(onImpression?: ImpressionHandler) {
   TestRenderer.act(() => {
-    renderer = TestRenderer.create(<UneCarousel unes={unes} onUnePress={onPress} {...(onImpression ? { onImpression } : {})} />) as Renderer;
+    renderer = TestRenderer.create(<UneCarousel unes={unes} onUnePress={onPress} {...(onImpression ? { onImpression } : {})} />) as unknown as Renderer;
   });
   return renderer!.root.findByType(FlatList).props.onViewableItemsChanged;
 }

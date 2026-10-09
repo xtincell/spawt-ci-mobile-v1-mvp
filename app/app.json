@@ -2,7 +2,7 @@
   "expo": {
     "name": "SPAWT",
     "slug": "spawt-mobile-ci",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "spawt",
@@ -40,7 +40,7 @@
     },
     "android": {
       "package": "com.upgraders.spawt",
-      "versionCode": 8,
+      "versionCode": 10,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -53,7 +53,8 @@
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES"
-      ]
+      ],
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-router",

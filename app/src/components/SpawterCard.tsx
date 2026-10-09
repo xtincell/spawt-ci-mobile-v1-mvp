@@ -8,7 +8,7 @@
 // barres horizontales (AxisBar) pour tous les tiers.
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Image, Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
@@ -21,6 +21,7 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 
 import { useTheme, type Theme } from "../theme/ThemeProvider";
+import { SpawterAvatar } from "./SpawterAvatar";
 import { Ico } from "./primitives/Ico";
 import { gradient } from "../theme/tokens";
 import { STADE_DESCRIPTORS } from "../types/stade";
@@ -50,10 +51,12 @@ function CardFlipTarget({
   children,
   label,
   onFlip,
+  minHeight,
 }: {
   children: ReactNode;
   label: string;
   onFlip: () => void;
+  minHeight: number;
 }) {
   if (Platform.OS === "web") {
     // RN Web turns even a View with role="button" into a native button.
@@ -71,7 +74,7 @@ function CardFlipTarget({
             onFlip();
           }
         }}
-        style={{ aspectRatio: "0.7", position: "relative" }}
+        style={{ aspectRatio: "0.7", minHeight, position: "relative" }}
       >
         {children}
       </div>
@@ -83,7 +86,7 @@ function CardFlipTarget({
       onPress={onFlip}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={{ aspectRatio: 0.7 }}
+      style={{ aspectRatio: 0.7, minHeight }}
     >
       {children}
     </Pressable>
@@ -101,6 +104,7 @@ export function SpawterCard({
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
   const flipProgress = useSharedValue(0);
 
   // Quelle face est devant. Ce n'est PAS un doublon de `flipProgress` : il
@@ -168,6 +172,7 @@ export function SpawterCard({
 
   return (
     <CardFlipTarget
+      minHeight={420 * Math.max(1, fontScale)}
       onFlip={handleFlip}
       label={t("profile.card_flip_aria")}
     >
@@ -184,7 +189,7 @@ export function SpawterCard({
           colors={gradient.night}
           style={{ flex: 1, padding: theme.spacing.lg, justifyContent: "space-between" }}
         >
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm, justifyContent: "space-between" }}>
             <Text style={{ ...theme.typography.preset.overline, color: theme.colors.text.inverseSecondary }}>
               {t("profile.card_id_prefix")} #{spawter.id.slice(0, 6).toUpperCase()}
             </Text>
@@ -222,26 +227,7 @@ export function SpawterCard({
                   overflow: "hidden",
                 }}
               >
-                {spawter.avatar_url ? (
-                  <Image
-                    source={{ uri: spawter.avatar_url }}
-                    style={{ width: 80, height: 80, borderRadius: 40 }}
-                    resizeMode="cover"
-                    accessible={false}
-                    testID="spawtercard-avatar-photo"
-                  />
-                ) : (
-                  <Text
-                    style={{
-                      ...theme.typography.preset.display,
-                      color: theme.colors.text.onBrand,
-                    }}
-                  >
-                    {/* CR finding m1 — trim + fallback explicite "S" pour bloquer
-                        le cas display_name vide (DB default ""), sinon avatar lettre vide. */}
-                    {(spawter.display_name?.trim().charAt(0) || "S").toUpperCase()}
-                  </Text>
-                )}
+                <SpawterAvatar url={spawter.avatar_url} size={80} testID="spawtercard-avatar-image" photoTestID="spawtercard-avatar-photo" />
               </View>
               {onAvatarPress ? (
                 <View

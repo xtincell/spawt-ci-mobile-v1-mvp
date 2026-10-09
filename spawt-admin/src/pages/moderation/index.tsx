@@ -18,6 +18,10 @@ interface ReviewRow {
   spawter_id: string;
   place_id: string;
   note_etoiles: number;
+  note_cuisine?: number | null;
+  note_cadre?: number | null;
+  note_service?: number | null;
+  review_author_attributions?: { spawter_id: string; spawters: { id: string; display_name: string; stade: string } } | null;
   tags: string[];
   texte_avis: string | null;
   flag_reason: string | null;
@@ -71,7 +75,7 @@ export const ModerationList = () => {
     },
     meta: {
       select:
-        "*, places!inner(id, name, neighborhood), spawters!inner(id, display_name, stade, is_banned, warning_count)",
+        "*, places!inner(id, name, neighborhood), spawters!inner(id, display_name, stade, is_banned, warning_count), review_author_attributions(spawter_id, spawters(id, display_name, stade))",
     },
   });
 
@@ -221,22 +225,25 @@ export const ModerationList = () => {
         </thead>
         <tbody>
           {rows.map((row) => {
+            const author = row.review_author_attributions?.spawters ?? row.spawters;
+            const detailed = [row.note_cuisine, row.note_cadre, row.note_service].every(n => n != null);
+            const global = detailed ? Math.round((row.note_cuisine! + row.note_cadre! + row.note_service!) / 3 * 10) / 10 : row.note_etoiles;
             const isBusy = busyReviewId === row.id;
             const isKept = keptReviewIds.has(row.id);
             return (
               <tr key={row.id}>
                 <td>{new Date(row.created_at).toLocaleString("fr-FR")}</td>
                 <td>
-                  <a href="#" onClick={(e) => { e.preventDefault(); navigate(`/comptes/show/${row.spawter_id}`); }}>{row.spawters?.display_name}</a>
+                  <a href="#" onClick={(e) => { e.preventDefault(); navigate(`/comptes/show/${author?.id ?? row.spawter_id}`); }}>{author?.display_name}</a>
                   {/* FR-032 — la distinction visuelle exigée par le cahier. Le
                       nom du compte de service suffisait à deviner, mais deviner
                       n'est pas distinguer : supprimer un avis fondateur sans
                       le savoir fait retomber l'ADN du lieu. */}
                   {row.is_seed ? <span className="badge-seed" title="Avis d'amorçage — compte de service, exclu du compteur public">✨ fondateur</span> : null}
                 </td>
-                <td>{row.spawters?.stade}</td>
+                <td>{author?.stade}</td>
                 <td>{row.places?.name} ({row.places?.neighborhood})</td>
-                <td>{row.note_etoiles}/5</td>
+                <td>{global.toLocaleString("fr-FR")}/5{detailed ? <small style={{ display: "block" }}>Cuisine {row.note_cuisine} · Cadre {row.note_cadre} · Service {row.note_service}</small> : null}</td>
                 <td>{row.tags?.join(", ")}</td>
                 <td style={{ maxWidth: 240 }}>{row.texte_avis}</td>
                 <td>{row.flag_reason ?? "—"}</td>

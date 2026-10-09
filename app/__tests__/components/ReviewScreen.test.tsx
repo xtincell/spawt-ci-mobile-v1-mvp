@@ -1,0 +1,51 @@
+import React from "react";
+import TestRenderer, { act } from "react-test-renderer";
+import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { saveReviewDraft, loadReviewDraft } from "../../src/lib/review-drafts";
+const mockT = (key: string, p?: Record<string, unknown>) => key === "review.title" ? `Avis ${p?.place_name}` : key;
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: mockT }) }));
+const mockBack = jest.fn();
+jest.mock("expo-router", () => ({ useLocalSearchParams: () => ({ spawt_id: "visit" }), useRouter: () => ({ back: mockBack, canGoBack: () => true, replace: jest.fn() }) }));
+jest.mock("react-native-safe-area-context", () => {
+ const R = jest.requireActual("react"); const RN = jest.requireActual("react-native");
+ return { SafeAreaView: ({ children }: { children: React.ReactNode }) => R.createElement(RN.View, null, children) };
+});
+jest.mock("../../src/lib/analytics", () => ({ track: jest.fn() }));
+jest.mock("../../src/lib/data-source", () => ({ isSupabaseConfigured: true, getPlace: () => Promise.resolve({ name: "La Grande République" }) }));
+const mockUpload = jest.fn();
+jest.mock("../../src/lib/storage-photos", () => ({ uploadReviewPhoto: (...a: unknown[]) => mockUpload(...a), compressPhoto: jest.fn() }));
+jest.mock("../../src/lib/review-drafts", () => ({ ...jest.requireActual("../../src/lib/review-drafts"), removeDraftPhotos: jest.fn().mockResolvedValue(undefined) }));
+const mockAttach = jest.fn();
+const mockState = { spawter: { id: "alex" }, spawts: [{ id: "visit", spawter_id: "alex", place_id: "place", is_seed: false, is_cancelled: false, note_etoiles: null }], attachReviewToSpawt: mockAttach };
+jest.mock("../../src/store/spawter-store", () => ({ useSpawterStore: (select: (s: typeof mockState) => unknown) => select(mockState) }));
+import ReviewScreen from "../../app/review/[spawt_id]";
+let renderer: TestRenderer.ReactTestRenderer;
+beforeEach(async () => { await AsyncStorage.clear(); mockBack.mockReset(); mockUpload.mockReset(); mockAttach.mockReset(); jest.spyOn(Alert, "alert").mockImplementation(() => undefined); });
+afterEach(async () => { if (renderer) await act(async () => renderer.unmount()); jest.restoreAllMocks(); });
+async function mount() { await act(async () => { renderer = TestRenderer.create(<ReviewScreen />); }); }
+test("reprend un brouillon avec le nom réel, calcule 4,3 et bloque la double publication", async () => {
+ await saveReviewDraft("alex", "visit", { note_cuisine: 5, note_cadre: 4, note_service: 4, tags: [], text: "Mon avis", photoUris: [] });
+ let release!: (value: { persisted: "queued" }) => void;
+ mockAttach.mockImplementation(() => new Promise(resolve => { release = resolve; }));
+ await mount();
+ expect(renderer.root.findByProps({ testID: "review-place-name" }).props.children).toBe("Avis La Grande République");
+ const submit = renderer.root.findByProps({ testID: "review-submit" }).props.onPress;
+ await act(async () => { submit(); submit(); });
+ expect(mockAttach).toHaveBeenCalledTimes(1);
+ expect(mockAttach).toHaveBeenCalledWith("visit", expect.objectContaining({ note_cuisine: 5, note_cadre: 4, note_service: 4, note_etoiles: 4, texte_avis: "Mon avis" }));
+ await act(async () => { release({ persisted: "queued" }); });
+ expect(Alert.alert).toHaveBeenCalledWith("review.queued_title", "review.queued_body", expect.any(Array), { cancelable: false });
+ expect(mockBack).not.toHaveBeenCalled();
+ expect(await loadReviewDraft("alex", "visit")).toBeNull();
+});
+test("un upload refusé conserve les photos et ne publie pas un avis amputé", async () => {
+ await saveReviewDraft("alex", "visit", { note_cuisine: 5, note_cadre: 4, note_service: 4, tags: [], text: "À conserver", photoUris: ["file:///documents/review-drafts/image.jpg"] });
+ mockUpload.mockResolvedValue(null);
+ await mount();
+ expect(renderer.root.findByProps({ testID: "review-photo-0" }).props.source.uri).toContain("image.jpg");
+ await act(async () => { renderer.root.findByProps({ testID: "review-submit" }).props.onPress(); });
+ expect(mockAttach).not.toHaveBeenCalled();
+ expect(renderer.root.findByProps({ testID: "review-error" }).props.children).toBe("review.publish_failed");
+ expect((await loadReviewDraft("alex", "visit"))?.photoUris).toHaveLength(1);
+});
