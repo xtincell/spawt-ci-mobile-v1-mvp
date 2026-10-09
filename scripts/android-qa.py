@@ -18,6 +18,7 @@ def adb(*args, binary=False):
 def nodes():
     raw=''
     for _ in range(3):
+        adb('shell','rm','-f','/sdcard/window.xml')
         dump=adb('shell','uiautomator','dump','/sdcard/window.xml')
         raw=adb('exec-out','cat','/sdcard/window.xml')
         if raw.lstrip().startswith('<?xml'):
@@ -44,7 +45,18 @@ def tap_node(n):
     adb('shell','input','tap',(b[0]+b[2])//2,(b[1]+b[3])//2)
 
 def tap(value, timeout=25, exact=False): tap_node(find(value,timeout,exact))
-def deep(path): adb('shell','am','start','-W','-a','android.intent.action.VIEW','-d','spawt://'+path,PACKAGE); time.sleep(1.2)
+def deep(path):
+    result=adb('shell','am','start','-W','-a','android.intent.action.VIEW','-d','spawt://'+path,PACKAGE)
+    with (OUT/'navigation.txt').open('a') as log: log.write(path+'\n'+result+'\n')
+    time.sleep(1.2)
+
+def restart():
+    # Même geste qu'une réouverture depuis le launcher : laisser la session
+    # se restaurer avant de naviguer. Un intent froid peut restaurer la tâche
+    # Android sur son dernier onglet ; ce n'est pas le parcours testé ici.
+    adb('shell','am','force-stop',PACKAGE)
+    adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
+    find('Feed',timeout=40,exact=True)
 def snap(name):
     (OUT/(name+'.png')).write_bytes(adb('exec-out','screencap','-p',binary=True))
     tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
@@ -152,7 +164,7 @@ def photo_and_network_cases():
     scroll_find('review-error',attempts=10); snap('failed-upload-keeps-photo')
     check('failed upload does not publish',not any(r['texte_avis']==photo_text for r in public_reviews()))
     adb('shell','cmd','connectivity','airplane-mode','disable')
-    time.sleep(2); adb('shell','am','force-stop',PACKAGE)
+    time.sleep(2); restart()
     deep('place/'+PLACE); tap('place-start-review'); scroll_find('review-photo-0'); snap('photo-draft-after-restart')
     check('photo draft survives process restart',True)
     twice('review-submit'); find('Avis publié',timeout=50); snap('photo-published'); tap('OK',exact=True)
@@ -240,7 +252,7 @@ try:
         b=list(map(int,re.findall(r'\d+',button.get('bounds','')))); check('keyboard publish remains above IME',b[3]<2100)
         back(); tap('review-submit'); find('Avis publié',timeout=40); snap('published-receipt'); tap('OK',exact=True)
         # Redémarrage réel du processus, sans effacer le stockage.
-        adb('shell','am','force-stop',PACKAGE); deep('place/'+PLACE)
+        restart(); deep('place/'+PLACE)
         scroll_tap('Avis'); scroll_find(MARKER); snap('published-after-restart')
         check('review visible after process restart',True)
         rows=[r for r in public_reviews() if r['texte_avis']==MARKER]
