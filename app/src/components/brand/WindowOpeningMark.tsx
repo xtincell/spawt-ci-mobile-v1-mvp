@@ -9,6 +9,8 @@ import { ease, phase, poseMatrix, smooth, WINDOW_POSE_MS, windowWink } from "./w
 import { openingWindowColors, palette } from "../../theme/tokens";
 
 const AnimatedG = Reanimated.createAnimatedComponent(G);
+const AnimatedPath = Reanimated.createAnimatedComponent(Path);
+const AnimatedEllipse = Reanimated.createAnimatedComponent(Ellipse);
 const NATIVE = Platform.OS !== "web";
 type MotionProps = GProps & { matrix?: number[] };
 type Shape = { tag: string; fill: string; d?: string; cx?: number; cy?: number; r?: number; bbox?: { x: number; y: number; w: number; h: number } };
@@ -30,13 +32,14 @@ function transform(matrix: number[]): Pick<MotionProps, "matrix" | "transform"> 
   return NATIVE ? { matrix } : { transform: `matrix(${matrix.join(" ")})` };
 }
 function Star({ id, start, clock }: { id: number; start: number; clock: SharedValue<number> }) {
-  const box = paths[id]!.bbox!, cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+  const path = paths[id]!, box = path.bbox!, cx = box.x + box.w / 2, cy = box.y + box.h / 2;
   const props = useAnimatedProps<MotionProps>(() => {
     const u = phase(clock.value, start, start + .3);
     const z = u >= 1 ? 1 : 1 + 2.1 * (u - 1) ** 3 + 1.1 * (u - 1) ** 2;
-    return { opacity: Math.min(1, u * 5), ...transform([z, 0, 0, z, cx * (1 - z), cy * (1 - z) - 79 - 8 * Math.sin(Math.PI * u)]) };
+    return transform([z, 0, 0, z, cx * (1 - z), cy * (1 - z) - 79 - 8 * Math.sin(Math.PI * u)]);
   });
-  return <AnimatedG animatedProps={props}>{shape(id)}</AnimatedG>;
+  const inkProps = useAnimatedProps(() => ({ opacity: Math.min(1, phase(clock.value, start, start + .3) * 5) }));
+  return <AnimatedG animatedProps={props}><AnimatedPath d={path.d!} fill={path.fill} animatedProps={inkProps} /></AnimatedG>;
 }
 
 interface Props { animate: boolean; staticPose?: boolean; onDone: () => void }
@@ -59,17 +62,28 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone }: Props
     return () => cancelAnimation(clock);
   }, [animate, staticPose, clock, done]);
 
-  const characterProps = useAnimatedProps<MotionProps>(() => ({ opacity: clock.value > .14 ? 1 : 0, ...transform(poseMatrix(clock.value)) }));
+  // Android SVG conserve un Canvas de groupe pour opacity, puis le réutilise
+  // incorrectement lorsque la valeur traverse 1 (crash Canvas.restore).
+  // Les groupes gardent opacity=1 ; seuls les tracés portent les fondus.
+  // La pose initiale place déjà tout le personnage hors des deux masques.
+  const characterProps = useAnimatedProps<MotionProps>(() => transform(poseMatrix(clock.value)));
   const shadowProps = useAnimatedProps(() => ({ opacity: .16 * ease(clock.value, .14, .36) }));
   const winkCoverProps = useAnimatedProps(() => ({ opacity: windowWink(clock.value) > 0 ? 1 : 0 }));
   const eyeProps = useAnimatedProps<MotionProps>(() => {
-    const wink = windowWink(clock.value), lid = smooth(phase(wink, .4, 1));
+    const wink = windowWink(clock.value);
     const sy = 1 - .97 * wink;
-    return { opacity: 1 - lid, ...transform([1, 0, 0, sy, 0, 201 * (1 - sy)]) };
+    return transform([1, 0, 0, sy, 0, 201 * (1 - sy)]);
+  });
+  const eyeInkProps = useAnimatedProps(() => {
+    const wink = windowWink(clock.value);
+    return { opacity: wink > 0 ? 1 - smooth(phase(wink, .4, 1)) : 0 };
   });
   const lidProps = useAnimatedProps(() => ({ opacity: smooth(phase(windowWink(clock.value), .4, 1)) }));
   // Même taille physique que le raccord PNG, sans agrandir le logo sur les petits écrans.
   const logicalHeight = 360 * height / width, s = .49 * 360 / width;
+  // Le splash Android centre le contour dans son masque circulaire. iOS et
+  // web conservent la composition portrait du PNG fourni.
+  const centerY = Platform.OS === "android" ? 241.5 : 175;
   return (
     <Svg width={width} height={height} viewBox={`0 0 360 ${logicalHeight}`} testID="spawt-window-mark" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Defs>
@@ -79,7 +93,7 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone }: Props
         <ClipPath id={rim}><Rect x={100} y={181} width={450} height={320} /></ClipPath>
         <Filter id={soft}><FeGaussianBlur stdDeviation={5} /></Filter>
       </Defs>
-      <G transform={`translate(${180 - 309 * s} ${logicalHeight / 2 - 175 * s}) scale(${s})`}>
+      <G transform={`translate(${180 - 309 * s} ${logicalHeight / 2 - centerY * s}) scale(${s})`}>
         <Path d={PIN} fill={openingWindowColors.paper} />
         <G clipPath={`url(#${aperture})`}>
           {mapIds.map(shape)}
@@ -87,7 +101,7 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone }: Props
         </G>
         <Path d={PIN} fill="none" stroke={palette.graphite} strokeWidth={11} strokeLinejoin="round" />
         <G clipPath={`url(#${aperture})`}>
-          <AnimatedG animatedProps={shadowProps}><Ellipse cx={312} cy={226} rx={111} ry={43} fill={palette.graphite} filter={`url(#${soft})`} /></AnimatedG>
+          <AnimatedEllipse animatedProps={shadowProps} cx={312} cy={226} rx={111} ry={43} fill={palette.graphite} filter={`url(#${soft})`} />
           <AnimatedG animatedProps={characterProps}>
             <Path d={TORSO} fill={palette.pureWhite} stroke={palette.graphite} strokeWidth={7} />
             <Path d="M251 267 C271 282 289 307 280 331 C274 350 260 362 239 365 L216 395 L216 328 Z" fill={palette.graphite} />
@@ -98,11 +112,11 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone }: Props
           <AnimatedG animatedProps={characterProps}>
             <Path d={HEAD} fill={palette.graphite} />
             <G clipPath={`url(#${headClip})`}>{headIds.map(shape)}</G>
-            <AnimatedG animatedProps={winkCoverProps}>
-              <Path d={paths[53]!.d!} fill={palette.graphite} stroke={palette.graphite} strokeWidth={1.3} />
-              <AnimatedG animatedProps={eyeProps}>{shape(53)}</AnimatedG>
-              <AnimatedG animatedProps={lidProps}><Path d="M261 199 Q282 213 302 195" fill="none" stroke={palette.pureWhite} strokeWidth={2.9} strokeLinecap="round" /></AnimatedG>
-            </AnimatedG>
+            <G>
+              <AnimatedPath animatedProps={winkCoverProps} d={paths[53]!.d!} fill={palette.graphite} stroke={palette.graphite} strokeWidth={1.3} />
+              <AnimatedG animatedProps={eyeProps}><AnimatedPath d={paths[53]!.d!} fill={paths[53]!.fill} animatedProps={eyeInkProps} /></AnimatedG>
+              <AnimatedPath animatedProps={lidProps} d="M261 199 Q282 213 302 195" fill="none" stroke={palette.pureWhite} strokeWidth={2.9} strokeLinecap="round" />
+            </G>
             {collarIds.map(shape)}
           </AnimatedG>
         </G>

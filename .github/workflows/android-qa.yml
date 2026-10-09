@@ -116,9 +116,15 @@ jobs:
         if: always() && steps.apk.outputs.ready == 'true'
         run: |
           mkdir -p android-proof
-          timeout 20s adb logcat -d -s AndroidRuntime ReactNativeJS > android-proof/logcat.txt || true
+          timeout 20s adb logcat -d -s AndroidRuntime ReactNativeJS libc DEBUG > android-proof/logcat.txt || true
           timeout 20s adb shell dumpsys package com.upgraders.spawt > android-proof/package.txt || true
           cp emulator.log android-proof/emulator.log || true
+          python3 - <<'PY'
+          import pathlib, re
+          log=pathlib.Path('android-proof/logcat.txt').read_text()
+          if re.search(r'AndroidRuntime: Process: com\.upgraders\.spawt\b|DEBUG\s*:.*(?:Cmdline: com\.upgraders\.spawt\b|>>> com\.upgraders\.spawt <<<)',log):
+              raise RuntimeError('Plantage natif SPAWT détecté : consulter android-proof/logcat.txt')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -195,6 +195,14 @@ def photo_and_network_cases():
     check('founder publicly displays Alexandre',any('Alexandre' in label(n) for n in tree.iter('node')) and not any('Mission 1' in label(n) for n in tree.iter('node')))
     scroll_find(photo_text); scroll_find('Photo jointe à cet avis'); snap('photo-review-from-second-account')
     check('published review readable from another native account',True)
+    # Vérifier aussi l'ouverture animée avec une session restaurée. La matrice
+    # utilise ensuite la réduction système des animations pour ses captures.
+    for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
+        adb('shell','settings','put','global',key,1)
+    restart(); snap('normal-opening-signed-in')
+    check('animated opening restores signed-in account',True)
+    for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
+        adb('shell','settings','put','global',key,0)
 
 try:
     geometry(393,1)
@@ -210,7 +218,8 @@ try:
     tree,_=nodes()
     if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
         tap('Close app',exact=True)
-    snap('cold-opening')
+    tree=snap('cold-opening')
+    check('cold animated launch keeps SPAWT in foreground',any(n.get('package')==PACKAGE for n in tree.iter('node')))
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
     login(PHONE)
