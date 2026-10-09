@@ -217,6 +217,8 @@ try:
     recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--size','1178x2400','--time-limit','18','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
     recording.wait(timeout=25); adb('pull','/sdcard/opening.mp4',str(OUT/'opening.mp4'))
+    # Décodeur et surfaces de cette ouverture anonyme, avant toute connexion.
+    (OUT/'opening-logcat.txt').write_text(adb('logcat','-d','-v','threadtime'))
     tree,_=nodes()
     if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
         tap('Close app',exact=True)
