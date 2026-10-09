@@ -58,6 +58,9 @@ initMonitoring();
 void SplashScreen.preventAutoHideAsync().catch(() => {
   /* no-op */
 });
+// Le raccord utilise le même repère : aucun fondu natif ne doit masquer le
+// surgissement joué ensuite par React. Android applique duration, pas fade.
+SplashScreen.setOptions({ duration: 0, fade: false });
 
 function RouteGuard({ onReady }: { onReady: (ready: boolean) => void }) {
   const router = useRouter();
@@ -167,14 +170,28 @@ export default function RootLayout() {
   const hydrating = useSpawterStore((s) => s.hydrating);
 
   const [openingVisible, setOpeningVisible] = useState(true);
+  const [openingStarted, setOpeningStarted] = useState(Platform.OS === "web");
   const [routeReady, setRouteReady] = useState(false);
   const finishOpening = useCallback(() => setOpeningVisible(false), []);
   const splashHidden = useRef(false);
+  const openingFrame = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (openingFrame.current !== null) cancelAnimationFrame(openingFrame.current);
+  }, []);
   // Le relais natif → React attend une surface effectivement disposée.
   const onRootLayout = useCallback(() => {
     if (splashHidden.current || (!fontsLoaded && !fontError && Platform.OS !== "web")) return;
     splashHidden.current = true;
-    void SplashScreen.hideAsync().catch((err: unknown) => {
+    void SplashScreen.hideAsync().then(() => {
+      // hideAsync retire la condition native mais ne promet pas une image
+      // déjà dessinée. Laisser deux frames au premier rendu avant l'horloge.
+      openingFrame.current = requestAnimationFrame(() => {
+        openingFrame.current = requestAnimationFrame(() => {
+          openingFrame.current = null;
+          setOpeningStarted(true);
+        });
+      });
+    }).catch((err: unknown) => {
       splashHidden.current = false;
       if (__DEV__) console.warn("[splash] hideAsync failed", err);
     });
@@ -345,7 +362,7 @@ export default function RootLayout() {
           {/* R23 — l'ouverture animée est le DERNIER enfant : elle recouvre
               tout (Stack + overlays) jusqu'à sa fin ou un tap. */}
           {openingVisible ? (
-            <AppOpening ready={routeReady && !hydrating} onFinished={finishOpening} />
+            <AppOpening start={openingStarted} ready={routeReady && !hydrating} onFinished={finishOpening} />
           ) : null}
         </ThemeProvider>
       </SafeAreaProvider>

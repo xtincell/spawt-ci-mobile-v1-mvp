@@ -32,7 +32,7 @@ export function windowWink(t: number) {
   "worklet";
   return ease(t, .69, .765) * (1 - ease(t, .835, .94));
 }
-export function poseMatrix(t: number) {
+export function poseMatrix(t: number): [number, number, number, number, number, number] {
   "worklet";
   const p = windowPose(t);
   const rad = p.angle * Math.PI / 180;

@@ -31,7 +31,7 @@ function transform(matrix: number[]): Pick<MotionProps, "matrix" | "transform"> 
   // Fabric attend sa matrice native ; le DOM attend l’attribut SVG transform.
   return NATIVE ? { matrix } : { transform: `matrix(${matrix.join(" ")})` };
 }
-function Star({ id, start, clock }: { id: number; start: number; clock: SharedValue<number> }) {
+function Star({ id, start, clock, staticPose }: { id: number; start: number; clock: SharedValue<number>; staticPose: boolean }) {
   const path = paths[id]!, box = path.bbox!, cx = box.x + box.w / 2, cy = box.y + box.h / 2;
   const props = useAnimatedProps<MotionProps>(() => {
     const u = phase(clock.value, start, start + .3);
@@ -39,7 +39,7 @@ function Star({ id, start, clock }: { id: number; start: number; clock: SharedVa
     return transform([z, 0, 0, z, cx * (1 - z), cy * (1 - z) - 79 - 8 * Math.sin(Math.PI * u)]);
   });
   const inkProps = useAnimatedProps(() => ({ opacity: Math.min(1, phase(clock.value, start, start + .3) * 5) }));
-  return <AnimatedG animatedProps={props}><AnimatedPath d={path.d!} fill={path.fill} animatedProps={inkProps} /></AnimatedG>;
+  return <AnimatedG transform={staticPose ? [1, 0, 0, 1, 0, -79] : [0, 0, 0, 0, cx, cy - 79]} animatedProps={props}><AnimatedPath d={path.d!} fill={path.fill} animatedProps={inkProps} /></AnimatedG>;
 }
 
 interface Props { animate: boolean; staticPose?: boolean; onDone: () => void }
@@ -102,14 +102,14 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone }: Props
         <Path d={PIN} fill="none" stroke={palette.graphite} strokeWidth={11} strokeLinejoin="round" />
         <G clipPath={`url(#${aperture})`}>
           <AnimatedEllipse animatedProps={shadowProps} cx={312} cy={226} rx={111} ry={43} fill={palette.graphite} filter={`url(#${soft})`} />
-          <AnimatedG animatedProps={characterProps}>
+          <AnimatedG transform={poseMatrix(staticPose ? 1.14 : 0)} animatedProps={characterProps}>
             <Path d={TORSO} fill={palette.pureWhite} stroke={palette.graphite} strokeWidth={7} />
             <Path d="M251 267 C271 282 289 307 280 331 C274 350 260 362 239 365 L216 395 L216 328 Z" fill={palette.graphite} />
             <Path d="M240 365 C274 354 296 378 310 415 L365 551 L265 570 L210 446 Z" fill={palette.gold} />
           </AnimatedG>
         </G>
         <G clipPath={`url(#${portal})`}>
-          <AnimatedG animatedProps={characterProps}>
+          <AnimatedG transform={poseMatrix(staticPose ? 1.14 : 0)} animatedProps={characterProps}>
             <Path d={HEAD} fill={palette.graphite} />
             <G clipPath={`url(#${headClip})`}>{headIds.map(shape)}</G>
             <G>
@@ -121,9 +121,9 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone }: Props
           </AnimatedG>
         </G>
         <Path d={PIN} fill="none" stroke={palette.graphite} strokeWidth={11} strokeLinejoin="round" clipPath={`url(#${rim})`} />
-        <Star id={37} start={.39} clock={clock} />
-        <Star id={38} start={.44} clock={clock} />
-        <Star id={39} start={.49} clock={clock} />
+        <Star id={37} start={.39} clock={clock} staticPose={staticPose} />
+        <Star id={38} start={.44} clock={clock} staticPose={staticPose} />
+        <Star id={39} start={.49} clock={clock} staticPose={staticPose} />
       </G>
     </Svg>
   );

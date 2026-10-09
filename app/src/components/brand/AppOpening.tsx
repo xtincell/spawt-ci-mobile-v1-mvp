@@ -15,12 +15,14 @@ const SKIP_FADE_MS = 160;
 
 interface Props {
   onFinished: () => void;
+  /** Le splash natif est retiré et la première surface React est dessinée. */
+  start?: boolean;
   /** La session est restaurée et la navigation a rejoint sa route initiale. */
   ready?: boolean;
   testID?: string;
 }
 
-export function AppOpening({ onFinished, ready = true, testID }: Props) {
+export function AppOpening({ onFinished, start = true, ready = true, testID }: Props) {
   const { t } = useTranslation();
   const overlayOpacity = useRef(new Animated.Value(1)).current;
   const artworkOpacity = useRef(new Animated.Value(1)).current;
@@ -55,7 +57,7 @@ export function AppOpening({ onFinished, ready = true, testID }: Props) {
   }, [reduceMotion, skipped]);
 
   useEffect(() => {
-    if (!sequenceDone || !ready) return;
+    if (!start || !sequenceDone || !ready) return;
     const duration = reduceMotion ? 0 : skipped ? SKIP_FADE_MS : WINDOW_EXIT_MS;
     // L'accueil contient aussi Moka, à une autre échelle et position. Retirer
     // d'abord l'illustration évite deux mascottes superposées pendant le fondu.
@@ -75,7 +77,7 @@ export function AppOpening({ onFinished, ready = true, testID }: Props) {
       }
     });
     return () => fade.stop();
-  }, [sequenceDone, ready, reduceMotion, skipped, overlayOpacity, artworkOpacity]);
+  }, [start, sequenceDone, ready, reduceMotion, skipped, overlayOpacity, artworkOpacity]);
 
   return (
     <Animated.View
@@ -95,7 +97,7 @@ export function AppOpening({ onFinished, ready = true, testID }: Props) {
         <View style={styles.root}>
           <Animated.View style={[styles.artwork, { opacity: artworkOpacity }]}>
             <WindowOpeningMark
-              animate={reduceMotion === false && !skipped}
+              animate={start && reduceMotion === false && !skipped}
               staticPose={reduceMotion === true || skipped}
               onDone={onMotionDone}
             />

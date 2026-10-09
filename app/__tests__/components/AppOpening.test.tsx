@@ -118,6 +118,24 @@ describe("AppOpening — durée stable et transition sûre", () => {
     expect(finished).toHaveBeenCalledTimes(1);
   });
 
+  it("attend le retrait du splash natif avant de commencer sa séquence", async () => {
+    const finished = jest.fn();
+    let instance: Renderer | null = null;
+    await TestRenderer.act(async () => {
+      instance = TestRenderer.create(<AppOpening start={false} onFinished={finished} />) as Renderer;
+    });
+    if (!instance) throw new Error("renderer did not initialize");
+    const opening = instance as Renderer;
+    renderers.push(opening);
+    expect(opening.root.findByProps({ testID: "spawt-window-mark" }).props.animate).toBe(false);
+    advance(5000);
+    expect(finished).not.toHaveBeenCalled();
+    TestRenderer.act(() => { opening.update(<AppOpening start onFinished={finished} />); });
+    expect(opening.root.findByProps({ testID: "spawt-window-mark" }).props.animate).toBe(true);
+    advance(1600);
+    expect(finished).toHaveBeenCalledTimes(1);
+  });
+
   it("passer n'expose pas une route encore non restaurée", async () => {
     const finished = jest.fn();
     const instance = await render(finished, false);
