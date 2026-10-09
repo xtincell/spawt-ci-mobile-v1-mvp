@@ -12,7 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: source
-        run: echo "run=$(node -p \"require('./documentation/android-proof.json').source_run\")" >> "$GITHUB_OUTPUT"
+        run: |
+          PROOF_SOURCE_RUN=$(node -p "require('./documentation/android-proof.json').source_run")
+          echo "run=$PROOF_SOURCE_RUN" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           name: android-proof
