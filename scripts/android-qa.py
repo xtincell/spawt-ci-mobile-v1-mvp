@@ -49,6 +49,8 @@ def snap(name):
     tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
     texts=[n.get('text') or n.get('content-desc') for n in tree.iter('node') if n.get('text') or n.get('content-desc')]
     print(name+': '+ ' | '.join(texts)[:1200],flush=True)
+    if MODE=='full':
+        check(name+': labels translated',not any('a11y.stars' in text or 'review.section_photos' in text.casefold() for text in texts))
     return tree
 
 def bounds(n): return list(map(int,re.findall(r'\d+',n.get('bounds',''))))
@@ -60,7 +62,9 @@ def public_reviews(owner= '6445b010-5e4d-4322-9d4d-ea5a31fd922e'):
     with urllib.request.urlopen(req,timeout=25) as response: return json.load(response)
 
 def check(name, ok):
-    RESULTS.append({'check':name,'passed':bool(ok)}); assert ok,name
+    RESULTS.append({'check':name,'passed':bool(ok)})
+    print('ASSERT '+name+': '+('PASS' if ok else 'FAIL'),flush=True)
+    assert ok,name
 
 def geometry(width,scale):
     adb('shell','wm','size',f'{width*3}x2400'); adb('shell','wm','density','480')
@@ -140,7 +144,11 @@ def photo_and_network_cases():
     scroll_find('review-photo-add'); snap('before-photo-picker'); scroll_tap('review-photo-add'); pick_test_photo('review')
     find('review-photo-0'); snap('selected-photo-preview')
     adb('shell','cmd','connectivity','airplane-mode','enable')
-    tap('review-submit'); find('review-error',timeout=60); snap('failed-upload-keeps-photo')
+    tap('review-submit')
+    try:
+        find('Avis non envoyé',timeout=5); snap('failed-upload-receipt'); tap('OK',exact=True)
+    except AssertionError: pass  # Le build de diagnostic 11 utilisait un message dans le formulaire.
+    scroll_find('review-error',attempts=10); snap('failed-upload-keeps-photo')
     check('failed upload does not publish',not any(r['texte_avis']==photo_text for r in public_reviews()))
     adb('shell','cmd','connectivity','airplane-mode','disable')
     time.sleep(2); adb('shell','am','force-stop',PACKAGE)
@@ -172,6 +180,8 @@ def photo_and_network_cases():
     home(); tap('Palais',exact=True); find('Recette Android 1.1.1 B'); snap('second-account-moka')
     deep('place/'+PLACE); scroll_tap('Avis'); scroll_find(photo_text); snap('photo-review-from-second-account')
     check('published review readable from another native account',True)
+    scroll_find('Alexandre',attempts=10); tree=snap('founder-public-author')
+    check('founder publicly displays Alexandre',any('Alexandre' in label(n) for n in tree.iter('node')) and not any('Mission 1' in label(n) for n in tree.iter('node')))
 
 try:
     geometry(393,1)
@@ -224,6 +234,8 @@ try:
         geometry(393,1); deep('place/'+PLACE); tap('place-start-review')
         scroll_tap('review-text'); adb('shell','input','text',MARKER.replace(' ','%s'))
         time.sleep(.7); tree=snap('keyboard-review'); button=find('review-submit')
+        (OUT/'keyboard-input-method.txt').write_text(adb('shell','dumpsys','input_method'))
+        (OUT/'keyboard-window.txt').write_text(adb('shell','dumpsys','window','windows'))
         b=list(map(int,re.findall(r'\d+',button.get('bounds','')))); check('keyboard publish remains above IME',b[3]<2100)
         back(); tap('review-submit'); find('Avis publié',timeout=40); snap('published-receipt'); tap('OK',exact=True)
         # Redémarrage réel du processus, sans effacer le stockage.
@@ -232,6 +244,7 @@ try:
         check('review visible after process restart',True)
         rows=[r for r in public_reviews() if r['texte_avis']==MARKER]
         check('one native review persisted with 5/4/4 and 4.3',len(rows)==1 and rows[0]['note_cuisine']==5 and rows[0]['note_cadre']==4 and rows[0]['note_service']==4 and rows[0]['note_globale']==4.3)
+        if MODE=='full': photo_and_network_cases()
 finally:
     try: adb('shell','cmd','connectivity','airplane-mode','disable')
     except Exception: pass
