@@ -39,13 +39,31 @@ describe("lecteur natif de l’ouverture fournie", () => {
     expect(StyleSheet.flatten(instance.root.findByProps({ testID: "spawt-opening-pose" }).props.style)).toMatchObject({ width: 200, height: 320 });
     expect(StyleSheet.flatten(instance.root.findByProps({ testID: "spawt-opening-video" }).props.style)).toMatchObject({ width: 200, height: 320 });
     TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-pose" }).props.onLoad());
+    expect(ready).toHaveBeenCalledTimes(1);
     TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-video" }).props.onFirstFrameRender());
     expect(ready).toHaveBeenCalledTimes(1);
+    TestRenderer.act(() => jest.advanceTimersByTime(40));
     TestRenderer.act(() => instance.update(<WindowOpeningMark animate onReady={ready} onDone={done} />));
     expect(mockPlayer.play).toHaveBeenCalledTimes(1);
     TestRenderer.act(() => { mockListeners.get("playToEnd")?.(); mockListeners.get("playToEnd")?.(); });
-    expect(done).toHaveBeenCalledTimes(1);
+    expect(done).not.toHaveBeenCalled();
     expect(instance.root.findByProps({ testID: "spawt-opening-pose" })).toBeTruthy();
+    TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-pose" }).props.onLoad());
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(instance.root.findAllByProps({ testID: "spawt-opening-video" })).toHaveLength(0);
+    TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-pose" }).props.onLoad());
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+  it("ne démarre pas avec le seul poster lorsque le splash a déjà été retiré", () => {
+    render(true);
+    TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-pose" }).props.onLoad());
+    expect(mockPlayer.play).not.toHaveBeenCalled();
+    expect(ready).toHaveBeenCalledTimes(1);
+    TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-video" }).props.onFirstFrameRender());
+    expect(ready).toHaveBeenCalledTimes(1);
+    expect(mockPlayer.play).not.toHaveBeenCalled();
+    TestRenderer.act(() => jest.advanceTimersByTime(40));
+    expect(mockPlayer.play).toHaveBeenCalledTimes(1);
   });
   it("signale la disponibilité et termine même si le décodeur refuse la vidéo", () => {
     mockStatus = "error";
@@ -59,6 +77,15 @@ describe("lecteur natif de l’ouverture fournie", () => {
     TestRenderer.act(() => jest.advanceTimersByTime(4000));
     expect(ready).toHaveBeenCalledTimes(1);
     expect(done).toHaveBeenCalledTimes(1);
+  });
+  it("libère la route si le lecteur commence mais ne signale jamais sa fin", () => {
+    render(true);
+    TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-video" }).props.onFirstFrameRender());
+    TestRenderer.act(() => jest.advanceTimersByTime(40));
+    expect(mockPlayer.play).toHaveBeenCalledTimes(1);
+    TestRenderer.act(() => jest.advanceTimersByTime(5000));
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(instance.root.findAllByProps({ testID: "spawt-opening-video" })).toHaveLength(0);
   });
   it("arrête le lecteur et montre la pose finale après passage ou réduction des mouvements", () => {
     render(true);

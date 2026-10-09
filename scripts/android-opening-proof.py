@@ -8,6 +8,7 @@ Le clin d'œil est comparé aux images du pack, puis l'œil doit se rouvrir.
 Ce contrôle prouve les étapes visibles, pas la fluidité sur téléphone.
 """
 import json
+import re
 from collections import Counter
 from pathlib import Path
 import subprocess
@@ -18,6 +19,11 @@ from PIL import Image, ImageChops, ImageStat
 
 source = Path(sys.argv[1] if len(sys.argv) > 1 else "android-proof")
 width, height, fps = 393, 800, 30
+probe = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-hide_banner", "-i", str(source / "opening.mp4")], capture_output=True, text=True)
+dimensions = re.search(r"Video:[^\n]*?\b(\d{2,5})x(\d{2,5})\b", probe.stderr)
+if not dimensions or abs(int(dimensions[1]) / int(dimensions[2]) - width / height) > .002:
+    raise RuntimeError("Capture Android aux proportions incorrectes : ne pas interpréter ses poses")
+capture_width, capture_height = map(int, dimensions.groups())
 assets = Path(__file__).resolve().parent.parent / "app/assets/brand"
 atlas_meta = json.loads((assets / "window-opening.atlas.json").read_text())
 atlas = Image.open(assets / "window-opening.atlas.png").convert("RGB")
@@ -124,6 +130,7 @@ reopened = [frame for frame in eye_samples if frame["open"] and closed_samples a
 wink_passed = len(closed_samples) >= 2 and len(reopened) >= 2
 passed = longest >= 10 and travel >= 20 and wink_passed
 payload = {"passed": passed, "sampleFps": fps, "sampledFrames": frame_index,
+           "captureWidth": capture_width, "captureHeight": capture_height,
            "visibleFrames": len(visible), "longestVisibleSeconds": round(longest / fps, 3),
            "minimumVisibleSeconds": round(10 / fps, 3), "earlyMotionSeconds": .45,
            "earlyGoldTravelPixels": round(travel, 2), "minimumGoldTravelPixels": 20,

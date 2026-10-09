@@ -212,7 +212,9 @@ try:
     # Ouverture à vitesse normale, puis animations système neutralisées pour la matrice.
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,1)
-    recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--time-limit','18','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    # screenrecord peut reprendre les dimensions physiques du Pixel avant
+    # l'override wm. Fixer son format pour préserver les proportions du test.
+    recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--size','1178x2400','--time-limit','18','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
     recording.wait(timeout=25); adb('pull','/sdcard/opening.mp4',str(OUT/'opening.mp4'))
     tree,_=nodes()

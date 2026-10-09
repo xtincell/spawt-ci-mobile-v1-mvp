@@ -18,8 +18,10 @@ interface Props { animate: boolean; staticPose?: boolean; onDone: () => void; on
 export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady }: Props) {
   const { width, height } = useWindowDimensions();
   const [firstRendered, setFirstRendered] = useState(false);
+  const [paintReady, setPaintReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [finalRendered, setFinalRendered] = useState(false);
   const callbacks = useRef({ onDone, onReady }); callbacks.current = { onDone, onReady };
   const readySent = useRef(false);
   const doneSent = useRef(false);
@@ -49,9 +51,19 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady
   }, [ready, done]);
 
   useEffect(() => {
-    const subscription = player.addListener("playToEnd", () => { setEnded(true); done(); });
+    const subscription = player.addListener("playToEnd", () => setEnded(true));
     return () => subscription.remove();
   }, [player, done]);
+  useEffect(() => { if (finalRendered) done(); }, [finalRendered, done]);
+  useEffect(() => {
+    if (!firstRendered) return;
+    let second: number | null = null;
+    // Laisser le relais PNG → surface vidéo se peindre avant la lecture.
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setPaintReady(true));
+    });
+    return () => { cancelAnimationFrame(first); if (second !== null) cancelAnimationFrame(second); };
+  }, [firstRendered]);
   useEffect(() => {
     if (status === "error") fail();
   }, [status, fail]);
@@ -67,29 +79,42 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady
     return () => clearTimeout(timer);
   }, [firstRendered, failed, staticPose, fail]);
   useEffect(() => {
+    if (!animate || !paintReady || failed || staticPose || ended) return;
+    // Même un décodeur qui ne signale jamais sa fin doit libérer la route.
+    const timer = setTimeout(fail, 5000);
+    return () => clearTimeout(timer);
+  }, [animate, paintReady, failed, staticPose, ended, fail]);
+  useEffect(() => {
     try {
-      if (animate && status === "readyToPlay" && !failed && !staticPose && !ended) player.play();
+      // Le PNG retire le splash système, puis la vidéo est préparée en pause.
+      // Le mouvement attend sa première image et le retrait peint du poster.
+      if (animate && paintReady && status === "readyToPlay" && !failed && !staticPose && !ended) player.play();
       else player.pause();
     } catch { fail(); }
     return () => {
       // Le hook peut avoir déjà libéré son objet natif pendant le démontage.
       try { player.pause(); } catch { /* objet déjà libéré */ }
     };
-  }, [animate, status, failed, staticPose, ended, player, fail]);
+  }, [animate, paintReady, status, failed, staticPose, ended, player, fail]);
 
   const portraitOffset = Platform.OS === "android" ? 0 : (241.5 - 175) * .49;
   return (
     <View style={{ width, height }} testID="spawt-window-mark" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <View pointerEvents="none" style={{ position: "absolute", left: (width - frameWidth) / 2, top: (height - frameHeight) / 2 + portraitOffset, width: frameWidth, height: frameHeight }}>
-        {!staticPose && !failed ? (
-          <VideoView player={player} nativeControls={false} contentFit="fill" surfaceType="textureView"
+        {!staticPose && !failed && !finalRendered ? (
+          <VideoView player={player} nativeControls={false} contentFit="fill" surfaceType="surfaceView"
             useExoShutter={false} allowsPictureInPicture={false} fullscreenOptions={{ enable: false }} playsInline
             onFirstFrameRender={() => { setFirstRendered(true); ready(); }}
             style={frameStyle} testID="spawt-opening-video" />
         ) : null}
         {staticPose || failed || ended || !firstRendered ? (
-          <Image source={staticPose || ended ? finalPose : firstPose} fadeDuration={0} resizeMode="stretch"
-            onLoad={ready} onError={fail} style={frameStyle} testID="spawt-opening-pose" />
+          <Image source={!failed && (staticPose || ended) ? finalPose : firstPose} fadeDuration={0} resizeMode="stretch"
+            onLoad={() => {
+              ready();
+              // Retirer la surface vidéo seulement après le relais PNG, puis
+              // déclencher le fondu depuis la surface React effectivement posée.
+              if (ended && !failed) setFinalRendered(true);
+            }} onError={fail} style={frameStyle} testID="spawt-opening-pose" />
         ) : null}
       </View>
     </View>
