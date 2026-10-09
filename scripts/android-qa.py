@@ -82,11 +82,17 @@ def scroll(): adb('shell','input','swipe','550','1850','550','650','350'); time.
 
 try:
     geometry(393,1)
+    # Le launcher Google peut rester occupé après le premier redimensionnement.
+    # L'app est lancée directement ; un éventuel ANR SPAWT reste un échec.
+    adb('shell','am','force-stop','com.google.android.apps.nexuslauncher')
+    tree,_=nodes()
+    if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
+        tap('Close app',exact=True)
     # Ouverture à vitesse normale, puis animations système neutralisées pour la matrice.
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,1)
     recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--time-limit','8','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    adb('shell','monkey','-p',PACKAGE,'-c','android.intent.category.LAUNCHER','1')
+    adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
     recording.wait(timeout=15); adb('pull','/sdcard/opening.mp4',str(OUT/'opening.mp4'))
     snap('cold-opening')
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
