@@ -92,6 +92,7 @@ interface ProgressionStore {
 // badge-check peuvent être déclenchés en rafale (profil + écran + spawt).
 let __hydrateInFlight: Promise<void> | null = null;
 let __badgeCheckInFlight: Promise<void> | null = null;
+let sessionGeneration = 0;
 
 export const useProgressionStore = create<ProgressionStore>((set, get) => ({
   spawterId: null,
@@ -110,6 +111,8 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
     // Changement de compte : repartir d'un état vierge avant de charger.
     if (get().spawterId && get().spawterId !== spawter_id) get().reset();
     if (__hydrateInFlight) return __hydrateInFlight;
+    const generation = sessionGeneration;
+    const isCurrent = () => generation === sessionGeneration && get().spawterId === spawter_id;
     const run = async (): Promise<void> => {
       try {
         set({ loading: true, spawterId: spawter_id });
@@ -127,11 +130,12 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
         // re-login d'un autre compte) : NE PAS écrire les données de A dans le
         // store de B (ni ses sets « déjà vu »). reset() a invalidé le guard
         // in-flight, donc B a lancé sa propre hydratation ; on abandonne A ici.
-        if (get().spawterId !== spawter_id) return;
+        if (!isCurrent()) return;
 
         // ── Diff badges → file de célébrations ──────────────────────────────
         const freshCodes = badges.unlocked.map((b) => b.badge_code);
         const seenBadges = await loadSeenSet(BADGES_SEEN_KEY);
+        if (!isCurrent()) return;
         let pendingBadgeCelebrations = get().pendingBadgeCelebrations;
         if (seenBadges === null) {
           // Première fois : on enregistre sans célébrer (compte existant).
@@ -149,7 +153,9 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
 
         // ── Diff cartes → toast Chat (une à la fois) ────────────────────────
         const freshCardCodes = cards.map((c) => c.code);
+        if (!isCurrent()) return;
         const seenCards = await loadSeenSet(CARDS_SEEN_KEY);
+        if (!isCurrent()) return;
         let pendingCardToast = get().pendingCardToast;
         if (seenCards === null) {
           await saveSeenSet(CARDS_SEEN_KEY, freshCardCodes);
@@ -161,6 +167,7 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
           }
         }
 
+        if (!isCurrent()) return;
         set({
           badges,
           cards,
@@ -176,7 +183,7 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
       } catch (err) {
         if (__DEV__) console.warn("[progression-store] hydrate failed", err);
         // N'écrase pas l'état d'un autre compte entré entretemps.
-        if (get().spawterId === spawter_id) set({ loading: false });
+        if (isCurrent()) set({ loading: false });
       }
     };
     // `p` est affecté depuis run() (jamais depuis .finally) → pas de TDZ : la
@@ -192,14 +199,20 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
   },
 
   runBadgeCheck: async (spawter_id) => {
+    if (get().spawterId && get().spawterId !== spawter_id) return;
+    if (!get().spawterId) set({ spawterId: spawter_id });
     if (__badgeCheckInFlight) return __badgeCheckInFlight;
-    __badgeCheckInFlight = (async () => {
+    const generation = sessionGeneration;
+    const isCurrent = () => generation === sessionGeneration && get().spawterId === spawter_id;
+    const run = async () => {
       try {
         // Le RPC retourne les codes tout juste gagnés ; le refresh derrière
         // rattrape aussi ceux attribués par trigger SQL entre-temps (diff).
         const newCodes = await triggerBadgeCheck(spawter_id);
+        if (!isCurrent()) return;
         if (newCodes.length > 0) {
           const seen = (await loadSeenSet(BADGES_SEEN_KEY)) ?? new Set<string>();
+          if (!isCurrent()) return;
           const pending = get().pendingBadgeCelebrations;
           const toAdd = newCodes.filter((c) => !seen.has(c) && !pending.includes(c));
           if (toAdd.length > 0) {
@@ -207,20 +220,23 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
             await saveSeenSet(BADGES_SEEN_KEY, [...seen, ...toAdd]);
           }
         }
+        if (!isCurrent()) return;
         // Refresh du snapshot badges (état is_displayed/unlocked_at à jour).
         const badges = await listBadges(spawter_id);
-        set({ badges });
+        if (isCurrent()) set({ badges });
       } catch (err) {
         if (__DEV__) console.warn("[progression-store] runBadgeCheck failed", err);
-      } finally {
-        __badgeCheckInFlight = null;
       }
-    })();
-    return __badgeCheckInFlight;
+    };
+    const p = run();
+    __badgeCheckInFlight = p;
+    void p.finally(() => { if (__badgeCheckInFlight === p) __badgeCheckInFlight = null; });
+    return p;
   },
 
   toggleBadgeDisplayed: async (badge_code) => {
     const { badges, spawterId } = get();
+    const generation = sessionGeneration;
     if (!badges || !spawterId) return "error";
     const target = badges.unlocked.find((b) => b.badge_code === badge_code);
     if (!target) return "error"; // pas débloqué → pas affichable
@@ -243,6 +259,7 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
     });
     set({ badges: apply(next) });
     const result = await setBadgeDisplayed(spawterId, badge_code, next);
+    if (generation !== sessionGeneration || get().spawterId !== spawterId) return "error";
     if (result !== "ok") {
       set({ badges: apply(target.is_displayed) });
     }
@@ -258,6 +275,8 @@ export const useProgressionStore = create<ProgressionStore>((set, get) => ({
   },
 
   reset: () => {
+    sessionGeneration += 1;
+    __badgeCheckInFlight = null;
     // finding P2#13 — invalide toute hydratation en vol : sans ça, un hydrate(B)
     // juste après reset() récupérerait la promesse de A (guard présent) et
     // n'hydraterait jamais B, pendant que A résoudrait ses données dans le store.

@@ -9,6 +9,8 @@
     "loading": "Un instant…",
     "error_generic": "Quelque chose a couiné. Réessaie.",
     "error_network": "Pas de réseau. Le Chat patiente.",
+    "data_read_error": "Je n’ai pas pu charger les données. Réessaie dans un instant.",
+    "retry": "Réessayer",
     "dataSourceBanner": "Mode démo · données locales · Supabase pas encore branché"
   },
   "nav": {
@@ -341,7 +343,7 @@
   "share": {
     "button_label": "Partager",
     "dialog_title": "Partager via",
-    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\n{{url}}\n\nvia SPAWT — la bande du goût à Abidjan.",
+    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\nFiche dans l’app SPAWT (à installer) : {{url}}\n\nvia SPAWT — la bande du goût à Abidjan.",
     "fallback_no_phone": "WhatsApp n'a pas pu s'ouvrir. Copie le lien manuellement.",
     "copy_link": "Copier le lien"
   },
@@ -1030,7 +1032,8 @@
     "session_title": "Vote du crew",
     "code_label": "Ton code de crew",
     "code_hint": "Partage-le, le crew entre avec.",
-    "share_invite": "Rejoins mon crew sur SPAWT, code {{code}} — viens voter pour la table. {{url}}",
+    "share_invite": "Rejoins mon crew sur SPAWT. Code : {{code}}. Dans l’app : La Meute → Ton Crew → Rejoindre. Ouvrir dans SPAWT (app installée) : {{url}}. Pas encore l’app ? Demande le lien d’installation à la personne qui t’invite.",
+    "invite_pending_body": "Une autre bande t’invite. Copie ce code si besoin. Reprends puis quitte ton vote actuel pour rejoindre le nouveau ; le code restera prêt ici.",
     "cta_share_code": "Inviter sur WhatsApp",
     "members_title": "Le crew",
     "members_count_one": "{{count}} présent",
@@ -1062,7 +1065,7 @@
     "reveal_tiebreak_first": "Égalité — le premier spot proposé l'emporte.",
     "cta_see_place": "Voir la fiche",
     "cta_spawt_there": "Spawt-y",
-    "share_result": "Le crew a tranché sur SPAWT : {{place}}, {{neighborhood}}. Rendez-vous là-bas. {{url}}",
+    "share_result": "Le crew a tranché sur SPAWT : {{place}}, {{neighborhood}}. Rendez-vous là-bas. Fiche dans l’app SPAWT (app installée) : {{url}}",
     "cta_share_result": "Annoncer sur WhatsApp",
     "offline_banner": "Pas de réseau — les votes du crew t'arrivent dès que ça revient.",
     "cta_retry": "Réessayer",

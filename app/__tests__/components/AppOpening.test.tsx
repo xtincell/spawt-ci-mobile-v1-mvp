@@ -1,15 +1,17 @@
-// R23 (build 8) — <AppOpening /> : ouverture animée à chaque lancement.
-// Vérifie : (1) le rendu monte logo + overlay, (2) un TAP skippe (onFinished
-// appelé après le fondu court), (3) la séquence complète finit d'elle-même.
-//
-// Fake timers : Animated (JS driver) planifie via timers — on les avance
-// manuellement, et on démonte chaque renderer pour stopper les séquences.
-
 import { type ReactNode } from "react";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — react-test-renderer ships JS only
 import TestRenderer from "react-test-renderer";
+import { AccessibilityInfo } from "react-native";
 
+// RN désactive les animations sous Jest par défaut : garder le vrai moteur
+// JS avec fake timers pour vérifier délais, interruptions et rerenders.
+jest.mock("react-native/Libraries/Utilities/Platform", () => {
+  const actual = jest.requireActual("react-native/Libraries/Utilities/Platform").default;
+  return { __esModule: true, default: { ...actual, OS: "web", isDisableAnimations: false } };
+});
+
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock("expo-linear-gradient", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
   const RNMock = jest.requireActual("react-native") as typeof import("react-native");
@@ -21,75 +23,124 @@ jest.mock("expo-linear-gradient", () => {
 
 import { AppOpening } from "../../src/components/brand/AppOpening";
 
-interface TestInstanceLike {
-  props: Record<string, unknown>;
-}
-interface TestRendererInstanceLike {
-  root: { findByProps: (props: Record<string, unknown>) => TestInstanceLike };
+interface Renderer {
+  root: {
+    findByProps: (props: Record<string, unknown>) => { props: Record<string, unknown> };
+    findAllByProps: (props: Record<string, unknown>) => unknown[];
+  };
+  update: (node: ReactNode) => void;
   unmount: () => void;
 }
+let renderers: Renderer[] = [];
 
-let renderers: TestRendererInstanceLike[] = [];
-
-function render(onFinished: () => void): TestRendererInstanceLike {
-  let raw: TestRendererInstanceLike | null = null;
-  TestRenderer.act(() => {
-    raw = TestRenderer.create(
-      <AppOpening onFinished={onFinished} />,
-    ) as unknown as TestRendererInstanceLike;
+async function render(onFinished: () => void, ready = true): Promise<Renderer> {
+  let raw: Renderer | null = null;
+  await TestRenderer.act(async () => {
+    raw = TestRenderer.create(<AppOpening onFinished={onFinished} ready={ready} />) as Renderer;
   });
   if (!raw) throw new Error("renderer did not initialize");
   renderers.push(raw);
   return raw;
 }
+function advance(ms: number) {
+  for (let time = 0; time < ms; time += 100) {
+    TestRenderer.act(() => { jest.advanceTimersByTime(Math.min(100, ms - time)); });
+  }
+}
+function skip(instance: Renderer) {
+  TestRenderer.act(() => {
+    (instance.root.findByProps({ testID: "app-opening-skip" }).props.onPress as () => void)();
+  });
+}
 
-describe("<AppOpening /> — R23 ouverture animée à chaque lancement", () => {
+describe("AppOpening — durée stable et transition sûre", () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    jest.spyOn(AccessibilityInfo, "isReduceMotionEnabled").mockResolvedValue(false);
+    jest.spyOn(AccessibilityInfo, "addEventListener").mockReturnValue({ remove: jest.fn() } as unknown as ReturnType<typeof AccessibilityInfo.addEventListener>);
   });
-
   afterEach(() => {
-    TestRenderer.act(() => {
-      for (const r of renderers) r.unmount();
-    });
+    TestRenderer.act(() => { for (const instance of renderers) instance.unmount(); });
     renderers = [];
-    TestRenderer.act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    TestRenderer.act(() => { jest.runOnlyPendingTimers(); });
+    jest.restoreAllMocks();
     jest.useRealTimers();
   });
 
-  it("monte l'overlay avec la zone skippable", () => {
-    const onFinished = jest.fn();
-    const instance = render(onFinished);
-    expect(instance.root.findByProps({ testID: "app-opening" })).toBeTruthy();
-    expect(instance.root.findByProps({ testID: "app-opening-skip" })).toBeTruthy();
-    expect(onFinished).not.toHaveBeenCalled();
+  it("rend le logo animé et permet de passer avec un seul rappel de fin", async () => {
+    const finished = jest.fn();
+    const instance = await render(finished);
+    expect(instance.root.findByProps({ testID: "animated-logo-mark" })).toBeTruthy();
+    skip(instance);
+    advance(300);
+    skip(instance);
+    advance(1000);
+    expect(finished).toHaveBeenCalledTimes(1);
   });
 
-  it("un tap skippe : onFinished appelé après le fondu court", () => {
-    const onFinished = jest.fn();
-    const instance = render(onFinished);
-    const skip = instance.root.findByProps({ testID: "app-opening-skip" });
-    TestRenderer.act(() => {
-      (skip.props.onPress as () => void)();
-    });
-    TestRenderer.act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-    expect(onFinished).toHaveBeenCalledTimes(1);
-  });
-
-  it("la séquence complète se termine seule (jamais bloquante)", () => {
-    const onFinished = jest.fn();
-    render(onFinished);
-    // Avance par pas : les effets React (logoDone → 2e séquence) ne flushent
-    // qu'à la sortie de chaque act(), pas au milieu d'un run de timers.
-    for (let i = 0; i < 12; i += 1) {
+  it("termine en moins de 3,5 s malgré les rerenders du parent et utilise son dernier callback", async () => {
+    const initial = jest.fn();
+    const current = jest.fn();
+    const instance = await render(initial);
+    for (let i = 0; i < 35; i += 1) {
       TestRenderer.act(() => {
-        jest.advanceTimersByTime(500);
+        instance.update(<AppOpening onFinished={() => current()} />);
       });
+      advance(100);
     }
-    expect(onFinished).toHaveBeenCalledTimes(1);
+    expect(initial).not.toHaveBeenCalled();
+    expect(current).toHaveBeenCalledTimes(1);
+  });
+
+  it("garde la transition au-dessus de l'accueil tant que la route du compte n'est pas prête", async () => {
+    const finished = jest.fn();
+    const instance = await render(finished, false);
+    advance(4000);
+    expect(finished).not.toHaveBeenCalled();
+    TestRenderer.act(() => {
+      instance.update(<AppOpening onFinished={finished} ready />);
+    });
+    advance(500);
+    expect(finished).toHaveBeenCalledTimes(1);
+  });
+
+  it("passer n'expose pas une route encore non restaurée", async () => {
+    const finished = jest.fn();
+    const instance = await render(finished, false);
+    skip(instance);
+    advance(1000);
+    expect(finished).not.toHaveBeenCalled();
+    TestRenderer.act(() => { instance.update(<AppOpening onFinished={finished} ready />); });
+    advance(300);
+    expect(finished).toHaveBeenCalledTimes(1);
+  });
+
+  it("annule le rappel du fondu si l'overlay est démonté", async () => {
+    const finished = jest.fn();
+    const instance = await render(finished);
+    skip(instance);
+    advance(50);
+    TestRenderer.act(() => instance.unmount());
+    renderers = [];
+    advance(1000);
+    expect(finished).not.toHaveBeenCalled();
+  });
+
+  it("permet de passer même si la lecture de la préférence système tarde", async () => {
+    jest.mocked(AccessibilityInfo.isReduceMotionEnabled).mockReturnValue(new Promise(() => {}));
+    const finished = jest.fn();
+    const instance = await render(finished);
+    skip(instance);
+    advance(300);
+    expect(finished).toHaveBeenCalledTimes(1);
+  });
+
+  it("respecte Réduire les animations sans tracer ni zoomer le logo", async () => {
+    jest.mocked(AccessibilityInfo.isReduceMotionEnabled).mockResolvedValue(true);
+    const finished = jest.fn();
+    const instance = await render(finished);
+    expect(instance.root.findAllByProps({ testID: "animated-logo-mark" })).toHaveLength(0);
+    advance(100);
+    expect(finished).toHaveBeenCalledTimes(1);
   });
 });

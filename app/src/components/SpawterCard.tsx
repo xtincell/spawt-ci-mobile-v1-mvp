@@ -7,8 +7,8 @@
 // utilisateur (réservé exploitation interne) : le verso rend les axes en
 // barres horizontales (AxisBar) pour tous les tiers.
 
-import { useCallback, useEffect, useState } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Image, Platform, Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
@@ -45,6 +45,50 @@ interface Props {
 }
 
 const FLIP_DURATION_MS = 600;
+
+function CardFlipTarget({
+  children,
+  label,
+  onFlip,
+}: {
+  children: ReactNode;
+  label: string;
+  onFlip: () => void;
+}) {
+  if (Platform.OS === "web") {
+    // RN Web turns even a View with role="button" into a native button.
+    // A div keeps the avatar's own button valid and independently actionable.
+    return (
+      <div
+        role="button"
+        aria-label={label}
+        tabIndex={0}
+        onClick={onFlip}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget || event.repeat) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onFlip();
+          }
+        }}
+        style={{ aspectRatio: "0.7", position: "relative" }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onFlip}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={{ aspectRatio: 0.7 }}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 export function SpawterCard({
   spawter,
@@ -123,11 +167,9 @@ export function SpawterCard({
   const stadeDesc = STADE_DESCRIPTORS[spawter.stade];
 
   return (
-    <Pressable
-      onPress={handleFlip}
-      accessibilityRole="button"
-      accessibilityLabel={t("profile.card_flip_aria")}
-      style={{ aspectRatio: 0.7 }}
+    <CardFlipTarget
+      onFlip={handleFlip}
+      label={t("profile.card_flip_aria")}
     >
       <Animated.View
         // La face cachée ne doit rien intercepter — sinon elle vole les taps
@@ -156,7 +198,10 @@ export function SpawterCard({
                 changer la photo (galerie/caméra) si le caller passe le
                 handler ; le badge caméra signale l'affordance. */}
             <Pressable
-              onPress={onAvatarPress}
+              onPress={onAvatarPress ? (event) => {
+                if (Platform.OS === "web") event.stopPropagation();
+                onAvatarPress();
+              } : undefined}
               disabled={!onAvatarPress}
               accessibilityRole={onAvatarPress ? "button" : "image"}
               accessibilityLabel={
@@ -282,7 +327,7 @@ export function SpawterCard({
           />
         </View>
       </Animated.View>
-    </Pressable>
+    </CardFlipTarget>
   );
 }
 

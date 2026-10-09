@@ -14,6 +14,7 @@
 // place_first_view.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DataLoadNotice } from "../../../src/components/DataLoadNotice";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -37,6 +38,7 @@ import { AdnTags } from "../../../src/components/AdnTags";
 import { PlaceReviews } from "../../../src/components/PlaceReviews";
 import { DataSourceBanner } from "../../../src/components/DataSourceBanner";
 import { getPlace, type PlaceWithAdn } from "../../../src/lib/data-source";
+import { buildPlaceShareUrl } from "../../../src/lib/share-links";
 import {
   computeRawScore,
   displayedScore,
@@ -105,12 +107,18 @@ export default function PlaceDetailScreen() {
     ? (params.ref as Referrer)
     : "direct";
   const router = useRouter();
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  };
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   const [place, setPlace] = useState<PlaceWithAdn | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [coverFailed, setCoverFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<PlaceTabKey>("media");
 
@@ -126,17 +134,24 @@ export default function PlaceDetailScreen() {
   const adnUnderConstructionEmittedRef = useRef(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) { setPlace(null); setLoading(false); return; }
     let cancelled = false;
+    setLoading(true);
+    setFailed(false);
+    setPlace(null);
+    setCoverFailed(false);
+    placeViewedEmittedRef.current = false;
+    adnUnderConstructionEmittedRef.current = false;
     void getPlace(id).then((p) => {
       if (cancelled) return;
       setPlace(p);
-      setLoading(false);
-    });
+    }).catch(() => {
+      if (!cancelled) setFailed(true);
+    }).finally(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, attempt]);
 
   const visited = useMemo(
     () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
@@ -243,6 +258,15 @@ export default function PlaceDetailScreen() {
     );
   }
 
+  if (failed) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
+      <DataLoadNotice loading={false} failed onRetry={() => setAttempt((n) => n + 1)} />
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={goBack} style={{ padding: theme.spacing.lg }}>
+        <Text style={{ color: theme.colors.text.primary }}>{t("common.back")}</Text>
+      </Pressable>
+    </SafeAreaView>;
+  }
+
   if (!place) {
     return (
       <SafeAreaView
@@ -259,7 +283,7 @@ export default function PlaceDetailScreen() {
           <Text style={{ color: theme.colors.text.secondary }}>
             {t("place.not_found")}
           </Text>
-          <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={goBack} style={{ marginTop: 16 }}>
             <Text style={{ color: theme.colors.brand.accent }}>
               ← {t("common.back")}
             </Text>
@@ -383,7 +407,7 @@ export default function PlaceDetailScreen() {
       name: "share_initiated",
       properties: { place_id: place.id, surface: "place_detail" },
     });
-    const url = `https://spawt.ci/place/${place.id}`;
+    const url = buildPlaceShareUrl(place.id);
     const rating = place.adn.weighted_rating;
     const message = t("share.message_template", {
       name: place.name,
@@ -478,7 +502,7 @@ export default function PlaceDetailScreen() {
       place.location.lng,
     );
     await registerSpawt(row);
-    router.back();
+    goBack();
   };
 
   const STICKY_HEIGHT = 64;
@@ -531,7 +555,7 @@ export default function PlaceDetailScreen() {
             }}
           >
             <Pressable
-              onPress={() => router.back()}
+              onPress={goBack}
               accessibilityRole="button"
               accessibilityLabel={t("place.back")}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

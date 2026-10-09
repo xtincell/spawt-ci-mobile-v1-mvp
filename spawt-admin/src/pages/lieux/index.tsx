@@ -1,6 +1,7 @@
 // Story 6.2 — Liste des lieux + filtres + actions ligne.
 
 import { useState } from "react";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useNavigate } from "react-router";
 import { useTable, useUpdate, useInvalidate } from "@refinedev/core";
 import { logAuditAction } from "../../lib/audit";
@@ -21,7 +22,7 @@ export const LieuxList = () => {
   const [search, setSearch] = useState("");
   const [published, setPublished] = useState<"all" | "yes" | "no">("all");
 
-  const { tableQuery } = useTable<PlaceRow>({
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<PlaceRow>({
     resource: "places",
     pagination: { pageSize: 25 },
     sorters: { initial: [{ field: "updated_at", order: "desc" }] },
@@ -39,7 +40,7 @@ export const LieuxList = () => {
   const { mutate: updatePlace } = useUpdate();
   const invalidate = useInvalidate();
 
-  const rows = (tableQuery.data?.data ?? []) as PlaceRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as PlaceRow[];
 
   async function togglePublish(row: PlaceRow) {
     const next = !row.is_published;
@@ -79,14 +80,16 @@ export const LieuxList = () => {
       </header>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <input placeholder="Rechercher un nom…" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <select value={published} onChange={(e) => setPublished(e.target.value as "all" | "yes" | "no")}>
+        <input placeholder="Rechercher un nom…" value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} />
+        <select value={published} onChange={(e) => { setPublished(e.target.value as "all" | "yes" | "no"); setCurrentPage(1); }}>
           <option value="all">Tous</option>
           <option value="yes">Publiés</option>
           <option value="no">Brouillons</option>
         </select>
       </div>
 
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
         <thead>
           <tr>

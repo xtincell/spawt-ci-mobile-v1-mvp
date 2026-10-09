@@ -23,6 +23,8 @@ function mockDefer<T>(): Deferred<T> {
 
 // listBadges est différé PAR spawter_id → on contrôle la fin de chaque hydrate.
 const mockBadgesDefer: Record<string, Deferred<unknown>> = {};
+const mockBadgeCheck = jest.fn((..._args: unknown[]) => Promise.resolve([] as string[]));
+const mockDisplayBadge = jest.fn((..._args: unknown[]) => Promise.resolve("ok"));
 jest.mock("../../lib/data-source", () => ({
   __esModule: true,
   listBadges: (id: string) => (mockBadgesDefer[id] ??= mockDefer<unknown>()).promise,
@@ -31,8 +33,8 @@ jest.mock("../../lib/data-source", () => ({
   listPawsLedger: () => Promise.resolve([]),
   getMyStreak: () => Promise.resolve(null),
   listActiveChallenges: () => Promise.resolve([]),
-  setBadgeDisplayed: () => Promise.resolve(true),
-  triggerBadgeCheck: () => Promise.resolve([]),
+  setBadgeDisplayed: (...args: unknown[]) => mockDisplayBadge(...args),
+  triggerBadgeCheck: (...args: unknown[]) => mockBadgeCheck(...args),
 }));
 
 import { useProgressionStore } from "../progression-store";
@@ -40,6 +42,8 @@ import { useProgressionStore } from "../progression-store";
 beforeEach(async () => {
   for (const k of Object.keys(mockBadgesDefer)) delete mockBadgesDefer[k];
   useProgressionStore.getState().reset();
+  mockBadgeCheck.mockReset().mockResolvedValue([]);
+  mockDisplayBadge.mockReset().mockResolvedValue("ok");
   await AsyncStorage.clear();
 });
 
@@ -88,5 +92,33 @@ describe("progression-store — course hydrate/reset (P2#13)", () => {
     await pA;
     expect(useProgressionStore.getState().badges).toBeNull();
     expect(useProgressionStore.getState().hydrated).toBe(false);
+  });
+
+  it("un badge check de A ne restaure ni badge ni célébration après déconnexion", async () => {
+    const pending = mockDefer<string[]>();
+    mockBadgeCheck.mockReturnValue(pending.promise);
+    const a = useProgressionStore.getState().runBadgeCheck("A");
+    useProgressionStore.getState().reset();
+    pending.resolve(["badge-A"]);
+    await a;
+    expect(useProgressionStore.getState().badges).toBeNull();
+    expect(useProgressionStore.getState().pendingBadgeCelebrations).toEqual([]);
+    expect(await AsyncStorage.getItem("spawt:progression:badges_seen")).toBeNull();
+  });
+
+  it("une réponse du même compte avant déconnexion ne traverse pas une nouvelle session", async () => {
+    const first = mockDefer<unknown>();
+    mockBadgesDefer.A = first;
+    const a = useProgressionStore.getState().hydrate("A");
+    useProgressionStore.getState().reset();
+    const second = mockDefer<unknown>();
+    mockBadgesDefer.A = second;
+    const next = useProgressionStore.getState().hydrate("A");
+    first.resolve({ catalogue: [], unlocked: [{ badge_code: "stale" }] });
+    await a;
+    expect(useProgressionStore.getState().badges).toBeNull();
+    second.resolve({ catalogue: [], unlocked: [] });
+    await next;
+    expect(useProgressionStore.getState().badges?.unlocked).toEqual([]);
   });
 });

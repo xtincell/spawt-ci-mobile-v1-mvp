@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../../theme/ThemeProvider";
@@ -15,10 +15,13 @@ import { Button } from "../primitives/Button";
 import { useCrewStore } from "../../store/crew-store";
 import { useSpawterStore } from "../../store/spawter-store";
 import type { CrewSelf } from "../../lib/crew/crew-types";
+import { normalizeCrewInviteCode } from "../../lib/share-links";
 
 export function CrewBlock() {
   const theme = useTheme();
   const router = useRouter();
+  const { crewCode } = useLocalSearchParams<{ crewCode?: string | string[] }>();
+  const inviteCode = normalizeCrewInviteCode(crewCode);
   const { t } = useTranslation();
 
   const spawter = useSpawterStore((s) => s.spawter);
@@ -28,12 +31,16 @@ export function CrewBlock() {
   const start = useCrewStore((s) => s.start);
   const join = useCrewStore((s) => s.join);
 
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(inviteCode ?? "");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void hydrateFromStorage();
   }, [hydrateFromStorage]);
+
+  useEffect(() => {
+    if (inviteCode) setCode(inviteCode);
+  }, [inviteCode]);
 
   if (!spawter) return null;
 
@@ -102,6 +109,17 @@ export function CrewBlock() {
       >
         {t("crew.block_pitch")}
       </Text>
+
+      {persistedRef && inviteCode && persistedRef.code !== inviteCode ? (
+        <View testID="crew-pending-invite" style={{ padding: theme.spacing.sm, gap: theme.spacing.xs }}>
+          <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.primary }}>
+            {t("crew.invite_pending_body")}
+          </Text>
+          <Text testID="crew-pending-invite-code" selectable style={{ ...theme.typography.preset.data, color: theme.colors.brand.primary }}>
+            {inviteCode}
+          </Text>
+        </View>
+      ) : null}
 
       {persistedRef ? (
         <Pressable

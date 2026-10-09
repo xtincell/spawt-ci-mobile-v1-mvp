@@ -33,6 +33,7 @@ import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { Chip } from "../../src/components/primitives/Chip";
 import { Ico } from "../../src/components/primitives/Ico";
 import {
@@ -52,6 +53,7 @@ type ScreenState =
   | { kind: "perm_denied" }
   | { kind: "loading_position" }
   | { kind: "empty" }
+  | { kind: "unavailable" }
   | { kind: "loaded"; items: NearbyPlace[]; userLat: number; userLng: number };
 
 const PRICE_LABELS: Record<1 | 2 | 3, string> = {
@@ -133,7 +135,7 @@ export default function SpawterTabScreen() {
       setState({ kind: "loaded", items, userLat, userLng });
     } catch (err) {
       if (__DEV__) console.warn("[spawter-tab] listPlaces failed", err);
-      setState({ kind: "empty" });
+      setState({ kind: "unavailable" });
     }
   }, []);
 
@@ -297,6 +299,7 @@ export default function SpawterTabScreen() {
           </View>
         ) : null}
 
+        <DataLoadNotice loading={false} failed={state.kind === "unavailable"} onRetry={() => void loadNearby()} />
         {state.kind === "empty" ? (
           <View
             style={{ alignItems: "center", paddingVertical: theme.spacing.xl }}

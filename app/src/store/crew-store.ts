@@ -32,7 +32,6 @@ import {
 } from "../lib/crew/crew-resolution";
 import { getPlace } from "../lib/data-source";
 import { DEMO_LAT, DEMO_LNG } from "../lib/demo-constants";
-import { useSpawterStore } from "./spawter-store";
 import type { PlaceWithSignals } from "../lib/matching";
 import type {
   CrewJoinResult,
@@ -105,15 +104,16 @@ function isExpiredRef(ref: CrewSessionRef): boolean {
 }
 
 /**
- * Construit le départage Palais de l'HÔTE depuis spawter-store (import
- * statique — l'écran de session charge de toute façon spawter-store pour
- * l'identité ; pas de cycle, spawter-store ignore crew-store). Position :
+ * Construit le départage Palais de l'HÔTE depuis spawter-store. Chargement
+ * à la demande : spawter-store importe déjà Crew pour nettoyer la session.
+ * Position :
  * fallback démo Cocody Riviera — cohérent avec le feed sans GPS.
  */
 async function buildHostTiebreak(
   proposals: readonly CrewProposal[],
 ): Promise<HostTiebreak | null> {
   try {
+    const { useSpawterStore } = await import("./spawter-store");
     const s = useSpawterStore.getState();
     if (!s.palais) return null;
     const candidates = new Map<string, PlaceWithSignals>();
@@ -231,6 +231,7 @@ export const useCrewStore = create<CrewStoreState>((set, get) => ({
     get().detach();
     subscribedSessionId = session_id;
     subscription = subscribeCrewSession(session_id, (evt) => {
+      if (subscribedSessionId !== session_id) return;
       if (evt.type === "refetch") {
         void get().refresh();
         return;
@@ -265,6 +266,7 @@ export const useCrewStore = create<CrewStoreState>((set, get) => ({
     if (!self || !sessionId) return;
     try {
       const snapshot = await fetchSnapshot(sessionId, self.id);
+      if (get().self?.id !== self.id) return;
       if (!snapshot) {
         // Session inconnue (kill en mode démo, RLS post-leave…) — l'écran
         // affichera l'état expiré ; on nettoie la référence persistée.
@@ -303,7 +305,7 @@ export const useCrewStore = create<CrewStoreState>((set, get) => ({
       if (expired) await persistRef(null);
     } catch (err) {
       if (__DEV__) console.warn("[crew-store] refresh failed", err);
-      set({ offline: true });
+      if (get().self?.id === self.id) set({ offline: true });
     }
   },
 
@@ -386,7 +388,9 @@ export const useCrewStore = create<CrewStoreState>((set, get) => ({
         if (__DEV__) console.warn("[crew-store] leave failed", err);
       }
     }
+    if (get().self !== self) return;
     set({
+      self: null,
       session: null,
       members: [],
       proposals: [],

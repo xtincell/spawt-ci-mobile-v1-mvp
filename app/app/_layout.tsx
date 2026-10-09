@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -7,7 +8,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ThemeProvider } from "../src/theme/ThemeProvider";
-import { palette } from "../src/theme/tokens";
+import { palette, typography } from "../src/theme/tokens";
+import { useStartupHydration } from "../src/lib/use-startup-hydration";
+import { getRouteGuardDecision } from "../src/lib/route-guard";
 import { useAppFonts } from "../src/theme/useAppFonts";
 import { useSpawterStore } from "../src/store/spawter-store";
 import { flushPendingSignals } from "../src/lib/analytics";
@@ -56,46 +59,21 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
   /* no-op */
 });
 
-function RouteGuard() {
+function RouteGuard({ onReady }: { onReady: (ready: boolean) => void }) {
   const router = useRouter();
   const segments = useSegments();
   const hydrating = useSpawterStore((s) => s.hydrating);
   const spawter = useSpawterStore((s) => s.spawter);
 
   useEffect(() => {
-    if (hydrating) return;
-    const first = segments[0] as string | undefined;
-    const inTabs = first === "(tabs)";
-    // Les écrans modaux au root (search, saved) sont accessibles uniquement
-    // pour un spawter onboardé — sinon on rebascule vers le splash, sinon
-    // un utilisateur deep-linké atteindrait un écran qui dépend du store.
-    // Sprint 2 — rapide/explore : mêmes règles (dépendent du store ; leur
-    // gate de flag interne redirige ensuite vers le feed si flag off).
-    const inGuardedRoot =
-      first === "search" ||
-      first === "saved" ||
-      first === "settings" ||
-      first === "rapide" ||
-      first === "explore" ||
-      // Mode Crew — l'écran de session dépend du spawter (identité + votes).
-      first === "crew" ||
-      // Progression — badges/collection/paws/défis (flags OFF par défaut).
-      first === "progression" ||
-      // Feature 18 — suggestion de lieu (flag suggestions-lieux OFF par défaut).
-      first === "suggest-place" ||
-      // SPAWT Wrapped — rétrospective annuelle (flag wrapped OFF par défaut).
-      first === "wrapped" ||
-      // Résa 1-tap — « mes résas » (flag reservation-1tap OFF par défaut).
-      first === "reservations";
-    const inOnboarding = first === "(onboarding)";
-    const onSplash = !first;
-
-    if (spawter && (onSplash || inOnboarding)) {
-      router.replace("/(tabs)");
-    } else if (!spawter && (inTabs || inGuardedRoot)) {
-      router.replace("/");
-    }
-  }, [hydrating, spawter, segments, router]);
+    const decision = getRouteGuardDecision({
+      firstSegment: segments[0] as string | undefined,
+      hydrating,
+      hasSpawter: spawter !== null,
+    });
+    onReady(decision.ready);
+    if (!decision.ready && decision.redirect) router.replace(decision.redirect);
+  }, [hydrating, spawter, segments, router, onReady]);
 
   return null;
 }
@@ -106,17 +84,15 @@ export default function RootLayout() {
   const hydrate = useSpawterStore((s) => s.hydrate);
   const { fontsLoaded, fontError } = useAppFonts();
 
-  useEffect(() => {
-    void (async () => {
-      // CR finding M1 — gate __DEV__ AVANT l'import dynamique : le bundler
-      // Metro tree-shake l'import si la condition est statiquement falsy en prod.
-      if (__DEV__) {
-        const { maybeDevAutologin } = await import("../src/lib/dev-autologin");
-        await maybeDevAutologin();
-      }
-      await hydrate();
-    })();
+  const { t } = useTranslation();
+  const restoreAccount = useCallback(async () => {
+    if (__DEV__) {
+      const { maybeDevAutologin } = await import("../src/lib/dev-autologin");
+      await maybeDevAutologin();
+    }
+    await hydrate();
   }, [hydrate]);
+  const { failed: hydrationFailed, retry: retryHydration } = useStartupHydration(restoreAccount);
 
   // Story 4.1 + 4.2 — channel Android + catégories d'actions notif (Confirmer/Snooze).
   // Idempotent — pose les fondations pour scheduleGuetPrompt côté guet-task.
@@ -190,18 +166,18 @@ export default function RootLayout() {
   // de `spawter === null` et le badge serait perdu à jamais).
   const hydrating = useSpawterStore((s) => s.hydrating);
 
-  // R23 (build 8) — ouverture animée à CHAQUE lancement (logo → Moka, ~2 s,
-  // skippable au tap). Overlay au-dessus du Stack : l'app hydrate derrière,
-  // jamais bloquante. Le splash NATIF Expo (statique) est masqué dès que les
-  // fonts sont prêtes → l'overlay prend le relais sans trou blanc.
   const [openingVisible, setOpeningVisible] = useState(true);
-
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch((err: unknown) => {
-        if (__DEV__) console.warn("[splash] hideAsync failed", err);
-      });
-    }
+  const [routeReady, setRouteReady] = useState(false);
+  const finishOpening = useCallback(() => setOpeningVisible(false), []);
+  const splashHidden = useRef(false);
+  // Le relais natif → React attend une surface effectivement disposée.
+  const onRootLayout = useCallback(() => {
+    if (splashHidden.current || (!fontsLoaded && !fontError && Platform.OS !== "web")) return;
+    splashHidden.current = true;
+    void SplashScreen.hideAsync().catch((err: unknown) => {
+      splashHidden.current = false;
+      if (__DEV__) console.warn("[splash] hideAsync failed", err);
+    });
   }, [fontsLoaded, fontError]);
 
   // Flush la queue analytics AsyncStorage à chaque SIGNED_IN (Story 1.7 D2 +
@@ -215,8 +191,12 @@ export default function RootLayout() {
       // Import dynamique — cohérent avec la règle d'or data-source.
       const { supabase } = await import("../src/lib/supabase");
       if (cancelled) return;
-      const { data } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "SIGNED_IN") void flushPendingSignals();
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        const state = useSpawterStore.getState();
+        state.observeAuthSession(session?.user.id ?? null);
+        // SDK auth callbacks run under its session lock. Defer any code
+        // that may read auth again until that lock has been released.
+        if (event === "SIGNED_IN") setTimeout(() => { void flushPendingSignals(); }, 0);
       });
       unsub = () => data.subscription.unsubscribe();
     })();
@@ -232,13 +212,32 @@ export default function RootLayout() {
   // un null persistant qui rend l'app blanche dans le navigateur.
   if (Platform.OS !== "web" && !fontsLoaded && !fontError) return null;
 
+  // Une lecture locale échouée ne signifie pas « aucun compte ».
+  if (hydrationFailed && !isBackendMissing) {
+    return (
+      <GestureHandlerRootView onLayout={onRootLayout} style={{ flex: 1, backgroundColor: palette.black }}>
+        <SafeAreaProvider>
+          <StatusBar style="light" backgroundColor={palette.black} />
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 28, gap: 24 }}>
+            <Text accessibilityRole="alert" style={{ ...typography.preset.body, color: palette.blancCasse, textAlign: "center" }}>
+              {t("common.error_generic")}
+            </Text>
+            <Pressable accessibilityRole="button" onPress={retryHydration} style={{ padding: 16 }}>
+              <Text style={{ ...typography.preset.body, color: palette.gold }}>{t("saved.retry")}</Text>
+            </Pressable>
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
+
   // Binaire sans backend ET sans opt-in démo : on le dit franchement au lieu de
   // servir des fixtures. C'est ce silence-là qui a fait passer des APK vides
   // pour un produit non fonctionnel — l'app paraissait cassée alors que seule
   // la configuration de build manquait.
   if (isBackendMissing) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView onLayout={onRootLayout} style={{ flex: 1, backgroundColor: palette.black }}>
         <SafeAreaProvider>
           <StatusBar style="light" backgroundColor={palette.black} />
           <View
@@ -271,11 +270,11 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView onLayout={onRootLayout} style={{ flex: 1, backgroundColor: palette.black }}>
       <SafeAreaProvider>
         <ThemeProvider>
           <StatusBar style="light" backgroundColor={palette.black} />
-          <RouteGuard />
+          <RouteGuard onReady={setRouteReady} />
           <Stack
             screenOptions={{
               headerShown: false,
@@ -346,7 +345,7 @@ export default function RootLayout() {
           {/* R23 — l'ouverture animée est le DERNIER enfant : elle recouvre
               tout (Stack + overlays) jusqu'à sa fin ou un tap. */}
           {openingVisible ? (
-            <AppOpening onFinished={() => setOpeningVisible(false)} />
+            <AppOpening ready={routeReady && !hydrating} onFinished={finishOpening} />
           ) : null}
         </ThemeProvider>
       </SafeAreaProvider>

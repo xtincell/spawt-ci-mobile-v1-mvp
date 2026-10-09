@@ -6,6 +6,7 @@
 //   m11/m14 — remplace alert() par toast/banner + disable button on click
 
 import { useState } from "react";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useNavigate } from "react-router";
 import { useTable, useUpdate, useGetIdentity, useInvalidate } from "@refinedev/core";
 import { ReasonModal, FAUX_PAS_REVIEW } from "../../components/ReasonModal";
@@ -55,15 +56,17 @@ export const ModerationList = () => {
   // pour disable le bouton et éviter l'audit log spam.
   const [keptReviewIds, setKeptReviewIds] = useState<Set<string>>(new Set());
 
-  const { tableQuery } = useTable<ReviewRow>({
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<ReviewRow>({
     resource: "spawt_checkin",
     pagination: { pageSize: 50 },
     sorters: { initial: [{ field: "created_at", order: "desc" }] },
     filters: {
       permanent: [
-        { field: "note_etoiles", operator: "nnull", value: null },
-        { field: "deleted_at", operator: "null", value: null },
-        ...(filter === "flagged" ? [{ field: "flag_reason", operator: "nnull" as const, value: null }] : []),
+        // Refine retire les filtres dont value === null. Le texte "null"
+        // préserve le filtre et devient bien `not.is.null` chez PostgREST.
+        { field: "note_etoiles", operator: "nnull", value: "null" },
+        { field: "deleted_at", operator: "null", value: "null" },
+        ...(filter === "flagged" ? [{ field: "flag_reason", operator: "nnull" as const, value: "null" }] : []),
       ],
     },
     meta: {
@@ -75,7 +78,7 @@ export const ModerationList = () => {
   const { mutateAsync: updateReview } = useUpdate();
   const invalidate = useInvalidate();
 
-  const rows = (tableQuery.data?.data ?? []) as ReviewRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as ReviewRow[];
   const canModerate = identity?.role === "admin" || identity?.role === "moderator";
 
   function showToast(t: Toast) {
@@ -197,9 +200,11 @@ export const ModerationList = () => {
         </div>
       ) : null}
       <div style={{ display: "flex", gap: 12, margin: "16px 0" }}>
-        <button type="button" onClick={() => setFilter("recent")}>Avis récents</button>
-        <button type="button" onClick={() => setFilter("flagged")}>Flagged anti-fraude</button>
+        <button type="button" onClick={() => { setFilter("recent"); setCurrentPage(1); }}>Avis récents</button>
+        <button type="button" onClick={() => { setFilter("flagged"); setCurrentPage(1); }}>Flagged anti-fraude</button>
       </div>
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
         <thead>
           <tr>

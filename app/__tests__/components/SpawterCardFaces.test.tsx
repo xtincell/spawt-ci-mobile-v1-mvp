@@ -16,6 +16,7 @@
 // faces valent `undefined` et les assertions tombent.
 
 import { type ReactNode } from "react";
+import { Platform } from "react-native";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — react-test-renderer ships JS only
 import TestRenderer from "react-test-renderer";
@@ -55,6 +56,7 @@ jest.mock("expo-linear-gradient", () => {
 });
 
 import { SpawterCard } from "../../src/components/SpawterCard";
+import { track } from "../../src/lib/analytics";
 
 const spawter = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -67,6 +69,7 @@ const spawter = {
 const palais = { confidence_score: 0.5 } as unknown as UserPalais;
 
 interface Noeud {
+  type: unknown;
   props: Record<string, unknown>;
 }
 interface RendererLike {
@@ -136,5 +139,55 @@ describe("les faces de la carte ne se volent pas les taps", () => {
     const avatar = rendu.root.findByProps({ testID: "spawtercard-avatar" });
     expect(avatar.props.accessibilityRole).toBe("image");
     expect(avatar.props.disabled).toBe(true);
+  });
+});
+
+describe("la carte web conserve deux actions indépendantes", () => {
+  beforeEach(() => {
+    jest.replaceProperty(Platform, "OS", "web");
+    jest.clearAllMocks();
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it("utilise un conteneur non-button et laisse l'avatar agir sans retourner la carte", () => {
+    const onAvatarPress = jest.fn();
+    const rendu = rendre(onAvatarPress);
+    const card = rendu.root.findByProps({ role: "button", "aria-label": "profile.card_flip_aria" });
+    expect(card.type).toBe("div");
+    expect(card.props.tabIndex).toBe(0);
+    const event = { stopPropagation: jest.fn() };
+    const avatar = rendu.root.findByProps({ testID: "spawtercard-avatar" });
+    TestRenderer.act(() => {
+      (avatar.props.onPress as (e: typeof event) => void)(event);
+    });
+    expect(event.stopPropagation).toHaveBeenCalledTimes(1);
+    expect(onAvatarPress).toHaveBeenCalledTimes(1);
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it.each(["Enter", " "])("retourne la carte avec la touche %s", (key) => {
+    const rendu = rendre();
+    const card = rendu.root.findByProps({ role: "button", "aria-label": "profile.card_flip_aria" });
+    const target = {};
+    const event = { key, target, currentTarget: target, repeat: false, preventDefault: jest.fn() };
+    TestRenderer.act(() => {
+      (card.props.onKeyDown as (e: typeof event) => void)(event);
+    });
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith({ name: "spawter_card_flipped", properties: { to: "verso" } });
+  });
+
+  it("ignore les touches de l'avatar mais retourne la carte au clic sur son fond", () => {
+    const rendu = rendre(() => undefined);
+    const card = rendu.root.findByProps({ role: "button", "aria-label": "profile.card_flip_aria" });
+    const event = { key: "Enter", target: {}, currentTarget: {}, repeat: false, preventDefault: jest.fn() };
+    TestRenderer.act(() => {
+      (card.props.onKeyDown as (e: typeof event) => void)(event);
+    });
+    expect(track).not.toHaveBeenCalled();
+    TestRenderer.act(() => {
+      (card.props.onClick as () => void)();
+    });
+    expect(track).toHaveBeenCalledTimes(1);
   });
 });

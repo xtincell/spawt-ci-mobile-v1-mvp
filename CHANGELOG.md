@@ -4,6 +4,31 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Audit avant recompilation et comptes démo alpha (2026-10-09)
+
+L’ouverture ne redémarre plus ses animations lors des rendus du layout et attend
+la restauration/navigation avant de révéler l’écran. Réduction des mouvements,
+secours des polices, échec de restauration et relais du splash natif sont traités.
+Les erreurs de lecture des lieux affichent une relance au lieu d’un faux vide ;
+une actualisation conserve le dernier résultat et ignore les réponses obsolètes.
+La reprise d’un compte récupère aussi historique et collection, avec isolation
+des sessions dans les caches, flags et progression.
+Le parcours connecté a aussi révélé puis corrigé un plantage du carrousel,
+un retour sans historique sur fiche et des boutons HTML imbriqués dans le profil.
+
+La console retrouve pagination, filtres cohérents, erreurs visibles et auth via
+`current_staff()`. La migration 0070 ajoute les profils `is_demo`, protégés côté
+serveur, et leur suppression admin auditée avec confirmation exacte du nom.
+Les titres suivent désormais la suppression du compte sans autoriser leur
+effacement direct. Deux démos sans avis public sont provisionnées sur l’alpha ;
+elles sont exclues des métriques de comptes. Script de création idempotent fourni.
+
+Les partages ouvrent les routes de l’app installée au lieu du domaine indisponible
+`spawt.ci`. La vérification EAS bloque aussi les réponses réseau indéterminées.
+Les modules Expo sont alignés sur SDK 55. Détails des contrôles et limites de
+recette : `documentation/AUDIT_AVANT_COMPILATION_2026-10-09.md`.
+Aucune publication APK/IPA ou OTA pendant cette vérification.
+
 ## Reprendre le compte après connexion (2026-10-08)
 
 Après OTP, l’app relit le profil et le Palais par les RLS existantes. Un compte

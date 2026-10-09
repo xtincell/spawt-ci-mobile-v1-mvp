@@ -32,6 +32,7 @@ import {
   openWhatsAppWithMessage,
 } from "../../src/lib/crew/crew-session";
 import { track } from "../../src/lib/analytics";
+import { buildPlaceShareUrl } from "../../src/lib/share-links";
 import type { CrewSelf } from "../../src/lib/crew/crew-types";
 
 // ─── Compte à rebours TTL ────────────────────────────────────────────────────
@@ -175,7 +176,7 @@ export default function CrewSessionScreen() {
       t("crew.share_result", {
         place: winner.place_name,
         neighborhood: winner.place_neighborhood,
-        url: `https://spawt.ci/place/${winner.place_id}`,
+        url: buildPlaceShareUrl(winner.place_id),
       }),
     );
   };

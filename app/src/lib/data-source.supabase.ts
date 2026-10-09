@@ -15,6 +15,7 @@ import type { FeatureFlag } from "../types/feature-flag";
 import type { PlaceReview, PlaceWithAdn, ProgressionRow } from "./data-source";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import { PlaceWithAdnSchema } from "../types/place.schema";
+import { DataReadError, withReadTimeout } from "./data-read-error";
 
 /**
  * Liste les lieux publiés via le SDK Supabase + Zod parse fail-safe.
@@ -27,40 +28,47 @@ import { PlaceWithAdnSchema } from "../types/place.schema";
  * Si une row échoue le parse → dropée + warn __DEV__, la liste continue.
  */
 export async function listPlacesFromSupabase(): Promise<PlaceWithAdn[]> {
-  // Multi-villes (0041) — seuls les lieux de la ville active remontent.
-  let { data: rows, error } = await supabase
-    .from("places")
-    .select("*, place_adn(*)")
-    .eq("is_published", true)
-    .eq("city_code", getActiveCity().code);
-
-  // Défense : DB live pas encore migrée 0041 (colonne absente → 42703) —
-  // retry sans le filtre ville plutôt qu'un feed vide.
-  if (error && error.code === "42703") {
-    ({ data: rows, error } = await supabase
+  return withReadTimeout("places", async (signal) => {
+    // Multi-villes (0041) — seuls les lieux de la ville active remontent.
+    let { data: rows, error } = await supabase
       .from("places")
       .select("*, place_adn(*)")
-      .eq("is_published", true));
-  }
+      .eq("is_published", true)
+      .eq("city_code", getActiveCity().code)
+      .abortSignal(signal);
 
-  if (error) {
-    if (__DEV__) console.warn("[data-source] listPlaces failed", error);
-    return [];
-  }
+    // Défense : DB live pas encore migrée 0041 (colonne absente → 42703) —
+    // retry sans le filtre ville plutôt qu'un feed vide.
+    if (error && error.code === "42703") {
+      ({ data: rows, error } = await supabase
+        .from("places")
+        .select("*, place_adn(*)")
+        .eq("is_published", true)
+        .abortSignal(signal));
+    }
 
-  return parseRows(rows ?? []);
+    if (error) {
+      throw new DataReadError("places");
+    }
+    const places = parseRows(rows ?? []);
+    if (rows?.length && places.length === 0) throw new DataReadError("places", "invalid_data");
+    return places;
+  });
 }
 
 export async function getPlaceFromSupabase(id: string): Promise<PlaceWithAdn | null> {
-  const { data, error } = await supabase
+  const { data, error } = await withReadTimeout("place", (signal) => supabase
     .from("places")
     .select("*, place_adn(*)")
     .eq("id", id)
-    .single();
+    .abortSignal(signal)
+    .maybeSingle());
 
-  if (error || !data) return null;
+  if (error) throw new DataReadError("place");
+  if (!data) return null;
   const parsed = parseRows([data]);
-  return parsed[0] ?? null;
+  if (!parsed[0]) throw new DataReadError("place", "invalid_data");
+  return parsed[0];
 }
 
 /**
@@ -95,6 +103,7 @@ export function parseRowsForTest(rows: readonly unknown[]): PlaceWithAdn[] {
 function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
   const out: PlaceWithAdn[] = [];
   for (const row of rows) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
     const r = row as Record<string, unknown>;
     // La relation `place_adn(*)` peut remonter en objet (FK unique) ou en
     // array selon la version du SDK / le schéma — on normalise les deux, et
@@ -170,14 +179,15 @@ function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
 // idempotente côté server). Vise à éviter le bruit dans une même session.
 const seenFlaggedRowIds = new Set<string>();
 
-export async function listSpawtsFromSupabase(spawter_id: string): Promise<SpawtCheckin[]> {
-  const { data, error } = await supabase
+export async function listSpawtsFromSupabase(spawter_id: string, signal?: AbortSignal): Promise<SpawtCheckin[]> {
+  const query = supabase
     .from("spawt_checkin")
     .select("*")
     .eq("spawter_id", spawter_id)
     .order("created_at", { ascending: false });
-
-  if (error) return [];
+  if (signal) query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw new DataReadError("spawts");
   const rows = (data ?? []) as SpawtCheckin[];
 
   // Story 4.4 — émission `antifraud_flag_raised` pour chaque row flagged jamais vue.
@@ -366,10 +376,10 @@ export async function listFeatureFlagsFromSupabase(
   spawter_id: string | null,
 ): Promise<FeatureFlag[]> {
   void spawter_id; // filtre RLS-side via auth.uid().
-  const { data, error } = await supabase.from("feature_flags").select("*");
+  const { data, error } = await withReadTimeout("feature_flags", (signal) =>
+    supabase.from("feature_flags").select("*").abortSignal(signal));
   if (error) {
-    if (__DEV__) console.warn("[feature_flags] list failed", error);
-    return [];
+    throw new DataReadError("feature_flags");
   }
   return (data ?? []) as FeatureFlag[];
 }
@@ -428,15 +438,17 @@ export async function setDisplayedTitreInSupabase(
 /** Story 5.2 — List titres pour un spawter (RLS auto-filter own only). */
 export async function listTitresFromSupabase(
   spawter_id: string,
+  signal?: AbortSignal,
 ): Promise<CollectionTitreRow[]> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("collection_titres")
     .select("*")
     .eq("spawter_id", spawter_id)
     .order("unlocked_at", { ascending: true });
+  if (signal) query.abortSignal(signal);
+  const { data, error } = await query;
   if (error) {
-    if (__DEV__) console.warn("[data-source] listTitres failed", error);
-    return [];
+    throw new DataReadError("collection_titres");
   }
   return (data ?? []) as CollectionTitreRow[];
 }

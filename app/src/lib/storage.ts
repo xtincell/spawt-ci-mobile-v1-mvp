@@ -7,6 +7,7 @@ import type { Spawter } from "../types/spawter";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
 import type { CollectionTitreRow } from "../types/collection-titres";
+import type { AccountHistory } from "./account-history";
 
 const KEYS = {
   spawter: "spawt:spawter",
@@ -78,7 +79,7 @@ export async function savePalaisLocal(p: UserPalais): Promise<void> {
 /** Le profil sert de dernier témoin de publication du couple restauré.
  * Une interruption avant sa pose laisse un compte absent, jamais un ancien
  * profil associé au Palais d'un autre compte. L'appelant sérialise avec reset. */
-export async function saveRecoveredAccountLocal(s: Spawter, p: UserPalais, isCurrent = () => true): Promise<void> {
+export async function saveRecoveredAccountLocal(s: Spawter, p: UserPalais, isCurrent = () => true, history?: AccountHistory): Promise<void> {
   const guard = () => { if (!isCurrent()) throw new Error("ACCOUNT_SESSION_CHANGED"); };
   if (s.id !== p.spawter_id) throw new Error("ACCOUNT_INVALID");
   guard();
@@ -90,6 +91,12 @@ export async function saveRecoveredAccountLocal(s: Spawter, p: UserPalais, isCur
   guard();
   await AsyncStorage.setItem(KEYS.consent_geoloc, s.geoloc_consent_at ?? "");
   guard();
+  if (history) {
+    await writeJSON(KEYS.spawts, history.spawts);
+    guard();
+    await writeJSON(KEYS.collection_titres, history.collectionTitres);
+    guard();
+  }
   await saveSpawterLocal(s);
 }
 

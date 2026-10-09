@@ -14,7 +14,8 @@ jest.mock("../supabase", () => {
   const builder: Record<string, unknown> = {};
   builder.select = jest.fn(() => builder);
   builder.eq = jest.fn(() => builder);
-  builder.single = jest.fn(() => Promise.resolve(mockResponse));
+  builder.abortSignal = jest.fn(() => builder);
+  builder.maybeSingle = jest.fn(() => Promise.resolve(mockResponse));
   return {
     supabase: {
       from: jest.fn(() => builder),

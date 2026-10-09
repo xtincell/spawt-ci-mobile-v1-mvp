@@ -11,15 +11,16 @@
 // lieux. Un lieu dépublié depuis le passage n'a plus de nom — on affiche alors
 // un libellé neutre plutôt que de masquer la ligne : le passage a bien eu lieu.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
+import { usePlaces } from "../src/lib/use-places";
+import { DataLoadNotice } from "../src/components/DataLoadNotice";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { useSpawterStore } from "../src/store/spawter-store";
-import { listPlaces, type PlaceWithAdn } from "../src/lib/data-source";
 import { EmptyState } from "../src/components/EmptyState";
 import { Ico } from "../src/components/primitives/Ico";
 
@@ -37,18 +38,9 @@ export default function SpawtsScreen() {
   const { t } = useTranslation();
 
   const spawts = useSpawterStore((s) => s.spawts);
-  const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
+  const { places, loading, failed, reload } = usePlaces();
 
-  useEffect(() => {
-    let annule = false;
-    void (async () => {
-      const all = await listPlaces();
-      if (!annule) setPlaces(all);
-    })();
-    return () => {
-      annule = true;
-    };
-  }, []);
+
 
   const nomsParId = useMemo(() => {
     const m = new Map<string, string>();
@@ -96,6 +88,7 @@ export default function SpawtsScreen() {
         </Text>
       </View>
 
+      <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
       {ordonnes.length === 0 ? (
         <EmptyState
           icon="clock"

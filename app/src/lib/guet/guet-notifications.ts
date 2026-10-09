@@ -60,6 +60,7 @@ export function guetPromptId(row_id: string): string {
  * "Confirmer" et "Snooze 15min". À appeler 1× au boot.
  */
 export async function setupGuetCategories(): Promise<void> {
+  if (Platform.OS === "web") return;
   if (categoriesSetup) return;
   try {
     await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [

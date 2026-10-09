@@ -25,7 +25,7 @@ const SUPABASE_ANON_KEY = RAW_KEY || PLACEHOLDER_KEY;
 
 if (!RAW_URL || !RAW_KEY) {
   console.warn(
-    "[supabase] EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY absents — mode démo fallback (client neutralisé via isSupabaseConfigured gate).",
+    "[supabase] Configuration backend absente — accès distant désactivé. Le mode démo nécessite un opt-in explicite.",
   );
 }
 

@@ -90,10 +90,10 @@ export async function getPlace(id: string): Promise<PlaceWithAdn | null> {
   return seed ? seedToPlaceWithAdn(seed) : null;
 }
 
-export async function listSpawtsForSpawter(spawter_id: string): Promise<SpawtCheckin[]> {
+export async function listSpawtsForSpawter(spawter_id: string, signal?: AbortSignal): Promise<SpawtCheckin[]> {
   if (isSupabaseConfigured) {
     const { listSpawtsFromSupabase } = await import("./data-source.supabase");
-    return listSpawtsFromSupabase(spawter_id);
+    return listSpawtsFromSupabase(spawter_id, signal);
   }
   return [];
 }
@@ -235,10 +235,11 @@ export async function setDisplayedTitre(
 
 export async function listTitresForSpawter(
   spawter_id: string,
+  signal?: AbortSignal,
 ): Promise<CollectionTitreRow[]> {
   if (!isSupabaseConfigured) return [];
   const { listTitresFromSupabase } = await import("./data-source.supabase");
-  return listTitresFromSupabase(spawter_id);
+  return listTitresFromSupabase(spawter_id, signal);
 }
 
 // Flags PRODUIT actifs par défaut en mode démo (fallback sans Supabase, ex.
