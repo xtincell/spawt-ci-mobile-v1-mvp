@@ -8,6 +8,7 @@ Le clin d'œil est comparé aux images du pack, puis l'œil doit se rouvrir.
 Ce contrôle prouve les étapes visibles, pas la fluidité sur téléphone.
 """
 import json
+from collections import Counter
 from pathlib import Path
 import subprocess
 import sys
@@ -42,6 +43,7 @@ open_refs = [reference_frame(index).crop(eye_box).convert("L") for index in [39,
 pin_box = black_box(reference_frame(0))
 assert pin_box is not None
 origin = None
+origins = Counter()
 eye_samples = []
 
 
@@ -76,11 +78,6 @@ while True:
                 [(10, 100), (383, 100), (10, 400), (383, 400)])
     gold_count = 0
     if white:
-        if origin is None:
-            # Le repère initial aligne le viewport sans dépendre du temps de boot.
-            initial_box = black_box(image.crop((80, 230, 315, 530)))
-            if initial_box and 142 <= initial_box[2] - initial_box[0] <= 150 and 179 <= initial_box[3] - initial_box[1] <= 185:
-                origin = (80 + initial_box[0] - pin_box[0], 230 + initial_box[1] - pin_box[1])
         red, green, blue = image.crop((80, 190, 315, 490)).split()
         masks = [red.point(lambda value: 255 if 135 <= value <= 245 else 0),
                  green.point(lambda value: 255 if 85 <= value <= 210 else 0),
@@ -90,6 +87,14 @@ while True:
         for item in masks[1:]:
             mask = ImageChops.multiply(mask, item)
         gold_count = mask.histogram()[255]
+        if gold_count < 120 and not visible:
+            # Le splash Android peut brièvement glisser pendant son entrée.
+            # Aligner les références sur sa position stable majoritaire.
+            initial_box = black_box(image.crop((80, 230, 315, 530)))
+            if initial_box and 142 <= initial_box[2] - initial_box[0] <= 150 and 179 <= initial_box[3] - initial_box[1] <= 185:
+                candidate = (80 + initial_box[0] - pin_box[0], 230 + initial_box[1] - pin_box[1])
+                origins[candidate] += 1
+                origin = origins.most_common(1)[0][0]
     if gold_count >= 120:
         # Le build 18 affichait une pose presque fixe puis un fondu : compter
         # seulement les images visibles ne détectait pas ce défaut. Le centre
