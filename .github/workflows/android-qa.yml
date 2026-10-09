@@ -44,7 +44,8 @@ jobs:
             const builds=result.data.app.byId.builds;
             console.log(JSON.stringify(builds,null,2));
             fs.writeFileSync('android-proof/eas-builds.json',JSON.stringify(builds,null,2));
-            const match=builds.find(b=>b.platform==='ANDROID' && b.appBuildVersion===String(config.build));
+            const match=builds.find(b=>b.platform==='ANDROID' && b.appBuildVersion===String(config.build)
+              && (!config.sourceCommit || b.gitCommitHash===config.sourceCommit));
             url=match?.status==='FINISHED' ? match.artifacts?.buildUrl : null;
           }
           if(url){
