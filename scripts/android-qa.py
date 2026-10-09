@@ -80,8 +80,16 @@ def back(): adb('shell','input','keyevent','4'); time.sleep(.5)
 
 def scroll_find(value, attempts=6):
     for _ in range(attempts):
-        try: return find(value,timeout=2)
-        except AssertionError: scroll()
+        try:
+            candidate=find(value,timeout=2)
+            tree,_=nodes()
+            # UIAutomator peut annoncer un enfant du ScrollView derrière le
+            # pied fixe. Ne pas taper sa position tant qu'elle est recouverte.
+            footers=[bounds(n)[1] for n in tree.iter('node') if n.get('resource-id') in ('review-submit','place-start-review')]
+            limit=min(footers) if footers else 2320
+            if bounds(candidate)[3] <= limit-8: return candidate
+        except AssertionError: pass
+        scroll()
     raise AssertionError('Native control absent after scroll: '+value)
 
 def scroll_tap(value): tap_node(scroll_find(value))
@@ -128,7 +136,7 @@ def photo_and_network_cases():
     tap('permission_deny_button'); find('Autorisation requise'); snap('camera-denied'); tap('OK',exact=True)
     check('camera refusal remains actionable',True)
     deep('place/'+PLACE); twice('place-start-review'); rate(); write_review(photo_text)
-    scroll_tap('review-photo-add'); pick_test_photo('review')
+    scroll_find('review-photo-add'); snap('before-photo-picker'); scroll_tap('review-photo-add'); pick_test_photo('review')
     find('review-photo-0'); snap('selected-photo-preview')
     adb('shell','cmd','connectivity','airplane-mode','enable')
     tap('review-submit'); find('review-error',timeout=60); snap('failed-upload-keeps-photo')
