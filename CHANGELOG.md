@@ -28,7 +28,13 @@ du journal de purge. Le propriétaire technique, les poids et les compteurs
 fondateurs restent conservés. Les jointures des anciennes APK restent valides.
 Les retours arrière sont fournis, avec protection de l'audit historique.
 
-Contrôles source : 1 000 tests mobile et 191 tests admin réussis (4 mobile
+La recette native a révélé puis corrigé le débordement de la carte profil avec
+le texte agrandi, le bouton couvert par le clavier Android et les pluriels
+absents de Hermes. Les libellés du formulaire et les onglets sont lisibles.
+La file relance automatiquement un avis même si le réseau revient avant
+la fin de son délai de réessai.
+
+Contrôles source : 1 003 tests mobile et 191 tests admin réussis (4 mobile
 ignorés), TypeScript, vocabulaire, i18n et conformité réussis. La recette
 Android native et le lien du nouvel APK sont consignés dans RELEASES.md.
 

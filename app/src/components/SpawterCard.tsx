@@ -74,7 +74,7 @@ function CardFlipTarget({
             onFlip();
           }
         }}
-        style={{ aspectRatio: "0.7", minHeight, position: "relative" }}
+        style={{ width: "100%", aspectRatio: "0.7", minHeight, position: "relative" }}
       >
         {children}
       </div>
@@ -86,7 +86,7 @@ function CardFlipTarget({
       onPress={onFlip}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={{ aspectRatio: 0.7, minHeight }}
+      style={{ width: "100%", aspectRatio: 0.7, minHeight }}
     >
       {children}
     </Pressable>
@@ -327,11 +327,11 @@ function StatBlock({
   theme: Theme;
 }) {
   return (
-    <View style={{ alignItems: "center" }}>
+    <View style={{ flex: 1, minWidth: 0, alignItems: "center" }}>
       <Text style={{ ...theme.typography.preset.display, color: theme.colors.brand.primary }}>
         {value}
       </Text>
-      <Text style={{ ...theme.typography.preset.overline, color: theme.colors.text.inverseSecondary }}>
+      <Text style={{ ...theme.typography.preset.overline, color: theme.colors.text.inverseSecondary, width: "100%", textAlign: "center" }}>
         {label}
       </Text>
     </View>

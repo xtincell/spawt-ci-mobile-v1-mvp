@@ -210,7 +210,9 @@
     "section_note": "Ta note",
     "section_tags": "Mots-clés",
     "section_text": "Ton mot",
+    "section_photos": "Photos (0–3)",
     "title_fallback": "Ton avis sur ce lieu",
+    "spawt_not_found": "Ce spawt n’est pas disponible. Rouvre la fiche du lieu pour reprendre ton avis.",
     "note_cuisine": "Cuisine",
     "note_cadre": "Cadre",
     "note_service": "Service",
@@ -893,7 +895,8 @@
     "day_fri": "Ven",
     "day_sat": "Sam",
     "day_sun": "Dim",
-    "reviews_error": "Les avis ne sont pas disponibles pour le moment."
+    "reviews_error": "Les avis ne sont pas disponibles pour le moment.",
+    "review_photo_alt": "Photo jointe à cet avis"
   },
   "place_activity": {
     "section_title": "En ce moment",

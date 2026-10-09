@@ -133,7 +133,7 @@ export default function ReviewScreen() {
   const titleStyle = { ...theme.typography.preset.h3, color: theme.colors.text.primary, marginBottom: theme.spacing.sm };
   return (
     <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: theme.spacing.lg }}>
           <Text testID="review-place-name" style={{ ...theme.typography.preset.h1, color: theme.colors.text.primary, marginBottom: theme.spacing.sm }}>{placeName ? t("review.title", { place_name: placeName }) : t("review.title_fallback")}</Text>
           <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.secondary, marginBottom: theme.spacing.lg }}>{t("review.subtitle")}</Text>

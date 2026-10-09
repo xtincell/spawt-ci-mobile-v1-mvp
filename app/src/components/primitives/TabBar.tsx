@@ -108,9 +108,13 @@ export function TabBar({ active, onTabPress }: Props) {
               color={isActive ? theme.colors.text.primary : theme.colors.text.tertiary}
             />
             <Text
+              numberOfLines={label.includes(" ") ? 2 : 1}
+              adjustsFontSizeToFit
               style={{
                 ...theme.typography.preset.overline,
                 color: isActive ? theme.colors.text.primary : theme.colors.text.tertiary,
+                width: "100%",
+                textAlign: "center",
               }}
             >
               {label}
