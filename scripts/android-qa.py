@@ -228,6 +228,8 @@ try:
                 geometry(width,scale); home(); snap(f'{width}-{scale}-feed')
                 scroll(); snap(f'{width}-{scale}-feed-cards')
                 tap('Palais',exact=True); find('Recette Android'); snap(f'{width}-{scale}-profile')
+                card=bounds(find('spawtercard',exact=True))
+                check(f'{width}-{scale}: profile card stays inside horizontal padding',card[0]>=48 and card[2]<=width*3-48)
                 deep('search'); find('Cherche un spawt')
                 tree,_=nodes()
                 field=next(n for n in tree.iter('node') if n.get('class')=='android.widget.EditText')

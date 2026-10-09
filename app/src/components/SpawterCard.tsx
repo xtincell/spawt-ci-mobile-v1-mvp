@@ -58,6 +58,7 @@ function CardFlipTarget({
   onFlip: () => void;
   minHeight: number;
 }) {
+  const [measuredWidth, setMeasuredWidth] = useState(0);
   if (Platform.OS === "web") {
     // RN Web turns even a View with role="button" into a native button.
     // A div keeps the avatar's own button valid and independently actionable.
@@ -86,7 +87,12 @@ function CardFlipTarget({
       onPress={onFlip}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={{ width: "100%", aspectRatio: 0.7, minHeight }}
+      testID="spawtercard"
+      onLayout={({ nativeEvent }) => setMeasuredWidth(nativeEvent.layout.width)}
+      // Yoga agrandit aussi la largeur quand aspectRatio et minHeight se
+      // combinent. La hauteur explicite conserve la largeur du conteneur,
+      // même avec la taille de texte système à 150 %.
+      style={{ width: "100%", height: Math.max(minHeight, measuredWidth / 0.7) }}
     >
       {children}
     </Pressable>
