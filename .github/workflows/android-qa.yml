@@ -52,23 +52,43 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+Boolean(url)+'\n');
           fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_MODE='+config.mode+'\n');
           JS
-      - name: Préparer Android 35 avec KVM
+      - uses: actions/cache/restore@v4
+        id: sdk
+        if: steps.apk.outputs.ready == 'true'
+        with:
+          path: /tmp/spawt-android-sdk
+          key: spawt-android-35-google-x86-v1
+      - name: Installer le SDK Android officiel
         if: steps.apk.outputs.ready == 'true'
         run: |
-          sudo chmod 666 /dev/kvm
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o cmdline.zip
-          echo '5fdcc763663eefb86a5b8879697aa6088b041e70 cmdline.zip' | sha1sum -c -
-          unzip -q cmdline.zip -d "$ANDROID_HOME/cmdline-tools"
-          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          if [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            mkdir -p "$ANDROID_HOME/cmdline-tools"
+            curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o cmdline.zip
+            echo '5fdcc763663eefb86a5b8879697aa6088b041e70 cmdline.zip' | sha1sum -c -
+            unzip -q cmdline.zip -d "$ANDROID_HOME/cmdline-tools"
+            mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          fi
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           yes | sdkmanager --licenses >/dev/null
           sdkmanager 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64' >/dev/null
+      - uses: actions/cache/save@v4
+        if: steps.apk.outputs.ready == 'true' && steps.sdk.outputs.cache-hit != 'true'
+        with:
+          path: /tmp/spawt-android-sdk
+          key: spawt-android-35-google-x86-v1
+      - name: Démarrer Android 35 avec KVM
+        if: steps.apk.outputs.ready == 'true'
+        run: |
+          sudo chmod 666 /dev/kvm
           echo no | avdmanager create avd -n spawt-qa -k 'system-images;android-35;google_apis;x86_64' --force
           "$ANDROID_HOME/emulator/emulator" -avd spawt-qa -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 3072 -cores 2 > emulator.log 2>&1 &
-          adb wait-for-device
+          EMULATOR_PID=$!
+          sleep 4
+          tail -c 10000 emulator.log
+          if ! kill -0 "$EMULATOR_PID"; then cat emulator.log; exit 1; fi
+          if ! timeout 180s adb wait-for-device; then cat emulator.log; exit 1; fi
           for i in $(seq 1 90); do
             if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = '1' ]; then break; fi
             sleep 2

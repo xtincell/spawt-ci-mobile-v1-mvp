@@ -42,6 +42,14 @@ def snap(name):
     print(name+': '+ ' | '.join(texts)[:1200],flush=True)
     return tree
 
+def bounds(n): return list(map(int,re.findall(r'\d+',n.get('bounds',''))))
+
+def public_reviews(owner= '6445b010-5e4d-4322-9d4d-ea5a31fd922e'):
+    cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
+    url=cfg['EXPO_PUBLIC_SUPABASE_URL']+'/rest/v1/public_reviews?select=id,texte_avis,note_cuisine,note_cadre,note_service,note_globale,photos,avatar_url&spawter_id=eq.'+owner
+    req=urllib.request.Request(url,headers={'apikey':cfg['EXPO_PUBLIC_SUPABASE_ANON_KEY'],'User-Agent':'SPAWT-Android-QA'})
+    with urllib.request.urlopen(req,timeout=25) as response: return json.load(response)
+
 def check(name, ok):
     RESULTS.append({'check':name,'passed':bool(ok)}); assert ok,name
 
@@ -88,22 +96,32 @@ try:
     if MODE=='observe':
         deep('place/'+PLACE); find('La Grande République'); snap('place-initial')
     else:
+        deep('place/'+PLACE)
+        try: tap('Sauvegarder dans tes favoris',timeout=3)
+        except AssertionError: pass  # Le favori peut déjà venir d'une recette précédente.
         for width in [320,360,393,430]:
             for scale in [1,1.3,1.5]:
                 geometry(width,scale); home(); snap(f'{width}-{scale}-feed')
+                scroll(); snap(f'{width}-{scale}-feed-cards')
                 tap('Palais',exact=True); find('Recette Android'); snap(f'{width}-{scale}-profile')
-                deep('search'); find('Chercher'); snap(f'{width}-{scale}-search')
+                deep('search'); find('Chercher')
+                tree,_=nodes()
+                field=next(n for n in tree.iter('node') if n.get('class')=='android.widget.EditText')
+                tap_node(field); adb('shell','input','text','Grande'); back()
+                find('La Grande République'); snap(f'{width}-{scale}-search')
                 deep('saved'); time.sleep(1); snap(f'{width}-{scale}-saved')
                 deep('place/'+PLACE); find('La Grande République'); snap(f'{width}-{scale}-place')
                 tap('place-start-review'); find('review-note_cuisine-5')
-                tap('review-note_cuisine-5'); tap('review-note_cadre-4'); tap('review-note_service-4')
+                snap(f'{width}-{scale}-review-title')
+                scroll_tap('review-note_cuisine-5'); scroll_tap('review-note_cadre-4'); scroll_tap('review-note_service-4')
+                scroll_find('review-global-rating')
                 tree=snap(f'{width}-{scale}-review')
                 check(f'{width}-{scale}: 4,3 visible',any('4,3' in label(n) for n in tree.iter('node')))
-                button=find('review-submit'); b=list(map(int,re.findall(r'\d+',button.get('bounds',''))))
+                button=find('review-submit'); b=bounds(button)
                 check(f'{width}-{scale}: publish button within screen',b[1]>0 and b[3]<=2400)
                 back()
         geometry(393,1); deep('place/'+PLACE); tap('place-start-review')
-        scroll(); tap('review-text'); adb('shell','input','text','Recette%snative%sSPAWT%s1.1.1')
+        scroll_tap('review-text'); adb('shell','input','text','Recette%snative%sSPAWT%s1.1.1')
         time.sleep(.7); tree=snap('keyboard-review'); button=find('review-submit')
         b=list(map(int,re.findall(r'\d+',button.get('bounds','')))); check('keyboard publish remains above IME',b[3]<2100)
         back(); tap('review-submit'); find('Avis publié',timeout=40); snap('published-receipt'); tap('OK',exact=True)
@@ -111,6 +129,8 @@ try:
         adb('shell','am','force-stop',PACKAGE); deep('place/'+PLACE)
         scroll_tap('Avis'); scroll_find('Recette native SPAWT 1.1.1'); snap('published-after-restart')
         check('review visible after process restart',True)
+        rows=[r for r in public_reviews() if r['texte_avis']=='Recette native SPAWT 1.1.1']
+        check('one native review persisted with 5/4/4 and 4.3',len(rows)==1 and rows[0]['note_cuisine']==5 and rows[0]['note_cadre']==4 and rows[0]['note_service']==4 and rows[0]['note_globale']==4.3)
 finally:
     (OUT/'assertions.json').write_text(json.dumps(RESULTS,ensure_ascii=False,indent=2))
     try: snap('last-state')
