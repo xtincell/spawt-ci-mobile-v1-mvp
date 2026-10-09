@@ -27,3 +27,5 @@ for path in source.glob('*.xml'):
     shutil.copy2(path, target / path.name)
 for name in ['assertions.json', 'logcat.txt', 'package.txt', 'apk.url']:
     if (source / name).exists(): shutil.copy2(source / name, target / name)
+for path in source.glob('*keyboard*.txt'):
+    shutil.copy2(path, target / path.name)
