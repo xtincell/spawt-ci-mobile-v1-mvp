@@ -24,29 +24,32 @@ jobs:
           APK_INPUT: ${{ inputs.apk_url }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          python3 - <<'PYCODE'
-          import json,os,pathlib,re,urllib.request
-          out=pathlib.Path('android-proof'); out.mkdir(exist_ok=True)
-          config=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
-          url=os.environ.get('APK_INPUT')
-          if not url:
-            query='query($appId:String!){app{byId(appId:$appId){builds(offset:0,limit:8){id status platform appVersion appBuildVersion gitCommitHash artifacts{buildUrl} queuePosition estimatedWaitTimeLeftSeconds}}}}'
-            req=urllib.request.Request('https://api.expo.dev/graphql',data=json.dumps({'query':query,'variables':{'appId':'15ac2301-e901-4caa-a8c8-864c6621bcd0'}}).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+os.environ['EXPO_TOKEN']})
-            result=json.load(urllib.request.urlopen(req,timeout=30))
-            if result.get('errors'): raise RuntimeError(json.dumps(result['errors']))
-            builds=result['data']['app']['byId']['builds']
-            print(json.dumps(builds,indent=2))
-            (out/'eas-builds.json').write_text(json.dumps(builds,indent=2))
-            match=next((b for b in builds if b['platform']=='ANDROID' and b['appBuildVersion']==str(config['build'])),None)
-            url=match['artifacts']['buildUrl'] if match and match['status']=='FINISHED' and match['artifacts'] else None
-          if url:
-            if not re.fullmatch(r'https://expo.dev/artifacts/eas/[A-Za-z0-9]+\.apk',url): raise ValueError('APK origin unsupported')
-            urllib.request.urlretrieve(url,'spawt.apk')
-            (out/'apk.url').write_text(url+'\n')
-          else: print('APK encore en compilation : aucune recette exécutée.')
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('ready='+str(bool(url)).lower()+'\n')
-          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('SPAWT_QA_MODE='+config['mode']+'\n')
-          PYCODE
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          fs.mkdirSync('android-proof',{recursive:true});
+          const config=JSON.parse(fs.readFileSync('documentation/android-qa.json','utf8'));
+          let url=process.env.APK_INPUT;
+          if(!url){
+            const query='query($appId:String!){app{byId(appId:$appId){builds(offset:0,limit:8){id status platform appVersion appBuildVersion gitCommitHash artifacts{buildUrl} queuePosition estimatedWaitTimeLeftSeconds}}}}';
+            const response=await fetch('https://api.expo.dev/graphql',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.EXPO_TOKEN,'user-agent':'eas-cli/22.5.0'},body:JSON.stringify({query,variables:{appId:'15ac2301-e901-4caa-a8c8-864c6621bcd0'}})});
+            const result=await response.json();
+            if(result.errors) throw new Error(JSON.stringify(result.errors));
+            const builds=result.data.app.byId.builds;
+            console.log(JSON.stringify(builds,null,2));
+            fs.writeFileSync('android-proof/eas-builds.json',JSON.stringify(builds,null,2));
+            const match=builds.find(b=>b.platform==='ANDROID' && b.appBuildVersion===String(config.build));
+            url=match?.status==='FINISHED' ? match.artifacts?.buildUrl : null;
+          }
+          if(url){
+            if(!/^https:\/\/expo\.dev\/artifacts\/eas\/[A-Za-z0-9]+\.apk$/.test(url)) throw new Error('APK origin unsupported');
+            const response=await fetch(url);
+            if(!response.ok) throw new Error('APK HTTP '+response.status);
+            fs.writeFileSync('spawt.apk',Buffer.from(await response.arrayBuffer()));
+            fs.writeFileSync('android-proof/apk.url',url+'\n');
+          }else console.log('APK encore en compilation : aucune recette exécutée.');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+Boolean(url)+'\n');
+          fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_MODE='+config.mode+'\n');
+          JS
       - name: Préparer Android 35 avec KVM
         if: steps.apk.outputs.ready == 'true'
         run: |
