@@ -15,6 +15,7 @@ const SKIP_FADE_MS = 160;
 
 interface Props {
   onFinished: () => void;
+  onArtworkReady?: () => void;
   /** Le splash natif est retiré et la première surface React est dessinée. */
   start?: boolean;
   /** La session est restaurée et la navigation a rejoint sa route initiale. */
@@ -22,7 +23,7 @@ interface Props {
   testID?: string;
 }
 
-export function AppOpening({ onFinished, start = true, ready = true, testID }: Props) {
+export function AppOpening({ onFinished, onArtworkReady, start = true, ready = true, testID }: Props) {
   const { t } = useTranslation();
   const overlayOpacity = useRef(new Animated.Value(1)).current;
   const artworkOpacity = useRef(new Animated.Value(1)).current;
@@ -100,6 +101,7 @@ export function AppOpening({ onFinished, start = true, ready = true, testID }: P
               animate={start && reduceMotion === false && !skipped}
               staticPose={reduceMotion === true || skipped}
               onDone={onMotionDone}
+              onReady={onArtworkReady}
             />
           </Animated.View>
           {sequenceDone && !ready ? (

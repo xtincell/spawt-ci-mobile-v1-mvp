@@ -174,13 +174,16 @@ export default function RootLayout() {
   const [routeReady, setRouteReady] = useState(false);
   const finishOpening = useCallback(() => setOpeningVisible(false), []);
   const splashHidden = useRef(false);
+  const rootLaidOut = useRef(false);
+  const openingArtworkLoaded = useRef(false);
   const openingFrame = useRef<number | null>(null);
   useEffect(() => () => {
     if (openingFrame.current !== null) cancelAnimationFrame(openingFrame.current);
   }, []);
   // Le relais natif → React attend une surface effectivement disposée.
-  const onRootLayout = useCallback(() => {
-    if (splashHidden.current || (!fontsLoaded && !fontError && Platform.OS !== "web")) return;
+  const hideSplash = useCallback(() => {
+    if (!rootLaidOut.current || splashHidden.current || (!fontsLoaded && !fontError && Platform.OS !== "web")) return;
+    if (!openingArtworkLoaded.current && !hydrationFailed && !isBackendMissing) return;
     splashHidden.current = true;
     void SplashScreen.hideAsync().then(() => {
       // hideAsync retire la condition native mais ne promet pas une image
@@ -195,7 +198,16 @@ export default function RootLayout() {
       splashHidden.current = false;
       if (__DEV__) console.warn("[splash] hideAsync failed", err);
     });
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, hydrationFailed]);
+  const onRootLayout = useCallback(() => {
+    rootLaidOut.current = true;
+    hideSplash();
+  }, [hideSplash]);
+  const onOpeningArtworkReady = useCallback(() => {
+    openingArtworkLoaded.current = true;
+    hideSplash();
+  }, [hideSplash]);
+  useEffect(() => { hideSplash(); }, [hideSplash]);
 
   // Flush la queue analytics AsyncStorage à chaque SIGNED_IN (Story 1.7 D2 +
   // câblage attendu par Story 2.3 OTP). En mode démo (pas d'env Supabase),
@@ -362,7 +374,7 @@ export default function RootLayout() {
           {/* R23 — l'ouverture animée est le DERNIER enfant : elle recouvre
               tout (Stack + overlays) jusqu'à sa fin ou un tap. */}
           {openingVisible ? (
-            <AppOpening start={openingStarted} ready={routeReady && !hydrating} onFinished={finishOpening} />
+            <AppOpening start={openingStarted} ready={routeReady && !hydrating} onFinished={finishOpening} onArtworkReady={onOpeningArtworkReady} />
           ) : null}
         </ThemeProvider>
       </SafeAreaProvider>
