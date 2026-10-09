@@ -20,7 +20,7 @@ jest.mock("../../src/components/brand/WindowOpeningMark", () => {
   return { WindowOpeningMark: ({ animate, staticPose, onDone }: { animate: boolean; staticPose: boolean; onDone: () => void }) => {
     ReactMock.useEffect(() => {
       if (!animate) return;
-      const timer = setTimeout(onDone, 1140);
+      const timer = setTimeout(onDone, 1150);
       return () => clearTimeout(timer);
     }, [animate, onDone]);
     return ReactMock.createElement(View, { testID: "spawt-window-mark", ...{ animate, staticPose } });

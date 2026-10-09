@@ -16,7 +16,7 @@
       "**/*"
     ],
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "nativeVersion"
     },
     "updates": {
       "enabled": true,
@@ -33,14 +33,14 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "SPAWT a besoin de ta position pour valider tes spawts dans les lieux que tu visites. Tu actives la géoloc seulement quand tu es au resto. Plus de détails dans la politique de confidentialité.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pour détecter tes spawts en arrière-plan quand tu es proche d'un lieu. Optionnel — désactivable à tout moment.",
-        "NSCameraUsageDescription": "Pour ajouter une photo à ton avis sur un lieu. Toujours optionnel."
+        "NSLocationWhenInUseUsageDescription": "SPAWT a besoin de ta position pour valider tes spawts dans les lieux que tu visites. Tu actives la g\u00e9oloc seulement quand tu es au resto. Plus de d\u00e9tails dans la politique de confidentialit\u00e9.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pour d\u00e9tecter tes spawts en arri\u00e8re-plan quand tu es proche d'un lieu. Optionnel \u2014 d\u00e9sactivable \u00e0 tout moment.",
+        "NSCameraUsageDescription": "Pour ajouter une photo \u00e0 ton avis sur un lieu. Toujours optionnel."
       }
     },
     "android": {
       "package": "com.upgraders.spawt",
-      "versionCode": 20,
+      "versionCode": 21,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -64,7 +64,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Pour détecter tes spawts en arrière-plan."
+          "locationAlwaysAndWhenInUsePermission": "Pour d\u00e9tecter tes spawts en arri\u00e8re-plan."
         }
       ],
       "@react-native-community/datetimepicker",
