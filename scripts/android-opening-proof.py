@@ -4,7 +4,7 @@
 Le journal et une route atteinte ne prouvent pas une animation visible.
 On inspecte la vidéo ADB à 30 images/s, avant l'écran d'entrée noir : le
 repère natif seul est beige, Moka et ses étoiles contiennent du doré.
-Ce contrôle prouve une présence visible, pas la fluidité sur téléphone.
+Ce contrôle prouve une présence et un surgissement visibles, pas la fluidité sur téléphone.
 """
 import json
 from pathlib import Path
@@ -45,7 +45,13 @@ while True:
             mask = ImageChops.multiply(mask, item)
         gold_count = mask.histogram()[255]
     if gold_count >= 120:
-        visible.append({"second": round(frame_index / fps, 3), "goldPixels": gold_count})
+        # Le build 18 affichait une pose presque fixe puis un fondu : compter
+        # seulement les images visibles ne détectait pas ce défaut. Le centre
+        # du doré doit monter pendant les premières 450 ms du surgissement.
+        rows = mask.resize((1, mask.height), Image.Resampling.BOX).tobytes()
+        center_y = 190 + sum(y * value for y, value in enumerate(rows)) / sum(rows)
+        visible.append({"second": round(frame_index / fps, 3), "goldPixels": gold_count,
+                        "goldCenterY": round(center_y, 2)})
         consecutive += 1
         longest = max(longest, consecutive)
     else:
@@ -53,11 +59,15 @@ while True:
     frame_index += 1
 if process.wait() != 0:
     raise RuntimeError("Décodage vidéo Android échoué")
-passed = longest >= 10
+early = [frame for frame in visible if frame["second"] <= visible[0]["second"] + .45]
+travel = max(frame["goldCenterY"] for frame in early) - min(frame["goldCenterY"] for frame in early) if early else 0
+passed = longest >= 10 and travel >= 20
 payload = {"passed": passed, "sampleFps": fps, "sampledFrames": frame_index,
            "visibleFrames": len(visible), "longestVisibleSeconds": round(longest / fps, 3),
-           "minimumVisibleSeconds": round(10 / fps, 3), "visible": visible}
+           "minimumVisibleSeconds": round(10 / fps, 3), "earlyMotionSeconds": .45,
+           "earlyGoldTravelPixels": round(travel, 2), "minimumGoldTravelPixels": 20,
+           "visible": visible}
 (source / "opening-visibility.json").write_text(json.dumps(payload, indent=2) + "\n")
-print(f"Moka sur fond blanc : {len(visible)} images ; présence continue {longest / fps:.3f}s.")
+print(f"Moka sur fond blanc : {len(visible)} images ; présence continue {longest / fps:.3f}s ; déplacement {travel:.2f}px.")
 if not passed:
-    raise AssertionError("Animation V2 insuffisamment visible derrière le splash natif")
+    raise AssertionError("Animation V2 masquée ou sans surgissement visible")
