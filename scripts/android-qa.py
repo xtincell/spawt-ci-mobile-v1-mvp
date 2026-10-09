@@ -33,7 +33,8 @@ def find(value, timeout=25, exact=False):
         tree,_=nodes()
         for n in tree.iter('node'):
             if (any(n.get(k,'').casefold()==value.casefold() for k in ['text','content-desc','resource-id']) if exact else value.casefold() in label(n).casefold()):
-                if n.get('bounds') not in (None,'[0,0][0,0]'): return n
+                b=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
+                if len(b)==4 and b[2]>b[0] and b[3]>b[1]: return n
         time.sleep(.4)
     raise AssertionError('Native control not found: '+value)
 
@@ -180,9 +181,9 @@ try:
     # Ouverture à vitesse normale, puis animations système neutralisées pour la matrice.
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,1)
-    recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--time-limit','8','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--time-limit','18','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
-    recording.wait(timeout=15); adb('pull','/sdcard/opening.mp4',str(OUT/'opening.mp4'))
+    recording.wait(timeout=25); adb('pull','/sdcard/opening.mp4',str(OUT/'opening.mp4'))
     tree,_=nodes()
     if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
         tap('Close app',exact=True)
