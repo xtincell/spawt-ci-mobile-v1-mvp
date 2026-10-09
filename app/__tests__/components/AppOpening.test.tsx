@@ -12,6 +12,20 @@ jest.mock("react-native/Libraries/Utilities/Platform", () => {
 });
 
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+// La coordination de route utilise la durée réelle du pack ; le moteur SVG
+// Reanimated est vérifié dans l’APK Android, pas par un faux module natif Jest.
+jest.mock("../../src/components/brand/WindowOpeningMark", () => {
+  const ReactMock = jest.requireActual("react") as typeof import("react");
+  const { View } = jest.requireActual("react-native") as typeof import("react-native");
+  return { WindowOpeningMark: ({ animate, staticPose, onDone }: { animate: boolean; staticPose: boolean; onDone: () => void }) => {
+    ReactMock.useEffect(() => {
+      if (!animate) return;
+      const timer = setTimeout(onDone, 1140);
+      return () => clearTimeout(timer);
+    }, [animate, onDone]);
+    return ReactMock.createElement(View, { testID: "spawt-window-mark", ...{ animate, staticPose } });
+  } };
+});
 jest.mock("expo-linear-gradient", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
   const RNMock = jest.requireActual("react-native") as typeof import("react-native");
@@ -70,7 +84,7 @@ describe("AppOpening — durée stable et transition sûre", () => {
   it("rend le logo animé et permet de passer avec un seul rappel de fin", async () => {
     const finished = jest.fn();
     const instance = await render(finished);
-    expect(instance.root.findByProps({ testID: "animated-logo-mark" })).toBeTruthy();
+    expect(instance.root.findByProps({ testID: "spawt-window-mark" })).toBeTruthy();
     skip(instance);
     advance(300);
     skip(instance);
@@ -135,11 +149,11 @@ describe("AppOpening — durée stable et transition sûre", () => {
     expect(finished).toHaveBeenCalledTimes(1);
   });
 
-  it("respecte Réduire les animations sans tracer ni zoomer le logo", async () => {
+  it("respecte Réduire les animations avec la pose statique du pack", async () => {
     jest.mocked(AccessibilityInfo.isReduceMotionEnabled).mockResolvedValue(true);
     const finished = jest.fn();
     const instance = await render(finished);
-    expect(instance.root.findAllByProps({ testID: "animated-logo-mark" })).toHaveLength(0);
+    expect(instance.root.findByProps({ testID: "spawt-window-mark" }).props).toMatchObject({ animate: false, staticPose: true });
     advance(100);
     expect(finished).toHaveBeenCalledTimes(1);
   });

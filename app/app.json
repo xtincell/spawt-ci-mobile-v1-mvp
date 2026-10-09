@@ -27,7 +27,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.upgraders.spawt",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -40,7 +40,7 @@
     },
     "android": {
       "package": "com.upgraders.spawt",
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -71,10 +71,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/brand/logo-map-icon.png",
-          "imageWidth": 116,
+          "image": "./assets/brand/window-repere.png",
+          "imageWidth": 285,
           "resizeMode": "contain",
-          "backgroundColor": "#0A0A0A"
+          "backgroundColor": "#FFFFFF"
         }
       ],
       [

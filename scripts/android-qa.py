@@ -260,7 +260,14 @@ try:
         back(); tap('review-submit'); find('Avis publié',timeout=40); snap('published-receipt'); tap('OK',exact=True)
         # Redémarrage réel du processus, sans effacer le stockage.
         restart(); deep('place/'+PLACE)
-        scroll_tap('Avis'); scroll_find(MARKER); snap('published-after-restart')
+        scroll_tap('Avis')
+        # La fiche montre les cinq avis les mieux notés. Un nouvel avis à 4,3
+        # peut être au-delà de ce résumé : suivre le vrai parcours de lecture.
+        try:
+            scroll_tap('Voir tous les avis')
+        except AssertionError:
+            deep('place/'+PLACE); scroll_tap('Avis')
+        scroll_find(MARKER); snap('published-after-restart')
         check('review visible after process restart',True)
         rows=[r for r in public_reviews() if r['texte_avis']==MARKER]
         check('one native review persisted with 5/4/4 and 4.3',len(rows)==1 and rows[0]['note_cuisine']==5 and rows[0]['note_cadre']==4 and rows[0]['note_service']==4 and rows[0]['note_globale']==4.3)

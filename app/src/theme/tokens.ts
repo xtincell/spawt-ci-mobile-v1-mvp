@@ -30,6 +30,12 @@ export const palette = {
   grisMoyen: "#8A8A8A",
 } as const;
 
+// Raccord et papier du pack d’ouverture fenêtre V2 fourni le 9 octobre 2026.
+export const openingWindowColors = {
+  paper: "#FBF9F5",
+  paperEdge: "#E8E2D6",
+} as const;
+
 // ── Lignes / bordures (rgba canoniques) ───────────────
 const line = "rgba(10, 10, 10, 0.10)"; // --line
 const lineStrong = "rgba(10, 10, 10, 0.18)"; // --line-strong

@@ -270,10 +270,10 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView onLayout={onRootLayout} style={{ flex: 1, backgroundColor: palette.black }}>
+    <GestureHandlerRootView onLayout={onRootLayout} style={{ flex: 1, backgroundColor: openingVisible ? palette.pureWhite : palette.black }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <StatusBar style="light" backgroundColor={palette.black} />
+          <StatusBar style={openingVisible ? "dark" : "light"} backgroundColor={openingVisible ? palette.pureWhite : palette.black} />
           <RouteGuard onReady={setRouteReady} />
           <Stack
             screenOptions={{
