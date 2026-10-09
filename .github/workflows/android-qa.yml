@@ -33,6 +33,8 @@ jobs:
           import fs from 'node:fs';
           fs.mkdirSync('android-proof',{recursive:true});
           const config=JSON.parse(fs.readFileSync('documentation/android-qa.json','utf8'));
+          const phone=config.phone ?? '+2250000000193';
+          if(!['+2250000000193','+2250000000194'].includes(phone)) throw new Error('Compte de recette non autorisé');
           let url=process.env.APK_INPUT;
           if(!url){
             const query='query($appId:String!){app{byId(appId:$appId){builds(offset:0,limit:8){id status platform appVersion appBuildVersion gitCommitHash artifacts{buildUrl} queuePosition estimatedWaitTimeLeftSeconds}}}}';
@@ -54,6 +56,7 @@ jobs:
           }else console.log('APK encore en compilation : aucune recette exécutée.');
           fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+Boolean(url)+'\n');
           fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_MODE='+config.mode+'\n');
+          fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_PHONE='+phone+'\n');
           JS
       - uses: actions/cache/restore@v4
         id: sdk
@@ -108,8 +111,6 @@ jobs:
           adb install -r spawt.apk
       - name: Recette native
         if: steps.apk.outputs.ready == 'true'
-        env:
-          SPAWT_QA_PHONE: '+2250000000193'
         run: python3 scripts/android-qa.py
       - name: Diagnostic Android
         if: always() && steps.apk.outputs.ready == 'true'

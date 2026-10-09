@@ -6,6 +6,7 @@ import os, re, json, time, pathlib, subprocess, xml.etree.ElementTree as ET, url
 OUT=pathlib.Path('android-proof'); OUT.mkdir(exist_ok=True)
 PACKAGE='com.upgraders.spawt'; PLACE='a1000000-0000-4000-8000-000000000004'
 PHONE=os.environ['SPAWT_QA_PHONE']; MODE=os.environ.get('SPAWT_QA_MODE','observe')
+OWNER={'+2250000000193':'6445b010-5e4d-4322-9d4d-ea5a31fd922e','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
 RESULTS=[]
 RUN=os.environ.get('GITHUB_RUN_ID',str(int(time.time())))
 MARKER='Recette native SPAWT 1.1.1 '+RUN
@@ -55,7 +56,7 @@ def snap(name):
 
 def bounds(n): return list(map(int,re.findall(r'\d+',n.get('bounds',''))))
 
-def public_reviews(owner= '6445b010-5e4d-4322-9d4d-ea5a31fd922e'):
+def public_reviews(owner=OWNER):
     cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
     url=cfg['EXPO_PUBLIC_SUPABASE_URL']+'/rest/v1/public_reviews?select=id,texte_avis,note_cuisine,note_cadre,note_service,note_globale,photos,avatar_url&spawter_id=eq.'+owner
     req=urllib.request.Request(url,headers={'apikey':cfg['EXPO_PUBLIC_SUPABASE_ANON_KEY'],'User-Agent':'SPAWT-Android-QA'})
