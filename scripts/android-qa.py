@@ -112,7 +112,7 @@ def scroll_find(value, attempts=6):
 
 def scroll_tap(value): tap_node(scroll_find(value))
 
-def scroll(): adb('shell','input','swipe','550','1850','550','650','350'); time.sleep(.6)
+def scroll(): adb('shell','input','swipe','550','1500','550','550','350'); time.sleep(.6)
 
 def rate():
     for key,n in [('cuisine',5),('cadre',4),('service',4)]: scroll_tap(f'review-note_{key}-{n}')
@@ -158,10 +158,8 @@ def photo_and_network_cases():
     find('review-photo-0'); snap('selected-photo-preview')
     adb('shell','cmd','connectivity','airplane-mode','enable')
     tap('review-submit')
-    try:
-        find('Avis non envoyé',timeout=5); snap('failed-upload-receipt'); tap('OK',exact=True)
-    except AssertionError: pass  # Le build de diagnostic 11 utilisait un message dans le formulaire.
-    scroll_find('review-error',attempts=10); snap('failed-upload-keeps-photo')
+    find('Avis non envoyé',timeout=15); snap('failed-upload-receipt'); tap('OK',exact=True)
+    scroll_find('review-photo-0'); snap('failed-upload-keeps-photo')
     check('failed upload does not publish',not any(r['texte_avis']==photo_text for r in public_reviews()))
     adb('shell','cmd','connectivity','airplane-mode','disable')
     time.sleep(2); restart()
