@@ -13,9 +13,15 @@ def adb(*args, binary=False):
     return r.stdout if binary else r.stdout.decode(errors='replace')
 
 def nodes():
-    adb('shell','uiautomator','dump','/sdcard/window.xml')
-    raw=adb('exec-out','cat','/sdcard/window.xml')
-    return ET.fromstring(raw),raw
+    raw=''
+    for _ in range(3):
+        dump=adb('shell','uiautomator','dump','/sdcard/window.xml')
+        raw=adb('exec-out','cat','/sdcard/window.xml')
+        if raw.lstrip().startswith('<?xml'):
+            return ET.fromstring(raw),raw
+        (OUT/'ui-dump-error.txt').write_text(dump+'\n'+raw)
+        time.sleep(.6)
+    raise RuntimeError('Android UI hierarchy unavailable: '+raw[:250])
 
 def label(n): return n.get('text','')+' '+n.get('content-desc','')+' '+n.get('resource-id','')
 
@@ -36,8 +42,8 @@ def tap_node(n):
 def tap(value, timeout=25, exact=False): tap_node(find(value,timeout,exact))
 def deep(path): adb('shell','am','start','-W','-a','android.intent.action.VIEW','-d','spawt://'+path,PACKAGE); time.sleep(1.2)
 def snap(name):
-    tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
     (OUT/(name+'.png')).write_bytes(adb('exec-out','screencap','-p',binary=True))
+    tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
     texts=[n.get('text') or n.get('content-desc') for n in tree.iter('node') if n.get('text') or n.get('content-desc')]
     print(name+': '+ ' | '.join(texts)[:1200],flush=True)
     return tree
@@ -85,15 +91,15 @@ try:
     # Le launcher Google peut rester occupé après le premier redimensionnement.
     # L'app est lancée directement ; un éventuel ANR SPAWT reste un échec.
     adb('shell','am','force-stop','com.google.android.apps.nexuslauncher')
-    tree,_=nodes()
-    if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
-        tap('Close app',exact=True)
     # Ouverture à vitesse normale, puis animations système neutralisées pour la matrice.
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,1)
     recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--time-limit','8','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
     recording.wait(timeout=15); adb('pull','/sdcard/opening.mp4',str(OUT/'opening.mp4'))
+    tree,_=nodes()
+    if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
+        tap('Close app',exact=True)
     snap('cold-opening')
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
