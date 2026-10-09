@@ -130,6 +130,12 @@ l'auto-suppression. Elle est journalisée. Les dix profils préexistants sont co
 - Réception CI du commit `2e28acb` : 988 tests mobile, 132 suites et quatre
   snapshots réussis ; quatre tests ignorés. Les jobs mobile et admin sont verts
   sur [le run 37921881205](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37921881205).
+- Expo Doctor final : 20 contrôles sur 20. Le seul diagnostic initial était
+  `newArchEnabled`, retiré du schéma SDK 55. Cette clé est nettoyée après le tag
+  du build 9 : [SDK 55 impose déjà la nouvelle architecture](https://docs.expo.dev/guides/new-architecture/),
+  donc retirer cette ancienne valeur `true` ne change pas le comportement natif.
+  TypeScript et contrôle de conformité repassent ensuite (264 validations,
+  un avertissement attendu sur les identifiants de soumission aux stores).
 - Exports Hermes Android et iOS réussis : 2 584 / 2 553 modules, 93 assets,
   bundles de 8,3 / 8,2 Mo. Ces exports valident le code embarqué, pas les plugins
   natifs ni le lancement sur téléphone.
