@@ -125,7 +125,7 @@ def photo_and_network_cases():
     adb('shell','am','broadcast','-a','android.intent.action.MEDIA_SCANNER_SCAN_FILE','-d','file:///sdcard/Pictures/spawt-qa.png')
     home(); tap('Palais',exact=True); find('Recette Android'); snap('moka-default-profile')
     tap('Changer ma photo de profil'); tap('Prendre une photo',exact=True)
-    tap('permission_deny_button'); find('Permission requise'); snap('camera-denied'); tap('OK',exact=True)
+    tap('permission_deny_button'); find('Autorisation requise'); snap('camera-denied'); tap('OK',exact=True)
     check('camera refusal remains actionable',True)
     deep('place/'+PLACE); twice('place-start-review'); rate(); write_review(photo_text)
     scroll_tap('review-photo-add'); pick_test_photo('review')

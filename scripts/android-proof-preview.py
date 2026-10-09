@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Aperçus de recette, dérivés des captures ADB originales conservées séparément."""
 from PIL import Image, ImageDraw
-import pathlib, re, shutil
+import pathlib, re, shutil, sys
 
-source = pathlib.Path('android-proof')
-target = pathlib.Path('android-preview'); target.mkdir(exist_ok=True)
+source = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else 'android-proof')
+target = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else 'android-preview'); target.mkdir(exist_ok=True)
 groups = {}
 for path in sorted(source.glob('*.png')):
     match = re.match(r'(320|360|393|430)-(1|1\.3|1\.5)-(.+)\.png$', path.name)
