@@ -124,3 +124,14 @@ jobs:
           name: android-proof
           path: android-proof
           retention-days: 14
+      - name: Préparer les aperçus de recette
+        if: always() && steps.apk.outputs.ready == 'true'
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 scripts/android-proof-preview.py
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.apk.outputs.ready == 'true'
+        with:
+          name: android-preview
+          path: android-preview
+          retention-days: 14

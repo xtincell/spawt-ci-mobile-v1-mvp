@@ -1,0 +1,30 @@
+name: Android proof preview
+on:
+  push:
+    tags: ['proof-android-*']
+permissions:
+  actions: read
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - id: source
+        run: echo "run=$(node -p \"require('./documentation/android-proof.json').source_run\")" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-proof
+          run-id: ${{ steps.source.outputs.run }}
+          github-token: ${{ github.token }}
+          path: android-proof
+      - name: Préparer les aperçus
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 scripts/android-proof-preview.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-preview
+          path: android-preview
+          retention-days: 14
