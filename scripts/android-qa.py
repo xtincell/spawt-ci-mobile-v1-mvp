@@ -189,19 +189,19 @@ try:
         photo_and_network_cases()
     else:
         deep('place/'+PLACE)
-        try: tap('Sauvegarder dans tes favoris',timeout=3)
+        try: tap('Sauvegarde pour plus tard',timeout=3)
         except AssertionError: pass  # Le favori peut déjà venir d'une recette précédente.
         for width in [320,360,393,430]:
             for scale in [1,1.3,1.5]:
                 geometry(width,scale); home(); snap(f'{width}-{scale}-feed')
                 scroll(); snap(f'{width}-{scale}-feed-cards')
                 tap('Palais',exact=True); find('Recette Android'); snap(f'{width}-{scale}-profile')
-                deep('search'); find('Chercher')
+                deep('search'); find('Cherche un spawt')
                 tree,_=nodes()
                 field=next(n for n in tree.iter('node') if n.get('class')=='android.widget.EditText')
                 tap_node(field); adb('shell','input','text','Grande'); back()
                 find('La Grande République'); snap(f'{width}-{scale}-search')
-                deep('saved'); time.sleep(1); snap(f'{width}-{scale}-saved')
+                deep('saved'); find('La Grande République'); snap(f'{width}-{scale}-saved')
                 deep('place/'+PLACE); find('La Grande République'); snap(f'{width}-{scale}-place')
                 tap('place-start-review'); find('review-note_cuisine-5')
                 snap(f'{width}-{scale}-review-title')
