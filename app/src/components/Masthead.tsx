@@ -28,12 +28,15 @@ export function Masthead({ date, kicker }: Props) {
         paddingTop: theme.spacing.base,
         paddingBottom: theme.spacing.sm,
         flexDirection: "row",
+        flexWrap: "wrap",
+        columnGap: theme.spacing.base,
+        rowGap: theme.spacing.xs,
         alignItems: "center",
         justifyContent: "space-between",
       }}
     >
       <Wordmark size={26} asHeader />
-      <View style={{ alignItems: "flex-end" }}>
+      <View style={{ alignItems: "flex-end", maxWidth: "100%", marginLeft: "auto" }}>
         {kicker ? (
           <Text
             style={{

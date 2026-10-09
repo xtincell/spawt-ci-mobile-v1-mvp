@@ -27,7 +27,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.upgraders.spawt",
-      "buildNumber": "14",
+      "buildNumber": "15",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -40,7 +40,7 @@
     },
     "android": {
       "package": "com.upgraders.spawt",
-      "versionCode": 14,
+      "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"

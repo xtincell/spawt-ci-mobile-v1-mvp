@@ -54,7 +54,7 @@ export default function SavedScreen() {
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ minWidth: 44, minHeight: 44, justifyContent: "center" }}
+          style={{ minWidth: 44, minHeight: 44, flexShrink: 0, justifyContent: "center" }}
         >
           <Ico name="arrow-left" size={22} />
         </Pressable>
@@ -62,6 +62,8 @@ export default function SavedScreen() {
           style={{
             ...theme.typography.preset.h1,
             color: theme.colors.text.primary,
+            flex: 1,
+            minWidth: 0,
           }}
         >
           {t("saved.title")}
