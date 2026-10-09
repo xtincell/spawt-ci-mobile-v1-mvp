@@ -46,6 +46,7 @@ test("un upload refusé conserve les photos et ne publie pas un avis amputé", a
  expect(renderer.root.findByProps({ testID: "review-photo-0" }).props.source.uri).toContain("image.jpg");
  await act(async () => { renderer.root.findByProps({ testID: "review-submit" }).props.onPress(); });
  expect(mockAttach).not.toHaveBeenCalled();
+ expect(Alert.alert).toHaveBeenCalledWith("review.publish_error_title", "review.publish_failed");
  expect(renderer.root.findByProps({ testID: "review-error" }).props.children).toBe("review.publish_failed");
  expect((await loadReviewDraft("alex", "visit"))?.photoUris).toHaveLength(1);
 });

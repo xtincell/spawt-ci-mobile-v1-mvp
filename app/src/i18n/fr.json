@@ -227,6 +227,7 @@
     "photo_failed": "La photo n’a pas pu être ajoutée. Réessaie.",
     "photo_remove": "Retirer",
     "publish_failed": "L’envoi a échoué. Ton brouillon et tes photos sont conservés. Vérifie ta connexion puis réessaie.",
+    "publish_error_title": "Avis non envoyé",
     "published_title": "Avis publié",
     "published_body": "Ton avis est visible sur la fiche du lieu.",
     "queued_title": "Avis en attente d’envoi",

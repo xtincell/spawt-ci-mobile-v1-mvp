@@ -31,6 +31,8 @@ Les retours arrière sont fournis, avec protection de l'audit historique.
 La recette native a révélé puis corrigé le débordement de la carte profil avec
 le texte agrandi, le bouton couvert par le clavier Android et les pluriels
 absents de Hermes. Les libellés du formulaire et les onglets sont lisibles.
+Un échec d’envoi est immédiatement signalé par une alerte, même quand le
+message du formulaire se trouve hors de la zone visible.
 La file relance automatiquement un avis même si le réseau revient avant
 la fin de son délai de réessai.
 

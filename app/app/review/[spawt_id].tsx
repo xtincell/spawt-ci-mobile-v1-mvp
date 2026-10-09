@@ -116,6 +116,7 @@ export default function ReviewScreen() {
     } catch (err) {
       if (__DEV__) console.warn("[review] submit failed", err);
       setError(t("review.publish_failed"));
+      Alert.alert(t("review.publish_error_title"), t("review.publish_failed"));
       busy.current = false;
     } finally { setSubmitting(false); }
   };
