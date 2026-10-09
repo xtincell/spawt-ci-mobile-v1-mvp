@@ -303,3 +303,24 @@ describe("publication durable d'un avis", () => {
     expect(await inspect()).toHaveLength(0);
   });
 });
+
+it("retente automatiquement après un retour réseau plus rapide que le backoff", async () => {
+  jest.useFakeTimers();
+  let online = true;
+  let network!: () => void;
+  const upsertSpawt = jest.fn().mockResolvedValueOnce(false).mockResolvedValue(true);
+  setSyncBackend({ upsertSpawt, updateSpawt: jest.fn(), upsertSpawter: jest.fn() });
+  const { initOfflineQueue } = await import("../offline-queue");
+  const stop = initOfflineQueue({ isOnline: () => Promise.resolve(online), subscribe: cb => { network = cb; return () => undefined; } });
+  try {
+    await enqueue({ kind: "spawt_insert", row: makeRow("early-network") });
+    await jest.advanceTimersByTimeAsync(250);
+    expect(upsertSpawt).toHaveBeenCalledTimes(1);
+    online = false; network(); online = true; network();
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(upsertSpawt).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(upsertSpawt).toHaveBeenCalledTimes(2);
+    expect(await inspect()).toHaveLength(0);
+  } finally { stop(); jest.useRealTimers(); }
+});

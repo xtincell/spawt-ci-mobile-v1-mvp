@@ -111,9 +111,12 @@ async function loadQueue(): Promise<QueueEntry[]> {
   return entries;
 }
 
+let wakeRetry: (() => void) | null = null;
+
 async function persistQueue(entries: readonly QueueEntry[]): Promise<void> {
   // Un rejet remonte au caller ; « queued » implique une écriture réussie.
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  wakeRetry?.();
 }
 
 /** Acquitte une mutation uniquement après sa persistance locale. */
@@ -285,15 +288,44 @@ export interface InitOptions {
  * pour rester découplé de `@react-native-community/netinfo` (testable + Web fallback).
  */
 export function initOfflineQueue(options: InitOptions): () => void {
-  // Flush initial — catch-up post-relaunch.
-  void (async () => {
-    const online = await options.isOnline().catch(() => false);
-    if (online) await flush();
-  })().catch(reportFlushFailure);
-
-  return options.subscribe(() => {
-    void flush().catch(reportFlushFailure);
-  });
+  let disposed = false;
+  let running = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const schedule = (delay = 250) => {
+    if (disposed || timer !== null) return;
+    timer = setTimeout(() => {
+      timer = null;
+      void resume().catch(reportFlushFailure);
+    }, delay);
+  };
+  const resume = async () => {
+    if (disposed) return;
+    if (running) { schedule(); return; }
+    running = true;
+    try {
+      const entries = await inspect();
+      if (!entries.length || !await options.isOnline().catch(() => false) || disposed) return;
+      await flush();
+      const remaining = await inspect();
+      if (timer !== null) { clearTimeout(timer); timer = null; }
+      if (remaining.length && !disposed) {
+        const next = Math.min(...remaining.map(e => e.last_attempt_at === null ? Date.now()
+          : Date.parse(e.last_attempt_at) + backoffDelayMs(e.attempts)));
+        schedule(Math.max(250, Math.min(60_000, next - Date.now())));
+      }
+    } finally { running = false; }
+  };
+  // Les écritures et retours réseau relancent le même ordonnanceur. Le backoff
+  // ne peut plus absorber l'unique événement réseau et bloquer la file.
+  wakeRetry = schedule;
+  schedule();
+  const unsubscribe = options.subscribe(schedule);
+  return () => {
+    disposed = true;
+    unsubscribe();
+    if (timer !== null) clearTimeout(timer);
+    if (wakeRetry === schedule) wakeRetry = null;
+  };
 }
 
 function reportFlushFailure(error: unknown): void {
