@@ -11,6 +11,29 @@ Les corrections de cet audit sont sur `codex/audit-avant-compilation`.
 La compilation native APK/IPA n'est pas lancée pendant cet audit. Un export
 JavaScript ou le build web de la console ne constitue pas une recette sur appareil.
 
+Après réception de la CI, la compilation Android preview 9 a été lancée sur
+`2e28acb` par le tag `build-android-2026-10-09-9` :
+[suivi GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37922183967).
+
+## Différence avec l'APK du 23 septembre
+
+La dernière release Android vérifiée a été construite depuis `618e70f`, avec
+`versionCode=8`. Le build 9 reprend les corrections intervenues depuis sur GitHub,
+puis ajoute celles de cet audit. Les changements de console sont un déploiement
+web distinct du binaire Android.
+
+| Partie | Changement par rapport au build 8 |
+|---|---|
+| Ouverture | Animation stable, relais du splash et restauration du compte coordonnés, réduction des mouvements |
+| Accueil | Plantage du carrousel après connexion corrigé |
+| Compte et Palais | Reprise du profil existant, goûts, historique et collection ; isolation des sessions |
+| Données | Erreurs réseau explicites, relance, requêtes bornées et réponses obsolètes ignorées |
+| Favoris et hors ligne | Persistance et reprise des intentions jusqu'à acquittement ; pas de faux succès d'écriture |
+| Quiz Meute | Transmission des cinq axes au Palais et suppression de la ressaisie inutile |
+| Navigation | Route des fiches, retour sans historique, consentements vers le site actif, partage vers l'app installée |
+| Console | Pagination, filtres, auth, listes traitées et gestion des démos alpha |
+| Livraison | Dépendances Expo alignées, validation du backend et CI mobile/admin |
+
 ## Comptes démo créés sur l'alpha
 
 | Profil | Contenu initial |
@@ -99,11 +122,14 @@ l'auto-suppression. Elle est journalisée. Les dix profils préexistants sont co
   recalculé de 1 à 0, lieu conservé. Ce passage est également annulé par `ROLLBACK`.
 - Console : 190 tests / 27 suites, lint, TypeScript et build Vite réussis.
   Avertissement restant : bundle minifié de 1,50 Mo.
-- Mobile : TypeScript, vocabulaire et i18n réussis ; suite complète à 982 tests
+- Mobile : TypeScript, vocabulaire et i18n réussis ; suite complète locale à 982 tests
   réussis, 132 suites, quatre snapshots. Quatre tests ignorés restent déclarés
   (intégration SQL conditionnelle et ancien scénario OTP live), sans être comptés
   comme des validations. Après les derniers correctifs de navigation/profil,
   les 13 tests ciblés de fiche et carte passent également.
+- Réception CI du commit `2e28acb` : 988 tests mobile, 132 suites et quatre
+  snapshots réussis ; quatre tests ignorés. Les jobs mobile et admin sont verts
+  sur [le run 37921881205](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37921881205).
 - Exports Hermes Android et iOS réussis : 2 584 / 2 553 modules, 93 assets,
   bundles de 8,3 / 8,2 Mo. Ces exports valident le code embarqué, pas les plugins
   natifs ni le lancement sur téléphone.
