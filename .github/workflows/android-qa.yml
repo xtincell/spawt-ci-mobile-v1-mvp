@@ -125,6 +125,11 @@ jobs:
           if re.search(r'AndroidRuntime: Process: com\.upgraders\.spawt\b|DEBUG\s*:.*(?:Cmdline: com\.upgraders\.spawt\b|>>> com\.upgraders\.spawt <<<)',log):
               raise RuntimeError('Plantage natif SPAWT détecté : consulter android-proof/logcat.txt')
           PY
+      - name: Vérifier la présence visible de l'animation fournie
+        if: always() && steps.apk.outputs.ready == 'true'
+        run: |
+          python3 -m pip install --quiet pillow imageio-ffmpeg
+          python3 scripts/android-opening-proof.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
