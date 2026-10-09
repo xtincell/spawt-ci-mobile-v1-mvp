@@ -12,8 +12,8 @@ jest.mock("react-native/Libraries/Utilities/Platform", () => {
 });
 
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-// La coordination de route utilise la durée réelle du pack ; le moteur SVG
-// Reanimated est vérifié dans l’APK Android, pas par un faux module natif Jest.
+// La coordination de route utilise la durée du pack ; les images réellement
+// affichées sont vérifiées dans la vidéo ADB de l’APK Android.
 jest.mock("../../src/components/brand/WindowOpeningMark", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
   const { View } = jest.requireActual("react-native") as typeof import("react-native");

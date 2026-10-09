@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import atlas from "../../assets/brand/window-opening.atlas.json";
-import { windowFrameAt, WINDOW_EXIT_MS, WINDOW_POSE_MS } from "../../src/components/brand/window-opening-motion";
+import { advanceWindowClock, windowFrameAt, WINDOW_EXIT_MS, WINDOW_POSE_MS } from "../../src/components/brand/window-opening-motion";
 
 describe("images du pack SPAWT fenêtre V2", () => {
   it("conserve le repère initial et la pose finale pendant une restauration longue", () => {
@@ -27,5 +27,13 @@ describe("images du pack SPAWT fenêtre V2", () => {
     const crypto = require("node:crypto") as typeof import("node:crypto");
     const bytes = fs.readFileSync(path.resolve(__dirname, "../../assets/brand/window-opening.source.mp4"));
     expect(crypto.createHash("sha256").update(bytes).digest("hex")).toBe(atlas.sourceSha256);
+  });
+  it("conserve le clin d'œil même si Android suspend le thread JS pendant son apparition", () => {
+    const beforeWink = 750;
+    const afterPause = advanceWindowClock(beforeWink, 500);
+    expect(windowFrameAt(afterPause / 1000)).toBeGreaterThanOrEqual(46);
+    expect(windowFrameAt(afterPause / 1000)).toBeLessThanOrEqual(47);
+    expect(advanceWindowClock(afterPause, -10)).toBe(afterPause);
+    expect(advanceWindowClock(WINDOW_POSE_MS - 1, 500)).toBe(WINDOW_POSE_MS);
   });
 });
