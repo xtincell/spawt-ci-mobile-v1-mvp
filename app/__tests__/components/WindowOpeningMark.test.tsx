@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { StyleSheet } from "react-native";
 
 const mockListeners = new Map<string, () => void>();
 const mockPlayer = {
@@ -35,6 +36,8 @@ describe("lecteur natif de l’ouverture fournie", () => {
   it("attend le retrait du splash puis lit le mouvement, avec un seul rappel de fin", () => {
     render();
     expect(mockPlayer.play).not.toHaveBeenCalled();
+    expect(StyleSheet.flatten(instance.root.findByProps({ testID: "spawt-opening-pose" }).props.style)).toMatchObject({ width: 200, height: 320 });
+    expect(StyleSheet.flatten(instance.root.findByProps({ testID: "spawt-opening-video" }).props.style)).toMatchObject({ width: 200, height: 320 });
     TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-pose" }).props.onLoad());
     TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-video" }).props.onFirstFrameRender());
     expect(ready).toHaveBeenCalledTimes(1);

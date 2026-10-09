@@ -10,6 +10,7 @@ const firstPose = require("../../../assets/brand/window-opening.first.png");
 const finalPose = require("../../../assets/brand/window-opening.final.png");
 const frameWidth = media.width / media.pixelRatio;
 const frameHeight = media.height / media.pixelRatio;
+const frameStyle = { ...StyleSheet.absoluteFillObject, width: frameWidth, height: frameHeight };
 
 interface Props { animate: boolean; staticPose?: boolean; onDone: () => void; onReady?: (() => void) | undefined }
 
@@ -55,6 +56,11 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady
     if (status === "error") fail();
   }, [status, fail]);
   useEffect(() => {
+    // Un média déjà en cache peut avoir émis loadstart avant l'écoute web.
+    // readyToPlay confirme alors que sa première image est disponible.
+    if (Platform.OS === "web" && status === "readyToPlay") { setFirstRendered(true); ready(); }
+  }, [status, ready]);
+  useEffect(() => {
     if (firstRendered || failed || staticPose) return;
     // Un décodeur indisponible ne doit pas empêcher l'accès à l'application.
     const timer = setTimeout(fail, 4000);
@@ -79,11 +85,11 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady
           <VideoView player={player} nativeControls={false} contentFit="fill" surfaceType="textureView"
             useExoShutter={false} allowsPictureInPicture={false} fullscreenOptions={{ enable: false }} playsInline
             onFirstFrameRender={() => { setFirstRendered(true); ready(); }}
-            style={StyleSheet.absoluteFill} testID="spawt-opening-video" />
+            style={frameStyle} testID="spawt-opening-video" />
         ) : null}
         {staticPose || failed || ended || !firstRendered ? (
           <Image source={staticPose || ended ? finalPose : firstPose} fadeDuration={0} resizeMode="stretch"
-            onLoad={ready} onError={fail} style={StyleSheet.absoluteFill} testID="spawt-opening-pose" />
+            onLoad={ready} onError={fail} style={frameStyle} testID="spawt-opening-pose" />
         ) : null}
       </View>
     </View>
