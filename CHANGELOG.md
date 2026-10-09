@@ -27,7 +27,9 @@ Les partages ouvrent les routes de l’app installée au lieu du domaine indispo
 `spawt.ci`. La vérification EAS bloque aussi les réponses réseau indéterminées.
 Les modules Expo sont alignés sur SDK 55. Détails des contrôles et limites de
 recette : `documentation/AUDIT_AVANT_COMPILATION_2026-10-09.md`.
-Aucune publication APK/IPA ou OTA pendant cette vérification.
+Après validation de la CI, APK Android build 9 compilé et disponible le 9 octobre
+depuis `2e28acb` (liens dans `RELEASES.md`). Aucun IPA ni OTA publié ; recette sur
+téléphone encore à faire.
 
 ## Reprendre le compte après connexion (2026-10-08)
 

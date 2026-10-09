@@ -2,7 +2,7 @@
 
 Journal des **APK publiés** pour l'alpha, destiné aux testeurs. Pour citer un
 build dans un bug report, recopie la ligne affichée dans l'app (écran Profil →
-« À propos ») : **`v1.0.0 — build N (YYYY-MM-DD)`**.
+« À propos ») : **`vVERSION — build N (YYYY-MM-DD)`**.
 
 > Ce fichier est **distinct de [`CHANGELOG.md`](./CHANGELOG.md)** :
 > - `CHANGELOG.md` = vue **dev** par sprint/epic (`vMAJEURE.SPRINT.ITERATION`).
@@ -10,9 +10,9 @@ build dans un bug report, recopie la ligne affichée dans l'app (écran Profil �
 
 ## Schéma de versioning (Story 7.1)
 
-- **Version app** : `1.0.0`, figée jusqu'à la beta publique.
+- **Version app** : celle de `app/app.json`, actuellement `1.1.0`.
 - **`android.versionCode` / `ios.buildNumber`** : entier **N**, incrémenté à chaque APK publié.
-- **Format d'affichage canonique** : `v1.0.0 — build N (YYYY-MM-DD)`.
+- **Format d'affichage canonique** : `vVERSION — build N (YYYY-MM-DD)`.
 - **Tag CI Android** : `build-android-YYYY-MM-DD-N` (N = `versionCode`). Pousser ce tag
   déclenche le build EAS (`.github/workflows/eas-build.yml`), qui injecte
   `versionCode = N` et `extra.buildDate = YYYY-MM-DD` avant le build.
@@ -26,12 +26,66 @@ build dans un bug report, recopie la ligne affichée dans l'app (écran Profil �
 Format d'une entrée :
 
 ```
-## v1.0.0 — build N — YYYY-MM-DD
+## vVERSION — build N — YYYY-MM-DD
 **APK** : <url eas> · **Tag CI** : build-android-YYYY-MM-DD-N · **Commit** : <sha>
 ### Nouveau / ### Corrigé / ### À tester en priorité / ### Limitations connues
 ```
 
 ---
+
+## v1.1.0 — build 9 — 2026-10-09
+
+**APK** : [téléchargement direct](https://expo.dev/artifacts/eas/JZ8JHyqTGGVGy48rEzUpxs3hCejhQ9yqe8flXGRK4JY.apk)
+· [page d'installation Expo](https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/4c849fbd-0067-40bd-b9a2-c1382e6f1eff)
+· **Tag CI** : `build-android-2026-10-09-9` · **Commit** : `2e28acbbc39823cc9bd853f2cf5ca87219a6a202`
+
+Le build 9 reprend les évolutions GitHub depuis le build 8 du 23 septembre
+(`618e70f`), puis les corrections de l'audit du 9 octobre. Il utilise le backend
+alpha `https://api.spawt.online`. Compilation native et signature réussies.
+
+### Corrigé
+
+- Ouverture : animation stabilisée, splash coordonné avec la restauration du compte,
+  réduction des mouvements et reprise en cas d'échec.
+- Accueil : plantage du carrousel après connexion corrigé.
+- Compte et Palais : profil existant conservé, historique et collection restaurés,
+  caches isolés par session ; héritage des cinq axes du quiz Meute.
+- Données : erreurs réseau visibles avec relance, délais bornés, réponses périmées
+  ignorées, favoris persistants et file hors ligne conservée jusqu'à confirmation.
+- Navigation : fiches et retour sans historique, liens légaux actifs, partage vers
+  les routes de l'app installée.
+- Dépendances Expo SDK 55 alignées et validation du backend avant compilation.
+
+### Nouveau côté alpha et console
+
+Deux comptes démo identifiés sont disponibles, sans droits staff ni faux avis.
+La console locale permet de les filtrer et de les supprimer avec confirmation du
+nom exact ; le serveur refuse la suppression des comptes réels et staff.
+Les accès sont fournis en privé. La console corrigée n'est pas encore déployée
+sur son adresse publique ; ses changements sont distincts de l'APK.
+
+### Vérifié avant livraison
+
+988 tests mobile et 190 tests admin réussis ; quatre tests mobile ignorés.
+Connexion OTP alpha et lectures sur la base réelle ; parcours navigateur accueil,
+recherche, fiche, favori persistant, profil/Palais et console admin.
+Voir le [rapport détaillé](./documentation/AUDIT_AVANT_COMPILATION_2026-10-09.md).
+
+### À tester en priorité sur Android
+
+1. Installation puis ouverture à froid : splash, animation et arrivée sur l'accueil.
+2. Connexion avec un compte existant : retrouver son profil et ses goûts.
+3. Favori, fermeture/réouverture puis perte/reprise réseau.
+4. Permissions GPS, Le Guet, notifications et liens reçus depuis une autre app.
+
+### Limitations connues
+
+- Aucun téléphone connecté à la session : fluidité native et parcours GPS/notifications
+  restent à recevoir. Aucun IPA ni OTA publié.
+- SMS simulé sur l'alpha ; SMS réel non validé.
+- Les dix lieux chargent, mais leurs photos de couverture ne sont pas renseignées.
+- Audit npm résiduel : 67 alertes, dont 51 hautes et aucune critique ; portée runtime
+  encore à qualifier.
 
 ## v1.0.0 — build 7 — 2026-07-08
 

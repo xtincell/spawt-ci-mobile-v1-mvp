@@ -8,16 +8,19 @@ Base de travail : `8aae5d846efad0c54a5e4912a45f2e3ba24f421a`, issue de la branch
 GitHub active `claude/app-finale-ios-android-f8ewrp` ; `main` est en retard.
 Les corrections de cet audit sont sur `codex/audit-avant-compilation`.
 
-La compilation native APK/IPA n'est pas lancée pendant cet audit. Un export
-JavaScript ou le build web de la console ne constitue pas une recette sur appareil.
-
-Après réception de la CI, la compilation Android preview 9 a été lancée sur
+Après réception de la CI, la compilation Android preview 9 a réussi sur
 `2e28acb` par le tag `build-android-2026-10-09-9` :
-[suivi GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37922183967).
+[résultat GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37922183967).
+L'APK du 9 octobre est disponible :
+[installation Expo](https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/4c849fbd-0067-40bd-b9a2-c1382e6f1eff)
+ou [téléchargement direct](https://expo.dev/artifacts/eas/JZ8JHyqTGGVGy48rEzUpxs3hCejhQ9yqe8flXGRK4JY.apk).
+Version `1.1.0`, `versionCode=9`, backend `https://api.spawt.online`.
+Aucun IPA ni OTA publié. La compilation native réussie ne constitue pas une
+recette sur téléphone.
 
 ## Différence avec l'APK du 23 septembre
 
-La dernière release Android vérifiée a été construite depuis `618e70f`, avec
+La précédente release Android vérifiée a été construite depuis `618e70f`, avec
 `versionCode=8`. Le build 9 reprend les corrections intervenues depuis sur GitHub,
 puis ajoute celles de cet audit. Les changements de console sont un déploiement
 web distinct du binaire Android.
@@ -136,6 +139,11 @@ l'auto-suppression. Elle est journalisée. Les dix profils préexistants sont co
   donc retirer cette ancienne valeur `true` ne change pas le comportement natif.
   TypeScript et contrôle de conformité repassent ensuite (264 validations,
   un avertissement attendu sur les identifiants de soumission aux stores).
+- La CI après ce nettoyage (`7b06beb`) est également verte : jobs mobile et
+  admin sur [le run 37924419345](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37924419345).
+- EAS Android preview : compilation native et signature réussies, build 9
+  disponible au téléchargement. L'installation et le lancement sur appareil
+  restent à vérifier.
 - Exports Hermes Android et iOS réussis : 2 584 / 2 553 modules, 93 assets,
   bundles de 8,3 / 8,2 Mo. Ces exports valident le code embarqué, pas les plugins
   natifs ni le lancement sur téléphone.
