@@ -12,7 +12,7 @@ jobs:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
-      GRADLE_USER_HOME: ${{ runner.temp }}/spawt-gradle
+      GRADLE_USER_HOME: /tmp/spawt-gradle
     steps:
       - uses: actions/checkout@v4
       - name: Épingler le code applicatif déjà contrôlé
