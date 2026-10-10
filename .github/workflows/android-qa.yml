@@ -93,7 +93,7 @@ jobs:
           avdmanager create avd -n spawt-qa -k 'system-images;android-35;google_apis;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/spawt-qa.avd" --force
           avdmanager list avd
           test -f "$ANDROID_AVD_HOME/spawt-qa.ini"
-          "$ANDROID_HOME/emulator/emulator" -avd spawt-qa -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 3072 -cores 2 > emulator.log 2>&1 &
+          "$ANDROID_HOME/emulator/emulator" -avd spawt-qa -no-window -no-audio -no-boot-anim -no-snapshot -gpu software -memory 3072 -cores 4 > emulator.log 2>&1 &
           EMULATOR_PID=$!
           sleep 4
           tail -c 10000 emulator.log
