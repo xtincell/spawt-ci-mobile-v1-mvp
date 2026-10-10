@@ -12,6 +12,7 @@ jobs:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+      GRADLE_USER_HOME: ${{ runner.temp }}/spawt-gradle
     steps:
       - uses: actions/checkout@v4
       - name: Épingler le code applicatif déjà contrôlé
@@ -31,6 +32,16 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Dimensionner la mémoire des compilateurs
+        run: |
+          mkdir -p "$GRADLE_USER_HOME"
+          cat > "$GRADLE_USER_HOME/gradle.properties" <<'PROPERTIES'
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8
+          org.gradle.workers.max=2
+          org.gradle.parallel=false
+          kotlin.daemon.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=2048m -XX:+ExitOnOutOfMemoryError
+          kotlin.compiler.execution.strategy=in-process
+          PROPERTIES
       - name: Installer les outils Android requis
         run: |
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
