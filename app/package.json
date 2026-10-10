@@ -47,7 +47,6 @@
     "expo-system-ui": "~55.0.22",
     "expo-task-manager": "~55.0.20",
     "expo-updates": "~55.0.33",
-    "expo-video": "~55.0.21",
     "expo-web-browser": "~55.0.20",
     "i18next": "^23.16.0",
     "react": "19.2.0",

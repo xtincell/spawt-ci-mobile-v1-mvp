@@ -188,7 +188,7 @@ export default function RootLayout() {
     splashHidden.current = true;
     void retireNativeSplash().then(() => {
       // Android confirme le retrait de sa fenêtre sur son propre thread UI.
-      // Laisser aussi React peindre le relais avant de démarrer la vidéo.
+      // Laisser aussi React peindre le relais avant de démarrer les images V2.
       openingFrame.current = requestAnimationFrame(() => {
         openingFrame.current = requestAnimationFrame(() => {
           openingFrame.current = null;

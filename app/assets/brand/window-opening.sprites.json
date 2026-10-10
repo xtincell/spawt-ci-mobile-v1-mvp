@@ -1,0 +1,23 @@
+{
+  "sourceSha256": "ae4bc3d7a519e94438816b72c70da070ac75711501fb45a2eb80a5a07383b45f",
+  "sheetSha256": [
+    "d9b755a4439f4e2d13dfe0466a993f72bbfedf0a69402e2177cc9a89492d9a17",
+    "7ba5e38b9633d41a302816783fe4e3293a8be9b1b9e0d904ffcd9a5f6fd3d5c0"
+  ],
+  "frames": 69,
+  "fps": 60,
+  "columns": 7,
+  "rows": 5,
+  "framesPerSheet": 35,
+  "frameWidth": 250,
+  "frameHeight": 400,
+  "pixelRatio": 1.25,
+  "poseDurationMs": 1150,
+  "exitDurationMs": 260,
+  "crop": {
+    "x": 240,
+    "y": 578,
+    "width": 600,
+    "height": 960
+  }
+}

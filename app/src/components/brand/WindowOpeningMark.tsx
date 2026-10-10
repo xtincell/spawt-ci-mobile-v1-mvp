@@ -1,122 +1,121 @@
-import { useEvent } from "expo";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, Platform, StyleSheet, View, useWindowDimensions } from "react-native";
+import Animated, { runOnJS, useAnimatedStyle, useFrameCallback, useSharedValue } from "react-native-reanimated";
 
-import media from "../../../assets/brand/window-opening.media.json";
+import sprites from "../../../assets/brand/window-opening.sprites.json";
+import { advanceWindowClock, windowFrameAt, WINDOW_POSE_MS } from "./window-opening-motion";
 
-const video = require("../../../assets/brand/window-opening.native.mp4");
+const firstSheet = require("../../../assets/brand/window-opening.sheet-0.png");
+const secondSheet = require("../../../assets/brand/window-opening.sheet-1.png");
 const firstPose = require("../../../assets/brand/window-opening.first.png");
 const finalPose = require("../../../assets/brand/window-opening.final.png");
-const frameWidth = media.width / media.pixelRatio;
-const frameHeight = media.height / media.pixelRatio;
+const fallback = require("../../../assets/brand/window-repere.png");
+const frameWidth = sprites.frameWidth / sprites.pixelRatio;
+const frameHeight = sprites.frameHeight / sprites.pixelRatio;
+const columns = sprites.columns;
+const capacity = sprites.framesPerSheet;
 const frameStyle = { ...StyleSheet.absoluteFillObject, width: frameWidth, height: frameHeight };
 
 interface Props { animate: boolean; staticPose?: boolean; onDone: () => void; onReady?: (() => void) | undefined }
 
-/** Lecture native du mouvement fourni ; les poses de secours restent locales. */
+/** Les images V2 se déplacent sur le thread UI, sans rendu React par image. */
 export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady }: Props) {
   const { width, height } = useWindowDimensions();
-  const [firstRendered, setFirstRendered] = useState(false);
+  const [loaded, setLoaded] = useState(0);
+  const [poseLoaded, setPoseLoaded] = useState(false);
   const [paintReady, setPaintReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [ended, setEnded] = useState(false);
-  const [finalRendered, setFinalRendered] = useState(false);
   const callbacks = useRef({ onDone, onReady }); callbacks.current = { onDone, onReady };
+  const alive = useRef(true);
   const readySent = useRef(false);
   const doneSent = useRef(false);
-  const player = useVideoPlayer(video, item => {
-    item.loop = false;
-    item.muted = true;
-    item.audioMixingMode = "mixWithOthers";
-    item.showNowPlayingNotification = false;
-    item.staysActiveInBackground = false;
-    item.allowsExternalPlayback = false;
-    item.currentTime = 0;
-  });
-  const { status } = useEvent(player, "statusChange", { status: player.status });
+  const elapsed = useSharedValue(0);
+  const frame = useSharedValue(0);
+  const completed = useSharedValue(false);
   const ready = useCallback(() => {
-    if (!readySent.current) {
+    if (alive.current && !readySent.current) {
       readySent.current = true;
       callbacks.current.onReady?.();
     }
   }, []);
   const done = useCallback(() => {
-    if (!doneSent.current) { doneSent.current = true; callbacks.current.onDone(); }
+    if (alive.current && !doneSent.current) { doneSent.current = true; callbacks.current.onDone(); }
   }, []);
-  const fail = useCallback(() => {
-    setFailed(true);
-    ready();
-    done();
-  }, [ready, done]);
+  const fail = useCallback(() => { setFailed(true); ready(); done(); }, [ready, done]);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
+
+  const tick = useCallback<Parameters<typeof useFrameCallback>[0]>((info) => {
+    "worklet";
+    if (completed.value) return;
+    // Une frame UI tardive ralentit la séquence au lieu de sauter son clin d’œil.
+    elapsed.value = advanceWindowClock(elapsed.value, info.timeSincePreviousFrame ?? 0);
+    frame.value = windowFrameAt(elapsed.value);
+    if (elapsed.value >= WINDOW_POSE_MS) {
+      completed.value = true;
+      runOnJS(done)();
+    }
+  }, [completed, elapsed, frame, done]);
+  const clock = useFrameCallback(tick, false);
+  useEffect(() => {
+    clock.setActive(false);
+    if (staticPose) { frame.value = sprites.frames - 1; return; }
+    if (animate && paintReady && !failed && !doneSent.current) clock.setActive(true);
+  }, [animate, paintReady, failed, staticPose, clock, frame]);
 
   useEffect(() => {
-    const subscription = player.addListener("playToEnd", () => setEnded(true));
-    return () => subscription.remove();
-  }, [player, done]);
-  useEffect(() => { if (finalRendered) done(); }, [finalRendered, done]);
-  useEffect(() => {
-    if (!firstRendered) return;
+    if (!poseLoaded || (loaded !== 3 && !staticPose)) return;
+    ready();
     let second: number | null = null;
-    // Laisser le relais PNG → surface vidéo se peindre avant la lecture.
     const first = requestAnimationFrame(() => {
       second = requestAnimationFrame(() => setPaintReady(true));
     });
     return () => { cancelAnimationFrame(first); if (second !== null) cancelAnimationFrame(second); };
-  }, [firstRendered]);
+  }, [loaded, poseLoaded, staticPose, ready]);
   useEffect(() => {
-    if (status === "error") fail();
-  }, [status, fail]);
-  useEffect(() => {
-    // Un média déjà en cache peut avoir émis loadstart avant l'écoute web.
-    // readyToPlay confirme alors que sa première image est disponible.
-    if (Platform.OS === "web" && status === "readyToPlay") { setFirstRendered(true); ready(); }
-  }, [status, ready]);
-  useEffect(() => {
-    if (!animate || firstRendered || failed || staticPose) return;
-    // Un décodeur indisponible ne doit pas empêcher l'accès à l'application.
+    if (paintReady || failed || staticPose) return;
+    // Ce délai couvre aussi un chargement qui garde le splash système.
     const timer = setTimeout(fail, 4000);
     return () => clearTimeout(timer);
-  }, [animate, firstRendered, failed, staticPose, fail]);
+  }, [paintReady, failed, staticPose, fail]);
   useEffect(() => {
-    if (!animate || !paintReady || failed || staticPose || ended) return;
-    // Même un décodeur qui ne signale jamais sa fin doit libérer la route.
-    const timer = setTimeout(fail, 5000);
+    if (!animate || !paintReady || failed || staticPose) return;
+    const timer = setTimeout(() => { if (!doneSent.current) fail(); }, 5000);
     return () => clearTimeout(timer);
-  }, [animate, paintReady, failed, staticPose, ended, fail]);
-  useEffect(() => {
-    try {
-      // Le PNG retire le splash système, puis la vidéo est préparée en pause.
-      // Le mouvement attend sa première image et le retrait peint du poster.
-      if (animate && paintReady && status === "readyToPlay" && !failed && !staticPose && !ended) player.play();
-      else player.pause();
-    } catch { fail(); }
-    return () => {
-      // Le hook peut avoir déjà libéré son objet natif pendant le démontage.
-      try { player.pause(); } catch { /* objet déjà libéré */ }
-    };
-  }, [animate, paintReady, status, failed, staticPose, ended, player, fail]);
+  }, [animate, paintReady, failed, staticPose, fail]);
 
+  const firstStyle = useAnimatedStyle(() => {
+    const local = Math.min(frame.value, capacity - 1);
+    return { opacity: frame.value < capacity ? 1 : 0,
+      transform: [{ translateX: -(local % columns) * frameWidth }, { translateY: -Math.floor(local / columns) * frameHeight }] };
+  });
+  const secondStyle = useAnimatedStyle(() => {
+    const local = Math.max(0, frame.value - capacity);
+    return { opacity: frame.value >= capacity ? 1 : 0,
+      transform: [{ translateX: -(local % columns) * frameWidth }, { translateY: -Math.floor(local / columns) * frameHeight }] };
+  });
   const portraitOffset = Platform.OS === "android" ? 0 : (241.5 - 175) * .49;
   return (
     <View style={{ width, height }} testID="spawt-window-mark" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View pointerEvents="none" style={{ position: "absolute", left: (width - frameWidth) / 2, top: (height - frameHeight) / 2 + portraitOffset, width: frameWidth, height: frameHeight }}>
-        {!staticPose && !failed && !finalRendered ? (
-          <VideoView player={player} nativeControls={false} contentFit="fill" surfaceType="textureView"
-            useExoShutter={false} allowsPictureInPicture={false} fullscreenOptions={{ enable: false }} playsInline
-            onFirstFrameRender={() => { setFirstRendered(true); ready(); }}
-            style={frameStyle} testID="spawt-opening-video" />
-        ) : null}
-        {staticPose || failed || ended || !firstRendered ? (
-          <Image source={!failed && (staticPose || ended) ? finalPose : firstPose} fadeDuration={0} resizeMode="stretch"
-            onLoad={() => {
-              ready();
-              // Retirer la surface vidéo seulement après le relais PNG, puis
-              // déclencher le fondu depuis la surface React effectivement posée.
-              if (ended && !failed) setFinalRendered(true);
-            }} onError={fail} style={frameStyle} testID="spawt-opening-pose" />
+      <View pointerEvents="none" style={{ position: "absolute", left: (width - frameWidth) / 2, top: (height - frameHeight) / 2 + portraitOffset, width: frameWidth, height: frameHeight, overflow: "hidden" }}>
+        {!staticPose && !failed ? <>
+          <Animated.Image source={firstSheet} fadeDuration={0} resizeMode="stretch" resizeMethod="scale"
+            onLoad={() => setLoaded(value => value | 1)} onError={fail} style={[styles.sheet, firstStyle]} testID="spawt-opening-sheet-0" />
+          <Animated.Image source={secondSheet} fadeDuration={0} resizeMode="stretch" resizeMethod="scale"
+            onLoad={() => setLoaded(value => value | 2)} onError={fail} style={[styles.sheet, secondStyle]} testID="spawt-opening-sheet-1" />
+        </> : null}
+        {staticPose || failed || !paintReady ? (
+          <Image source={failed ? fallback : staticPose ? finalPose : firstPose} fadeDuration={0} resizeMode="stretch"
+            onLoad={() => { setPoseLoaded(true); if (failed || staticPose) ready(); }} onError={fail}
+            style={frameStyle} testID="spawt-opening-pose" />
         ) : null}
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  sheet: { position: "absolute", left: 0, top: 0, width: frameWidth * columns, height: frameHeight * sprites.rows },
+});
