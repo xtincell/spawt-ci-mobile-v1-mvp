@@ -1,7 +1,7 @@
 {
   "build": 26,
   "sourceCommit": "56d8b680a1f2226639bd4f9e0c2c5afe3109b7fd",
-  "mode": "photos",
+  "mode": "observe",
   "phone": "+2250000000193",
   "localBuildRun": 38015695423,
   "buildWorkflowCommit": "7c0568de08f01b65802004b66736960b0932c7e2"
