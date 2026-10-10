@@ -102,7 +102,7 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady
     <View style={{ width, height }} testID="spawt-window-mark" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <View pointerEvents="none" style={{ position: "absolute", left: (width - frameWidth) / 2, top: (height - frameHeight) / 2 + portraitOffset, width: frameWidth, height: frameHeight }}>
         {!staticPose && !failed && !finalRendered ? (
-          <VideoView player={player} nativeControls={false} contentFit="fill" surfaceType="surfaceView"
+          <VideoView player={player} nativeControls={false} contentFit="fill" surfaceType="textureView"
             useExoShutter={false} allowsPictureInPicture={false} fullscreenOptions={{ enable: false }} playsInline
             onFirstFrameRender={() => { setFirstRendered(true); ready(); }}
             style={frameStyle} testID="spawt-opening-video" />
