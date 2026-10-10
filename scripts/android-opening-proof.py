@@ -72,6 +72,7 @@ process = subprocess.Popen([
 ], stdout=subprocess.PIPE)
 assert process.stdout is not None
 visible = []
+black_surfaces = []
 frame_index = consecutive = longest = 0
 while True:
     frame = process.stdout.read(width * height * 3)
@@ -84,6 +85,11 @@ while True:
                 [(10, 100), (383, 100), (10, 400), (383, 400)])
     gold_count = 0
     if white:
+        # Une surface vidéo noire reste un défaut même si le clin d'œil est
+        # visible ailleurs. Les quatre coins du média fourni sont blancs.
+        if origin is not None and all(max(image.getpixel((origin[0] + x, origin[1] + y))) < 40
+                                      for x, y in [(2, 2), (197, 2), (2, 317), (197, 317)]):
+            black_surfaces.append(round(frame_index / fps, 3))
         red, green, blue = image.crop((80, 190, 315, 490)).split()
         masks = [red.point(lambda value: 255 if 135 <= value <= 245 else 0),
                  green.point(lambda value: 255 if 85 <= value <= 210 else 0),
@@ -128,7 +134,7 @@ travel = max(frame["goldCenterY"] for frame in early) - min(frame["goldCenterY"]
 closed_samples = [frame for frame in eye_samples if frame["closed"]]
 reopened = [frame for frame in eye_samples if frame["open"] and closed_samples and frame["second"] > closed_samples[-1]["second"]]
 wink_passed = len(closed_samples) >= 2 and len(reopened) >= 2
-passed = longest >= 10 and travel >= 20 and wink_passed
+passed = longest >= 10 and travel >= 20 and wink_passed and not black_surfaces
 payload = {"passed": passed, "sampleFps": fps, "sampledFrames": frame_index,
            "captureWidth": capture_width, "captureHeight": capture_height,
            "visibleFrames": len(visible), "longestVisibleSeconds": round(longest / fps, 3),
@@ -137,8 +143,9 @@ payload = {"passed": passed, "sampleFps": fps, "sampledFrames": frame_index,
            "viewportOrigin": origin, "winkPassed": wink_passed,
            "closedEyeFrames": len(closed_samples), "reopenedEyeFrames": len(reopened),
            "maximumEyeDistance": 18, "minimumEyeDistanceMargin": 3,
+           "blackSurfaceFrames": len(black_surfaces), "blackSurfaceSeconds": black_surfaces,
            "visible": visible, "eyeSamples": eye_samples}
 (source / "opening-visibility.json").write_text(json.dumps(payload, indent=2) + "\n")
-print(f"Moka : {len(visible)} images ; présence continue {longest / fps:.3f}s ; déplacement {travel:.2f}px ; clin d'œil {len(closed_samples)} images puis réouverture {len(reopened)} images.")
+print(f"Moka : {len(visible)} images ; présence continue {longest / fps:.3f}s ; déplacement {travel:.2f}px ; clin d'œil {len(closed_samples)} images puis réouverture {len(reopened)} images ; surface noire {len(black_surfaces)} images.")
 if not passed:
-    raise AssertionError("Animation V2 masquée, sans surgissement ou sans clin d'œil suivi de la réouverture")
+    raise AssertionError("Animation V2 masquée, surface noire, sans surgissement ou sans clin d'œil suivi de la réouverture")
