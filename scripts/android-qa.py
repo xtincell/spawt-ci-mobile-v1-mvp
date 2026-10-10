@@ -29,12 +29,13 @@ def nodes():
 
 def label(n): return n.get('text','')+' '+n.get('content-desc','')+' '+n.get('resource-id','')
 
-def find(value, timeout=25, exact=False):
+def find(value, timeout=25, exact=False, enabled=False):
     end=time.monotonic()+timeout
     while time.monotonic()<end:
         tree,_=nodes()
         for n in tree.iter('node'):
             if (any(n.get(k,'').casefold()==value.casefold() for k in ['text','content-desc','resource-id']) if exact else value.casefold() in label(n).casefold()):
+                if enabled and n.get('enabled') != 'true': continue
                 b=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
                 if len(b)==4 and b[2]>b[0] and b[3]>b[1]: return n
         time.sleep(.4)
@@ -85,7 +86,11 @@ def geometry(width,scale,pixel_ratio=3):
 
 def login(phone):
     deep('phone'); tap('phone-input'); adb('shell','input','text',phone.removeprefix('+225'))
-    adb('shell','input','keyevent','4'); tap('phone-send')
+    adb('shell','input','keyevent','4')
+    tap_node(find('phone-send',enabled=True))
+    # Le formulaire attend au plus 30 s avant d'afficher une erreur réseau.
+    # Attendre au-delà de ce délai garde le diagnostic réel dans last-state.
+    find('otp-cell-0',timeout=45)
     for i,digit in enumerate('123456'):
         tap(f'otp-cell-{i}'); adb('shell','input','text',digit)
     find('Feed',timeout=40,exact=True)
