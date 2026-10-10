@@ -20,11 +20,16 @@ jobs:
           console.log(JSON.stringify({id:build.id,status:build.status,error:build.error}));
           for(const url of build.logFiles){
             const log=await (await fetch(url)).text();
+            let context=0;
             for(const line of log.split('\n')){
               let message=line;
               try { const entry=JSON.parse(line); message=entry.msg ?? entry.message ?? ''; } catch {}
               if(/(?:^e:|Unresolved reference|A problem occurred|Plugin .*not found|Could not compile|Execution failed|Compilation error|FAILURE:)/i.test(message)){
+                context=7;
+              }
+              if(context>0){
                 console.log(message.replace(/https?:\/\/\S+/g,'[URL]').slice(0,2500));
+                context--;
               }
             }
           }
