@@ -1,0 +1,36 @@
+name: EAS targeted build status
+on:
+  push:
+    tags: ['status-eas-android-*']
+permissions:
+  contents: read
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lire l'état du build ciblé
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const target=JSON.parse(fs.readFileSync('documentation/android-qa.json'));
+          const query='query($appId:String!){app{byId(appId:$appId){builds(offset:0,limit:8){id status platform appBuildVersion gitCommitHash artifacts{buildUrl} logFiles error{message} queuePosition estimatedWaitTimeLeftSeconds}}}}';
+          const response=await fetch('https://api.expo.dev/graphql',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.EXPO_TOKEN,'user-agent':'eas-cli/22.5.0'},body:JSON.stringify({query,variables:{appId:'15ac2301-e901-4caa-a8c8-864c6621bcd0'}})});
+          const result=await response.json();
+          if(result.errors) throw new Error('Unable to read targeted build status');
+          const build=result.data.app.byId.builds.find(b=>b.platform==='ANDROID' && b.appBuildVersion===String(target.build) && b.gitCommitHash===target.sourceCommit);
+          if(!build) throw new Error('Targeted build not found');
+          const {logFiles,...metadata}=build;
+          console.log(JSON.stringify(metadata));
+          let phase=null;
+          for(const url of logFiles){
+            const log=await (await fetch(url)).text();
+            for(const line of log.split('\n')){
+              try { const entry=JSON.parse(line); phase=entry.buildPhase ?? entry.phase ?? phase; } catch {}
+            }
+          }
+          console.log(JSON.stringify({phase}));
+          JS
