@@ -1,4 +1,7 @@
 name: Android APK native QA
+permissions:
+  contents: read
+  actions: read
 on:
   push:
     tags: ['qa-android-*']
@@ -28,15 +31,45 @@ jobs:
         env:
           APK_INPUT: ${{ inputs.apk_url }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
           fs.mkdirSync('android-proof',{recursive:true});
           const config=JSON.parse(fs.readFileSync('documentation/android-qa.json','utf8'));
           const phone=config.phone ?? '+2250000000193';
           if(!['+2250000000193','+2250000000194'].includes(phone)) throw new Error('Compte de recette non autorisé');
           let url=process.env.APK_INPUT;
-          if(!url){
+          let localReady=false;
+          if(config.localBuildRun && !url){
+            const api='https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY;
+            const headers={authorization:'Bearer '+process.env.GH_TOKEN,accept:'application/vnd.github+json'};
+            const read=async path=>{
+              const response=await fetch(api+path,{headers});
+              if(!response.ok) throw new Error('GitHub artifact HTTP '+response.status);
+              return response.json();
+            };
+            const run=await read('/actions/runs/'+config.localBuildRun);
+            if(run.conclusion!=='success' || run.head_sha!==config.buildWorkflowCommit || run.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation locale non validée');
+            const artifacts=await read('/actions/runs/'+config.localBuildRun+'/artifacts');
+            const artifact=artifacts.artifacts.find(a=>a.name==='android-apk' && !a.expired);
+            if(!artifact) throw new Error('APK locale absente');
+            const response=await fetch(artifact.archive_download_url,{headers});
+            if(!response.ok) throw new Error('Artifact download HTTP '+response.status);
+            fs.writeFileSync('local-build.zip',Buffer.from(await response.arrayBuffer()));
+            const metadata=JSON.parse(execFileSync('unzip',['-p','local-build.zip','apk-metadata.json'],{encoding:'utf8'}));
+            if(metadata.build!==config.build || metadata.version!=='1.1.1' || metadata.sourceCommit!==config.sourceCommit || metadata.runId!==config.localBuildRun || !metadata.signatureMatchesBuild25 || !metadata.zipCrcPassed) throw new Error('Métadonnées APK incohérentes');
+            const out=fs.openSync('spawt.apk','w');
+            try {execFileSync('unzip',['-p','local-build.zip','spawt-1.1.1-build'+config.build+'.apk'],{stdio:['ignore',out,'inherit']});} finally {fs.closeSync(out);}
+            const apk=fs.readFileSync('spawt.apk');
+            if(apk.length!==metadata.bytes || crypto.createHash('sha256').update(apk).digest('hex')!==metadata.sha256) throw new Error('Empreinte APK incorrecte');
+            fs.writeFileSync('android-proof/apk-metadata.json',JSON.stringify(metadata,null,2)+'\n');
+            fs.writeFileSync('android-proof/apk.url',run.html_url+'\n');
+            console.log(JSON.stringify(metadata));
+            localReady=true;
+          }else if(!url){
             const query='query($appId:String!){app{byId(appId:$appId){builds(offset:0,limit:8){id status platform appVersion appBuildVersion gitCommitHash artifacts{buildUrl} queuePosition estimatedWaitTimeLeftSeconds}}}}';
             const response=await fetch('https://api.expo.dev/graphql',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.EXPO_TOKEN,'user-agent':'eas-cli/22.5.0'},body:JSON.stringify({query,variables:{appId:'15ac2301-e901-4caa-a8c8-864c6621bcd0'}})});
             const result=await response.json();
@@ -54,8 +87,8 @@ jobs:
             if(!response.ok) throw new Error('APK HTTP '+response.status);
             fs.writeFileSync('spawt.apk',Buffer.from(await response.arrayBuffer()));
             fs.writeFileSync('android-proof/apk.url',url+'\n');
-          }else console.log('APK encore en compilation : aucune recette exécutée.');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+Boolean(url)+'\n');
+          }else if(!localReady) console.log('APK encore en compilation : aucune recette exécutée.');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+Boolean(url || localReady)+'\n');
           fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_MODE='+config.mode+'\n');
           fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_PHONE='+phone+'\n');
           JS
