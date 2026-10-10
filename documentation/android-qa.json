@@ -2,5 +2,7 @@
   "build": 27,
   "sourceCommit": "6ba39d2b8b54c2bd7e5867b1dad6334a914df5f8",
   "mode": "observe",
-  "phone": "+2250000000193"
+  "phone": "+2250000000193",
+  "localBuildRun": 38019749515,
+  "buildWorkflowCommit": "73075c98bc84d780993794b3455501b509ae342f"
 }
