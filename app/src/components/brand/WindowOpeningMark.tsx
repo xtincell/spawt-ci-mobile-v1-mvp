@@ -73,11 +73,11 @@ export function WindowOpeningMark({ animate, staticPose = false, onDone, onReady
     if (Platform.OS === "web" && status === "readyToPlay") { setFirstRendered(true); ready(); }
   }, [status, ready]);
   useEffect(() => {
-    if (firstRendered || failed || staticPose) return;
+    if (!animate || firstRendered || failed || staticPose) return;
     // Un décodeur indisponible ne doit pas empêcher l'accès à l'application.
     const timer = setTimeout(fail, 4000);
     return () => clearTimeout(timer);
-  }, [firstRendered, failed, staticPose, fail]);
+  }, [animate, firstRendered, failed, staticPose, fail]);
   useEffect(() => {
     if (!animate || !paintReady || failed || staticPose || ended) return;
     // Même un décodeur qui ne signale jamais sa fin doit libérer la route.

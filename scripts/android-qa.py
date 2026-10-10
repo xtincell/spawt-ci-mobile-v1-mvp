@@ -79,8 +79,8 @@ def check(name, ok):
     print('ASSERT '+name+': '+('PASS' if ok else 'FAIL'),flush=True)
     assert ok,name
 
-def geometry(width,scale):
-    adb('shell','wm','size',f'{width*3}x2400'); adb('shell','wm','density','480')
+def geometry(width,scale,pixel_ratio=3):
+    adb('shell','wm','size',f'{width*pixel_ratio}x{800*pixel_ratio}'); adb('shell','wm','density',str(160*pixel_ratio))
     adb('shell','settings','put','system','font_scale',scale); time.sleep(1)
 
 def login(phone):
@@ -205,20 +205,26 @@ def photo_and_network_cases():
         adb('shell','settings','put','global',key,0)
 
 try:
-    geometry(393,1)
+    # Garder le même format en dp, avec une surface 1x pour la vidéo : encoder
+    # 2,8 millions de pixels concurrençait le lecteur sur l'émulateur logiciel.
+    geometry(393,1,pixel_ratio=1)
     # Le launcher Google peut rester occupé après le premier redimensionnement.
     # L'app est lancée directement ; un éventuel ANR SPAWT reste un échec.
     adb('shell','am','force-stop','com.google.android.apps.nexuslauncher')
     # Ouverture à vitesse normale, puis animations système neutralisées pour la matrice.
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,1)
-    # screenrecord peut reprendre les dimensions physiques du Pixel avant
-    # l'override wm. Fixer son format pour préserver les proportions du test.
-    recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--size','1178x2400','--time-limit','18','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    # Laisser finir les services du premier boot ; l'app reste arrêtée.
+    time.sleep(15)
+    # Largeur paire imposée par l'encodeur ; l'écart d'un pixel est contrôlé
+    # par le garde des proportions, avant toute analyse du mouvement.
+    recording=subprocess.Popen(['adb','-s','emulator-5554','shell','screenrecord','--size','392x800','--time-limit','18','--bit-rate','1500000','/sdcard/opening.mp4'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
     recording.wait(timeout=25); adb('pull','/sdcard/opening.mp4',str(OUT/'opening.mp4'))
     # Décodeur et surfaces de cette ouverture anonyme, avant toute connexion.
     (OUT/'opening-logcat.txt').write_text(adb('logcat','-d','-v','threadtime'))
+    # La matrice et les parcours tactiles gardent les captures 3x habituelles.
+    geometry(393,1)
     tree,_=nodes()
     if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
         tap('Close app',exact=True)

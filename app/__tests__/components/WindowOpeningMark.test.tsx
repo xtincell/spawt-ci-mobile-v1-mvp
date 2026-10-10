@@ -78,6 +78,14 @@ describe("lecteur natif de l’ouverture fournie", () => {
     expect(ready).toHaveBeenCalledTimes(1);
     expect(done).toHaveBeenCalledTimes(1);
   });
+  it("ne consomme pas le délai de préparation derrière le splash natif", () => {
+    render();
+    TestRenderer.act(() => jest.advanceTimersByTime(5000));
+    expect(done).not.toHaveBeenCalled();
+    TestRenderer.act(() => instance.update(<WindowOpeningMark animate onReady={ready} onDone={done} />));
+    TestRenderer.act(() => jest.advanceTimersByTime(4000));
+    expect(done).toHaveBeenCalledTimes(1);
+  });
   it("libère la route si le lecteur commence mais ne signale jamais sa fin", () => {
     render(true);
     TestRenderer.act(() => instance.root.findByProps({ testID: "spawt-opening-video" }).props.onFirstFrameRender());

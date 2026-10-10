@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ThemeProvider } from "../src/theme/ThemeProvider";
 import { palette, typography } from "../src/theme/tokens";
 import { useStartupHydration } from "../src/lib/use-startup-hydration";
+import { retireNativeSplash } from "../src/lib/retire-native-splash";
 import { getRouteGuardDecision } from "../src/lib/route-guard";
 import { useAppFonts } from "../src/theme/useAppFonts";
 import { useSpawterStore } from "../src/store/spawter-store";
@@ -185,9 +186,9 @@ export default function RootLayout() {
     if (!rootLaidOut.current || splashHidden.current || (!fontsLoaded && !fontError && Platform.OS !== "web")) return;
     if (!openingArtworkLoaded.current && !hydrationFailed && !isBackendMissing) return;
     splashHidden.current = true;
-    void SplashScreen.hideAsync().then(() => {
-      // hideAsync retire la condition native mais ne promet pas une image
-      // déjà dessinée. Laisser deux frames au premier rendu avant l'horloge.
+    void retireNativeSplash().then(() => {
+      // Android confirme le retrait de sa fenêtre sur son propre thread UI.
+      // Laisser aussi React peindre le relais avant de démarrer la vidéo.
       openingFrame.current = requestAnimationFrame(() => {
         openingFrame.current = requestAnimationFrame(() => {
           openingFrame.current = null;
