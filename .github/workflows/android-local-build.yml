@@ -18,7 +18,7 @@ jobs:
       - name: Épingler le code applicatif déjà contrôlé
         run: |
           SOURCE=$(node -p "require('./documentation/android-qa.json').sourceCommit")
-          test "$SOURCE" = '56d8b680a1f2226639bd4f9e0c2c5afe3109b7fd'
+          test "$SOURCE" = '6ba39d2b8b54c2bd7e5867b1dad6334a914df5f8'
           git fetch origin "$SOURCE"
           git checkout --detach "$SOURCE"
           test "$(git rev-parse HEAD)" = "$SOURCE"
@@ -56,7 +56,7 @@ jobs:
           import fs from 'node:fs';
           const path='app/app.json';
           const config=JSON.parse(fs.readFileSync(path));
-          if(config.expo.version!=='1.1.1' || config.expo.android.versionCode!==26) throw new Error('Version inattendue');
+          if(config.expo.version!=='1.1.1' || config.expo.android.versionCode!==27) throw new Error('Version inattendue');
           config.expo.extra.buildDate='2026-10-10';
           fs.writeFileSync(path,JSON.stringify(config,null,2)+'\n');
           JS
@@ -68,20 +68,20 @@ jobs:
         working-directory: app
         env:
           EXPO_PUBLIC_BUILD_DATE: '2026-10-10'
-        run: eas build --platform android --profile preview --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-1.1.1-build26.apk"
+        run: eas build --platform android --profile preview --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-1.1.1-build27.apk"
       - name: Vérifier la signature et tracer l'APK
         run: |
           curl -fsSL 'https://expo.dev/artifacts/eas/nRbb5bhMV3ExylApZjfy6vJlwaSfq1dF83XcBoHLNTA.apk' -o reference25.apk
           echo '25599e852085a983004e939d7d40f967e8c0cebcdab466910c244f12c5ddc5c0 reference25.apk' | sha256sum -c -
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs reference25.apk > reference-cert.txt
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs spawt-1.1.1-build26.apk > apk-cert.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs spawt-1.1.1-build27.apk > apk-cert.txt
           diff <(sed -n '/Signer #1 certificate SHA-256 digest:/p' reference-cert.txt) <(sed -n '/Signer #1 certificate SHA-256 digest:/p' apk-cert.txt)
           python3 - <<'PY'
           import hashlib,json,os,pathlib,zipfile
-          path=pathlib.Path('spawt-1.1.1-build26.apk')
+          path=pathlib.Path('spawt-1.1.1-build27.apk')
           with zipfile.ZipFile(path) as archive:
               assert archive.testzip() is None
-          data={'version':'1.1.1','build':26,'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'runId':int(os.environ['GITHUB_RUN_ID'])}
+          data={'version':'1.1.1','build':27,'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'runId':int(os.environ['GITHUB_RUN_ID'])}
           pathlib.Path('apk-metadata.json').write_text(json.dumps(data,indent=2)+'\n')
           print(json.dumps(data))
           PY
@@ -89,7 +89,7 @@ jobs:
         with:
           name: android-apk
           path: |
-            spawt-1.1.1-build26.apk
+            spawt-1.1.1-build27.apk
             apk-metadata.json
             apk-cert.txt
           retention-days: 14
