@@ -7,8 +7,7 @@
 // Flux :
 //   1. Mount → check perm foreground via expo-location (no pré-fetch boot).
 //   2. Si granted → getCurrentPositionAsync → listNearbyPlaces(2km, top 5).
-//   3. Tap "Spawter ici" → buildManualSpawt → registerSpawt → upsertSpawt
-//      (fire-and-forget) → router.push("/review/[spawt_id]") modal.
+//   3. Tap « Spawter ici » → création/reprise durable → formulaire.
 //
 // `is_verified` du spawt produit = `is_within_spawt_range` (distance < 100m).
 // Sinon spawt passif (poids 0.5x — PRD §7.2 PASSIVE_CHECKIN_WEIGHT).
@@ -17,9 +16,10 @@
 // Pas de hiérarchie « le plus proche est mieux » — tri pur par distance,
 // sans podium ni mise en avant compétitive (anti-pattern PRD §20.1).
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Pressable,
@@ -33,6 +33,7 @@ import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { Chip } from "../../src/components/primitives/Chip";
 import { Ico } from "../../src/components/primitives/Ico";
 import {
@@ -41,8 +42,7 @@ import {
   type NearbyPlace,
 } from "../../src/lib/nearby-places";
 import { listPlaces } from "../../src/lib/data-source";
-import { buildManualSpawt } from "../../src/lib/guet/guet-spawt-actions";
-import { upsertSpawt } from "../../src/lib/data-source";
+import { startManualReview } from "../../src/lib/manual-review";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { useFlag } from "../../src/store/feature-flags";
 import { track } from "../../src/lib/analytics";
@@ -52,6 +52,7 @@ type ScreenState =
   | { kind: "perm_denied" }
   | { kind: "loading_position" }
   | { kind: "empty" }
+  | { kind: "unavailable" }
   | { kind: "loaded"; items: NearbyPlace[]; userLat: number; userLng: number };
 
 const PRICE_LABELS: Record<1 | 2 | 3, string> = {
@@ -65,6 +66,9 @@ export default function SpawterTabScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const spawter = useSpawterStore((s) => s.spawter);
+  const spawts = useSpawterStore((s) => s.spawts);
+  const busy = useRef(false);
+  const [starting, setStarting] = useState(false);
   const registerSpawt = useSpawterStore((s) => s.registerSpawt);
   const suggestionsEnabled = useFlag("suggestions-lieux");
 
@@ -133,7 +137,7 @@ export default function SpawterTabScreen() {
       setState({ kind: "loaded", items, userLat, userLng });
     } catch (err) {
       if (__DEV__) console.warn("[spawter-tab] listPlaces failed", err);
-      setState({ kind: "empty" });
+      setState({ kind: "unavailable" });
     }
   }, []);
 
@@ -148,51 +152,21 @@ export default function SpawterTabScreen() {
         return;
       }
 
-      // 1. Build row manuel — buildManualSpawt attend les coords spawter
-      //    (PRD §7.2 anti-fraude trigger `frequence_meme_lieu` compare
-      //    distance spawter↔lieu, donc on lui passe les coords USER).
-      const row = buildManualSpawt(
-        spawter.id,
-        item.place.id,
-        userLat,
-        userLng,
-      );
-      // 2. Override `is_verified` selon la distance réelle spawter → lieu
-      //    (buildManualSpawt par défaut force false — Story 4.10 décide
-      //    is_verified=true uniquement si dans la zone de 100m). Le
-      //    `geolocation_source` doit suivre la sémantique :
-      //    - dans la zone → "gps" (la position user est exploitable)
-      //    - hors zone → "manual" (passive_checkin, distance approximative)
-      const verifiedRow = {
-        ...row,
-        is_verified: item.is_within_spawt_range,
-        geolocation_source: item.is_within_spawt_range
-          ? ("gps" as const)
-          : ("manual" as const),
-        geolocation_lat: userLat,
-        geolocation_lng: userLng,
-      };
-
-      // 3. Analytics avant navigation.
-      track({
-        name: "nearby_spawt_tapped",
-        properties: {
-          place_id: item.place.id,
-          distance_m: Math.round(item.distance_km * 1000),
-          is_within_range: item.is_within_spawt_range,
-        },
-      });
-
-      // 4. Persist local + fire-and-forget Supabase.
-      await registerSpawt(verifiedRow);
-      void upsertSpawt(verifiedRow).catch((err) => {
-        if (__DEV__) console.warn("[spawter-tab] upsertSpawt failed", err);
-      });
-
-      // 5. Navigate vers le modal review (Story 4.5).
-      router.push(`/review/${verifiedRow.id}`);
+      if (busy.current) return;
+      busy.current = true; setStarting(true);
+      try {
+        const row = await startManualReview({
+          spawterId: spawter.id, placeId: item.place.id, lat: userLat, lng: userLng,
+          verified: item.is_within_spawt_range, spawts, register: registerSpawt,
+        });
+        track({ name: "nearby_spawt_tapped", properties: { place_id: item.place.id, distance_m: Math.round(item.distance_km * 1000), is_within_range: item.is_within_spawt_range } });
+        router.push({ pathname: "/review/[spawt_id]", params: { spawt_id: row.id, place_name: item.place.name } });
+      } catch (err) {
+        if (__DEV__) console.warn("[spawter-tab] start review failed", err);
+        Alert.alert(t("review.error_title"), t("review.start_failed"));
+      } finally { busy.current = false; setStarting(false); }
     },
-    [spawter, registerSpawt, router],
+    [spawter, spawts, registerSpawt, router, t],
   );
 
   return (
@@ -297,6 +271,7 @@ export default function SpawterTabScreen() {
           </View>
         ) : null}
 
+        <DataLoadNotice loading={false} failed={state.kind === "unavailable"} onRetry={() => void loadNearby()} />
         {state.kind === "empty" ? (
           <View
             style={{ alignItems: "center", paddingVertical: theme.spacing.xl }}
@@ -366,6 +341,7 @@ export default function SpawterTabScreen() {
                 <NearbyCard
                   key={item.place.id}
                   item={item}
+                  disabled={starting}
                   onSpawt={() => void handleSpawt(item, userLat, userLng)}
                 />
               );
@@ -378,10 +354,11 @@ export default function SpawterTabScreen() {
 
 interface NearbyCardProps {
   item: NearbyPlace;
+  disabled?: boolean;
   onSpawt: () => void;
 }
 
-function NearbyCard({ item, onSpawt }: NearbyCardProps) {
+function NearbyCard({ item, onSpawt, disabled }: NearbyCardProps) {
   const theme = useTheme();
   const { t } = useTranslation();
   const { place } = item;
@@ -436,7 +413,7 @@ function NearbyCard({ item, onSpawt }: NearbyCardProps) {
             ...theme.typography.preset.h3,
             color: theme.colors.text.primary,
           }}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {place.name}
         </Text>
@@ -470,7 +447,11 @@ function NearbyCard({ item, onSpawt }: NearbyCardProps) {
           accessibilityLabel={t("fab.nearby_cta_spawt")}
           testID={`spawter-tab-cta-${place.id}`}
           onPress={onSpawt}
+          disabled={disabled}
+          accessibilityState={{ disabled, busy: disabled }}
           style={{
+            opacity: disabled ? 0.5 : 1,
+            minHeight: 44,
             marginTop: theme.spacing.sm,
             paddingHorizontal: theme.spacing.md,
             paddingVertical: theme.spacing.sm,

@@ -34,8 +34,10 @@ jest.mock("react-i18next", () => ({
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockCanGoBack = jest.fn(() => true);
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack, push: mockPush, replace: jest.fn() }),
+  useRouter: () => ({ back: mockBack, push: mockPush, replace: mockReplace, canGoBack: mockCanGoBack }),
   useLocalSearchParams: () => ({ id: "11111111-1111-4111-8111-111111111111" }),
 }));
 
@@ -151,6 +153,7 @@ async function flushMicrotasks(): Promise<void> {
 describe("PlaceDetailScreen — R22 (fiche lieu sans données ne crash pas)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCanGoBack.mockReturnValue(true);
   });
 
   it("rend la fiche à travers loading → loaded sans throw (place vide)", async () => {
@@ -166,7 +169,7 @@ describe("PlaceDetailScreen — R22 (fiche lieu sans données ne crash pas)", ()
       .findAllByType(
         (jest.requireActual("react-native") as typeof import("react-native")).Text,
       )
-      .map((n: { props: { children: unknown } }) => n.props.children);
+      .map((n: { props: { children?: unknown } }) => n.props.children);
     expect(JSON.stringify(texts)).toContain("Chez Test");
     // Zéro avis → chip « pas encore noté » (état vide élégant, pas de crash).
     expect(JSON.stringify(texts)).not.toContain("NaN");
@@ -186,7 +189,7 @@ describe("PlaceDetailScreen — R22 (fiche lieu sans données ne crash pas)", ()
       .findAllByType(
         (jest.requireActual("react-native") as typeof import("react-native")).Text,
       )
-      .map((n: { props: { children: unknown } }) => n.props.children);
+      .map((n: { props: { children?: unknown } }) => n.props.children);
     expect(JSON.stringify(texts)).toContain("place.not_found");
 
     TestRenderer.act(() => renderer.unmount());
@@ -210,4 +213,27 @@ it("signale l'échec d'enregistrement du favori sans annoncer un succès", async
   expect(analytics).not.toHaveBeenCalledWith(expect.objectContaining({ name: "place_saved" }));
   TestRenderer.act(() => renderer.unmount());
   alert.mockRestore();
+});
+
+describe("PlaceDetailScreen — retour après ouverture directe ou rechargement", () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it.each([false, true])("utilise une destination sûre quand canGoBack=%s", async (canGoBack) => {
+    mockCanGoBack.mockReturnValue(canGoBack);
+    mockPlace = emptyDataPlace();
+    let renderer!: ReturnType<typeof TestRenderer.create>;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(<PlaceDetailScreen />); });
+    await flushMicrotasks();
+    const button = renderer.root.findAllByProps({ accessibilityLabel: "place.back" }).find((n: { props: { onPress?: unknown } }) => typeof n.props.onPress === "function");
+    expect(button).toBeDefined();
+    TestRenderer.act(() => { button!.props.onPress(); });
+    if (canGoBack) {
+      expect(mockBack).toHaveBeenCalledTimes(1);
+      expect(mockReplace).not.toHaveBeenCalled();
+    } else {
+      expect(mockBack).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith("/");
+    }
+    TestRenderer.act(() => renderer.unmount());
+  });
 });

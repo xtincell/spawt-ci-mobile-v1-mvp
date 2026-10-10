@@ -6,6 +6,7 @@
 // quality 0.8 (un avatar rond de 80 px n'a pas besoin de plus).
 
 import { supabase } from "./supabase";
+import { readUploadBody } from "./upload-body";
 
 /** Largeur cible de l'avatar compressé (px). */
 const AVATAR_MAX_WIDTH = 512;
@@ -50,9 +51,8 @@ export async function uploadAvatar(
 ): Promise<string | null> {
   const path = avatarPath(spawter_id);
   try {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const { error } = await supabase.storage.from("avatars").upload(path, blob, {
+    const body = await readUploadBody(uri);
+    const { error } = await supabase.storage.from("avatars").upload(path, body, {
       contentType: "image/jpeg",
       upsert: true,
     });

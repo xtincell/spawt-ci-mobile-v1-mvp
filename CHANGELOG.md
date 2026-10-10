@@ -4,6 +4,95 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Android 1.1.1 — affichage, Moka et avis (2026-10-10)
+
+Le splash natif utilise le repère-carte du pack fourni « SPAWT fenêtre V2 »,
+sur fond blanc. Sur Android, ses tracés sont convertis en VectorDrawable et
+cadrés pour conserver la pointe entière dans le masque du splash système.
+Le PNG original reste copié à l’identique. L’ouverture reprend ensuite les
+images exactes de la vidéo fournie : surgissement, rebond, étoiles et clin d’œil.
+Deux textures PNG contiennent les 69 cadres, chargés avant le retrait du splash.
+Le mouvement se joue sur le thread UI avec Reanimated, dans 200 × 320 dp, sans
+rendu React par image ni décodeur vidéo. Une frame tardive ralentit la séquence
+pour préserver ses poses. Sa durée nominale de 1,15 seconde précède une sortie
+de 260 ms ; le passage tactile et la réduction des mouvements restent accessibles.
+La restauration du compte se poursuit derrière l’ouverture. Le retrait réel du
+splash attend le module Android SpawtOpening, deux frames natives puis React.
+Les erreurs de chargement et l’absence de fin ont un secours borné.
+La politique OTA `nativeVersion` isole les APK avec le nouveau module natif.
+Le contrôle vidéo exige le surgissement, le clin d’œil puis sa réouverture et
+l’absence de surface noire. Les lecteurs vidéo intermédiaires ont été refusés
+après inspection. Le build final 27 réussit la recette native : surgissement,
+œil fermé puis rouvert, aucune surface noire et restauration du compte.
+Les 31 contrôles photos/réseau réussissent et les captures sont inspectées.
+Les comptes et fichiers de recette sont supprimés par les fonctions auditées ;
+les deux démos fournies et les 30 avis fondateurs sont conservés.
+
+Les deux entrées « Spawt le ! » et Spawter créent ou reprennent la même visite
+avant d'ouvrir le formulaire avec le nom du lieu. Cuisine, cadre et service
+sont obligatoires dans le nouveau formulaire ; leur moyenne est affichée à
+une décimale, avec un entier compatible pour les anciennes APK. Les brouillons
+et photos survivent à la fermeture ; un upload refusé garde tout le brouillon.
+La file fusionne visite et avis et distingue publication distante et attente.
+Une mise à jour à zéro ligne n'est plus acquittée. Les avis se rafraîchissent
+après publication et reprise de la file.
+
+Les titres des cartes disposent de deux lignes, l'interlignage Klinsman est
+corrigé, les badges se replient et les boutons restent dans le flux au-dessus
+du clavier. Un avatar partagé cadre le visage de Moka ; les photos personnelles
+et les erreurs de chargement utilisent le même composant, y compris en Meute.
+Les uploads Android utilisent les octets Expo FileSystem.
+
+Migrations 0071–0074 déployées après sauvegarde et recette SQL annulée : notes
+détaillées, attribution publique des 30 avis fondateurs à Alexandre (profil
+mobile confirmé), accès signé aux seules photos d'avis visibles et réparation
+du journal de purge. Le propriétaire technique, les poids et les compteurs
+fondateurs restent conservés. Les jointures des anciennes APK restent valides.
+Les retours arrière sont fournis, avec protection de l'audit historique.
+
+La recette native a révélé puis corrigé le débordement de la carte profil avec
+le texte agrandi, le bouton couvert par le clavier Android et les pluriels
+absents de Hermes. Les libellés du formulaire et les onglets sont lisibles.
+La carte native calcule sa hauteur depuis la largeur mesurée, sans ratio qui
+élargit aussi la carte.
+Les en-têtes d’accueil/favoris se replient et les modes adaptent leur largeur
+au texte système pour garder les mots complets.
+Un échec d’envoi est immédiatement signalé par une alerte, même quand le
+message du formulaire se trouve hors de la zone visible.
+La file relance automatiquement un avis même si le réseau revient avant
+la fin de son délai de réessai.
+
+Contrôles source : 1 017 tests mobile et 191 tests admin réussis (4 mobile
+ignorés), TypeScript, vocabulaire, i18n et conformité réussis. La recette
+Android native et le lien du nouvel APK sont consignés dans RELEASES.md.
+
+## Audit avant recompilation et comptes démo alpha (2026-10-09)
+
+L’ouverture ne redémarre plus ses animations lors des rendus du layout et attend
+la restauration/navigation avant de révéler l’écran. Réduction des mouvements,
+secours des polices, échec de restauration et relais du splash natif sont traités.
+Les erreurs de lecture des lieux affichent une relance au lieu d’un faux vide ;
+une actualisation conserve le dernier résultat et ignore les réponses obsolètes.
+La reprise d’un compte récupère aussi historique et collection, avec isolation
+des sessions dans les caches, flags et progression.
+Le parcours connecté a aussi révélé puis corrigé un plantage du carrousel,
+un retour sans historique sur fiche et des boutons HTML imbriqués dans le profil.
+
+La console retrouve pagination, filtres cohérents, erreurs visibles et auth via
+`current_staff()`. La migration 0070 ajoute les profils `is_demo`, protégés côté
+serveur, et leur suppression admin auditée avec confirmation exacte du nom.
+Les titres suivent désormais la suppression du compte sans autoriser leur
+effacement direct. Deux démos sans avis public sont provisionnées sur l’alpha ;
+elles sont exclues des métriques de comptes. Script de création idempotent fourni.
+
+Les partages ouvrent les routes de l’app installée au lieu du domaine indisponible
+`spawt.ci`. La vérification EAS bloque aussi les réponses réseau indéterminées.
+Les modules Expo sont alignés sur SDK 55. Détails des contrôles et limites de
+recette : `documentation/AUDIT_AVANT_COMPILATION_2026-10-09.md`.
+Après validation de la CI, APK Android build 9 compilé et disponible le 9 octobre
+depuis `2e28acb` (liens dans `RELEASES.md`). Aucun IPA ni OTA publié ; recette sur
+téléphone encore à faire.
+
 ## Reprendre le compte après connexion (2026-10-08)
 
 Après OTP, l’app relit le profil et le Palais par les RLS existantes. Un compte

@@ -7,6 +7,7 @@
 // M9 audit best-effort post-mutation, m11/m14 toast + disable on busy).
 
 import { useState } from "react";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useTable, useUpdate, useGetIdentity, useInvalidate } from "@refinedev/core";
 import { ReasonModal, FAUX_PAS_REVIEW } from "../../components/ReasonModal";
 import { logAuditActionBestEffort } from "../../lib/audit";
@@ -63,7 +64,7 @@ export const SignalementsList = () => {
   const [busyReportId, setBusyReportId] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
 
-  const { tableQuery } = useTable<ReportRow>({
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<ReportRow>({
     resource: "review_reports",
     pagination: { pageSize: 50 },
     sorters: { initial: [{ field: "created_at", order: "desc" }] },
@@ -76,7 +77,7 @@ export const SignalementsList = () => {
   const { mutateAsync: update } = useUpdate();
   const invalidate = useInvalidate();
 
-  const rows = (tableQuery.data?.data ?? []) as ReportRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as ReportRow[];
   const canModerate = identity?.role === "admin" || identity?.role === "moderator";
 
   function showToast(t: Toast) {
@@ -199,13 +200,15 @@ export const SignalementsList = () => {
         </div>
       ) : null}
       <div style={{ display: "flex", gap: 12, margin: "16px 0" }}>
-        <button type="button" onClick={() => setTab("pending")}>
+        <button type="button" onClick={() => { setTab("pending"); setCurrentPage(1); }}>
           En attente
         </button>
-        <button type="button" onClick={() => setTab("resolved")}>
+        <button type="button" onClick={() => { setTab("resolved"); setCurrentPage(1); }}>
           Résolus
         </button>
       </div>
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
         <thead>
           <tr>

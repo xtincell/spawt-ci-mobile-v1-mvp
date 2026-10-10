@@ -1,0 +1,22 @@
+jest.mock("../data-source", () => ({ isSupabaseConfigured: true }));
+jest.mock("../data-source.supabase", () => ({}));
+const mockSave = jest.fn();
+jest.mock("../offline-queue", () => ({ saveSpawtToSupabaseOrEnqueue: (...args: unknown[]) => mockSave(...args) }));
+import { startManualReview } from "../manual-review";
+import type { SpawtCheckin } from "../../types/spawt";
+test("deux appels concurrents créent une seule visite et attendent sa persistance", async () => {
+ let release!: (value: { persisted: "remote" }) => void;
+ mockSave.mockImplementation(() => new Promise(resolve => { release = resolve; }));
+ const register = jest.fn().mockResolvedValue(undefined);
+ const input = { spawterId: "alex", placeId: "kaiten", lat: null, lng: null, spawts: [], register };
+ const a = startManualReview(input); const b = startManualReview(input);
+ expect(a).toBe(b);
+ while (!release) await Promise.resolve();
+ expect(register).toHaveBeenCalledTimes(1);
+ expect(register.mock.calls[0]?.[0]).toMatchObject({ geolocation_lat: null, geolocation_lng: null, is_verified: false });
+ release({ persisted: "remote" }); const row = await a;
+ expect(mockSave).toHaveBeenCalledWith({ kind: "spawt_insert", row });
+ mockSave.mockResolvedValue({ persisted: "queued" }); register.mockClear();
+ const resumed = await startManualReview({ ...input, spawts: [row] as SpawtCheckin[] });
+ expect(resumed.id).toBe(row.id); expect(register).not.toHaveBeenCalled();
+});

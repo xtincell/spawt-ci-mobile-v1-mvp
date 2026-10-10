@@ -108,7 +108,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
               color: theme.colors.text.primary,
               marginBottom: 2,
             }}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {displayName}
           </Text>
@@ -118,7 +118,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
               color: theme.colors.text.secondary,
               marginBottom: theme.spacing.xs,
             }}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {locked
               ? t("paywall.locked_hint", { price: GOLD_PRICE_LABEL_TTC })

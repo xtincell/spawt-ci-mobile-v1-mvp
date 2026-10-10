@@ -64,11 +64,13 @@ jest.mock("../../src/store/spawter-store", () => {
   const fn = (
     selector: (s: {
       spawter: Spawter | null;
+      spawts: [];
       registerSpawt: typeof mockRegisterSpawt;
     }) => unknown,
   ) =>
     selector({
       spawter: mockSpawter,
+      spawts: [],
       registerSpawt: mockRegisterSpawt,
     });
   return { useSpawterStore: fn };
@@ -370,7 +372,7 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
       }),
     );
 
-    expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/review\//));
+    expect(mockPush).toHaveBeenCalledWith(expect.objectContaining({ pathname: "/review/[spawt_id]" }));
   });
 
   it("Tap CTA sur lieu >100m → registerSpawt(is_verified=false) + is_within_range=false", async () => {

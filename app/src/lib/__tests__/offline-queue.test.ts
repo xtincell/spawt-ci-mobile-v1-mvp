@@ -273,3 +273,54 @@ describe("saveSpawtToSupabaseOrEnqueue", () => {
 
 
 });
+
+describe("publication durable d'un avis", () => {
+  it("fusionne la visite en attente avec son avis au lieu de rejouer une visite sans note", async () => {
+    await enqueue({ kind: "spawt_insert", row: makeRow("review") });
+    await enqueue({ kind: "spawt_update", row_id: "review", patch: { note_etoiles: 4, note_cuisine: 5, note_cadre: 4, note_service: 4 } });
+    const entries = await inspect();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ kind: "spawt_insert", row: { note_etoiles: 4, note_cuisine: 5 } });
+    const upsertSpawt = jest.fn().mockResolvedValue(true);
+    setSyncBackend({ upsertSpawt, updateSpawt: jest.fn(), upsertSpawter: jest.fn() });
+    await flush();
+    expect(upsertSpawt).toHaveBeenCalledTimes(1);
+    expect(upsertSpawt.mock.calls[0]?.[0].note_cuisine).toBe(5);
+    expect(await inspect()).toHaveLength(0);
+  });
+  it("l'ACK d'une ancienne visite en vol ne supprime pas le nouvel avis", async () => {
+    let ack!: (ok: boolean) => void;
+    const upsertSpawt = jest.fn().mockImplementationOnce(() => new Promise<boolean>(resolve => { ack = resolve; })).mockResolvedValue(true);
+    setSyncBackend({ upsertSpawt, updateSpawt: jest.fn(), upsertSpawter: jest.fn() });
+    await enqueue({ kind: "spawt_insert", row: makeRow("race-review") });
+    const sending = flush();
+    while (!ack) await Promise.resolve();
+    await enqueue({ kind: "spawt_insert", row: { ...makeRow("race-review"), note_etoiles: 4, note_cuisine: 5, note_cadre: 4, note_service: 4 } });
+    ack(true); await sending;
+    expect(await inspect()).toHaveLength(1);
+    await flush();
+    expect(upsertSpawt.mock.calls[1]?.[0].note_cuisine).toBe(5);
+    expect(await inspect()).toHaveLength(0);
+  });
+});
+
+it("retente automatiquement après un retour réseau plus rapide que le backoff", async () => {
+  jest.useFakeTimers();
+  let online = true;
+  let network!: () => void;
+  const upsertSpawt = jest.fn().mockResolvedValueOnce(false).mockResolvedValue(true);
+  setSyncBackend({ upsertSpawt, updateSpawt: jest.fn(), upsertSpawter: jest.fn() });
+  const { initOfflineQueue } = await import("../offline-queue");
+  const stop = initOfflineQueue({ isOnline: () => Promise.resolve(online), subscribe: cb => { network = cb; return () => undefined; } });
+  try {
+    await enqueue({ kind: "spawt_insert", row: makeRow("early-network") });
+    await jest.advanceTimersByTimeAsync(250);
+    expect(upsertSpawt).toHaveBeenCalledTimes(1);
+    online = false; network(); online = true; network();
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(upsertSpawt).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(upsertSpawt).toHaveBeenCalledTimes(2);
+    expect(await inspect()).toHaveLength(0);
+  } finally { stop(); jest.useRealTimers(); }
+});

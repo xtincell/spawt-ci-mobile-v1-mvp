@@ -16,6 +16,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { usePlaces } from "../../src/lib/use-places";
+import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { ChatBubble } from "../../src/components/ChatBubble";
 import { DataSourceBanner } from "../../src/components/DataSourceBanner";
@@ -30,7 +32,6 @@ import { UneCarousel } from "../../src/components/UneCarousel";
 import { FeuilletonRow } from "../../src/components/FeuilletonRow";
 import { Ico } from "../../src/components/primitives/Ico";
 import {
-  listPlaces,
   listPlaceActivity,
   type PlaceWithAdn,
 } from "../../src/lib/data-source";
@@ -96,24 +97,12 @@ export default function HomeD() {
   const spawts = useSpawterStore((s) => s.spawts);
   const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
 
-  const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { places, loading, failed, reload } = usePlaces();
+  const refreshing = loading && places.length > 0;
   const [selectedMode, setSelectedMode] = useState<ModeKey | null>(null);
 
   const feedViewedRef = useRef(false);
   const firstViewRef = useRef(false);
-
-  const fetchPlaces = async () => {
-    const data = await listPlaces();
-    setPlaces(data);
-    setLoading(false);
-    setRefreshing(false);
-  };
-
-  useEffect(() => {
-    void fetchPlaces();
-  }, []);
 
   const visited = useMemo(
     () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
@@ -151,7 +140,7 @@ export default function HomeD() {
 
   // feed_viewed — 1× par mount (dedup via ref).
   useEffect(() => {
-    if (loading || feedViewedRef.current) return;
+    if (loading || failed || feedViewedRef.current) return;
     feedViewedRef.current = true;
     // `top_score` est borné [50, 99] (PRD §8.3). Quand `ranked` est vide on
     // remonte `null` pour que la funnel Kidam ne confonde pas "feed vide"
@@ -165,7 +154,7 @@ export default function HomeD() {
         palais_confidence: palais.confidence_score,
       },
     });
-  }, [loading, ranked, palais]);
+  }, [loading, failed, ranked, palais]);
 
   // feed_first_view — si spawter post-onboarding pre-1er spawt.
   // Gate strict : spawter must exist AND total_spawts === 0. L'ancienne
@@ -173,7 +162,7 @@ export default function HomeD() {
   // (hydrate en cours), ce qui faisait fail-open : l'event se posait sans
   // user identifié. On wait que le store soit hydraté.
   useEffect(() => {
-    if (loading || firstViewRef.current) return;
+    if (loading || failed || firstViewRef.current) return;
     if (spawter === null) return;
     if (spawter.total_spawts !== 0) return;
     void AsyncStorage.getItem(FIRST_FEED_KEY)
@@ -192,7 +181,7 @@ export default function HomeD() {
       .catch((err) => {
         if (__DEV__) console.warn("[home] feed_first_view storage failed", err);
       });
-  }, [loading, spawter, ranked]);
+  }, [loading, failed, spawter, ranked]);
 
   // Sprint 2 — hub des modes plein écran (post-MVP #1/#3). Flags OFF par
   // défaut → `modeEntries` vide → ModeStories rend EXACTEMENT comme avant
@@ -304,15 +293,14 @@ export default function HomeD() {
   };
 
   const onRefresh = () => {
-    setRefreshing(true);
     track({
       name: "feed_refreshed",
       properties: { places_count: places.length },
     });
-    void fetchPlaces();
+    void reload();
   };
 
-  if (loading) {
+  if (loading && places.length === 0) {
     return (
       <SafeAreaView
         edges={["top"]}
@@ -328,13 +316,20 @@ export default function HomeD() {
     );
   }
 
-  if (ranked.length === 0 && selectedMode !== null) {
+  if (failed && places.length === 0) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
+      <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
+    </SafeAreaView>;
+  }
+
+  if (ranked.length === 0) {
     return (
       <SafeAreaView
         edges={["top"]}
         style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
       >
         <DataSourceBanner />
+        <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
         <View
           style={{
             flexDirection: "row",
@@ -366,6 +361,7 @@ export default function HomeD() {
       style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
     >
       <DataSourceBanner />
+      <DataLoadNotice loading={false} failed={failed} onRetry={() => void reload()} />
       <ScrollView
         refreshControl={
           <RefreshControl

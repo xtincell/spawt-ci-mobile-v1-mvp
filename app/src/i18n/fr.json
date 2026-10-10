@@ -9,7 +9,10 @@
     "loading": "Un instant…",
     "error_generic": "Quelque chose a couiné. Réessaie.",
     "error_network": "Pas de réseau. Le Chat patiente.",
-    "dataSourceBanner": "Mode démo · données locales · Supabase pas encore branché"
+    "data_read_error": "Je n’ai pas pu charger les données. Réessaie dans un instant.",
+    "retry": "Réessayer",
+    "dataSourceBanner": "Mode démo · données locales · Supabase pas encore branché",
+    "ok": "OK"
   },
   "nav": {
     "feed": "Feed",
@@ -196,17 +199,48 @@
   "review": {
     "title": "Ton avis sur {{place_name}}",
     "subtitle": "Le Chat écoute.",
-    "stars_hint": "De 1 (jamais retour) à 5 (à refaire vite)",
+    "stars_hint": "Note les trois critères pour calculer la note globale.",
     "text_placeholder": "En 1 phrase, ce que tu retiens ?",
-    "cta_save": "Enregistrer mon avis",
-    "cta_later": "Plus tard",
+    "cta_save": "Publier mon avis",
+    "cta_later": "Fermer et garder le brouillon",
     "photo_add": "Ajouter une photo",
     "submit_success_toast": "Ton avis a renforcé l'ADN de {{place_name}}.",
     "permission_title": "Permission requise",
     "permission_body": "Pour ajouter une photo, autorise l'accès à ta galerie.",
     "section_note": "Ta note",
     "section_tags": "Mots-clés",
-    "section_text": "Ton mot"
+    "section_text": "Ton mot",
+    "section_photos": "Photos (0–3)",
+    "title_fallback": "Ton avis sur ce lieu",
+    "spawt_not_found": "Ce spawt n’est pas disponible. Rouvre la fiche du lieu pour reprendre ton avis.",
+    "note_cuisine": "Cuisine",
+    "note_cadre": "Cadre",
+    "note_service": "Service",
+    "global_rating": "Note globale : {{rating}} / 5",
+    "ratings_detail": "Cuisine {{cuisine}} · Cadre {{cadre}} · Service {{service}}",
+    "rate_label": "{{criterion}} : {{count}} sur 5",
+    "rate_label_one": "{{criterion}} : {{count}} sur 5",
+    "rate_label_other": "{{criterion}} : {{count}} sur 5",
+    "error_title": "Impossible d’ouvrir ton avis",
+    "start_failed": "Ton spawt n’a pas pu être enregistré. Réessaie.",
+    "draft_failed": "Impossible de lire ou d’enregistrer ton brouillon. Ferme puis rouvre cet écran.",
+    "photo_failed": "La photo n’a pas pu être ajoutée. Réessaie.",
+    "photo_remove": "Retirer",
+    "publish_failed": "L’envoi a échoué. Ton brouillon et tes photos sont conservés. Vérifie ta connexion puis réessaie.",
+    "publish_error_title": "Avis non envoyé",
+    "published_title": "Avis publié",
+    "published_body": "Ton avis est visible sur la fiche du lieu.",
+    "queued_title": "Avis en attente d’envoi",
+    "queued_body": "Ton avis est enregistré sur cet appareil. Il sera envoyé dès le retour de la connexion.",
+    "demo_body": "Ton avis est enregistré dans la démo sur cet appareil.",
+    "resume": "Écrire ou reprendre mon avis",
+    "tags": {
+      "copieux": "Copieux",
+      "rapide": "Rapide",
+      "ambiance_top": "Ambiance top",
+      "cher": "Cher",
+      "a_refaire": "À refaire"
+    }
   },
   "offline_queue": {
     "title": "En attente de synchronisation",
@@ -341,7 +375,7 @@
   "share": {
     "button_label": "Partager",
     "dialog_title": "Partager via",
-    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\n{{url}}\n\nvia SPAWT — la bande du goût à Abidjan.",
+    "message_template": "🍽️ {{name}} — {{neighborhood}} · {{cuisine}}\n★ {{rating}} pondérée · {{score}}% pour ton Palais\n\nFiche dans l’app SPAWT (à installer) : {{url}}\n\nvia SPAWT — la bande du goût à Abidjan.",
     "fallback_no_phone": "WhatsApp n'a pas pu s'ouvrir. Copie le lien manuellement.",
     "copy_link": "Copier le lien"
   },
@@ -861,7 +895,9 @@
     "day_thu": "Jeu",
     "day_fri": "Ven",
     "day_sat": "Sam",
-    "day_sun": "Dim"
+    "day_sun": "Dim",
+    "reviews_error": "Les avis ne sont pas disponibles pour le moment.",
+    "review_photo_alt": "Photo jointe à cet avis"
   },
   "place_activity": {
     "section_title": "En ce moment",
@@ -1030,7 +1066,8 @@
     "session_title": "Vote du crew",
     "code_label": "Ton code de crew",
     "code_hint": "Partage-le, le crew entre avec.",
-    "share_invite": "Rejoins mon crew sur SPAWT, code {{code}} — viens voter pour la table. {{url}}",
+    "share_invite": "Rejoins mon crew sur SPAWT. Code : {{code}}. Dans l’app : La Meute → Ton Crew → Rejoindre. Ouvrir dans SPAWT (app installée) : {{url}}. Pas encore l’app ? Demande le lien d’installation à la personne qui t’invite.",
+    "invite_pending_body": "Une autre bande t’invite. Copie ce code si besoin. Reprends puis quitte ton vote actuel pour rejoindre le nouveau ; le code restera prêt ici.",
     "cta_share_code": "Inviter sur WhatsApp",
     "members_title": "Le crew",
     "members_count_one": "{{count}} présent",
@@ -1062,7 +1099,7 @@
     "reveal_tiebreak_first": "Égalité — le premier spot proposé l'emporte.",
     "cta_see_place": "Voir la fiche",
     "cta_spawt_there": "Spawt-y",
-    "share_result": "Le crew a tranché sur SPAWT : {{place}}, {{neighborhood}}. Rendez-vous là-bas. {{url}}",
+    "share_result": "Le crew a tranché sur SPAWT : {{place}}, {{neighborhood}}. Rendez-vous là-bas. Fiche dans l’app SPAWT (app installée) : {{url}}",
     "cta_share_result": "Annoncer sur WhatsApp",
     "offline_banner": "Pas de réseau — les votes du crew t'arrivent dès que ça revient.",
     "cta_retry": "Réessayer",

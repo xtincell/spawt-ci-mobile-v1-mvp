@@ -2,15 +2,16 @@
 // Liste les lieux sauvegardés par le spawter. Tap → fiche lieu (ref=direct V1).
 // Tap heart → toggleSaved retire le favori, la carte disparaît.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
+import { usePlaces } from "../src/lib/use-places";
+import { DataLoadNotice } from "../src/components/DataLoadNotice";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { useSpawterStore } from "../src/store/spawter-store";
-import { listPlaces, type PlaceWithAdn } from "../src/lib/data-source";
 import { EmptyState } from "../src/components/EmptyState";
 import { ListeCard } from "../src/components/ListeCard";
 import { Ico } from "../src/components/primitives/Ico";
@@ -25,18 +26,9 @@ export default function SavedScreen() {
   const refreshSaved = useSpawterStore((s) => s.refreshSaved);
   const toggleSaved = useSpawterStore((s) => s.toggleSaved);
 
-  const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
+  const { places, loading, failed, reload } = usePlaces();
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const all = await listPlaces();
-      if (!cancelled) setPlaces(all);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+
 
   const saved = useMemo(
     () => places.filter((p) => savedPlaceIds.has(p.id)),
@@ -62,7 +54,7 @@ export default function SavedScreen() {
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ minWidth: 44, minHeight: 44, justifyContent: "center" }}
+          style={{ minWidth: 44, minHeight: 44, flexShrink: 0, justifyContent: "center" }}
         >
           <Ico name="arrow-left" size={22} />
         </Pressable>
@@ -70,12 +62,15 @@ export default function SavedScreen() {
           style={{
             ...theme.typography.preset.h1,
             color: theme.colors.text.primary,
+            flex: 1,
+            minWidth: 0,
           }}
         >
           {t("saved.title")}
         </Text>
       </View>
 
+      <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
       {savedUnavailable && (
         <View style={{ padding: theme.spacing.base, gap: theme.spacing.sm }}>
           <Text accessibilityRole="alert" style={{ color: theme.colors.text.primary }}>
@@ -88,7 +83,7 @@ export default function SavedScreen() {
           </Pressable>
         </View>
       )}
-      {saved.length === 0 && !savedUnavailable ? (
+      {saved.length === 0 && !savedUnavailable && !loading && !failed ? (
         <EmptyState
           icon="heart"
           title={t("saved.empty_title")}

@@ -79,7 +79,7 @@ export const Layout = () => {
             to="/runbook"
             className={({ isActive }) => (isActive ? "active nav-doc" : "nav-doc")}
           >
-            Mode d'emploi
+            Mode d&apos;emploi
           </NavLink>
         </nav>
       </aside>

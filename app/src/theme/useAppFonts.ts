@@ -4,7 +4,7 @@
 // `tokens.ts` → `typography.preset.*`. Si une police échoue, l'app démarre
 // quand même : RN tombe sur la fallback système (San Francisco / Roboto).
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 
 // Garde-fou contre un splash infini si `useFonts` ne résout ni `loaded` ni
@@ -31,16 +31,14 @@ export function useAppFonts(): { fontsLoaded: boolean; fontError: Error | null }
   });
 
   const [timedOut, setTimedOut] = useState(false);
-  const timerStarted = useRef(false);
 
-  // Démarre le timer **une seule fois** au premier render. `fontError` retourné
+  // `fontError` retourné
   // par `useFonts` peut avoir une identité instable entre renders ; le mettre
   // dans `useEffect` deps recrée le setTimeout et empêche les 8s d'expirer.
-  // Booleans stables → deps stables.
+  // Booleans stables → deps stables. Le cleanup peut être suivi d'un nouveau
+  // setup en StrictMode : un verrou ref empêcherait de réarmer le timeout.
   useEffect(() => {
-    if (timerStarted.current) return;
     if (fontsLoaded || fontError) return;
-    timerStarted.current = true;
     const id = setTimeout(() => {
       if (__DEV__) {
         console.warn(

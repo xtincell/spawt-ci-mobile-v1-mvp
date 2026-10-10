@@ -5,9 +5,8 @@
 // Modal autonome : charge son inventaire à l'ouverture, zéro dépendance à
 // l'écran appelant au-delà du callback onSelect.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Modal,
   Pressable,
@@ -19,7 +18,9 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../../theme/ThemeProvider";
 import { Ico } from "../primitives/Ico";
-import { listPlaces, type PlaceWithAdn } from "../../lib/data-source";
+import { type PlaceWithAdn } from "../../lib/data-source";
+import { usePlaces } from "../../lib/use-places";
+import { DataLoadNotice } from "../DataLoadNotice";
 import { searchPlaces, EMPTY_FILTERS } from "../../lib/search";
 import { DEMO_LAT, DEMO_LNG } from "../../lib/demo-constants";
 import { useSpawterStore } from "../../store/spawter-store";
@@ -38,22 +39,7 @@ export function CrewPlacePicker({ visible, onClose, onSelect, alreadyProposedIds
   const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
 
   const [query, setQuery] = useState("");
-  const [inventory, setInventory] = useState<PlaceWithAdn[] | null>(null);
-
-  useEffect(() => {
-    if (!visible || inventory !== null) return;
-    let cancelled = false;
-    void listPlaces()
-      .then((places) => {
-        if (!cancelled) setInventory(places);
-      })
-      .catch(() => {
-        if (!cancelled) setInventory([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, inventory]);
+  const { places: inventory, loading, failed, reload } = usePlaces(visible);
 
   const results = useMemo(() => {
     if (!inventory) return [];
@@ -184,9 +170,8 @@ export function CrewPlacePicker({ visible, onClose, onSelect, alreadyProposedIds
             }}
           />
 
-          {inventory === null ? (
-            <ActivityIndicator color={theme.colors.brand.primary} />
-          ) : results.length === 0 ? (
+          <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
+          {(loading || failed) && inventory.length === 0 ? null : results.length === 0 ? (
             <Text
               style={{
                 ...theme.typography.preset.small,

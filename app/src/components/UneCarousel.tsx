@@ -42,6 +42,11 @@ export function UneCarousel({
   const cardWidth = screenWidth - 48;
   const [activeIndex, setActiveIndex] = useState(0);
   const trackedIdsRef = useRef<Set<string>>(new Set());
+  // FlatList web interdit de remplacer son callback de visibilité après le
+  // mount. Le feed peut changer son handler (mode, session, activité) : lire
+  // sa dernière version sans modifier l'identité fournie à la liste.
+  const onImpressionRef = useRef(onImpression);
+  onImpressionRef.current = onImpression;
 
   // Reset des impressions trackées quand la liste de unes change (refresh,
   // changement de mode) — sinon une carte revenue à l'affichage après filtrage
@@ -57,17 +62,18 @@ export function UneCarousel({
       if (typeof first?.index === "number") {
         setActiveIndex(first.index);
       }
-      if (!onImpression) return;
+      const reportImpression = onImpressionRef.current;
+      if (!reportImpression) return;
       for (const v of viewableItems) {
         const place = (v.item as PlaceWithScore | undefined)?.place;
         if (!place) continue;
         if (typeof v.index !== "number") continue; // ne pas confondre "position inconnue" avec "position 0"
         if (trackedIdsRef.current.has(place.id)) continue;
         trackedIdsRef.current.add(place.id);
-        onImpression(v.item as PlaceWithScore, v.index);
+        reportImpression(v.item as PlaceWithScore, v.index);
       }
     },
-    [onImpression],
+    [],
   );
 
   const viewabilityConfig = useRef({

@@ -44,7 +44,7 @@ export function FeuilletonRow({ places, onPlacePress, startIndex = 4, activity }
             >
               {num}
             </Text>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <ListeCard
                 place={{
                   ...p.place,

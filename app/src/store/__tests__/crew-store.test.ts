@@ -131,6 +131,19 @@ describe("crew-store — résolution (« Tranche »)", () => {
     expect(useCrewStore.getState().session?.status).toBe("open");
   });
 
+  it("le départage charge le store du Palais après l'initialisation de Crew", async () => {
+    await useCrewStore.getState().start(SELF);
+    await useCrewStore.getState().propose({ id: "pl-a", name: "A", neighborhood: "Cocody" });
+    const warning = jest.spyOn(console, "warn");
+    try {
+      const winner = await useCrewStore.getState().trancher();
+      expect(winner?.place_id).toBe("pl-a");
+      expect(warning).not.toHaveBeenCalledWith("[crew-store] buildHostTiebreak failed", expect.anything());
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
   it("trancher() résout : égalité sans Palais hôte → premier proposé", async () => {
     await useCrewStore.getState().start(SELF);
     await useCrewStore.getState().propose({ id: "pl-a", name: "A", neighborhood: "Cocody" });

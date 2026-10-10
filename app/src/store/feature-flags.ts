@@ -34,6 +34,7 @@ interface FeatureFlagsState {
   setScope: (scope: FeatureFlagScope) => void;
   setLocalOverride: (code: string, enabled: boolean) => void;
   clearLocalOverride: (code: string) => void;
+  reset: () => void;
 }
 
 function resolveFlags(
@@ -65,9 +66,11 @@ function resolveFlags(
   return result;
 }
 
-// Guard inflight : si deux callers déclenchent hydrate() simultanément, on
-// retourne la même promise — pas de race ni de last-write-wins clobber.
-let inflightPromise: Promise<void> | null = null;
+// Dedupe only for the same account. A late response from the previous
+// account must never restore its overrides after a sign-out/sign-in.
+let inflight: { owner: string | null; promise: Promise<void> } | null = null;
+let lastRows: FeatureFlag[] = [];
+let generation = 0;
 
 export const useFeatureFlagsStore = create<FeatureFlagsState>((set, get) => ({
   flags: {},
@@ -78,26 +81,39 @@ export const useFeatureFlagsStore = create<FeatureFlagsState>((set, get) => ({
   loading: false,
 
   hydrate: async (spawter_id) => {
-    if (inflightPromise) return inflightPromise;
-    inflightPromise = (async () => {
+    if (inflight?.owner === spawter_id) return inflight.promise;
+    const currentGeneration = ++generation;
+    if (get().spawterId !== spawter_id) {
+      lastRows = [];
+      set({ flags: {}, localOverrides: {}, lastSyncAt: null });
+    }
+    set({ loading: true, spawterId: spawter_id });
+    const isCurrent = () => generation === currentGeneration;
+    const promise = Promise.resolve().then(async () => {
       try {
-        set({ loading: true, spawterId: spawter_id });
         const rows = await listFeatureFlags(spawter_id);
+        if (!isCurrent()) return;
+        lastRows = rows;
         const { scope, localOverrides } = get();
         const flags = resolveFlags(rows, spawter_id, scope, localOverrides);
         set({ flags, lastSyncAt: Date.now(), loading: false });
+      } catch {
+        // A network failure preserves the last confirmed flags for this
+        // account and can be retried by the existing foreground/TTL refresh.
       } finally {
-        inflightPromise = null;
+        if (isCurrent()) {
+          set({ loading: false });
+          inflight = null;
+        }
       }
-    })();
-    return inflightPromise;
+    });
+    inflight = { owner: spawter_id, promise };
+    return promise;
   },
 
   setScope: (scope) => {
-    set({ scope });
-    // Re-resolve à partir des dernières rows en mémoire n'est pas possible
-    // ici (on n'a stocké que `flags` résolu). Le caller relance hydrate()
-    // après setScope si nécessaire.
+    const { spawterId, localOverrides } = get();
+    set({ scope, flags: resolveFlags(lastRows, spawterId, scope, localOverrides) });
   },
 
   setLocalOverride: (code, enabled) => {
@@ -111,8 +127,15 @@ export const useFeatureFlagsStore = create<FeatureFlagsState>((set, get) => ({
     set((s) => {
       const next = { ...s.localOverrides };
       delete next[code];
-      return { localOverrides: next };
+      return { localOverrides: next, flags: resolveFlags(lastRows, s.spawterId, s.scope, next) };
     });
+  },
+
+  reset: () => {
+    generation += 1;
+    inflight = null;
+    lastRows = [];
+    set({ flags: {}, localOverrides: {}, scope: "prod", spawterId: null, lastSyncAt: null, loading: false });
   },
 }));
 

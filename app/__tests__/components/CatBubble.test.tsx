@@ -11,11 +11,7 @@ import TestRenderer from "react-test-renderer";
 
 import { CatBubble, type CatBubbleVariant } from "../../src/components/primitives/CatBubble";
 
-type ReactTestRendererJSON = {
-  type: string;
-  props: { style?: unknown; [key: string]: unknown };
-  children: ReactTestRendererJSON[] | null;
-};
+type ReactTestRendererJSON = TestRenderer.ReactTestRendererJSON;
 
 function renderVariant(variant: CatBubbleVariant): ReactTestRendererJSON | ReactTestRendererJSON[] | null {
   let instance: { toJSON: () => ReactTestRendererJSON | ReactTestRendererJSON[] | null } | null = null;

@@ -10,6 +10,9 @@ module.exports = function (api) {
   return {
     presets: [["babel-preset-expo", { jsxImportSource: "react" }]],
     plugins: [
+      // Les polyfills Intl utilisent des blocs statiques. Expo les transforme
+      // pour Hermes ; cette entrée couvre aussi les tests Node et le web.
+      ["@babel/plugin-transform-class-static-block", { loose: true }],
       ...(api.env("test") ? ["./scripts/babel-jest-dynamic-import.cjs"] : []),
       // Transpile `import.meta` en polyfill — nécessaire pour le bundle web Expo
       // SDK 55 qui émet `import.meta` dans un <script> classique (sans

@@ -8,14 +8,22 @@
 // Moka (PNG only) — le logo carte ne contient pas le chat, sa vectorisation
 // est légitime (et demandée pour animer l'ouverture).
 
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 import { Animated, Easing, View } from "react-native";
-import Svg, { Circle, G, Path } from "react-native-svg";
+import Svg, { Circle, G, Path, type CircleProps, type GProps, type PathProps } from "react-native-svg";
 import { palette } from "../../theme/tokens";
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedG = Animated.createAnimatedComponent(G);
+// Animated ajoute collapsable=false pour les vues natives. Ce prop ne doit
+// pas arriver sur les éléments SVG du DOM (React 19 le signale comme erreur).
+const AnimatedPath = Animated.createAnimatedComponent(
+  forwardRef<Path, PathProps & { collapsable?: boolean }>(({ collapsable: _collapsable, ...props }, ref) => <Path ref={ref} {...props} />),
+);
+const AnimatedCircle = Animated.createAnimatedComponent(
+  forwardRef<Circle, CircleProps & { collapsable?: boolean }>(({ collapsable: _collapsable, ...props }, ref) => <Circle ref={ref} {...props} />),
+);
+const AnimatedG = Animated.createAnimatedComponent(
+  forwardRef<G<GProps>, GProps & { collapsable?: boolean }>(({ collapsable: _collapsable, ...props }, ref) => <G ref={ref} {...props} />),
+);
 
 // Longueurs de tracé (surestimées volontairement : l'interpolation atterrit
 // exactement à 0, le tracé est donc toujours complet en fin d'animation).
@@ -33,6 +41,9 @@ interface Props {
 }
 
 export function AnimatedLogoMark({ size = 200, delayMs = 0, onDone, testID }: Props) {
+  // Les changements du parent (session, fonts…) ne doivent pas rejouer le tracé.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   const pinDraw = useRef(new Animated.Value(0)).current;
   const mapOpacity = useRef(new Animated.Value(0)).current;
   const roadDraw = useRef(new Animated.Value(0)).current;
@@ -81,10 +92,10 @@ export function AnimatedLogoMark({ size = 200, delayMs = 0, onDone, testID }: Pr
       ),
     ]);
     sequence.start(({ finished }) => {
-      if (finished) onDone?.();
+      if (finished) onDoneRef.current?.();
     });
     return () => sequence.stop();
-  }, [delayMs, mapOpacity, onDone, pinDraw, roadDraw, starOpacities, sunScale]);
+  }, [delayMs, mapOpacity, pinDraw, roadDraw, starOpacities, sunScale]);
 
   const pinDashoffset = pinDraw.interpolate({ inputRange: [0, 1], outputRange: [PIN_LEN, 0] });
   const roadDashoffset = roadDraw.interpolate({ inputRange: [0, 1], outputRange: [ROAD_LEN, 0] });
