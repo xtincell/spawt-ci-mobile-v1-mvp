@@ -26,11 +26,17 @@ jobs:
           const {logFiles,...metadata}=build;
           console.log(JSON.stringify(metadata));
           let phase=null;
+          let task=null;
           for(const url of logFiles){
             const log=await (await fetch(url)).text();
             for(const line of log.split('\n')){
-              try { const entry=JSON.parse(line); phase=entry.buildPhase ?? entry.phase ?? phase; } catch {}
+              try {
+                const entry=JSON.parse(line);
+                phase=entry.buildPhase ?? entry.phase ?? phase;
+                const match=(entry.msg ?? entry.message ?? '').match(/> Task ([A-Za-z0-9_:.-]+)/);
+                if(match) task=match[1];
+              } catch {}
             }
           }
-          console.log(JSON.stringify({phase}));
+          console.log(JSON.stringify({phase,task}));
           JS
