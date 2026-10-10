@@ -4,7 +4,29 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
-## Android 1.1.1 — affichage, Moka et avis (2026-10-09)
+## Android 1.1.1 — affichage, Moka et avis (2026-10-10)
+
+Le splash natif utilise le repère-carte du pack fourni « SPAWT fenêtre V2 »,
+sur fond blanc. Sur Android, ses tracés sont convertis en VectorDrawable et
+cadrés pour conserver la pointe entière dans le masque du splash système.
+Le PNG original reste copié à l’identique. L’ouverture reprend ensuite les
+images exactes de la vidéo fournie : surgissement, rebond, étoiles et clin d’œil.
+Deux textures PNG contiennent les 69 cadres, chargés avant le retrait du splash.
+Le mouvement se joue sur le thread UI avec Reanimated, dans 200 × 320 dp, sans
+rendu React par image ni décodeur vidéo. Une frame tardive ralentit la séquence
+pour préserver ses poses. Sa durée nominale de 1,15 seconde précède une sortie
+de 260 ms ; le passage tactile et la réduction des mouvements restent accessibles.
+La restauration du compte se poursuit derrière l’ouverture. Le retrait réel du
+splash attend le module Android SpawtOpening, deux frames natives puis React.
+Les erreurs de chargement et l’absence de fin ont un secours borné.
+La politique OTA `nativeVersion` isole les APK avec le nouveau module natif.
+Le contrôle vidéo exige le surgissement, le clin d’œil puis sa réouverture et
+l’absence de surface noire. Les lecteurs vidéo intermédiaires ont été refusés
+après inspection. Le build final 27 réussit la recette native : surgissement,
+œil fermé puis rouvert, aucune surface noire et restauration du compte.
+Les 31 contrôles photos/réseau réussissent et les captures sont inspectées.
+Les comptes et fichiers de recette sont supprimés par les fonctions auditées ;
+les deux démos fournies et les 30 avis fondateurs sont conservés.
 
 Les deux entrées « Spawt le ! » et Spawter créent ou reprennent la même visite
 avant d'ouvrir le formulaire avec le nom du lieu. Cuisine, cadre et service
@@ -31,12 +53,16 @@ Les retours arrière sont fournis, avec protection de l'audit historique.
 La recette native a révélé puis corrigé le débordement de la carte profil avec
 le texte agrandi, le bouton couvert par le clavier Android et les pluriels
 absents de Hermes. Les libellés du formulaire et les onglets sont lisibles.
+La carte native calcule sa hauteur depuis la largeur mesurée, sans ratio qui
+élargit aussi la carte.
+Les en-têtes d’accueil/favoris se replient et les modes adaptent leur largeur
+au texte système pour garder les mots complets.
 Un échec d’envoi est immédiatement signalé par une alerte, même quand le
 message du formulaire se trouve hors de la zone visible.
 La file relance automatiquement un avis même si le réseau revient avant
 la fin de son délai de réessai.
 
-Contrôles source : 1 003 tests mobile et 191 tests admin réussis (4 mobile
+Contrôles source : 1 017 tests mobile et 191 tests admin réussis (4 mobile
 ignorés), TypeScript, vocabulaire, i18n et conformité réussis. La recette
 Android native et le lien du nouvel APK sont consignés dans RELEASES.md.
 

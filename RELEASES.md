@@ -10,7 +10,7 @@ build dans un bug report, recopie la ligne affichée dans l'app (écran Profil �
 
 ## Schéma de versioning (Story 7.1)
 
-- **Version app** : celle de `app/app.json`, actuellement `1.1.0`.
+- **Version app** : celle de `app/app.json`, actuellement `1.1.1`.
 - **`android.versionCode` / `ios.buildNumber`** : entier **N**, incrémenté à chaque APK publié.
 - **Format d'affichage canonique** : `vVERSION — build N (YYYY-MM-DD)`.
 - **Tag CI Android** : `build-android-YYYY-MM-DD-N` (N = `versionCode`). Pousser ce tag
@@ -32,6 +32,69 @@ Format d'une entrée :
 ```
 
 ---
+
+## v1.1.1 — build 27 — 2026-10-10
+
+**APK** : [téléchargement direct](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-10-27/spawt-1.1.1-build27.apk)
+· **Tag CI** : `local-build-android-2026-10-10-27`
+· **Source APK** : `6ba39d2b8b54c2bd7e5867b1dad6334a914df5f8`
+
+APK preview compilée, signée et validée sur Android 35, utilisant le backend alpha `https://api.spawt.online`.
+Elle reprend les corrections du build 9 et ajoute les corrections d’affichage,
+de profil et de publication des avis demandées après cette livraison.
+
+### Corrigé et nouveau
+
+- Splash natif blanc et ouverture du pack **SPAWT fenêtre V2** fourni :
+  repère vectoriel entier, surgissement, rebond, étoiles et clin d’œil de Moka.
+- Noms des lieux sur deux lignes dans les cartes et complets dans les fiches/formulaires ;
+  profil, en-têtes et boutons adaptés au texte agrandi. Le bouton de publication
+  reste au-dessus du clavier Android.
+- « Spawt le ! » et Spawter ouvrent le même formulaire après enregistrement de
+  la visite ; reprise du brouillon et protection contre les doubles appuis.
+- Trois notes obligatoires : **cuisine, cadre, service**. Leur moyenne est affichée
+  à une décimale : **5/4/4 → 4,3**. Les anciens avis gardent leur note simple.
+- Publication confirmée ou « en attente d’envoi » explicitement affichée ; reprise
+  automatique au retour réseau. Les erreurs gardent le brouillon et ses photos.
+- Vraies miniatures et uploads Android corrigés ; lecture des photos communautaires
+  par URLs signées dans un bucket privé.
+- **Moka par défaut** pour les profils sans photo ou une image défaillante ;
+  remplacement par une photo personnelle accessible.
+- Les **30 avis fondateurs** affichent Alexandre et son avatar, avec leur badge.
+  Leur propriétaire technique et leurs règles de comptage sont conservés.
+
+### Côté serveur et console
+
+Migrations compatibles 0071–0074 déployées après sauvegarde et tests aller-retour.
+Les anciennes APK peuvent encore lire et modifier une note simple.
+La [console publique](https://admin.spawt.online) est actualisée : auteur attribué,
+trois notes et suppression auditée des comptes démo après confirmation du nom.
+Les deux démos fournies précédemment restent disponibles.
+
+Les images officielles sont déjà renseignées côté base : **24 images, 10 couvertures**.
+Ces images sont également accessibles à l’ancienne APK.
+
+### Vérifié avant livraison
+
+- **1 017 tests mobile et 191 tests admin réussis** ; quatre tests mobile ignorés.
+  TypeScript, vocabulaire, i18n, lint/build admin et tests SQL réussis.
+- [Compilation signée du build 27 sur GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38019749515). Le quota cloud EAS gratuit est épuisé ; compilation locale avec la signature existante, sans souscription.
+- [Matrice native d’affichage du build 17](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37987169753) :
+  **165 contrôles réussis**, neuf planches inspectées, 320/360/393/430 dp avec
+  texte à 100/130/150 %. Bouton au-dessus du clavier dans les douze cas,
+  marge minimale de **56 dp**. Le build 27 conserve ces écrans et leur formulaire.
+- [Recette native finale du build 27](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38022121379) : **31 assertions réussies**, captures inspectées, deux comptes connectés, photos, réseau, avatar personnel et restauration. Ouverture fournie validée avec clin d’œil et réouverture ; aucune surface noire.
+- Signature identique à la release 9, empreinte et CRC vérifiés. Les comptes et fichiers de recette ont été nettoyés ; les deux démos fournies et les 30 fondateurs sont conservés.
+
+Voir le [rapport de recette et déploiement](./documentation/ANDROID_1_1_1_RECETTE.md).
+
+### Limitations connues
+
+Validation sur émulateur Android 35 avec de vraies sessions alpha et SMS simulé.
+Fluidité sur téléphone physique, SMS réel, GPS réel, notifications et liens
+externes reçus à froid restent à tester. Aucun IPA ni OTA publié.
+Followers, membre actif et nouvelles fonctions historiques restent pour une
+livraison distincte.
 
 ## v1.1.0 — build 9 — 2026-10-09
 
