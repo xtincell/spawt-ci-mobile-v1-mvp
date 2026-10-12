@@ -2,41 +2,10 @@ name: Android preview local build
 on:
   push:
     tags: ['local-build-android-*']
-    # Déclenchement ponctuel du build 28 ; à retirer dès admission du run.
-    branches: ['codex/audit-avant-compilation']
-    paths: ['documentation/android-build28.json']
 permissions:
   contents: read
 jobs:
-  build_target:
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      allowed: ${{ steps.check.outputs.allowed }}
-    steps:
-      - name: Vérifier le déclenchement ponctuel sans secret
-        id: check
-        env:
-          EXPECTED_BEFORE: adb12e452861dde5e4215551f82864da8f72ff67
-          EXPECTED_MESSAGE: 'ci(android): lancer build 28 [spawt28-adb12e4-20261012]'
-        run: |
-          python3 - <<'PYTHON'
-          import json,os
-          event=json.load(open(os.environ['GITHUB_EVENT_PATH']))
-          ref=os.environ['GITHUB_REF']
-          assert ref == 'refs/heads/codex/audit-avant-compilation', 'Branche inattendue'
-          assert event['before'] == os.environ['EXPECTED_BEFORE'], 'Source précédente inattendue'
-          assert not event.get('forced') and not event.get('deleted'), 'Push non linéaire'
-          head=event['head_commit']
-          assert head['id'] == event['after'] == os.environ['GITHUB_SHA'], 'Commit incohérent'
-          assert head['message'] == os.environ['EXPECTED_MESSAGE'], 'Identifiant de lancement inattendu'
-          assert len(event['commits']) == 1 and event['commits'][0]['id'] == head['id'], 'Un seul commit attendu'
-          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
-              output.write('allowed=true\n')
-          PYTHON
   build:
-    needs: build_target
-    if: needs.build_target.outputs.allowed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 55
     env:
