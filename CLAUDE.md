@@ -29,7 +29,7 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 
 ## Règles non négociables
 
-- **Vocabulaire** (enforced par `lint:vocab`) : jamais "restaurant", "check-in", "leaderboard", "user", "gamif*", "VTC/Uber/Bolt" dans le code/UI. Dire : lieu/spot, spawt, Spawter, la Meute, Le Guet, Djidji.
+- **Vocabulaire** (enforced par `lint:vocab`) : jamais "restaurant", "check-in", "leaderboard", "user", "gamif*", "VTC/Uber/Bolt" dans le code/UI. Dire : lieu/spot, spawt, Spawter, la bande, Le Guet, Djidji. Navigation française : Accueil. Conserver les identifiants techniques historiques (`meute`, `feed`) et le Crew privé distinct.
 - **Couleurs/typos** : source unique `app/src/theme/tokens.ts`. **Aucun hex ailleurs.** Palette canonique = brandbook (`documentation/ux/spawt-tokens.css`) : noir `#0A0A0A`, or `#C8A44E`, vert chat `#2D6B4F`, blanc cassé `#FAFAF8`. ⚠️ Les valeurs du PRD §15 (`#D4AF37`, `#50C878`, Instrument Serif/Manrope) sont **périmées** (erratum PRD v1.0.3 du 2026-05-14).
 - **Polices** : Klinsman (display) + Gotham (body). Piège : les `.otf` Klinsman embarquent les noms PostScript `KlinsmanTypefaceLight/Regular/Bold` — toujours référencer ces noms-là, pas les noms de fichiers.
 - **i18n** : toute string UI passe par `app/src/i18n/` (vérifié par `i18n:check`).

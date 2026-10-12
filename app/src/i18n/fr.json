@@ -15,7 +15,7 @@
     "ok": "OK"
   },
   "nav": {
-    "feed": "Feed",
+    "feed": "Accueil",
     "map": "Carte",
     "fab": "Spawter",
     "meute": "La bande",
@@ -69,7 +69,7 @@
     "premier_spawt_cta": "Continuer",
     "premier_spawt": {
       "title": "Premier Spawt",
-      "description": "Ton tout premier spawt vérifié. Le Chat t'a vu, la Meute sait que tu existes."
+      "description": "Ton tout premier spawt vérifié. Le Chat t'a vu, la bande sait que tu existes."
     },
     "traversee": {
       "title": "La Traversée",
@@ -125,7 +125,7 @@
     },
     "calibre": {
       "title": "Calibré",
-      "description": "10 avis publiés. Ton mot commence à compter dans la Meute."
+      "description": "10 avis publiés. Ton mot commence à compter dans la bande."
     },
     "plume_du_palais": {
       "title": "Plume du Palais",
@@ -133,7 +133,7 @@
     },
     "voix_d_or": {
       "title": "Voix d'Or",
-      "description": "50 avis publiés. Quand tu parles d'un spot, la Meute tend l'oreille."
+      "description": "50 avis publiés. Quand tu parles d'un spot, la bande tend l'oreille."
     },
     "oeil_de_braise": {
       "title": "Œil de Braise",
@@ -145,7 +145,7 @@
     },
     "objectif_pepite": {
       "title": "Objectif Pépite",
-      "description": "30 photos publiées. Ton téléphone mange avant toi, et toute la Meute en profite."
+      "description": "30 photos publiées. Ton téléphone mange avant toi, et toute la bande en profite."
     },
     "gardien_du_garba": {
       "title": "Gardien du Garba",
@@ -157,23 +157,23 @@
     },
     "eclaireur": {
       "title": "Éclaireur",
-      "description": "5 de tes avis sauvegardés par la Meute. Tu ouvres la piste, la Meute te suit."
+      "description": "5 de tes avis sauvegardés par la bande. Tu ouvres la piste, la bande te suit."
     },
     "aimant": {
       "title": "Aimant",
       "description": "5 coups de cœur reçus. Tes trouvailles font battre des cœurs."
     },
     "coeur_de_la_meute": {
-      "title": "Cœur de la Meute",
+      "title": "Cœur de la bande",
       "description": "15 coups de cœur reçus. La bande spawte sur tes pas."
     },
     "bouche_a_oreille": {
       "title": "Bouche à Oreille",
-      "description": "3 spawters entrés dans la Meute grâce à toi. Ton flair se transmet."
+      "description": "3 spawters entrés dans la bande grâce à toi. Ton flair se transmet."
     },
     "faiseur_de_pluie": {
       "title": "Faiseur de Pluie",
-      "description": "10 spawters parrainés. Là où tu passes, la Meute grandit."
+      "description": "10 spawters parrainés. Là où tu passes, la bande grandit."
     },
     "voix_de_la_colonie": {
       "title": "Voix de la Colonie",
@@ -181,11 +181,11 @@
     },
     "defi_releve": {
       "title": "Défi Relevé",
-      "description": "Un défi collectif bouclé avec la Meute. Ensemble, ça mange plus loin."
+      "description": "Un défi collectif bouclé avec la bande. Ensemble, ça mange plus loin."
     },
     "pilier_de_colonie": {
       "title": "Pilier de Colonie",
-      "description": "5 défis collectifs bouclés. La Meute sait qu'elle peut compter sur toi."
+      "description": "5 défis collectifs bouclés. La bande sait qu'elle peut compter sur toi."
     },
     "meneur_de_crew": {
       "title": "Meneur de Crew",
@@ -303,10 +303,10 @@
     "card_open_aria": "Ouvrir la fiche de {{name}}",
     "deck_end_title": "Tu as tout reniflé par ici.",
     "deck_end_body": "Reviens plus tard — le Chat garde le nez ouvert.",
-    "deck_end_cta": "Retour au feed",
+    "deck_end_cta": "Retour à l’accueil",
     "empty_title": "Rien à renifler pour l'instant",
     "empty_body": "Aucun spot à te proposer dans le coin. Repasse plus tard.",
-    "empty_cta": "Retour au feed"
+    "empty_cta": "Retour à l’accueil"
   },
   "explore": {
     "title": "Mode Explore",
@@ -834,16 +834,16 @@
     "underConstruction": "En construction"
   },
   "palais_reveal": {
-    "quiz_axes_received": "Ton flair de la Meute est là. Pas besoin de tout recommencer.",
+    "quiz_axes_received": "Ton flair du quiz est là. Pas besoin de tout recommencer.",
     "recalibrate": "Revoir mes préférences",
     "first_title": "Voici ton palais",
     "first_title_subtitle": "Plus tu Spawtes, plus il est précis.",
-    "heritage_mention": "Pionnier n°{{n}} de la Meute — ton flair de {{archetype}} te suit.",
+    "heritage_mention": "Pionnier n°{{n}} de la bande — ton flair de {{archetype}} te suit.",
     "continue": "Rejoindre la bande",
     "share_cta": "Partager ma carte",
     "share_dialog_title": "Partage ta carte SPAWT",
     "share_card_kicker": "Mon archétype SPAWT",
-    "share_card_pionnier": "Pionnier n°{{n}} de la Meute"
+    "share_card_pionnier": "Pionnier n°{{n}} de la bande"
   },
   "place": {
     "notRatedYet": "Pas encore noté",
@@ -931,12 +931,12 @@
   "report": {
     "button": "Signaler",
     "title": "Signaler cet avis",
-    "subtitle": "Dis au Chat ce qui cloche. La Meute vérifie.",
+    "subtitle": "Dis au Chat ce qui cloche. La bande vérifie.",
     "reason_fake_review": "Avis suspect ou faux",
     "reason_hater": "Méchanceté gratuite",
     "reason_gatekeeping": "Fausses infos volontaires",
     "reason_autre": "Autre chose",
-    "success": "C'est noté. La Meute veille.",
+    "success": "C'est noté. La bande veille.",
     "duplicate": "Tu l'as déjà signalé — c'est dans les pattes du Chat.",
     "error": "Ça n'a pas marché. Réessaie plus tard.",
     "cancel": "Annuler"
@@ -992,7 +992,7 @@
     "internal_gold_hint_on": "Vue Gold : tous les spots lisibles, quelle que soit la distance.",
     "internal_gold_hint_off": "Vue gratuite : au-delà de {{km}} km, les noms des spots sont masqués.",
     "internal_paywall_label": "Activer le paywall géo sur cet appareil",
-    "internal_paywall_hint": "Sans ça, le rayon gratuit de {{km}} km ne s'applique nulle part et la bascule ci-dessus ne se voit pas. Réglage local : la Meute n'est pas concernée.",
+    "internal_paywall_hint": "Sans ça, le rayon gratuit de {{km}} km ne s'applique nulle part et la bascule ci-dessus ne se voit pas. Réglage local : la bande n'est pas concernée.",
     "internal_note": "Le vrai droit Gold reste celui du serveur. Cette bascule ne débloque aucun contenu qui ne soit déjà sur l'appareil : hors rayon, un spot est masqué, pas absent.",
     "section_legal": "LÉGAL",
     "cgu": "Conditions générales",
@@ -1012,7 +1012,7 @@
   },
   "suggest": {
     "title": "Suggère un spot",
-    "subtitle": "Un lieu que la Meute doit connaître ? Balance, le Chat va flairer.",
+    "subtitle": "Un lieu que la bande doit connaître ? Balance, le Chat va flairer.",
     "field_name": "Nom du lieu",
     "name_placeholder": "Ex. Chez Tantie Marie",
     "field_commune": "Commune",
@@ -1028,12 +1028,12 @@
     "section_photos": "Photos (0-3)",
     "photo_add": "Ajouter une photo",
     "photo_remove": "Retirer (appui long)",
-    "cta_submit": "Envoyer à la Meute",
+    "cta_submit": "Envoyer à la bande",
     "sending": "Envoi…",
     "success_title": "Bien flairé",
-    "success_body": "Bien flairé. La Meute vérifie, tu seras le premier informé.",
+    "success_body": "Bien flairé. La bande vérifie, tu seras le premier informé.",
     "quota_title": "Doucement, chasseur",
-    "quota_body": "Tu as déjà 5 suggestions en vérification. Laisse la Meute flairer avant d'en envoyer d'autres.",
+    "quota_body": "Tu as déjà 5 suggestions en vérification. Laisse la bande flairer avant d'en envoyer d'autres.",
     "error_title": "Ça a couiné",
     "error_body": "Ta suggestion n'est pas passée. Réessaie dans un instant.",
     "mine_title": "Tes suggestions",
@@ -1044,14 +1044,14 @@
     "rejection_prefix": "Motif : {{reason}}"
   },
   "meute": {
-    "title": "La Meute",
-    "empty_body": "La Meute chasse en silence pour l'instant. Les avis et Coups de Cœur des spawters apparaîtront ici.",
+    "title": "La bande",
+    "empty_body": "La bande chasse en silence pour l'instant. Les avis et Coups de Cœur des spawters apparaîtront ici.",
     "item_review": "{{spawter}} a laissé un avis sur {{place}}",
     "item_coup": "{{spawter}} a donné son Coup de Cœur à {{place}}"
   },
   "crew": {
     "block_title": "Ton Crew",
-    "block_pitch": "47 messages pour choisir où manger ? Un code, des votes, une table. 5 minutes.",
+    "block_pitch": "Ton groupe sur invitation : un code, des votes, une table. 5 minutes.",
     "cta_launch": "Lancer un vote",
     "launching": "Le Chat ouvre la session…",
     "launch_failed": "La session n'a pas pu s'ouvrir. Réessaie.",
@@ -1066,8 +1066,8 @@
     "session_title": "Vote du crew",
     "code_label": "Ton code de crew",
     "code_hint": "Partage-le, le crew entre avec.",
-    "share_invite": "Rejoins mon crew sur SPAWT. Code : {{code}}. Dans l’app : La Meute → Ton Crew → Rejoindre. Ouvrir dans SPAWT (app installée) : {{url}}. Pas encore l’app ? Demande le lien d’installation à la personne qui t’invite.",
-    "invite_pending_body": "Une autre bande t’invite. Copie ce code si besoin. Reprends puis quitte ton vote actuel pour rejoindre le nouveau ; le code restera prêt ici.",
+    "share_invite": "Rejoins mon crew sur SPAWT. Code : {{code}}. Dans l’app : La bande → Ton Crew → Rejoindre. Ouvrir dans SPAWT (app installée) : {{url}}. Pas encore l’app ? Demande le lien d’installation à la personne qui t’invite.",
+    "invite_pending_body": "Un autre crew t’invite. Copie ce code si besoin. Reprends puis quitte ton vote actuel pour rejoindre le nouveau ; le code restera prêt ici.",
     "cta_share_code": "Inviter sur WhatsApp",
     "members_title": "Le crew",
     "members_count_one": "{{count}} présent",
@@ -1088,7 +1088,7 @@
     "expired_title": "Session terminée",
     "expired_body": "Le temps a filé — la faim n'attend pas. Relance un vote, ton crew est à un code de toi.",
     "cta_new_session": "Relancer un vote",
-    "cta_back_meute": "Retour à la Meute",
+    "cta_back_meute": "Retour à la bande",
     "cta_leave": "Quitter la session",
     "host_cta_resolve": "Tranche",
     "resolve_need_proposal": "Propose au moins un spot avant de trancher.",
@@ -1119,8 +1119,8 @@
     "lieux_peu_avises_other": "Spawte {{count}} lieux presque sans avis",
     "types_cuisine_one": "Goûte {{count}} type de cuisine",
     "types_cuisine_other": "Goûte {{count}} types de cuisine différents",
-    "avis_sauvegardes_one": "{{count}} de tes avis sauvegardé par la Meute",
-    "avis_sauvegardes_other": "{{count}} de tes avis sauvegardés par la Meute",
+    "avis_sauvegardes_one": "{{count}} de tes avis sauvegardé par la bande",
+    "avis_sauvegardes_other": "{{count}} de tes avis sauvegardés par la bande",
     "spawts_total_one": "{{count}} spawt vérifié au total",
     "spawts_total_other": "{{count}} spawts vérifiés au total",
     "avis_total_one": "Publie {{count}} avis",
@@ -1135,10 +1135,10 @@
     "lieux_nouveaux_30j_other": "Spawte {{count}} lieux dans leur premier mois",
     "photos_publiees_one": "Publie {{count}} photo avec tes avis",
     "photos_publiees_other": "Publie {{count}} photos avec tes avis",
-    "parrainages_one": "Fais entrer {{count}} spawter dans la Meute",
-    "parrainages_other": "Fais entrer {{count}} spawters dans la Meute",
-    "defis_completes_one": "Boucle {{count}} défi collectif avec la Meute",
-    "defis_completes_other": "Boucle {{count}} défis collectifs avec la Meute",
+    "parrainages_one": "Fais entrer {{count}} spawter dans la bande",
+    "parrainages_other": "Fais entrer {{count}} spawters dans la bande",
+    "defis_completes_one": "Boucle {{count}} défi collectif avec la bande",
+    "defis_completes_other": "Boucle {{count}} défis collectifs avec la bande",
     "custom_one": "Attribution spéciale du Chat — continue de vivre, il te voit",
     "custom_other": "Attribution spéciale du Chat — continue de vivre, il te voit"
   },
@@ -1178,15 +1178,15 @@
     "card_source": {
       "spawt": "Gagnée en spawtant",
       "badge": "Gagnée avec un badge",
-      "defi": "Gagnée avec la Meute",
-      "heritage_quiz": "Héritage du quiz La Meute",
+      "defi": "Gagnée avec la bande",
+      "heritage_quiz": "Héritage de ton quiz",
       "admin": "Offerte par le Chat"
     },
-    "defis_title": "Défis de la Meute",
-    "defis_empty": "Aucun défi en cours. La Meute reprend son souffle.",
-    "defi_kicker": "Toute la Meute ensemble",
+    "defis_title": "Défis de la bande",
+    "defis_empty": "Aucun défi en cours. La bande reprend son souffle.",
+    "defi_kicker": "Toute la bande ensemble",
     "defi_progress": {
-      "spawts_total": "La Meute a spawté {{current}} fois sur {{target}}",
+      "spawts_total": "La bande a spawté {{current}} fois sur {{target}}",
       "communes_couvertes": "{{current}} communes couvertes sur {{target}}",
       "avis_total": "{{current}} avis publiés sur {{target}}",
       "nouveaux_lieux": "{{current}} nouveaux lieux découverts sur {{target}}"
@@ -1217,13 +1217,13 @@
   },
   "defi": {
     "meute_juillet_spawts": {
-      "title": "Juillet en Meute",
+      "title": "Juillet en bande",
       "description": "1 000 spawts vérifiés à nous tous avant la fin du mois. Chaque table compte, chaque spawter aussi."
     }
   },
   "wrapped": {
     "title": "SPAWT Wrapped {{year}}",
-    "intro_title": "Ton année {{year}} avec la Meute",
+    "intro_title": "Ton année {{year}} avec la bande",
     "intro_body": "Le Chat a tout noté. Glisse, remonte le fil de tes tables.",
     "empty_body": "Pas encore assez de spawts cette année pour raconter quelque chose. La suite s'écrit à table.",
     "slide_spawts_kicker": "Tes spawts vérifiés",
@@ -1241,12 +1241,12 @@
     "slide_note_caption": "Exigeant mais juste. Le Chat approuve.",
     "slide_identity_kicker": "Ton identité",
     "slide_identity_caption": "C'est toi, à table comme dans la rue.",
-    "slide_identity_pionnier": "Pionnier n°{{n}} de la Meute — ça ne se rachète pas.",
+    "slide_identity_pionnier": "Pionnier n°{{n}} de la bande — ça ne se rachète pas.",
     "slide_badges_kicker": "Tes badges de l'année",
     "slide_badges_caption_one": "{{count}} badge décroché cette année. Le terrain paie.",
     "slide_badges_caption_other": "{{count}} badges décrochés cette année. Le terrain paie.",
     "card_kicker": "SPAWT Wrapped {{year}}",
-    "card_headline_fallback": "Mon année avec la Meute",
+    "card_headline_fallback": "Mon année avec la bande",
     "card_stat_spawts": "Spawts vérifiés",
     "card_stat_places": "Lieux uniques",
     "card_stat_communes": "Communes",
@@ -1270,7 +1270,7 @@
     "slot_unset": "À préciser sur WhatsApp",
     "slot_hint": "Optionnel — tu peux aussi caler l'heure directement avec le lieu.",
     "cta": "Envoyer sur WhatsApp",
-    "wa_message": "Bonjour {{name}} ! C'est un spawter de la Meute SPAWT. Je voudrais réserver une table pour {{count}} — créneau souhaité : {{slot}}. C'est bon pour vous ?",
+    "wa_message": "Bonjour {{name}} ! C'est un spawter de la bande SPAWT. Je voudrais réserver une table pour {{count}} — créneau souhaité : {{slot}}. C'est bon pour vous ?",
     "wa_slot_open": "à caler ensemble",
     "mine_title": "Mes résas",
     "mine_empty_title": "Aucune résa pour l'instant",
