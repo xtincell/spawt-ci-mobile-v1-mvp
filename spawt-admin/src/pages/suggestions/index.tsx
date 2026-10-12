@@ -5,6 +5,7 @@
 // PlaceForm) ; rejeter demande un motif (audit suggestion_reject ici).
 
 import { useState } from "react";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useNavigate } from "react-router";
 import { useTable, useUpdate, useInvalidate } from "@refinedev/core";
 import { ReasonModal } from "../../components/ReasonModal";
@@ -32,15 +33,16 @@ export const SuggestionsList = () => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
 
-  const { tableQuery } = useTable<SuggestionRow>({
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<SuggestionRow>({
     resource: "place_suggestions",
     pagination: { pageSize: 50 },
     sorters: { initial: [{ field: "created_at", order: "desc" }] },
     filters: {
-      permanent:
-        tab === "pending"
-          ? [{ field: "status", operator: "eq", value: "pending" }]
-          : [{ field: "status", operator: "ne", value: "pending" }],
+      // Garder le même opérateur : Refine fusionne les filtres par
+      // champ + opérateur et conserverait sinon le `eq pending` initial.
+      permanent: [{ field: "status", operator: "in", value:
+        tab === "pending" ? ["pending"] : ["approved", "rejected"]
+      }],
     },
     meta: { select: SELECT_WITH_JOINS },
   });
@@ -48,7 +50,7 @@ export const SuggestionsList = () => {
   const { mutateAsync: update } = useUpdate();
   const invalidate = useInvalidate();
 
-  const rows = (tableQuery.data?.data ?? []) as SuggestionRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as SuggestionRow[];
 
   function showToast(t: Toast) {
     setToast(t);
@@ -116,9 +118,11 @@ export const SuggestionsList = () => {
         </div>
       ) : null}
       <div style={{ display: "flex", gap: 12, margin: "16px 0" }}>
-        <button type="button" onClick={() => setTab("pending")}>En attente</button>
-        <button type="button" onClick={() => setTab("traitees")}>Traitées</button>
+        <button type="button" onClick={() => { setTab("pending"); setCurrentPage(1); }}>En attente</button>
+        <button type="button" onClick={() => { setTab("traitees"); setCurrentPage(1); }}>Traitées</button>
       </div>
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
         <thead>
           <tr>
@@ -178,13 +182,6 @@ export const SuggestionsList = () => {
               </tr>
             );
           })}
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={8} style={{ color: "var(--ink-mute)" }}>
-                {tab === "pending" ? "Aucune suggestion en attente." : "Aucune suggestion traitée."}
-              </td>
-            </tr>
-          ) : null}
         </tbody>
       </table>
 

@@ -7,8 +7,8 @@
 // utilisateur (réservé exploitation interne) : le verso rend les axes en
 // barres horizontales (AxisBar) pour tous les tiers.
 
-import { useCallback, useEffect, useState } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
@@ -21,6 +21,7 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 
 import { useTheme, type Theme } from "../theme/ThemeProvider";
+import { SpawterAvatar } from "./SpawterAvatar";
 import { Ico } from "./primitives/Ico";
 import { gradient } from "../theme/tokens";
 import { STADE_DESCRIPTORS } from "../types/stade";
@@ -46,6 +47,58 @@ interface Props {
 
 const FLIP_DURATION_MS = 600;
 
+function CardFlipTarget({
+  children,
+  label,
+  onFlip,
+  minHeight,
+}: {
+  children: ReactNode;
+  label: string;
+  onFlip: () => void;
+  minHeight: number;
+}) {
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  if (Platform.OS === "web") {
+    // RN Web turns even a View with role="button" into a native button.
+    // A div keeps the avatar's own button valid and independently actionable.
+    return (
+      <div
+        role="button"
+        aria-label={label}
+        tabIndex={0}
+        onClick={onFlip}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget || event.repeat) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onFlip();
+          }
+        }}
+        style={{ width: "100%", aspectRatio: "0.7", minHeight, position: "relative" }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onFlip}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID="spawtercard"
+      onLayout={({ nativeEvent }) => setMeasuredWidth(nativeEvent.layout.width)}
+      // Yoga agrandit aussi la largeur quand aspectRatio et minHeight se
+      // combinent. La hauteur explicite conserve la largeur du conteneur,
+      // même avec la taille de texte système à 150 %.
+      style={{ width: "100%", height: Math.max(minHeight, measuredWidth / 0.7) }}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 export function SpawterCard({
   spawter,
   palais,
@@ -57,6 +110,7 @@ export function SpawterCard({
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
   const flipProgress = useSharedValue(0);
 
   // Quelle face est devant. Ce n'est PAS un doublon de `flipProgress` : il
@@ -123,11 +177,10 @@ export function SpawterCard({
   const stadeDesc = STADE_DESCRIPTORS[spawter.stade];
 
   return (
-    <Pressable
-      onPress={handleFlip}
-      accessibilityRole="button"
-      accessibilityLabel={t("profile.card_flip_aria")}
-      style={{ aspectRatio: 0.7 }}
+    <CardFlipTarget
+      minHeight={420 * Math.max(1, fontScale)}
+      onFlip={handleFlip}
+      label={t("profile.card_flip_aria")}
     >
       <Animated.View
         // La face cachée ne doit rien intercepter — sinon elle vole les taps
@@ -142,7 +195,7 @@ export function SpawterCard({
           colors={gradient.night}
           style={{ flex: 1, padding: theme.spacing.lg, justifyContent: "space-between" }}
         >
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm, justifyContent: "space-between" }}>
             <Text style={{ ...theme.typography.preset.overline, color: theme.colors.text.inverseSecondary }}>
               {t("profile.card_id_prefix")} #{spawter.id.slice(0, 6).toUpperCase()}
             </Text>
@@ -156,7 +209,10 @@ export function SpawterCard({
                 changer la photo (galerie/caméra) si le caller passe le
                 handler ; le badge caméra signale l'affordance. */}
             <Pressable
-              onPress={onAvatarPress}
+              onPress={onAvatarPress ? (event) => {
+                if (Platform.OS === "web") event.stopPropagation();
+                onAvatarPress();
+              } : undefined}
               disabled={!onAvatarPress}
               accessibilityRole={onAvatarPress ? "button" : "image"}
               accessibilityLabel={
@@ -177,26 +233,7 @@ export function SpawterCard({
                   overflow: "hidden",
                 }}
               >
-                {spawter.avatar_url ? (
-                  <Image
-                    source={{ uri: spawter.avatar_url }}
-                    style={{ width: 80, height: 80, borderRadius: 40 }}
-                    resizeMode="cover"
-                    accessible={false}
-                    testID="spawtercard-avatar-photo"
-                  />
-                ) : (
-                  <Text
-                    style={{
-                      ...theme.typography.preset.display,
-                      color: theme.colors.text.onBrand,
-                    }}
-                  >
-                    {/* CR finding m1 — trim + fallback explicite "S" pour bloquer
-                        le cas display_name vide (DB default ""), sinon avatar lettre vide. */}
-                    {(spawter.display_name?.trim().charAt(0) || "S").toUpperCase()}
-                  </Text>
-                )}
+                <SpawterAvatar url={spawter.avatar_url} size={80} testID="spawtercard-avatar-image" photoTestID="spawtercard-avatar-photo" />
               </View>
               {onAvatarPress ? (
                 <View
@@ -282,7 +319,7 @@ export function SpawterCard({
           />
         </View>
       </Animated.View>
-    </Pressable>
+    </CardFlipTarget>
   );
 }
 
@@ -296,11 +333,11 @@ function StatBlock({
   theme: Theme;
 }) {
   return (
-    <View style={{ alignItems: "center" }}>
+    <View style={{ flex: 1, minWidth: 0, alignItems: "center" }}>
       <Text style={{ ...theme.typography.preset.display, color: theme.colors.brand.primary }}>
         {value}
       </Text>
-      <Text style={{ ...theme.typography.preset.overline, color: theme.colors.text.inverseSecondary }}>
+      <Text style={{ ...theme.typography.preset.overline, color: theme.colors.text.inverseSecondary, width: "100%", textAlign: "center" }}>
         {label}
       </Text>
     </View>

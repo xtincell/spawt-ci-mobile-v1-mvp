@@ -33,3 +33,17 @@ it("une liste vraiment vide conserve son accueil habituel", async () => {
   expect(JSON.stringify(rendered.toJSON())).not.toContain("saved.unavailable");
   TestRenderer.act(() => rendered.unmount());
 });
+
+it("un inventaire inaccessible ne prétend pas que les favoris sont vides et peut être relancé", async () => {
+  const { listPlaces } = jest.requireMock("../../src/lib/data-source") as { listPlaces: jest.Mock };
+  mockState.savedUnavailable = false;
+  listPlaces.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([]);
+  let rendered!: ReturnType<typeof TestRenderer.create>;
+  await TestRenderer.act(async () => { rendered = TestRenderer.create(<SavedScreen />); });
+  expect(JSON.stringify(rendered.toJSON())).toContain("common.data_read_error");
+  expect(JSON.stringify(rendered.toJSON())).not.toContain("saved.empty_title");
+  const retry = rendered.root.findAllByProps({ accessibilityLabel: "common.retry" }).find((n: { props: { onPress?: unknown } }) => typeof n.props.onPress === "function");
+  await TestRenderer.act(async () => { retry!.props.onPress(); });
+  expect(JSON.stringify(rendered.toJSON())).toContain("saved.empty_title");
+  TestRenderer.act(() => rendered.unmount());
+});

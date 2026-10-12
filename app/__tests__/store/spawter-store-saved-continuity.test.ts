@@ -7,6 +7,10 @@ const mockSave = jest.fn(async (_owner: string, place: string) => { mockServer.a
 const mockDelete = jest.fn(async (_owner: string, place: string) => { mockServer.delete(place); });
 const mockGold = jest.fn(async (): Promise<unknown> => null);
 const mockInternal = jest.fn(async (): Promise<boolean | null> => null);
+const mockGetSession = jest.fn();
+jest.mock("../../src/lib/supabase", () => ({
+  supabase: { auth: { getSession: () => mockGetSession() } },
+}));
 jest.mock("../../src/lib/data-source", () => ({
   __esModule: true,
   ...jest.requireActual("../../src/lib/data-source"),
@@ -41,6 +45,7 @@ beforeEach(async () => {
   mockDelete.mockImplementation(async (_owner, place) => { mockServer.delete(place); });
   mockGold.mockResolvedValue(null);
   mockInternal.mockResolvedValue(null);
+  mockGetSession.mockReset().mockResolvedValue({ data: { session: { user: { id: SAMPLE_SPAWTER.id } } }, error: null });
 });
 it("conserve les deux favoris simultanés, y compris après relance", async () => {
   await Promise.all([useSpawterStore.getState().toggleSaved("spot-a"), useSpawterStore.getState().toggleSaved("spot-b")]);
@@ -188,6 +193,7 @@ it("un archétype reçu après déconnexion ne restaure pas l'identité précéd
   await useSpawterStore.getState().hydrate();
   await tick();
   expect(jest.requireMock("../../src/lib/data-source").isSupabaseConfigured).toBe(true);
+  expect(mockGetSession).toHaveBeenCalledTimes(1);
   expect(useSpawterStore.getState().spawter?.quiz_archetype).toBeNull();
   expect(mockArchetype).toHaveBeenCalledTimes(1);
   useSpawterStore.getState().reset();

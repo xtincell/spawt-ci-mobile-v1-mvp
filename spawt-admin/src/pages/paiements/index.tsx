@@ -11,6 +11,7 @@
 // et la confirmation explicite quand il y en a une.
 
 import { useState } from "react";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useTable, useInvalidate, useGetIdentity } from "@refinedev/core";
 import { supabaseClient } from "../../utility/supabaseClient";
 import { ReasonModal } from "../../components/ReasonModal";
@@ -46,20 +47,21 @@ export const PaiementsList = () => {
   // qui ne peut qu'échouer.
   const isAdmin = identity?.role === "admin";
 
-  const { tableQuery } = useTable<PaymentRequestRow>({
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<PaymentRequestRow>({
     resource: "payment_requests",
     pagination: { pageSize: 50 },
     sorters: { initial: [{ field: "created_at", order: "desc" }] },
     filters: {
-      permanent:
-        tab === "pending"
-          ? [{ field: "status", operator: "eq", value: "pending" }]
-          : [{ field: "status", operator: "ne", value: "pending" }],
+      // Garder le même opérateur : Refine fusionne les filtres par
+      // champ + opérateur et conserverait sinon le `eq pending` initial.
+      permanent: [{ field: "status", operator: "in", value:
+        tab === "pending" ? ["pending"] : ["approved", "rejected", "cancelled"]
+      }],
     },
     meta: { select: SELECT_WITH_JOINS },
   });
 
-  const rows = (tableQuery.data?.data ?? []) as PaymentRequestRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as PaymentRequestRow[];
 
   function showToast(t: Toast) {
     setToast(t);
@@ -129,8 +131,8 @@ export const PaiementsList = () => {
       <h1>Paiements déclarés</h1>
       <p style={{ color: "var(--ink-mute)", maxWidth: "62ch" }}>
         Versements Wave / Orange Money / MoMo / espèces déclarés par les payeurs.
-        Vérifie le montant et la référence sur le relevé de l'opérateur avant de
-        valider : la validation ouvre l'abonnement et émet la facture
+        Vérifie le montant et la référence sur le relevé de l&apos;opérateur avant de
+        valider : la validation ouvre l&apos;abonnement et émet la facture
         immédiatement.
       </p>
 
@@ -149,22 +151,16 @@ export const PaiementsList = () => {
       ) : null}
 
       <div style={{ display: "flex", gap: 8, margin: "16px 0" }}>
-        <button type="button" disabled={tab === "pending"} onClick={() => setTab("pending")}>
+        <button type="button" disabled={tab === "pending"} onClick={() => { setTab("pending"); setCurrentPage(1); }}>
           En attente
         </button>
-        <button type="button" disabled={tab === "traitees"} onClick={() => setTab("traitees")}>
+        <button type="button" disabled={tab === "traitees"} onClick={() => { setTab("traitees"); setCurrentPage(1); }}>
           Traitées
         </button>
       </div>
 
-      {tableQuery.isLoading ? <p>Chargement…</p> : null}
-      {!tableQuery.isLoading && rows.length === 0 ? (
-        <p>
-          {tab === "pending"
-            ? "Aucune demande en attente."
-            : "Aucune demande traitée pour l'instant."}
-        </p>
-      ) : null}
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
 
       <div style={{ display: "grid", gap: 12 }}>
         {rows.map((row) => {

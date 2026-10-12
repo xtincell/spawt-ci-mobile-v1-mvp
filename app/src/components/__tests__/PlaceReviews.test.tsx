@@ -227,11 +227,12 @@ describe("<PlaceReviews /> — Story 4.9", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("affiche reviews_empty si le fetcher rejette (état error tombe sur empty UX)", async () => {
+  it("affiche une erreur et une reprise si le fetcher rejette", async () => {
     const fetcher = jest.fn(() => Promise.reject(new Error("boom")));
     const instance = renderWith(fetcher);
     await flush();
     const texts = gatherTexts(instance);
-    expect(texts).toContain("place.reviews_empty");
+    expect(texts).toContain("place.reviews_error");
+    expect(texts).toContain("common.retry");
   });
 });

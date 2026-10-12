@@ -45,7 +45,7 @@ export function UneCard({ une, onPress, showMatchScore = true, activity }: Props
   const theme = useTheme();
   const { t } = useTranslation();
   const [coverFailed, setCoverFailed] = useState(false);
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, fontScale } = useWindowDimensions();
   const cardWidth = screenWidth - 48;
   // hasCover doit tenir compte de la string vide : Zod accepte `""` côté DB,
   // et `Image source={uri:""}` peut déclencher onError → setCoverFailed → loop.
@@ -69,7 +69,7 @@ export function UneCard({ une, onPress, showMatchScore = true, activity }: Props
       })}
       style={({ pressed }) => ({
         width: cardWidth,
-        height: 240,
+        height: Math.max(240, 240 * fontScale),
         borderRadius: theme.radius.card,
         overflow: "hidden",
         backgroundColor: theme.colors.surface.subtle,
@@ -154,7 +154,7 @@ export function UneCard({ une, onPress, showMatchScore = true, activity }: Props
               color: theme.colors.brand.primary,
               marginBottom: 4,
             }}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {kickerLabel}
             {kickerLabel.length > 0 && showMatchScore ? " · " : ""}
@@ -167,7 +167,7 @@ export function UneCard({ une, onPress, showMatchScore = true, activity }: Props
             color: theme.colors.text.inverse,
             marginBottom: 2,
           }}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {une.place.name}
         </Text>
@@ -176,7 +176,7 @@ export function UneCard({ une, onPress, showMatchScore = true, activity }: Props
             ...theme.typography.preset.small,
             color: theme.colors.text.inverseSecondary,
           }}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {une.place.location.neighborhood}
           {cuisine0 ? ` · ${cuisine0}` : ""}

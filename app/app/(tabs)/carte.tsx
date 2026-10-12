@@ -12,10 +12,11 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { usePlaces } from "../../src/lib/use-places";
+import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { DataSourceBanner } from "../../src/components/DataSourceBanner";
 import { EmptyState } from "../../src/components/EmptyState";
-import { listPlaces, type PlaceWithAdn } from "../../src/lib/data-source";
 import { useSpawterPosition } from "../../src/lib/use-spawter-position";
 import { track } from "../../src/lib/analytics";
 
@@ -33,7 +34,7 @@ export default function CarteScreen() {
 
   const [maplibre, setMaplibre] = useState<MapLibreModule | null>(null);
   const [moduleFailed, setModuleFailed] = useState(false);
-  const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
+  const { places, loading, failed, reload } = usePlaces();
   const trackedOpen = useRef(false);
 
   // Chargement dynamique du module natif — fallback si absent (Expo Go / web).
@@ -52,20 +53,7 @@ export default function CarteScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const all = await listPlaces();
-        if (!cancelled) setPlaces(all.filter((p) => p.location?.lat != null));
-      } catch {
-        // Réseau KO — carte vide, le bandeau data-source informe déjà.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+
 
   useEffect(() => {
     if (trackedOpen.current) return;
@@ -125,6 +113,7 @@ export default function CarteScreen() {
       style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
     >
       <DataSourceBanner />
+      <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
       <MapLibreMap
         style={{ flex: 1 }}
         mapStyle={DARK_STYLE_URL}

@@ -54,10 +54,9 @@ describe("countReviewsForPlaceFromSupabase — Story 4.12", () => {
     expect(n).toBe(12);
   });
 
-  it("retourne 0 sur erreur", async () => {
+  it("signale l’erreur réseau au lieu d’inventer zéro avis", async () => {
     mockResponse = { count: null, error: { message: "boom" } };
-    const n = await countReviewsForPlaceFromSupabase("place-1");
-    expect(n).toBe(0);
+    await expect(countReviewsForPlaceFromSupabase("place-1")).rejects.toThrow();
   });
 
   it("retourne 0 si count null sans erreur", async () => {

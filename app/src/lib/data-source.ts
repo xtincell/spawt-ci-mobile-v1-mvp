@@ -90,10 +90,10 @@ export async function getPlace(id: string): Promise<PlaceWithAdn | null> {
   return seed ? seedToPlaceWithAdn(seed) : null;
 }
 
-export async function listSpawtsForSpawter(spawter_id: string): Promise<SpawtCheckin[]> {
+export async function listSpawtsForSpawter(spawter_id: string, signal?: AbortSignal): Promise<SpawtCheckin[]> {
   if (isSupabaseConfigured) {
     const { listSpawtsFromSupabase } = await import("./data-source.supabase");
-    return listSpawtsFromSupabase(spawter_id);
+    return listSpawtsFromSupabase(spawter_id, signal);
   }
   return [];
 }
@@ -235,10 +235,11 @@ export async function setDisplayedTitre(
 
 export async function listTitresForSpawter(
   spawter_id: string,
+  signal?: AbortSignal,
 ): Promise<CollectionTitreRow[]> {
   if (!isSupabaseConfigured) return [];
   const { listTitresFromSupabase } = await import("./data-source.supabase");
-  return listTitresFromSupabase(spawter_id);
+  return listTitresFromSupabase(spawter_id, signal);
 }
 
 // Flags PRODUIT actifs par défaut en mode démo (fallback sans Supabase, ex.
@@ -307,6 +308,10 @@ export interface PlaceReview {
   spawter_avatar_url: string | null;
   /** 1-5, demi-points possibles côté DB mais arrondi par Stars. */
   note_etoiles: number;
+  note_cuisine?: number | null;
+  note_cadre?: number | null;
+  note_service?: number | null;
+  note_globale?: number;
   texte_avis: string | null;
   /** URLs publiques des photos (0..3). Story 4.5 = bucket place-photos, seeds = Unsplash CDN. */
   photos: readonly string[];

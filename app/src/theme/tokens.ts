@@ -30,6 +30,12 @@ export const palette = {
   grisMoyen: "#8A8A8A",
 } as const;
 
+// Raccord et papier du pack d’ouverture fenêtre V2 fourni le 9 octobre 2026.
+export const openingWindowColors = {
+  paper: "#FBF9F5",
+  paperEdge: "#E8E2D6",
+} as const;
+
 // ── Lignes / bordures (rgba canoniques) ───────────────
 const line = "rgba(10, 10, 10, 0.10)"; // --line
 const lineStrong = "rgba(10, 10, 10, 0.18)"; // --line-strong
@@ -120,13 +126,13 @@ type PresetKey =
   | "overline";
 
 const _preset = {
-  display: { fontFamily: "KlinsmanTypefaceBold", fontSize: 34, lineHeight: 35.7, letterSpacing: -0.34 },
-  h1: { fontFamily: "KlinsmanTypefaceBold", fontSize: 26, lineHeight: 28.6 },
-  h2: { fontFamily: "KlinsmanTypefaceBold", fontSize: 20, lineHeight: 23 },
+  display: { fontFamily: "KlinsmanTypefaceBold", fontSize: 34, lineHeight: 43, letterSpacing: -0.34 },
+  h1: { fontFamily: "KlinsmanTypefaceBold", fontSize: 26, lineHeight: 33 },
+  h2: { fontFamily: "KlinsmanTypefaceBold", fontSize: 20, lineHeight: 25 },
   h3: {
     fontFamily: "KlinsmanTypefaceBold",
     fontSize: 16,
-    lineHeight: 19.2,
+    lineHeight: 20,
     letterSpacing: 0.32,
     textTransform: "uppercase",
   },

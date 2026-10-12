@@ -14,6 +14,7 @@
 // non-admin, migration absente) sans casser les KPIs historiques.
 
 import { useCallback, useEffect, useState } from "react";
+import { useGetIdentity } from "@refinedev/core";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabaseClient } from "../../utility/supabaseClient";
 import {
@@ -47,16 +48,16 @@ interface DashboardData {
 // Sprint 2 = RPC server-side GROUP BY date pour scale.
 const FETCH_LIMIT = 5000;
 
-async function loadDashboard(): Promise<DashboardData> {
+export async function loadDashboard(): Promise<DashboardData> {
   const since = new Date();
   since.setDate(since.getDate() - 30);
   const sinceIso = since.toISOString();
 
   const [
-    { count: spawtersTotal },
-    { count: spawtersActive },
-    { count: placesPublished },
-    { count: flaggedReviewsTotal },
+    totalRes,
+    activeRes,
+    placesRes,
+    flaggedRes,
     spawts,
     reviews,
     spawters30d,
@@ -66,13 +67,14 @@ async function loadDashboard(): Promise<DashboardData> {
     // annonce des inscrits qui n'existent pas — exactement ce que l'en-tête de
     // ce fichier interdit depuis la Story 6.5 (« Madame Sun ne veut pas les
     // seeds »), mais la colonne `spawters.is_seed` n'existait pas encore.
-    supabaseClient.from("spawters").select("id", { count: "exact", head: true }).eq("is_seed", false),
-    supabaseClient.from("spawters").select("id", { count: "exact", head: true }).eq("is_banned", false).eq("is_seed", false),
+    supabaseClient.from("spawters").select("id", { count: "exact", head: true }).eq("is_seed", false).eq("is_demo", false),
+    supabaseClient.from("spawters").select("id", { count: "exact", head: true }).eq("is_banned", false).eq("is_seed", false).eq("is_demo", false),
     supabaseClient.from("places").select("id", { count: "exact", head: true }).eq("is_published", true),
     supabaseClient
       .from("spawt_checkin")
       .select("id", { count: "exact", head: true })
       .not("flag_reason", "is", null)
+      .eq("is_seed", false)
       .is("deleted_at", null),
     // CR Story 6.5 AC #2 — filter is_seed=false (les seeds ne sont pas du
     // contenu communauté et ne doivent pas gonfler les KPIs Madame Sun).
@@ -95,8 +97,16 @@ async function loadDashboard(): Promise<DashboardData> {
       .from("spawters")
       .select("created_at")
       .gte("created_at", sinceIso)
+      .eq("is_seed", false)
+      .eq("is_demo", false)
       .limit(FETCH_LIMIT),
   ]);
+
+  // Supabase renvoie les erreurs dans le résultat : une promesse résolue
+  // n'atteste pas d'une lecture réussie. Ne jamais afficher de faux zéros.
+  for (const result of [totalRes, activeRes, placesRes, flaggedRes, spawts, reviews, spawters30d]) {
+    if (result.error) throw new Error(result.error.message);
+  }
 
   // ── KPIs AARRR (07/2026) — chaque bloc dégrade en null si erreur ──────────
   const [mauRes, subsRes, waitlistRes] = await Promise.all([
@@ -125,10 +135,10 @@ async function loadDashboard(): Promise<DashboardData> {
   const subs = subsRes.error ? null : ((subsRes.data ?? []) as SubscriptionLite[]);
 
   return {
-    spawtersTotal: spawtersTotal ?? 0,
-    spawtersActive: spawtersActive ?? 0,
-    placesPublished: placesPublished ?? 0,
-    flaggedReviewsTotal: flaggedReviewsTotal ?? 0,
+    spawtersTotal: totalRes.count ?? 0,
+    spawtersActive: activeRes.count ?? 0,
+    placesPublished: placesRes.count ?? 0,
+    flaggedReviewsTotal: flaggedRes.count ?? 0,
     spawtsDaily: groupByDay(spawts.data ?? []),
     reviewsDaily: groupByDay(reviews.data ?? []),
     spawtersDaily: groupByDay(spawters30d.data ?? []),
@@ -152,6 +162,8 @@ function groupByDay(rows: { created_at: string }[]): DailyPoint[] {
 }
 
 export const MetriquesDashboard = () => {
+  const { data: identity } = useGetIdentity<{ role: string }>();
+  const canReadRevenue = identity?.role === "admin";
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -188,7 +200,12 @@ export const MetriquesDashboard = () => {
     };
   }, [refresh]);
 
-  if (error) return <p>Erreur : {error}</p>;
+  if (error) return (
+    <div role="alert">
+      <p>Chargement des métriques impossible : {error}</p>
+      <button type="button" onClick={() => void refresh()} disabled={refreshing}>Réessayer</button>
+    </div>
+  );
   if (!data) return <p>Chargement…</p>;
 
   const totalSpawts30d = data.spawtsDaily.reduce((acc, p) => acc + p.count, 0);
@@ -208,7 +225,7 @@ export const MetriquesDashboard = () => {
         Dernier refresh : {new Date(data.refreshedAt).toLocaleTimeString("fr-FR")}.
       </p>
       <p style={{ color: "var(--ink-mute)", fontSize: 11, fontStyle: "italic" }}>
-        Compteurs publics : seeds exclus (is_seed = false).
+        Inscriptions : comptes fondateurs et démos alpha exclus. Activité : avis fondateurs exclus.
       </p>
 
       {/* CR M14 — 6 KPI cards spec Story 6.5 AC #1 */}
@@ -233,15 +250,15 @@ export const MetriquesDashboard = () => {
         <KpiCard label="MAU (spawters actifs 30j)" value={data.mau ?? "—"} />
         <KpiCard label="Spawts / jour (moy. 7j)" value={dailyAverage(data.spawtsDaily, 7)} />
         <KpiCard label="Avis / jour (moy. 7j)" value={dailyAverage(data.reviewsDaily, 7)} />
-        <KpiCard label="Abonnés Gold actifs" value={data.goldActive ?? "—"} />
+        <KpiCard label="Abonnés Gold actifs" value={canReadRevenue ? data.goldActive ?? "—" : "—"} />
         <KpiCard
           label="MRR (F CFA HT, abts actifs)"
-          value={data.mrr !== null ? `${data.mrr.toLocaleString("fr-FR")} F` : "—"}
+          value={canReadRevenue && data.mrr !== null ? `${data.mrr.toLocaleString("fr-FR")} F` : "—"}
         />
         <KpiCard
           label="Leads waitlist (total · 7j)"
           value={
-            data.waitlist
+            canReadRevenue && data.waitlist
               ? `${data.waitlist.total_leads.toLocaleString("fr-FR")} · ${data.waitlist.leads_7d.toLocaleString("fr-FR")}`
               : "—"
           }

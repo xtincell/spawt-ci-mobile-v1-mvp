@@ -25,10 +25,7 @@ import type {
   CrewSnapshot,
 } from "./crew-types";
 
-/** Lien profond partagé dans le message WhatsApp (même domaine que le partage lieu). */
-export function buildCrewInviteUrl(code: string): string {
-  return `https://spawt.ci/crew/${code}`;
-}
+export { buildCrewInviteUrl } from "../share-links";
 
 /**
  * Ouvre WhatsApp avec un message pré-rempli, sans destinataire (le spawter

@@ -4,7 +4,7 @@
 // le plus proche pour une lecture fidèle (4.7 → 4.5 affiché).
 
 import { useId } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import Svg, { Defs, ClipPath, Rect, Path } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -67,7 +67,9 @@ export function Stars({ value, max = 5, size = "sm", color, accessibilityLabel }
             width={pxSize}
             height={pxSize}
             viewBox="0 0 24 24"
-            importantForAccessibility="no-hide-descendants"
+            {...(Platform.OS === "web"
+              ? { "aria-hidden": true }
+              : { importantForAccessibility: "no-hide-descendants" as const })}
           >
             <Defs>
               <ClipPath id={clipId}>

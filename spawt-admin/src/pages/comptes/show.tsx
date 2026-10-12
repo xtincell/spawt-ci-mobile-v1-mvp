@@ -7,6 +7,7 @@ import { ReasonModal, FAUX_PAS_SPAWTER } from "../../components/ReasonModal";
 import { moderateSpawter } from "../../lib/moderate-spawter";
 import { setSpawterInternal } from "../../lib/set-spawter-internal";
 import { maskPhone } from "./index";
+import { DeleteDemoAccount } from "./DeleteDemoAccount";
 
 export const CompteShow = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export const CompteShow = () => {
     resource: "spawters",
     id: id ?? "",
     queryOptions: { enabled: !!id },
+    meta: { select: "*, is_demo" },
   });
 
   const [modalKind, setModalKind] = useState<"warning" | "ban" | "unban" | null>(null);
@@ -30,6 +32,7 @@ export const CompteShow = () => {
 
   if (!id) return <p>ID manquant</p>;
   if (query.isLoading) return <p>Chargement…</p>;
+  if (query.isError) return <div role="alert"><p>Chargement du compte impossible : {query.error.message}</p><button type="button" onClick={() => void query.refetch()}>Réessayer</button></div>;
   const spawter = query.data?.data as Record<string, unknown> | undefined;
   if (!spawter) return <p>Spawter introuvable</p>;
 
@@ -78,6 +81,10 @@ export const CompteShow = () => {
     <div>
       <h1>{String(spawter.display_name)}</h1>
       <p>
+        Type : <strong>{spawter.is_demo === true ? "Démo alpha" : spawter.is_seed === true ? "Compte fondateur" : "Spawter"}</strong>
+        {spawter.is_internal === true ? " · Accès interne" : ""}
+      </p>
+      <p>
         {/* CR Chunk B m2 — masquage cohérent avec la liste. Admin n'a pas
            besoin du téléphone clair en V1. Sprint 2 = bouton "Révéler" + audit. */}
         Phone : {maskPhone(String(spawter.phone_e164))} · Quartier : {String(spawter.neighborhood ?? "—")} ·
@@ -110,7 +117,7 @@ export const CompteShow = () => {
           <span style={{ color: "var(--text-secondary)" }}>
             {" "}
             — ce compte peut basculer entre la vue gratuite et la vue Gold depuis ses réglages.
-            Ses spawts restent des spawts réels : à exclure des métriques si tu fais du test.
+            Le mode interne seul ne classe pas un compte comme démo.
           </span>
         ) : null}
       </p>
@@ -134,6 +141,10 @@ export const CompteShow = () => {
           </button>
         )}
       </div>
+
+      {isAdmin && spawter.is_demo === true && spawter.is_seed !== true ? (
+        <DeleteDemoAccount id={id} displayName={String(spawter.display_name)} />
+      ) : null}
 
       {modalKind ? (
         <ReasonModal

@@ -10,7 +10,7 @@
 // absent → rendu strictement identique à l'existant (critère de
 // non-régression : flags off = rien ne change visuellement).
 
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { Ico, type IconName } from "./primitives/Ico";
@@ -48,6 +48,8 @@ interface Props {
 export function ModeStories({ selectedMode, onModePress, entries = [] }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
+  const labelWidth = 96 * Math.max(1, fontScale);
   return (
     <View accessibilityRole="radiogroup">
       <Text
@@ -77,7 +79,7 @@ export function ModeStories({ selectedMode, onModePress, entries = [] }: Props) 
               accessibilityRole="button"
               accessibilityLabel={label}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              style={{ alignItems: "center", minWidth: 60 }}
+              style={{ alignItems: "center", width: labelWidth }}
             >
               {/* Cercle liseré Or : distingue une NAVIGATION (mode plein
                   écran) d'un FILTRE d'humeur (chips ci-dessous). */}
@@ -101,9 +103,9 @@ export function ModeStories({ selectedMode, onModePress, entries = [] }: Props) 
                   color: theme.colors.text.tertiary,
                   marginTop: 4,
                   textAlign: "center",
-                  maxWidth: 96,
+                  width: "100%",
                 }}
-                numberOfLines={2}
+                numberOfLines={label.includes(" ") ? 2 : 1}
               >
                 {label}
               </Text>
@@ -121,7 +123,7 @@ export function ModeStories({ selectedMode, onModePress, entries = [] }: Props) 
               accessibilityState={{ selected: isSelected }}
               accessibilityLabel={label}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              style={{ alignItems: "center", minWidth: 60 }}
+              style={{ alignItems: "center", width: labelWidth }}
             >
               <View
                 style={{
@@ -153,9 +155,9 @@ export function ModeStories({ selectedMode, onModePress, entries = [] }: Props) 
                     : theme.colors.text.tertiary,
                   marginTop: 4,
                   textAlign: "center",
-                  maxWidth: 96,
+                  width: "100%",
                 }}
-                numberOfLines={2}
+                numberOfLines={label.includes(" ") ? 2 : 1}
               >
                 {label}
               </Text>

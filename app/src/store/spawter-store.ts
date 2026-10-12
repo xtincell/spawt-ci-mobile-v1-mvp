@@ -73,12 +73,15 @@ import {
   stadeTitleKeysBetween,
   type TitleSource,
 } from "../lib/titres-catalogue";
-import { enqueue, saveSpawtToSupabaseOrEnqueue } from "../lib/offline-queue";
+import { enqueue } from "../lib/offline-queue";
 import { applyReviewToPalais } from "../lib/palais-signals";
 import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
 import { supabase } from "../lib/supabase";
 import { canResumeMissingPalais, readAuthenticatedAccount, requireAccountSession } from "../lib/account-recovery";
+import { readAccountHistory } from "../lib/account-history";
+import { canPublishCachedAccount } from "../lib/cached-session";
+import { useFeatureFlagsStore } from "./feature-flags";
 import { dominantAxes } from "../lib/palais-engine";
 import { getStade, maxStade } from "../types/stade";
 import { EMPTY_PALAIS, SAMPLE_SPAWTER } from "../data/seed/sample-spawter";
@@ -92,12 +95,14 @@ import {
   notifySpawtVerified,
   useProgressionStore,
 } from "./progression-store";
-// Cycle runtime-only (crew-store importe spawter-store, usage réciproque
-// uniquement dans les actions) — utilisé par reset() pour purger le Crew (P2#7).
+// Crew ne charge ce store qu'au départage, après l'initialisation.
+// Utilisé par reset() pour purger le Crew (P2#7).
 import { useCrewStore } from "./crew-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { track } from "../lib/analytics";
+import { persistReviewSpawt, type ReviewPersistence } from "../lib/manual-review";
+import { readReviewRatings } from "../lib/review-ratings";
 
 let __idCounter = 0;
 function makeId(): string {
@@ -256,12 +261,19 @@ interface SpawterStore {
     spawt_id: string,
     patch: {
       note_etoiles: 1 | 2 | 3 | 4 | 5;
+      note_cuisine?: 1 | 2 | 3 | 4 | 5;
+      note_cadre?: 1 | 2 | 3 | 4 | 5;
+      note_service?: 1 | 2 | 3 | 4 | 5;
       texte_avis: string | null;
       tags: ReviewTag[];
       photos: string[];
     },
-  ) => Promise<void>;
+  ) => Promise<ReviewPersistence>;
   reset: () => void;
+  /** Hide private state after an SDK identity change, preserving disk for recovery. */
+  suspendSession: () => void;
+  /** SDK event observer; same-account token refresh never clears hydration. */
+  observeAuthSession: (owner: string | null) => void;
 }
 
 const STADE_CELEBRATED_KEY = "spawt:stade:celebrated";
@@ -291,6 +303,7 @@ async function persistSpawterFiable(spawter: Spawter): Promise<void> {
 }
 
 let sessionGeneration = 0;
+let observedAuthOwner: string | null | undefined;
 let resetPending: Promise<unknown> = Promise.resolve();
 let accountStorageTail: Promise<unknown> = Promise.resolve();
 function withAccountStorage<T>(action: () => Promise<T>): Promise<T> {
@@ -483,6 +496,13 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         loadPendingMue(),
       ]);
     if (generation !== sessionGeneration) return;
+    if (isSupabaseConfigured && spawter) {
+      const allowed = await canPublishCachedAccount(spawter.id);
+      if (generation !== sessionGeneration) return;
+      if (!allowed || (observedAuthOwner !== undefined && observedAuthOwner !== spawter.id)) {
+        get().suspendSession(); return;
+      }
+    }
     const palais = spawter && cachedPalais?.spawter_id === spawter.id ? cachedPalais : null;
     let savedPlaceIds = new Set<string>();
     let savedUnavailable = false;
@@ -493,7 +513,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     }
     if (generation !== sessionGeneration) return;
     const isCurrent = () => generation === sessionGeneration && get().spawter?.id === spawter?.id;
-    set({ spawter, palais, spawts, savedPlaceIds, savedUnavailable, collectionTitres, pendingMue, hydrating: false });
+    set({ spawter, palais, spawts: spawts.filter((row) => row.spawter_id === spawter?.id), savedPlaceIds, savedUnavailable,
+      collectionTitres: collectionTitres.filter((row) => row.spawter_id === spawter?.id), pendingMue, hydrating: false });
 
     // Sprint 2 Gold — cache local d'abord (offline-first : le badge doré ne
     // clignote pas au boot), puis revalidation réseau fire-and-forget +
@@ -592,6 +613,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       return "resume";
     }
     if (account.kind === "incomplete") throw new Error("ACCOUNT_INCOMPLETE");
+    const history = await readAccountHistory(account.owner, signal);
     // Le cache local d'une autre installation/personne n'est pas un héritage.
     // Le reset existant invalide aussi les réponses Gold, favoris et rôles tardives.
     await requireAccountSession(account.owner);
@@ -603,7 +625,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     await withAccountStorage(async () => {
       if (!isCurrent()) throw new Error("ACCOUNT_SESSION_CHANGED");
       await requireAccountSession(account.owner);
-      await saveRecoveredAccountLocal(account.spawter, account.palais, isCurrent);
+      await saveRecoveredAccountLocal(account.spawter, account.palais, isCurrent, history);
       try {
         await requireAccountSession(account.owner);
       } catch (error) {
@@ -611,7 +633,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         throw error;
       }
       if (!isCurrent()) throw new Error("ACCOUNT_SESSION_CHANGED");
-      set({ spawter: account.spawter, palais: account.palais, hydrating: false });
+      set({ spawter: account.spawter, palais: account.palais, ...history, hydrating: false });
     });
     useOnboardingDraft.getState().reset();
     // Favoris et droits utilisent leurs mécanismes de reprise existants.
@@ -1024,47 +1046,41 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     const list = get().spawts;
     const idx = list.findIndex((s) => s.id === spawt_id);
     if (idx === -1) {
-      if (__DEV__) console.warn("[spawter-store] attachReviewToSpawt — spawt not found", spawt_id);
-      return;
+      throw new Error("review_spawt_not_found");
     }
     const existing = list[idx]!;
+    const author = get().spawter;
+    if (!author || existing.spawter_id !== author.id || existing.is_seed || existing.is_cancelled) {
+      throw new Error("review_not_editable");
+    }
+    const ratings = readReviewRatings(patch);
     const updated_at = new Date().toISOString();
     const updatedRow: SpawtCheckin = {
       ...existing,
       note_etoiles: patch.note_etoiles,
+      note_cuisine: ratings?.note_cuisine ?? null,
+      note_cadre: ratings?.note_cadre ?? null,
+      note_service: ratings?.note_service ?? null,
       texte_avis: patch.texte_avis,
       tags: patch.tags,
       photos: patch.photos,
       updated_at,
     };
-    const updatedList = list.slice();
-    updatedList[idx] = updatedRow;
-    // Persist local (re-write all spawts AsyncStorage — simple, cohérent storage.ts).
+    // L'upsert complet assure l'existence de la visite avant l'avis. La file
+    // est durable AVANT d'annoncer que l'avis est enregistré.
+    const persistence = await persistReviewSpawt(updatedRow);
+    const updatedList = get().spawts.map(row => row.id === spawt_id ? updatedRow : row);
+    // Merge avec l'état courant : un autre spawt arrivé pendant le réseau est conservé.
     const { default: AsyncStorageMod } = await import(
       "@react-native-async-storage/async-storage"
     );
     await AsyncStorageMod.setItem("spawt:spawts", JSON.stringify(updatedList));
     set({ spawts: updatedList });
 
-    // Fire-and-forget Supabase via offline-queue wrapper (Story 4.3).
-    void saveSpawtToSupabaseOrEnqueue({
-      kind: "spawt_update",
-      row_id: spawt_id,
-      patch: {
-        note_etoiles: patch.note_etoiles,
-        texte_avis: patch.texte_avis,
-        tags: patch.tags,
-        photos: patch.photos,
-        updated_at,
-      },
-    }).catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] attachReviewToSpawt sync failed", err);
-    });
-
     // Story 4.6 — fire-and-forget Palais update.
     const palaisState = get().palais;
     const spawterState = get().spawter;
-    if (palaisState && spawterState) {
+    if (palaisState && spawterState && existing.note_etoiles === null) {
       const { palais: newPalais, didUpdate } = applyReviewToPalais({
         current: palaisState,
         unique_spots: spawterState.unique_spots,
@@ -1073,7 +1089,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         place_signals: [], // TODO Story 4.6 — alimenter via lookup place
       });
       if (didUpdate) {
-        await savePalaisLocal(newPalais);
+        await savePalaisLocal(newPalais).catch(err => { if (__DEV__) console.warn("[spawter-store] local Palais update failed", err); });
         void savePalais(newPalais).catch((err) => {
           if (__DEV__) console.warn("[spawter-store] savePalais review update failed", err);
         });
@@ -1176,9 +1192,19 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         photos_count: patch.photos.length,
       },
     });
+    return persistence;
   },
 
-  reset: () => {
+  observeAuthSession: (owner) => {
+    const previous = observedAuthOwner;
+    observedAuthOwner = owner;
+    if (owner === null || (previous !== undefined && previous !== owner)
+      || (get().spawter && get().spawter?.id !== owner)) {
+      get().suspendSession();
+    }
+  },
+
+  suspendSession: () => {
     sessionGeneration += 1;
     __goldRefreshInFlight = null;
     // Sprint 2 Gold — purge du cache module synchrone (isGoldSpawter) AVANT
@@ -1201,7 +1227,21 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       collectionTitres: [],
       pendingStadeCelebration: null,
       pendingMue: null,
+      hydrating: false,
     });
+    __celebrationInFlight.clear();
+    useProgressionStore.getState().reset();
+    useFeatureFlagsStore.getState().reset();
+    useCrewStore.getState().detach();
+    useCrewStore.setState({ self: null, session: null, members: [], proposals: [], winner: null,
+      offline: false, busy: false, persistedRef: null });
+  },
+
+  reset: () => {
+    // Explicit logout clears disk too. SDK suspension itself is memory-only.
+    const leaveCrew = useCrewStore.getState().leave;
+    const crewLeaving = leaveCrew();
+    get().suspendSession();
     // Privacy V1 — CR finding M2 : purger TOUS les caches AsyncStorage qui
     // gardent une trace d'identité utilisateur (fuite cross-user sur même device).
     // Les données de compte et consentements sont purgés aussi : une simple
@@ -1249,18 +1289,9 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     // la référence persistée du compte précédent (finding P2#7). Le cycle
     // crew-store ⇄ spawter-store est runtime-only des deux côtés (aucun usage à
     // l'initialisation), donc sûr sous Metro.
-    void useCrewStore
-      .getState()
-      .leave()
-      .catch((err) => {
-        if (__DEV__) console.warn("[spawter-store] crew leave on reset failed", err);
-      });
-    // CR finding M7 — vide aussi le guard in-flight pour que le prochain user
-    // puisse célébrer chaque stade comme un nouveau parcours.
-    __celebrationInFlight.clear();
-    // Progression — état en mémoire remis à zéro (badges/cartes/paws du
-    // compte précédent ne doivent pas survivre au changement de spawter).
-    useProgressionStore.getState().reset();
+    void crewLeaving.catch((err) => {
+      if (__DEV__) console.warn("[spawter-store] crew leave on reset failed", err);
+    });
   },
 }));
 

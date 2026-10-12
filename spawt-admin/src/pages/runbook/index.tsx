@@ -13,12 +13,12 @@ export const RunbookPage = () => {
 
   return (
     <div>
-      <h1>Mode d'emploi</h1>
+      <h1>Mode d&apos;emploi</h1>
       <p style={{ color: "var(--ink-mute)", maxWidth: "68ch" }}>
-        Ce qu'il faut savoir pour faire tourner SPAWT après nous : déployer,
+        Ce qu&apos;il faut savoir pour faire tourner SPAWT après nous : déployer,
         migrer, encaisser, allumer une fonctionnalité — et les pièges qui ont
-        déjà coûté une journée à quelqu'un. Aucun secret ici : les clés vivent
-        dans Coolify et dans le gestionnaire de mots de passe de l'équipe.
+        déjà coûté une journée à quelqu&apos;un. Aucun secret ici : les clés vivent
+        dans Coolify et dans le gestionnaire de mots de passe de l&apos;équipe.
       </p>
 
       <nav style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "20px 0" }}>

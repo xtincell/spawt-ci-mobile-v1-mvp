@@ -1,0 +1,17 @@
+{
+  "sourceSha256": "ae4bc3d7a519e94438816b72c70da070ac75711501fb45a2eb80a5a07383b45f",
+  "nativeSha256": "2c367531ef83ff876a89d99b270fe23532b79cc3c52f5482a8d1f2c28692c78b",
+  "frames": 69,
+  "fps": 60,
+  "width": 350,
+  "height": 560,
+  "pixelRatio": 1.75,
+  "poseDurationMs": 1150,
+  "exitDurationMs": 260,
+  "crop": {
+    "x": 240,
+    "y": 578,
+    "width": 600,
+    "height": 960
+  }
+}

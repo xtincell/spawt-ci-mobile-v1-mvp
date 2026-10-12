@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../src/theme/ThemeProvider";
 import { SwipeDeck } from "../src/components/place/SwipeDeck";
+import { DataLoadNotice } from "../src/components/DataLoadNotice";
 import { Ico } from "../src/components/primitives/Ico";
 import { listPlaces } from "../src/lib/data-source";
 import { buildRapideDeck } from "../src/lib/rapide-deck";
@@ -47,6 +48,8 @@ export default function RapideScreen() {
   const applySwipeSignal = useSpawterStore((s) => s.applySwipeSignal);
 
   const [deck, setDeck] = useState<PlaceWithScore[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   // Premier swipe effectué → deck définitivement figé (un fix GPS tardif ne
   // doit pas reconstruire la pile sous le doigt du spawter).
   const startedRef = useRef(false);
@@ -56,6 +59,7 @@ export default function RapideScreen() {
     if (!enabled) return;
     if (startedRef.current) return;
     let cancelled = false;
+    setFailed(false);
     void (async () => {
       const places = await listPlaces();
       if (cancelled || startedRef.current) return;
@@ -89,11 +93,11 @@ export default function RapideScreen() {
           properties: { deck_size: built.length },
         });
       }
-    })();
+    })().catch(() => { if (!cancelled && !startedRef.current) setFailed(true); });
     return () => {
       cancelled = true;
     };
-  }, [enabled, paywallEnabled, position.lat, position.lng, position.source]);
+  }, [enabled, paywallEnabled, position.lat, position.lng, position.source, attempt]);
 
   // Flag off → retour feed (déf. en profondeur : l'entrée est déjà masquée).
   if (!enabled) {
@@ -102,6 +106,7 @@ export default function RapideScreen() {
 
   const onLike = (item: PlaceWithScore, deckPosition: number) => {
     startedRef.current = true;
+    setFailed(false);
     // Le deck exclut les favoris au build, mais on re-garde l'idempotence
     // (double événement, re-entrée) : jamais de un-save par accident.
     if (!isSaved(item.place.id)) {
@@ -120,6 +125,7 @@ export default function RapideScreen() {
 
   const onPass = (item: PlaceWithScore, deckPosition: number) => {
     startedRef.current = true;
+    setFailed(false);
     void applySwipeSignal(item.adn, "pass");
     track({
       name: "rapide_swipe_pass",
@@ -192,7 +198,8 @@ export default function RapideScreen() {
         </View>
       </View>
 
-      {deck === null ? (
+      <DataLoadNotice loading={false} failed={failed} onRetry={() => setAttempt((n) => n + 1)} />
+      {deck === null && failed ? null : deck === null ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator color={theme.colors.brand.primary} />
         </View>

@@ -26,6 +26,8 @@ const mockSaveSpawter = jest.fn((..._args: unknown[]) => Promise.resolve(true));
 const mockSavePalais = jest.fn((..._args: unknown[]) => Promise.resolve(true));
 const mockClaim = jest.fn(async (..._args: unknown[]): Promise<unknown> => null);
 const mockUpdateArchetype = jest.fn(async (..._args: unknown[]) => undefined);
+const mockListSpawts = jest.fn();
+const mockListTitres = jest.fn();
 jest.mock("../../src/lib/analytics", () => ({ track: jest.fn() }));
 let mockSupabaseConfigured = false;
 jest.mock("../../src/lib/data-source", () => ({
@@ -34,12 +36,15 @@ jest.mock("../../src/lib/data-source", () => ({
   claimMeuteHeritage: (...args: unknown[]) => mockClaim(...args),
   updateSpawterArchetype: (...args: unknown[]) => mockUpdateArchetype(...args),
   insertTitre: jest.fn(async () => undefined),
+  listSpawtsForSpawter: (...args: unknown[]) => mockListSpawts(...args),
+  listTitresForSpawter: (...args: unknown[]) => mockListTitres(...args),
   get isSupabaseConfigured() {
     return mockSupabaseConfigured;
   },
 }));
 
 const mockGetUser = jest.fn();
+const mockGetSession = jest.fn();
 const mockReadAccount = jest.fn();
 const mockRequireSession = jest.fn();
 jest.mock("../../src/lib/account-recovery", () => ({
@@ -51,6 +56,7 @@ jest.mock("../../src/lib/supabase", () => ({
   supabase: {
     auth: {
       getUser: () => mockGetUser(),
+      getSession: () => mockGetSession(),
     },
   },
 }));
@@ -95,6 +101,9 @@ describe("finalizeOnboarding — Story 2.6", () => {
     mockSaveSpawter.mockClear();
     mockSavePalais.mockClear();
     mockGetUser.mockClear();
+    mockGetSession.mockReset().mockResolvedValue({ data: { session: { user: { id: "auth-uuid-xyz" } } }, error: null });
+    mockListSpawts.mockReset().mockResolvedValue([]);
+    mockListTitres.mockReset().mockResolvedValue([]);
     mockClaim.mockReset().mockResolvedValue(null);
     mockUpdateArchetype.mockClear();
     mockSupabaseConfigured = false;
@@ -218,8 +227,17 @@ describe("finalizeOnboarding — Story 2.6", () => {
       spawter: { ...SAMPLE_SPAWTER, id: "auth-uuid-xyz", quiz_archetype: "murmure" },
       palais: { ...require("../../src/data/seed/sample-spawter").EMPTY_PALAIS, spawter_id: "auth-uuid-xyz", axe_foule_secret: 0.83 } };
     mockReadAccount.mockResolvedValue(recovered);
+    const spawts = [{ id: "visite-retrouvee", spawter_id: recovered.owner, place_id: "lieu-existant", is_verified: true }];
+    const titres = [{ id: "titre-retrouve", spawter_id: recovered.owner, title_key: "stade_touriste", is_displayed: true }];
+    mockListSpawts.mockResolvedValue(spawts);
+    mockListTitres.mockResolvedValue(titres);
     await useSpawterStore.getState().finalizeOnboarding(freshDraft());
     expect(useSpawterStore.getState().palais?.axe_foule_secret).toBe(0.83);
+    expect(useSpawterStore.getState().spawts).toEqual(spawts);
+    expect(useSpawterStore.getState().collectionTitres).toEqual(titres);
+    expect(mockListSpawts).toHaveBeenCalledWith(recovered.owner, expect.any(AbortSignal));
+    expect(mockListTitres).toHaveBeenCalledWith(recovered.owner, expect.any(AbortSignal));
+    expect(mockRequireSession).toHaveBeenCalledWith(recovered.owner);
     expect(mockSaveSpawter).not.toHaveBeenCalled(); expect(mockSavePalais).not.toHaveBeenCalled();
   });
 

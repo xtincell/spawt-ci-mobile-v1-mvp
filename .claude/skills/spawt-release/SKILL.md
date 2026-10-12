@@ -41,7 +41,7 @@ Le suivi se fait sur expo.dev (compte xtincell) — le workflow CI logue l'URL d
 
 ## Points de vigilance
 
-- `newArchEnabled: true` (RN 0.83 New Architecture) : risque de modules natifs incompatibles — tester chaque nouveau module natif en build EAS avant de merger.
+- Expo SDK 55 / RN 0.83 impose la New Architecture ; la clé `newArchEnabled` a été retirée du schéma et ne doit plus figurer dans app.json. Tester chaque nouveau module natif en build EAS avant de merger.
 - Plugin `expo-application` RETIRÉ de app.json (commit `9f6b325`) pour débloquer CI — ne pas le réintroduire sans vérifier le build.
 - Expo Go ≠ environnement de test valide pour géofencing background, notifications, Apple Sign-In : utiliser les APK/dev builds.
 - Icônes/splash : `app/assets/` + clés `icon`, `splash`, `android.adaptiveIcon` dans app.json. Source brand : `documentation/ux/uploads/logos/` (SVG dispo).

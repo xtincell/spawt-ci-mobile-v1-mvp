@@ -73,8 +73,8 @@ async function interrogerPasserelle(url, key) {
   }
   // La forme du corps est plus fiable que le statut : GoTrue et Kong répondent
   // tous deux 401, mais avec des champs différents.
-  if (typeof parsed.error_code === "string" || typeof parsed.msg === "string") {
-    return { etat: "acceptee", detail: parsed.error_code ?? "réponse GoTrue" };
+  if (reponse.status === 401 && parsed.error_code === "no_authorization") {
+    return { etat: "acceptee", detail: parsed.error_code };
   }
   if (typeof parsed.message === "string") {
     return { etat: "refusee", detail: `la passerelle répond « ${parsed.message} »` };
@@ -145,13 +145,11 @@ for (const nom of aVerifier) {
     continue;
   }
   if (verdict.etat === "injoignable") {
-    // Ne pas confondre « clé fausse » et « je n'ai pas pu vérifier ». Bloquer un
-    // build parce que le réseau du runner hoquette rendrait le garde-fou
-    // détestable, donc désactivé — et un garde-fou désactivé ne garde rien.
-    console.warn(
-      `[eas-env] ${nom.padEnd(20)} ⚠ clé NON vérifiée — ${verdict.detail}\n` +
-        `           (le contrôle réseau est passé, pas réussi)`,
+    console.error(
+      `[eas-env] ${nom.padEnd(20)} ÉCHEC — clé NON vérifiée — ${verdict.detail}\n` +
+        `           Relancer ce contrôle lorsque la passerelle répond.`,
     );
+    echecs += 1;
     continue;
   }
   console.log(`[eas-env] ${nom.padEnd(20)} ok — ${url} — clé acceptée par la passerelle`);

@@ -1,0 +1,183 @@
+name: Android APK native QA
+permissions:
+  contents: read
+  actions: read
+on:
+  push:
+    tags: ['qa-android-*']
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: APK Expo à contrôler
+        required: true
+        type: string
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ANDROID_HOME: /tmp/spawt-android-sdk
+      ANDROID_SDK_ROOT: /tmp/spawt-android-sdk
+      ANDROID_USER_HOME: /tmp/spawt-android-user
+      ANDROID_AVD_HOME: /tmp/spawt-android-user/avd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Résoudre et télécharger l'APK ciblé
+        id: apk
+        env:
+          APK_INPUT: ${{ inputs.apk_url }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          fs.mkdirSync('android-proof',{recursive:true});
+          const config=JSON.parse(fs.readFileSync('documentation/android-qa.json','utf8'));
+          const phone=config.phone ?? '+2250000000193';
+          if(!['+2250000000193','+2250000000194'].includes(phone)) throw new Error('Compte de recette non autorisé');
+          let url=process.env.APK_INPUT;
+          let localReady=false;
+          if(config.localBuildRun && !url){
+            const api='https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY;
+            const headers={authorization:'Bearer '+process.env.GH_TOKEN,accept:'application/vnd.github+json'};
+            const read=async path=>{
+              const response=await fetch(api+path,{headers});
+              if(!response.ok) throw new Error('GitHub artifact HTTP '+response.status);
+              return response.json();
+            };
+            const run=await read('/actions/runs/'+config.localBuildRun);
+            if(run.conclusion!=='success' || run.head_sha!==config.buildWorkflowCommit || run.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation locale non validée');
+            const artifacts=await read('/actions/runs/'+config.localBuildRun+'/artifacts');
+            const artifact=artifacts.artifacts.find(a=>a.name==='android-apk' && !a.expired);
+            if(!artifact) throw new Error('APK locale absente');
+            const response=await fetch(artifact.archive_download_url,{headers});
+            if(!response.ok) throw new Error('Artifact download HTTP '+response.status);
+            fs.writeFileSync('local-build.zip',Buffer.from(await response.arrayBuffer()));
+            const metadata=JSON.parse(execFileSync('unzip',['-p','local-build.zip','apk-metadata.json'],{encoding:'utf8'}));
+            if(metadata.build!==config.build || metadata.version!=='1.1.1' || metadata.sourceCommit!==config.sourceCommit || metadata.runId!==config.localBuildRun || !metadata.signatureMatchesBuild25 || !metadata.zipCrcPassed) throw new Error('Métadonnées APK incohérentes');
+            const out=fs.openSync('spawt.apk','w');
+            try {execFileSync('unzip',['-p','local-build.zip','spawt-1.1.1-build'+config.build+'.apk'],{stdio:['ignore',out,'inherit']});} finally {fs.closeSync(out);}
+            const apk=fs.readFileSync('spawt.apk');
+            if(apk.length!==metadata.bytes || crypto.createHash('sha256').update(apk).digest('hex')!==metadata.sha256) throw new Error('Empreinte APK incorrecte');
+            fs.writeFileSync('android-proof/apk-metadata.json',JSON.stringify(metadata,null,2)+'\n');
+            fs.writeFileSync('android-proof/apk.url',run.html_url+'\n');
+            console.log(JSON.stringify(metadata));
+            localReady=true;
+          }else if(!url){
+            const query='query($appId:String!){app{byId(appId:$appId){builds(offset:0,limit:8){id status platform appVersion appBuildVersion gitCommitHash artifacts{buildUrl} queuePosition estimatedWaitTimeLeftSeconds}}}}';
+            const response=await fetch('https://api.expo.dev/graphql',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.EXPO_TOKEN,'user-agent':'eas-cli/22.5.0'},body:JSON.stringify({query,variables:{appId:'15ac2301-e901-4caa-a8c8-864c6621bcd0'}})});
+            const result=await response.json();
+            if(result.errors) throw new Error(JSON.stringify(result.errors));
+            const builds=result.data.app.byId.builds;
+            console.log(JSON.stringify(builds,null,2));
+            fs.writeFileSync('android-proof/eas-builds.json',JSON.stringify(builds,null,2));
+            const match=builds.find(b=>b.platform==='ANDROID' && b.appBuildVersion===String(config.build)
+              && (!config.sourceCommit || b.gitCommitHash===config.sourceCommit));
+            url=match?.status==='FINISHED' ? match.artifacts?.buildUrl : null;
+          }
+          if(url){
+            if(!/^https:\/\/expo\.dev\/artifacts\/eas\/[A-Za-z0-9_-]+\.apk$/.test(url)) throw new Error('APK origin unsupported');
+            const response=await fetch(url);
+            if(!response.ok) throw new Error('APK HTTP '+response.status);
+            fs.writeFileSync('spawt.apk',Buffer.from(await response.arrayBuffer()));
+            fs.writeFileSync('android-proof/apk.url',url+'\n');
+          }else if(!localReady) console.log('APK encore en compilation : aucune recette exécutée.');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+Boolean(url || localReady)+'\n');
+          fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_MODE='+config.mode+'\n');
+          fs.appendFileSync(process.env.GITHUB_ENV,'SPAWT_QA_PHONE='+phone+'\n');
+          JS
+      - uses: actions/cache/restore@v4
+        id: sdk
+        if: steps.apk.outputs.ready == 'true'
+        with:
+          path: /tmp/spawt-android-sdk
+          key: spawt-android-35-google-x86-v1
+      - name: Installer le SDK Android officiel
+        if: steps.apk.outputs.ready == 'true'
+        run: |
+          if [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            mkdir -p "$ANDROID_HOME/cmdline-tools"
+            curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o cmdline.zip
+            echo '5fdcc763663eefb86a5b8879697aa6088b041e70 cmdline.zip' | sha1sum -c -
+            unzip -q cmdline.zip -d "$ANDROID_HOME/cmdline-tools"
+            mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          fi
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64' >/dev/null
+      - uses: actions/cache/save@v4
+        if: steps.apk.outputs.ready == 'true' && steps.sdk.outputs.cache-hit != 'true'
+        with:
+          path: /tmp/spawt-android-sdk
+          key: spawt-android-35-google-x86-v1
+      - name: Démarrer Android 35 avec KVM
+        if: steps.apk.outputs.ready == 'true'
+        run: |
+          sudo chmod 666 /dev/kvm
+          mkdir -p "$ANDROID_AVD_HOME"
+          avdmanager create avd -n spawt-qa -k 'system-images;android-35;google_apis;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/spawt-qa.avd" --force
+          avdmanager list avd
+          test -f "$ANDROID_AVD_HOME/spawt-qa.ini"
+          "$ANDROID_HOME/emulator/emulator" -avd spawt-qa -no-window -no-audio -no-boot-anim -no-snapshot -gpu software -memory 3072 -cores 4 > emulator.log 2>&1 &
+          EMULATOR_PID=$!
+          sleep 4
+          tail -c 10000 emulator.log
+          if ! kill -0 "$EMULATOR_PID"; then cat emulator.log; exit 1; fi
+          if ! timeout 180s adb wait-for-device; then cat emulator.log; exit 1; fi
+          for i in $(seq 1 90); do
+            if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = '1' ]; then break; fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = '1'
+          adb shell input keyevent 82
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb shell settings put secure show_ime_with_hard_keyboard 1
+          adb install -r spawt.apk
+      - name: Recette native
+        if: steps.apk.outputs.ready == 'true'
+        run: python3 scripts/android-qa.py
+      - name: Diagnostic Android
+        if: always() && steps.apk.outputs.ready == 'true'
+        run: |
+          mkdir -p android-proof
+          timeout 20s adb logcat -d -s AndroidRuntime ReactNativeJS libc DEBUG > android-proof/logcat.txt || true
+          timeout 20s adb shell dumpsys package com.upgraders.spawt > android-proof/package.txt || true
+          cp emulator.log android-proof/emulator.log || true
+          python3 - <<'PY'
+          import pathlib, re
+          log=pathlib.Path('android-proof/logcat.txt').read_text()
+          if re.search(r'AndroidRuntime: Process: com\.upgraders\.spawt\b|DEBUG\s*:.*(?:Cmdline: com\.upgraders\.spawt\b|>>> com\.upgraders\.spawt <<<)',log):
+              raise RuntimeError('Plantage natif SPAWT détecté : consulter android-proof/logcat.txt')
+          PY
+      - name: Vérifier la présence visible de l'animation fournie
+        if: always() && steps.apk.outputs.ready == 'true'
+        run: |
+          python3 -m pip install --quiet pillow imageio-ffmpeg
+          python3 scripts/android-opening-proof.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-proof
+          path: android-proof
+          retention-days: 14
+      - name: Préparer les aperçus de recette
+        if: always() && steps.apk.outputs.ready == 'true'
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 scripts/android-proof-preview.py
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.apk.outputs.ready == 'true'
+        with:
+          name: android-preview
+          path: android-preview
+          retention-days: 14

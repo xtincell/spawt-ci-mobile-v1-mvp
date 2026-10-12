@@ -14,9 +14,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
+import { usePlaces } from "../src/lib/use-places";
+import type { PlaceWithAdn } from "../src/lib/data-source";
+import { DataLoadNotice } from "../src/components/DataLoadNotice";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { useSpawterStore } from "../src/store/spawter-store";
-import { listPlaces, type PlaceWithAdn } from "../src/lib/data-source";
 import {
   searchPlaces,
   EMPTY_FILTERS,
@@ -67,7 +69,7 @@ export default function SearchScreen() {
 
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
-  const [places, setPlaces] = useState<PlaceWithAdn[]>([]);
+  const { places, loading, failed, reload } = usePlaces();
   const [recents, setRecents] = useState<string[]>([]);
   const [sheetVisible, setSheetVisible] = useState(false);
 
@@ -79,9 +81,8 @@ export default function SearchScreen() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [all, r] = await Promise.all([listPlaces(), getRecentSearches()]);
+      const r = await getRecentSearches().catch(() => []);
       if (!cancelled) {
-        setPlaces(all);
         setRecents(r);
       }
     })();
@@ -103,7 +104,7 @@ export default function SearchScreen() {
 
   // Debounce search_submitted event.
   useEffect(() => {
-    if (query.length === 0 && isFiltersEmpty(filters)) return;
+    if (loading || failed || (query.length === 0 && isFiltersEmpty(filters))) return;
     const timer = setTimeout(() => {
       const last = lastSubmittedRef.current;
       if (
@@ -124,7 +125,7 @@ export default function SearchScreen() {
       });
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query, filters, results.length]);
+  }, [query, filters, results.length, loading, failed]);
 
   const handleToggle = (kind: FilterKind, value: unknown) => {
     setFilters((prev) => {
@@ -242,7 +243,8 @@ export default function SearchScreen() {
         />
       </View>
 
-      {showEmptyState ? (
+      <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
+      {(loading || failed) && places.length === 0 ? null : showEmptyState ? (
         <ScrollView
           contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}
         >

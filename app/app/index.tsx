@@ -5,13 +5,12 @@
 // vit désormais dans <AppOpening /> au Root layout et joue à CHAQUE lancement.
 // Cet écran ne rejoue plus sa propre séquence logo→Moka (le « truc étrange au
 // premier lancement » du build 7 : double animation enchaînée) : il rend
-// directement Moka « salut » + wordmark + tagline + CTA avec un court fondu.
+// directement Moka « salut » + wordmark + tagline + CTA.
 // CTA « Rejoindre la bande » → émet onboarding_started avant nav.
 
-import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
-import { Animated, Pressable, Text, StyleSheet } from "react-native";
+import { Pressable, Text, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { gradient } from "../src/theme/tokens";
@@ -26,20 +25,6 @@ export default function SplashScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  // Court fondu d'entrée du contenu (l'ouverture animée R23 vient de se
-  // terminer au-dessus — pas de deuxième séquence ici).
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const ctaTranslate = useRef(new Animated.Value(16)).current;
-
-  useEffect(() => {
-    const anim = Animated.parallel([
-      Animated.timing(contentOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.timing(ctaTranslate, { toValue: 0, duration: 400, useNativeDriver: true }),
-    ]);
-    anim.start();
-    return () => anim.stop();
-  }, [contentOpacity, ctaTranslate]);
-
   const onStart = () => {
     // P18 — idempotent : ne pas écraser un started_at déjà posé si l'utilisateur
     // re-tape le CTA (ex: back depuis consent puis re-Splash).
@@ -53,7 +38,7 @@ export default function SplashScreen() {
 
   return (
     <LinearGradient colors={gradient.night} style={styles.root}>
-      <Animated.View style={[styles.content, { opacity: contentOpacity }]}>
+      <View style={styles.content}>
         <CatMark
           pose="salut"
           size={ART_SIZE}
@@ -84,16 +69,14 @@ export default function SplashScreen() {
         >
           {t("splash.tagline")}
         </Text>
-      </Animated.View>
+      </View>
 
-      <Animated.View
+      <View
         style={[
           styles.cta,
           {
             paddingHorizontal: theme.spacing.lg,
             paddingBottom: theme.spacing.xl,
-            opacity: contentOpacity,
-            transform: [{ translateY: ctaTranslate }],
           },
         ]}
       >
@@ -121,7 +104,7 @@ export default function SplashScreen() {
             {t("splash.cta_start")}
           </Text>
         </Pressable>
-      </Animated.View>
+      </View>
     </LinearGradient>
   );
 }
