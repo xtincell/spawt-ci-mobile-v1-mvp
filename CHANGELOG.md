@@ -4,7 +4,7 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
-## Android 1.1.1 — Accueil et la bande (2026-10-12, build 28 préparé)
+## Android 1.1.1 — Accueil et la bande (2026-10-12, build 28 compilé)
 
 - « Accueil » remplace « Feed » dans la navigation et les retours du mode Rapide.
 - « La bande » harmonise les 46 textes concernés : communauté, invitations,
@@ -13,8 +13,10 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 - « Ton Crew » reste un groupe sur invitation, distinct de la communauté.
   Les routes, identifiants, codes et droits sont conservés.
 - TypeScript, vocabulaire, i18n, 1 023 tests mobile (4 ignorés), quatre tests
-  de configuration EAS et export web réussis. Compilation APK et recette
-  native du build 28 à confirmer ; les preuves du build 27 restent historiques.
+  de configuration EAS et export web réussis ; 191 tests admin en CI réussis.
+- APK 28 compilé et signé ; version, empreinte, CRC et libellés du bundle
+  vérifiés après téléchargement. Recette native sur appareil encore à faire ;
+  les preuves du build 27 restent historiques.
 
 Voir `documentation/ANDROID_1_1_1_BUILD28_VOCABULAIRE.md`.
 

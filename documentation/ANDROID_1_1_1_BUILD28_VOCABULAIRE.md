@@ -3,9 +3,23 @@
 ## État au 12 octobre 2026
 
 Source préparée dans la PR #13 existante, branche `codex/audit-avant-compilation`.
-Les contrôles source ci-dessous réussissent. La compilation APK signée et la
-recette native du build 28 restent à confirmer. Les preuves du build 27 ne
-valident pas ce nouveau binaire.
+Les contrôles source et la compilation APK signée ont réussi. Le manifeste
+compilé confirme `com.upgraders.spawt`, version **1.1.1**, build **28**.
+La recette native sur appareil du build 28 reste à faire ; les preuves du
+build 27 ne la remplacent pas.
+
+- Source applicative : `adb12e452861dde5e4215551f82864da8f72ff67`.
+- [Compilation signée](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38262258947), terminée le 12 octobre à 15:02 UTC.
+- [Artefact APK GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38262258947/artifacts/11754938097), disponible jusqu’au 26 octobre.
+- Fichier : `spawt-1.1.1-build28.apk`, **162 284 355 octets**.
+- SHA-256 : `2d7fa6bef35354b0284eacbfb8f6ebb84e0da93dd06c052583451dedabb82838`.
+- Signature vérifiée sur le runner et identique au build 25 ; certificat SHA-256 : `6c909bf0eddc02b8b50a0bbdc149f5deda87103ad18bc9fecc663d7ef6b52e74`.
+- Après téléchargement : empreinte identique aux métadonnées du runner,
+  CRC de l’archive et de l’APK valides, manifeste relu et nouveaux libellés
+  Accueil/La bande/Ton Crew présents dans le bundle compilé.
+- Les checks distants de la source et du retrait du déclencheur sont verts :
+  1 023 tests mobile, 191 tests admin, TypeScript, vocabulaire, i18n, garde EAS,
+  export web, lint et build admin.
 
 ## Périmètre
 
@@ -45,13 +59,17 @@ valident pas ce nouveau binaire.
 Ces contrôles ne remplacent pas une inspection sur téléphone, TalkBack ni une
 recette Android native. Le backend et l'admin ne sont pas modifiés.
 
-## Compilation prévue
+## Compilation exécutée
 
-Réutiliser `.github/workflows/android-local-build.yml` avec source épinglée,
-profil `preview`, EAS local 22.5.0 et signature existante. Le tag réservé est
-`local-build-android-2026-10-12-28`. Les déclencheurs du dépôt ont été vérifiés :
-ce préfixe ne lance que la compilation signée et son dépôt d'artefact GitHub,
+Le workflow `.github/workflows/android-local-build.yml` a compilé la source
+épinglée avec le profil `preview`, EAS local 22.5.0 et la signature existante.
+Un déclenchement ponctuel sur la branche existante a été protégé par un job
+sans secret : branche, parent source, message et commit unique vérifiés.
+Aucun tag n’a été créé. Le déclencheur temporaire a été retiré immédiatement
+après admission dans `fbbd8d996cf415e546d6eeaa9bbfad1b9859f9ea` ; seul
+le déclencheur historique par tag demeure. Le run n’a produit qu’un artefact,
 sans release, OTA, déploiement ou publication store.
 
 La configuration et les preuves QA du build 27 restent inchangées ; la source
-du build 28 sera consignée séparément pour ne pas réutiliser ses résultats.
+du build 28 est consignée séparément dans `documentation/android-build28.json`
+pour ne pas réutiliser ses résultats.

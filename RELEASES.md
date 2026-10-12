@@ -33,6 +33,26 @@ Format d'une entrée :
 
 ---
 
+## v1.1.1 — build 28 — 2026-10-12
+
+**APK interne compilé et signé** : [artefact GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38262258947/artifacts/11754938097) (jusqu’au 26 octobre).
+**Compilation** : [run 38262258947](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38262258947).
+**Source APK** : `adb12e452861dde5e4215551f82864da8f72ff67`.
+Aucun tag ni release GitHub créé ; aucune OTA ni publication store.
+
+- Accueil et la bande : 46 textes harmonisés, libellés accessibles et secours
+  de navigation inclus. Ton Crew reste un groupe distinct sur invitation.
+- Routes, API, clés i18n, schéma, droits et quiz séparé conservés.
+- 1 023 tests mobile (4 ignorés), 191 tests admin, TypeScript, vocabulaire,
+  i18n, tests de configuration EAS, export web et build admin réussis.
+- APK `spawt-1.1.1-build28.apk` : **162 284 355 octets**.
+- SHA-256 : `2d7fa6bef35354b0284eacbfb8f6ebb84e0da93dd06c052583451dedabb82838`.
+- Après téléchargement : manifeste 1.1.1/28, empreinte, CRC et libellés compilés
+  contrôlés. Signature vérifiée par le runner, identique au build 25.
+- Recette native sur appareil et TalkBack non exécutées pour ce build.
+
+Voir [le rapport build 28](./documentation/ANDROID_1_1_1_BUILD28_VOCABULAIRE.md).
+
 ## v1.1.1 — build 27 — 2026-10-10
 
 **APK** : [téléchargement direct](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-10-27/spawt-1.1.1-build27.apk)
