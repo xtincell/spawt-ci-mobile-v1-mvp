@@ -210,6 +210,9 @@ def photo_and_network_cases():
         adb('shell','settings','put','global',key,0)
 
 try:
+    requested_build=json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']
+    package_info=adb('shell','dumpsys','package',PACKAGE)
+    check('installed APK matches requested build',bool(re.search(r'\bversionCode='+str(requested_build)+r'\b',package_info)))
     # Garder le même format en dp, avec une surface 1x pour la vidéo : encoder
     # 2,8 millions de pixels concurrençait le lecteur sur l'émulateur logiciel.
     geometry(393,1,pixel_ratio=1)

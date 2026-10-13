@@ -3,7 +3,12 @@
 ## Périmètre livré
 
 Demande du 13 octobre : terminer cette version et compiler l’APK avec Expo.
-Même branche `codex/audit-avant-compilation`, PR 13 toujours ouverte/brouillon.
+Même branche locale `codex/audit-avant-compilation`, PR 13 toujours ouverte/brouillon.
+Les sources de cette livraison sont accessibles sur le tag `local-build-android-2026-10-13-29`.
+La branche distante de la PR reste à `7063dbc` : lecture Coolify du 13 octobre confirmant
+`spawt-admin` avec auto-déploiement activé sur cette branche et aucun filtre de chemins.
+La livraison utilise donc uniquement les tags ; aucun réglage Coolify n’a été modifié.
+[Diff applicatif publié](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/compare/7063dbc...bd0b61f).
 La demande finale conserve tous les filtres sur une seule ligne horizontale défilante.
 Les fonds distinguent les fonctions : sélecteur clair, éditorial sur crème avec cartes blanches,
 avis sur crème et coups de cœur sur or clair. Les libellés et icônes doublent ce repère coloré.
