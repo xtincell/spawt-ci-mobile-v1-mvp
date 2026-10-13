@@ -121,7 +121,14 @@ export function HomeEditorial({
       }));
 
   return (
-    <View testID="home-editorial" style={{ marginTop: theme.spacing.base }}>
+    <View
+      testID="home-editorial"
+      style={{
+        marginTop: theme.spacing.base,
+        paddingVertical: theme.spacing.base,
+        backgroundColor: theme.colors.surface.subtle,
+      }}
+    >
       {selections && enabled ? (
         <DataLoadNotice
           loading={loading}
@@ -199,7 +206,7 @@ function EditorialCard({
         width,
         borderRadius: theme.radius.card,
         overflow: "hidden",
-        backgroundColor: theme.colors.surface.subtle,
+        backgroundColor: theme.colors.surface.raised,
         opacity: pressed ? 0.8 : 1,
       })}
     >

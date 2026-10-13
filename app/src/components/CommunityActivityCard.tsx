@@ -41,9 +41,14 @@ export function CommunityActivityCard({ item }: { item: MeuteActivityItem }) {
       testID={`community-${item.kind}-${item.id}`}
       style={{
         marginBottom: theme.spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border.subtle,
-        paddingBottom: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.border.subtle,
+        borderRadius: theme.radius.card,
+        padding: theme.spacing.base,
+        backgroundColor:
+          item.kind === "coup"
+            ? theme.colors.surface.recommendation
+            : theme.colors.surface.subtle,
       }}
     >
       <View

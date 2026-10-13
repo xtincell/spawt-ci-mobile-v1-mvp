@@ -55,6 +55,8 @@ export const tokens = {
     inverse: palette.black, // moments gr-night (luxe / identité)
     raised: palette.pureWhite, // --bg-card : cartes, surfaces élevées
     subtle: palette.cremeSable, // --bg-warm : encarts, cartes douces
+    editorial: palette.blancCasse, // contrôles et contenus secondaires
+    recommendation: palette.goldLight, // recommandation rare de la bande
   },
   text: {
     primary: palette.black, // --ink

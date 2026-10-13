@@ -266,7 +266,13 @@ export default function HomeD() {
           </Pressable>
         </View>
 
-        <View style={{ marginTop: theme.spacing.sm }}>
+        <View
+          style={{
+            marginTop: theme.spacing.sm,
+            paddingVertical: theme.spacing.sm,
+            backgroundColor: theme.colors.surface.editorial,
+          }}
+        >
           <ModeStories
             selectedMode={selectedMode}
             onModePress={setSelectedMode}

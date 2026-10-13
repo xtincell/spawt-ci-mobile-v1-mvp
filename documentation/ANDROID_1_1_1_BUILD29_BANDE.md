@@ -4,6 +4,9 @@
 
 Demande du 13 octobre : terminer cette version et compiler l’APK avec Expo.
 Même branche `codex/audit-avant-compilation`, PR 13 toujours ouverte/brouillon.
+La demande finale conserve tous les filtres sur une seule ligne horizontale défilante.
+Les fonds distinguent les fonctions : sélecteur clair, éditorial sur crème avec cartes blanches,
+avis sur crème et coups de cœur sur or clair. Les libellés et icônes doublent ce repère coloré.
 Les changements d’Accueil déjà présents sont conservés : quatre choix discrets,
 SVG dédiés, carrousel indépendant du classement Palais, photos et illustration de secours.
 

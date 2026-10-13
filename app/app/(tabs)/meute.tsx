@@ -100,13 +100,20 @@ export default function MeuteScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               testID="community-filters"
+              style={{
+                backgroundColor: theme.colors.surface.editorial,
+                borderRadius: theme.radius.lg,
+              }}
               accessibilityRole="radiogroup"
               onLayout={(event) => {
                 filterWidth.current = event.nativeEvent.layout.width;
                 revealFilter();
               }}
               onContentSizeChange={() => revealFilter()}
-              contentContainerStyle={{ gap: theme.spacing.sm }}
+              contentContainerStyle={{
+                gap: theme.spacing.sm,
+                padding: theme.spacing.xs,
+              }}
             >
               {(["all", "review", "coup"] as CommunityFilter[]).map((value) => (
                 <Pressable
@@ -159,6 +166,11 @@ export default function MeuteScreen() {
                   onPress={() => setCrewExpanded((value) => !value)}
                   style={{
                     minHeight: 44,
+                    paddingHorizontal: theme.spacing.sm,
+                    borderRadius: theme.radius.md,
+                    backgroundColor: theme.colors.surface.editorial,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border.subtle,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: theme.spacing.sm,
