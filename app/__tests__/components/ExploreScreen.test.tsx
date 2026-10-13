@@ -12,7 +12,9 @@ import type { ExploreCollectionSummary } from "../../src/lib/data-source";
 
 jest.mock("react-native-safe-area-context", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
     SafeAreaView: ({ children }: { children: ReactNode }) =>
       ReactMock.createElement(RNMock.View, null, children),
@@ -31,8 +33,12 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 jest.mock("expo-router", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
+    useFocusEffect: (effect: () => void) =>
+      require("react").useEffect(effect, [effect]),
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: mockBack }),
     Redirect: ({ href }: { href: string }) =>
       ReactMock.createElement(RNMock.Text, { testID: "redirect" }, href),
@@ -133,10 +139,10 @@ describe("ExploreScreen — gate du flag mode-explore", () => {
     });
   });
 
-  it("zéro collection → état vide (les carnets arrivent)", async () => {
+  it("zéro collection → aperçus éditoriaux explicitement non publiés", async () => {
     mockFlags = { "mode-explore": true };
     const r = await renderScreen();
-    expect(JSON.stringify(r.toJSON())).toContain("explore.empty_title");
+    expect(JSON.stringify(r.toJSON())).toContain("home.preview.notice");
   });
 
   it("tap sur un carnet → push /explore/[slug]", async () => {

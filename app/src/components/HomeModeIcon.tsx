@@ -3,7 +3,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { useTheme } from "../theme/ThemeProvider";
 import type { ModeKey } from "./ModeStories";
 
-/** Four original vector drawings on one 24 × 24 grid; no bitmap assets. */
+/** Five vector drawings on one 24 × 24 grid; no bitmap assets. */
 export function HomeModeIcon({
   mode,
   active = false,
@@ -32,22 +32,27 @@ export function HomeModeIcon({
       >
         {mode === "suggestions" ? (
           <>
-            <Path d="M14 4a8 8 0 1 0 6 9M5 17l-2 4 6-2" />
+            <Path d="m10 3 2.5 6.5L19 12l-6.5 2.5L10 21l-2.5-6.5L1 12l6.5-2.5Z" />
             <Path
-              d="m19 2 .9 3.1L23 6l-3.1.9L19 10l-.9-3.1L15 6l3.1-.9Z"
+              d="m20 2 .8 2.2L23 5l-2.2.8L20 8l-.8-2.2L17 5l2.2-.8Z"
               stroke={gold}
             />
           </>
-        ) : mode === "traine" ? (
+        ) : mode === "rapide" ? (
           <>
-            <Path d="M6 11V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v5M6 19v3M18 19v3" />
-            <Path d="M6 15h12v-4a2 2 0 0 1 4 0v8H2v-8a2 2 0 0 1 4 0Z" />
-            <Path d="M8 12h8" stroke={gold} />
+            <Path d="M14 2 4 14h7l-1 8L21 9h-8Z" />
+            <Path d="m14 5-7 8h6l-1 6 7-9h-6Z" stroke={gold} />
           </>
-        ) : mode === "decouvre" ? (
+        ) : mode === "duo" ? (
           <>
-            <Circle cx={12} cy={12} r={9} />
-            <Path d="m16 8-3 5-5 3 3-5Z" stroke={gold} />
+            <Path d="M12 7C9 1 1 4 2 9c0 4 6 8 10 11" />
+            <Path d="M12 7c2-4 6-4 8-1" stroke={gold} />
+            <Path d="M16 10c-4-4-9 1-5 5l5 5 5-5c4-4-1-9-5-5Z" stroke={gold} />
+          </>
+        ) : mode === "spots" ? (
+          <>
+            <Path d="M12 22S3 13 3 9a9 9 0 0 1 18 0c0 4-9 13-9 13Z" />
+            <Circle cx={12} cy={9} r={3} fill={gold} stroke={gold} />
           </>
         ) : (
           <>

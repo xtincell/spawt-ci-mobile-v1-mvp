@@ -23,6 +23,13 @@ import { DataSourceBanner } from "../../src/components/DataSourceBanner";
 import { EmptyState } from "../../src/components/EmptyState";
 import { Masthead } from "../../src/components/Masthead";
 import { ModeStories, type ModeKey } from "../../src/components/ModeStories";
+import { RapideContent } from "../../src/components/RapideContent";
+import { SpotsMap } from "../../src/components/SpotsMap";
+import {
+  ExploreCollections,
+  DuoEditorial,
+} from "../../src/components/ExploreCollections";
+import { useNavigationAction } from "../../src/lib/use-navigation-action";
 import { HomeEditorial } from "../../src/components/HomeEditorial";
 import { FeuilletonRow } from "../../src/components/FeuilletonRow";
 import { Ico } from "../../src/components/primitives/Ico";
@@ -50,6 +57,7 @@ const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 export default function HomeD() {
   const theme = useTheme();
   const router = useRouter();
+  const navigate = useNavigationAction();
   const { t } = useTranslation();
 
   const palais = useSpawterStore((s) => s.palais ?? EMPTY_PALAIS);
@@ -61,12 +69,21 @@ export default function HomeD() {
   const refreshing = loading && places.length > 0;
   const [selectedMode, setSelectedMode] = useState<ModeKey>("suggestions");
 
+  const [visitedModes, setVisitedModes] = useState<Set<ModeKey>>(
+    () => new Set(["suggestions"]),
+  );
+  const selectMode = (mode: ModeKey) => {
+    if (mode === selectedMode) return;
+    setVisitedModes((current) => new Set([...current, mode]));
+    setSelectedMode(mode);
+  };
+
   const feedViewedRef = useRef(false);
   const firstViewRef = useRef(false);
 
   const visited = useMemo(
     () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
-    [spawts]
+    [spawts],
   );
 
   const position = useSpawterPosition();
@@ -79,13 +96,13 @@ export default function HomeD() {
       saved_place_ids: savedPlaceIds,
       now: new Date(),
     }),
-    [palais, position, visited, savedPlaceIds]
+    [palais, position, visited, savedPlaceIds],
   );
 
   const ranked = useMemo(() => {
     const scored = rankPlaces(
       ctx,
-      places.map((p) => ({ place: p, adn: p.adn, last_spawt_at: null }))
+      places.map((p) => ({ place: p, adn: p.adn, last_spawt_at: null })),
     );
     // R20 — les lieux OUVERTS maintenant remontent en tête (l'ordre match est
     // préservé dans chaque groupe — tri stable, cf. opening-hours.ts).
@@ -193,18 +210,20 @@ export default function HomeD() {
       setUpsellVisible(true);
       return;
     }
-    track({
-      name: "feed_card_clicked",
-      properties: {
-        place_id: item.place.id,
-        position: ranked.findIndex((r) => r.place.id === item.place.id),
-        match_score: item.match_score,
-        distance_km: item.distance_km,
-      },
-    });
-    router.push({
-      pathname: "/place/[id]",
-      params: { id: item.place.id, ref: "feed" },
+    navigate(() => {
+      track({
+        name: "feed_card_clicked",
+        properties: {
+          place_id: item.place.id,
+          position: ranked.findIndex((r) => r.place.id === item.place.id),
+          match_score: item.match_score,
+          distance_km: item.distance_km,
+        },
+      });
+      router.push({
+        pathname: "/place/[id]",
+        params: { id: item.place.id, ref: "feed" },
+      });
     });
   };
 
@@ -223,134 +242,203 @@ export default function HomeD() {
       style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
     >
       <DataSourceBanner />
-      <DataLoadNotice
-        loading={loading}
-        failed={failed}
-        onRetry={() => void reload()}
-      />
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.brand.primary}
-          />
-        }
-        contentContainerStyle={{ paddingBottom: theme.spacing["3xl"] }}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingRight: theme.spacing.base,
+        }}
       >
-        <View
+        <View style={{ flex: 1 }}>
+          <Masthead kicker={t("home.masthead_kicker")} />
+        </View>
+        <Pressable
+          // typedRoutes regenerate les types au prochain build — V1 cast.
+          onPress={() => router.push("/search" as never)}
+          accessibilityRole="button"
+          accessibilityLabel={t("search.title")}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{
-            flexDirection: "row",
+            minWidth: 44,
+            minHeight: 44,
             alignItems: "center",
-            justifyContent: "space-between",
-            paddingRight: theme.spacing.base,
+            justifyContent: "center",
           }}
         >
-          <View style={{ flex: 1 }}>
-            <Masthead kicker={t("home.masthead_kicker")} />
-          </View>
-          <Pressable
-            // typedRoutes regenerate les types au prochain build — V1 cast.
-            onPress={() => router.push("/search" as never)}
-            accessibilityRole="button"
-            accessibilityLabel={t("search.title")}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{
-              minWidth: 44,
-              minHeight: 44,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ico name="search" size={22} />
-          </Pressable>
-        </View>
+          <Ico name="search" size={22} />
+        </Pressable>
+      </View>
 
-        <View
-          style={{
-            marginTop: theme.spacing.sm,
-            paddingVertical: theme.spacing.sm,
-            backgroundColor: theme.colors.surface.editorial,
-          }}
-        >
-          <ModeStories
-            selectedMode={selectedMode}
-            onModePress={setSelectedMode}
-          />
-        </View>
+      <View
+        style={{
+          marginTop: theme.spacing.sm,
+          paddingVertical: theme.spacing.sm,
+          backgroundColor: theme.colors.surface.editorial,
+        }}
+      >
+        <ModeStories selectedMode={selectedMode} onModePress={selectMode} />
+      </View>
 
-        {/* SPAWT Wrapped — bannière saisonnière vers /wrapped. */}
-        {wrappedSeason ? (
-          <View style={{ marginTop: theme.spacing.lg }}>
-            <WrappedBanner
-              year={wrappedYearFor()}
-              onPress={() => router.push("/wrapped" as never)}
-            />
-          </View>
-        ) : null}
-
-        <HomeEditorial
-          mode={selectedMode}
-          ranked={ranked}
-          onPlacePress={onUnePress}
-          refreshKey={editorialRefresh}
-          inventoryPending={loading || failed}
-          activity={activity}
-          onImpression={(item, position) =>
-            track({
-              name: "feed_card_impressed",
-              properties: {
-                place_id: item.place.id,
-                position,
-                match_score: item.match_score,
-              },
-            })
-          }
-        />
-
-        {/* « Ça bouge cette semaine » — événements à venir (0049), auto-gatée
-            par le flag `evenements-promos` (OFF → null, aucun fetch). */}
-        <EventsWeekRow
-          onPlacePress={(placeId) =>
-            router.push({
-              pathname: "/place/[id]",
-              params: { id: placeId, ref: "feed" },
-            })
-          }
-        />
-
-        {ranked.length > 0 ? (
-          <View
-            testID="home-personalized-feed"
-            style={{ marginTop: theme.spacing.lg }}
-          >
-            <Text
-              accessibilityRole="header"
+      {(["suggestions", "rapide", "selections", "duo", "spots"] as const).map(
+        (mode) =>
+          visitedModes.has(mode) ? (
+            <View
+              key={mode}
+              testID={`home-panel-${mode}`}
+              accessibilityElementsHidden={selectedMode !== mode}
+              importantForAccessibility={
+                selectedMode === mode ? "auto" : "no-hide-descendants"
+              }
               style={{
-                ...theme.typography.preset.h2,
-                color: theme.colors.text.primary,
-                paddingHorizontal: theme.spacing.lg,
-                marginBottom: theme.spacing.sm,
+                flex: 1,
+                display: selectedMode === mode ? "flex" : "none",
               }}
             >
-              {t("home.personalized_feed")}
-            </Text>
-            <FeuilletonRow
-              places={ranked}
-              startIndex={1}
-              onPlacePress={onUnePress}
-              activity={activity}
-            />
-          </View>
-        ) : null}
-        {!loading && !failed && ranked.length === 0 ? (
-          <EmptyState
-            icon="search"
-            title={t("search.results_empty_title")}
-            body={t("search.results_empty_body")}
-          />
-        ) : null}
-      </ScrollView>
+              <ScrollView
+                nestedScrollEnabled
+                testID={`home-scroll-${mode}`}
+                refreshControl={
+                  mode === "suggestions" ? (
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      tintColor={theme.colors.brand.primary}
+                    />
+                  ) : undefined
+                }
+                contentContainerStyle={{
+                  flexGrow: 1,
+                  paddingBottom: theme.spacing.lg,
+                  backgroundColor:
+                    mode === "suggestions"
+                      ? theme.colors.surface.base
+                      : theme.colors.surface.subtle,
+                }}
+              >
+                {mode !== "rapide" ? (
+                  <View
+                    style={{
+                      padding: theme.spacing.lg,
+                      gap: theme.spacing.xs,
+                      backgroundColor: theme.colors.surface.subtle,
+                    }}
+                  >
+                    <Text
+                      accessibilityRole="header"
+                      style={{
+                        ...theme.typography.preset.h1,
+                        color: theme.colors.text.primary,
+                      }}
+                    >
+                      {t(`home.interfaces.${mode}.title`)}
+                    </Text>
+                    <Text
+                      style={{
+                        ...theme.typography.preset.body,
+                        color: theme.colors.text.secondary,
+                      }}
+                    >
+                      {t(`home.interfaces.${mode}.subtitle`)}
+                    </Text>
+                  </View>
+                ) : null}
+                {mode === "rapide" ? (
+                  <RapideContent
+                    embedded
+                    active={selectedMode === mode}
+                    onBack={() => selectMode("suggestions")}
+                  />
+                ) : null}
+                {mode === "selections" ? (
+                  <ExploreCollections active={selectedMode === mode} />
+                ) : null}
+                {mode === "duo" ? <DuoEditorial /> : null}
+                {mode === "spots" ? <SpotsMap embedded /> : null}
+                {mode === "suggestions" ? (
+                  <>
+                    <DataLoadNotice
+                      loading={loading}
+                      failed={failed}
+                      onRetry={() => void reload()}
+                    />
+                    {/* SPAWT Wrapped — bannière saisonnière vers /wrapped. */}
+                    {wrappedSeason ? (
+                      <View style={{ marginTop: theme.spacing.lg }}>
+                        <WrappedBanner
+                          year={wrappedYearFor()}
+                          onPress={() => router.push("/wrapped" as never)}
+                        />
+                      </View>
+                    ) : null}
+
+                    <HomeEditorial
+                      mode="suggestions"
+                      ranked={ranked}
+                      onPlacePress={onUnePress}
+                      refreshKey={editorialRefresh}
+                      inventoryPending={loading || failed}
+                      activity={activity}
+                      onImpression={(item, position) =>
+                        track({
+                          name: "feed_card_impressed",
+                          properties: {
+                            place_id: item.place.id,
+                            position,
+                            match_score: item.match_score,
+                          },
+                        })
+                      }
+                    />
+
+                    {/* « Ça bouge cette semaine » — événements à venir (0049), auto-gatée
+            par le flag `evenements-promos` (OFF → null, aucun fetch). */}
+                    <EventsWeekRow
+                      onPlacePress={(placeId) =>
+                        router.push({
+                          pathname: "/place/[id]",
+                          params: { id: placeId, ref: "feed" },
+                        })
+                      }
+                    />
+
+                    {ranked.length > 0 ? (
+                      <View
+                        testID="home-personalized-feed"
+                        style={{ marginTop: theme.spacing.lg }}
+                      >
+                        <Text
+                          accessibilityRole="header"
+                          style={{
+                            ...theme.typography.preset.h2,
+                            color: theme.colors.text.primary,
+                            paddingHorizontal: theme.spacing.lg,
+                            marginBottom: theme.spacing.sm,
+                          }}
+                        >
+                          {t("home.personalized_feed")}
+                        </Text>
+                        <FeuilletonRow
+                          places={ranked}
+                          startIndex={1}
+                          onPlacePress={onUnePress}
+                          activity={activity}
+                        />
+                      </View>
+                    ) : null}
+                    {!loading && !failed && ranked.length === 0 ? (
+                      <EmptyState
+                        icon="search"
+                        title={t("search.results_empty_title")}
+                        body={t("search.results_empty_body")}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+              </ScrollView>
+            </View>
+          ) : null,
+      )}
       <GoldUpsellSheet
         visible={upsellVisible}
         onClose={() => setUpsellVisible(false)}

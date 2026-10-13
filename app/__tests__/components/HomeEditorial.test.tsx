@@ -1,13 +1,18 @@
+jest.mock("../../src/lib/analytics", () => ({ track: jest.fn() }));
 import TestRenderer, { act } from "react-test-renderer";
 import { HomeEditorial } from "../../src/components/HomeEditorial";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
 import { DataLoadNotice } from "../../src/components/DataLoadNotice";
-import { FlatList } from "react-native";
+import { Pressable } from "react-native";
 import type { ExploreCollectionSummary } from "../../src/lib/data-source";
 const mockPush = jest.fn();
 let mockEnabled = true;
 const mockList = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock("expo-router", () => ({
+  useFocusEffect: (effect: () => void) =>
+    require("react").useEffect(effect, [effect]),
+  useRouter: () => ({ push: mockPush }),
+}));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
@@ -51,9 +56,18 @@ it("loads collections in place, opens only the selected published carnet", async
     tree = TestRenderer.create(render());
   });
   expect(mockList).toHaveBeenCalledWith({ throwOnError: true });
+  expect(JSON.stringify(tree.toJSON())).not.toContain("home.preview.notice");
   expect(mockPush).not.toHaveBeenCalled();
-  const data = tree.root.findByType(FlatList).props.data;
-  act(() => data[0].onPress());
+  const card = tree.root.findAll(
+    (n) =>
+      n.props.accessibilityRole === "button" &&
+      typeof n.props.onPress === "function",
+  )[0]!;
+  act(() => {
+    card.props.onPress();
+    card.props.onPress();
+  });
+  expect(mockPush).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/explore/[slug]",
     params: { slug: carnet.slug },
@@ -64,7 +78,7 @@ it("reports loading, distinguishes error from empty, retries successfully", asyn
   mockList.mockReturnValue(
     new Promise((_, fail) => {
       reject = fail;
-    })
+    }),
   );
   await act(async () => {
     tree = TestRenderer.create(render());
@@ -74,11 +88,11 @@ it("reports loading, distinguishes error from empty, retries successfully", asyn
     reject(new Error("offline"));
   });
   expect(tree.root.findByType(DataLoadNotice).props.failed).toBe(true);
-  expect(JSON.stringify(tree.toJSON())).not.toContain("home.collections_empty");
+  expect(JSON.stringify(tree.toJSON())).not.toContain("home.preview.notice");
   mockList.mockResolvedValue([]);
   await act(async () => tree.root.findByType(DataLoadNotice).props.onRetry());
   expect(tree.root.findByType(DataLoadNotice).props.failed).toBe(false);
-  expect(JSON.stringify(tree.toJSON())).toContain("home.collections_empty");
+  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.notice");
 });
 it("keeps readable collections when refresh fails and ignores stale request on mode switch", async () => {
   mockList.mockResolvedValue([carnet]);
@@ -90,17 +104,17 @@ it("keeps readable collections when refresh fails and ignores stale request on m
     tree.update(
       <ThemeProvider>
         <HomeEditorial {...props} refreshKey={1} />
-      </ThemeProvider>
-    )
+      </ThemeProvider>,
+    ),
   );
   expect(tree.root.findByType(DataLoadNotice).props.failed).toBe(true);
-  expect(tree.root.findByType(FlatList).props.data[0].id).toBe(carnet.id);
+  expect(JSON.stringify(tree.toJSON())).toContain(carnet.title_key);
   await act(async () =>
     tree.update(
       <ThemeProvider>
         <HomeEditorial {...props} mode="suggestions" />
-      </ThemeProvider>
-    )
+      </ThemeProvider>,
+    ),
   );
   expect(tree.root.findAllByType(DataLoadNotice)).toHaveLength(0);
   expect(JSON.stringify(tree.toJSON())).toContain("home.editorial_empty");
@@ -111,8 +125,48 @@ it("respects disabled flag, fetches nothing, and does not redirect", async () =>
     tree = TestRenderer.create(render());
   });
   expect(mockList).not.toHaveBeenCalled();
+  expect(JSON.stringify(tree.toJSON())).not.toContain("home.preview.notice");
   expect(mockPush).not.toHaveBeenCalled();
   expect(JSON.stringify(tree.toJSON())).toContain(
-    "home.collections_unavailable"
+    "home.collections_unavailable",
   );
+});
+
+it("shows labelled duo concepts without fetching or reclassifying places", async () => {
+  await act(async () => {
+    tree = TestRenderer.create(
+      <ThemeProvider>
+        <HomeEditorial {...props} mode="duo" />
+      </ThemeProvider>,
+    );
+  });
+  expect(mockList).not.toHaveBeenCalled();
+  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.coffee.title");
+  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.table.title");
+  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.notice");
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(tree.root.findAll((node) => node.props.accessibilityRole === "button")).toHaveLength(0);
+});
+
+it("ignores a collection response that arrives after switching to Suggestions", async () => {
+  let resolve!: (rows: ExploreCollectionSummary[]) => void;
+  mockList.mockReturnValue(
+    new Promise((done) => {
+      resolve = done;
+    }),
+  );
+  await act(async () => {
+    tree = TestRenderer.create(render());
+  });
+  await act(async () => {
+    tree.update(
+      <ThemeProvider>
+        <HomeEditorial {...props} mode="suggestions" />
+      </ThemeProvider>,
+    );
+  });
+  await act(async () => {
+    resolve([carnet]);
+  });
+  expect(JSON.stringify(tree.toJSON())).not.toContain(carnet.title_key);
 });

@@ -793,10 +793,11 @@ export async function listExploreCollections(options?: { throwOnError?: boolean 
  */
 export async function getExploreCollection(
   slug: string,
+  options?: { throwOnError?: boolean },
 ): Promise<ExploreCollectionDetail | null> {
   if (isSupabaseConfigured) {
     const { getExploreCollectionFromSupabase } = await import("./data-source.supabase");
-    return getExploreCollectionFromSupabase(slug);
+    return getExploreCollectionFromSupabase(slug, options);
   }
   const seed = SEED_EXPLORE_COLLECTIONS.find(
     (c) => c.slug === slug && c.is_published,

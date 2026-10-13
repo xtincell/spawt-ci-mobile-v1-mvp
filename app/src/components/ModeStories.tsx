@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   Pressable,
   ScrollView,
@@ -9,12 +10,13 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { HomeModeIcon } from "./HomeModeIcon";
 
-export type ModeKey = "suggestions" | "traine" | "decouvre" | "selections";
+export type ModeKey = "suggestions" | "rapide" | "selections" | "duo" | "spots";
 export const HOME_MODES: readonly ModeKey[] = [
   "suggestions",
-  "traine",
-  "decouvre",
+  "rapide",
   "selections",
+  "duo",
+  "spots",
 ];
 
 /** One discreet row; enlarged text can scroll horizontally instead of being clipped. */
@@ -28,13 +30,22 @@ export function ModeStories({
   const theme = useTheme();
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
-  const itemWidth = Math.max(71 * Math.max(1, fontScale), (width - 36) / 4);
+  const itemWidth = Math.max(68 * Math.max(1, fontScale), (width - 40) / 5);
+  const row = useRef<ScrollView>(null);
+  useEffect(() => {
+    const index = HOME_MODES.indexOf(selectedMode);
+    row.current?.scrollTo({
+      x: Math.max(0, index * (itemWidth + 4) - (width - itemWidth) / 2),
+      animated: false,
+    });
+  }, [selectedMode, itemWidth, width]);
   return (
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel={t("home.selector_label")}
     >
       <ScrollView
+        ref={row}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 12, gap: 4 }}
@@ -51,9 +62,11 @@ export function ModeStories({
               aria-checked={active}
               accessibilityState={{ selected: active, checked: active }}
               accessibilityLabel={`${title}, ${subtitle}`}
-              onPress={() => onModePress(mode)}
+              onPress={() => {
+                if (!active) onModePress(mode);
+              }}
               style={({ pressed }) => ({
-                minWidth: itemWidth,
+                width: itemWidth,
                 paddingHorizontal: 2,
                 minHeight: 44,
                 alignItems: "center",
@@ -82,16 +95,26 @@ export function ModeStories({
               </View>
               <Text
                 style={{
-                  ...theme.typography.preset.small,
+                  ...theme.typography.preset.caption,
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  minHeight: theme.typography.preset.caption.lineHeight * 2,
+                  fontFamily: active
+                    ? theme.typography.preset.overline.fontFamily
+                    : theme.typography.family.body,
+                  textDecorationLine: active ? "underline" : "none",
                   color: theme.colors.text.primary,
                   textAlign: "center",
                 }}
               >
-                {mode === "suggestions" ? t("home.suggestions_short") : title}
+                {title}
               </Text>
               <Text
                 style={{
-                  ...theme.typography.preset.small,
+                  ...theme.typography.preset.caption,
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  fontFamily: theme.typography.family.body,
                   color: theme.colors.text.secondary,
                   textAlign: "center",
                   maxWidth: itemWidth,

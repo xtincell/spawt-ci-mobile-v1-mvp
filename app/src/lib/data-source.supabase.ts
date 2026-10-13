@@ -1145,6 +1145,7 @@ export async function listExploreCollectionsFromSupabase(options?: { throwOnErro
  */
 export async function getExploreCollectionFromSupabase(
   slug: string,
+  options?: { throwOnError?: boolean },
 ): Promise<import("./data-source").ExploreCollectionDetail | null> {
   const { data, error } = await supabase
     .from("explore_collections")
@@ -1158,6 +1159,7 @@ export async function getExploreCollectionFromSupabase(
 
   if (error || !data) {
     if (__DEV__ && error) console.warn("[data-source] getExploreCollection failed", error);
+    if (error && options?.throwOnError) throw error;
     return null;
   }
 

@@ -1,3 +1,11 @@
+jest.mock("../../src/components/RapideContent", () => ({
+  RapideContent: () => null,
+}));
+jest.mock("../../src/components/SpotsMap", () => ({ SpotsMap: () => null }));
+jest.mock("../../src/components/ExploreCollections", () => ({
+  ExploreCollections: () => null,
+  DuoEditorial: () => null,
+}));
 import TestRenderer, { act } from "react-test-renderer";
 import HomeD from "../../app/(tabs)";
 import { ModeStories } from "../../src/components/ModeStories";
@@ -13,7 +21,7 @@ import { selectHomeEditorial } from "../../src/lib/home-editorial";
 import type { PlaceWithAdn } from "../../src/lib/data-source";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
-  require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+  require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: require("react-native").View,
@@ -22,7 +30,11 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 const mockPush = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock("expo-router", () => ({
+  useFocusEffect: (effect: () => void) =>
+    require("react").useEffect(effect, [effect]),
+  useRouter: () => ({ push: mockPush }),
+}));
 jest.mock("../../src/lib/analytics", () => ({ track: jest.fn() }));
 jest.mock("../../src/components/HomeEditorial", () => ({
   HomeEditorial: () => null,
@@ -60,14 +72,14 @@ jest.mock("../../src/lib/use-places", () => ({
   }),
 }));
 
-it("changes only editorial candidates; every feed id, rank and score survives repeated selections and navigation", async () => {
+it("keeps Suggestions mounted and unchanged across independent usages; every feed id, rank and score survives repeated selections and navigation", async () => {
   mockPlaces = await listPlaces();
   let tree!: TestRenderer.ReactTestRenderer;
   await act(async () => {
     tree = TestRenderer.create(
       <ThemeProvider>
         <HomeD />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
   });
   const feed = () => tree.root.findByType(FeuilletonRow).props.places;
@@ -75,12 +87,13 @@ it("changes only editorial candidates; every feed id, rank and score survives re
   const snapshot = initial.map((p: any) => [p.place.id, p.match_score]);
   expect(initial).toHaveLength(mockPlaces.length);
   expect(tree.root.findByType(ModeStories).props.selectedMode).toBe(
-    "suggestions"
+    "suggestions",
   );
   const original = selectHomeEditorial(initial, "suggestions");
   for (const mode of [
-    "traine",
-    "decouvre",
+    "rapide",
+    "duo",
+    "spots",
     "selections",
     "selections",
     "suggestions",
@@ -88,21 +101,15 @@ it("changes only editorial candidates; every feed id, rank and score survives re
     act(() => tree.root.findByType(ModeStories).props.onModePress(mode));
     expect(feed()).toBe(initial);
     expect(feed().map((p: any) => [p.place.id, p.match_score])).toEqual(
-      snapshot
+      snapshot,
     );
-    expect(tree.root.findByType(HomeEditorial).props.mode).toBe(mode);
+    expect(tree.root.findByType(HomeEditorial).props.mode).toBe("suggestions");
+    expect(
+      tree.root.findByProps({ testID: "home-panel-suggestions" }).props.style
+        .display,
+    ).toBe(mode === "suggestions" ? "flex" : "none");
   }
   expect(selectHomeEditorial(feed(), "suggestions")).toEqual(original);
-  expect(
-    selectHomeEditorial(initial, "traine").every(
-      (p) => p.place.price.tier <= 2 && p.adn.axe_decontracte_habille < 0
-    )
-  ).toBe(true);
-  expect(
-    selectHomeEditorial(initial, "decouvre").every(
-      (p) => p.adn.axe_populaire_prive > 0
-    )
-  ).toBe(true);
   expect(selectHomeEditorial(initial, "selections")).toEqual([]);
   act(() => tree.root.findByType(HomeEditorial).props.onPlacePress(initial[0]));
   expect(mockPush).toHaveBeenCalledWith({

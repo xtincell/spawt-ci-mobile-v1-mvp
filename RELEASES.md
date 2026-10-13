@@ -33,6 +33,20 @@ Format d'une entrée :
 
 ---
 
+## v1.1.1 — build 30 — 2026-10-13
+
+**Compilation APK preview autorisée par le demandeur, résultat en attente.**
+
+- Cinq usages dans le cadre Accueil : Suggestions, Rapide, Les sélections, En duo, Les spots.
+- Moteurs swipe/carnets/carte existants réutilisés ; classement Suggestions conservé.
+- Aperçus éditoriaux illustrés explicitement non publiés si la curation manque ; aucun lieu associé arbitrairement.
+- Carte native partagée avec l’onglet Carte ; fiches réelles dans le remplacement web.
+- 1 055 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis.
+- Captures prévalidées pour passage à la compilation ; recette native de ce binaire restante.
+- Aucune fusion, OTA, publication store ou écriture de production.
+
+Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
 ## v1.1.1 — build 29 — 2026-10-13
 
 **Préparation APK preview Expo** — résultat de compilation en attente.

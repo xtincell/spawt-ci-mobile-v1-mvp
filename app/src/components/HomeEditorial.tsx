@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ExploreCollections, DuoEditorial } from "./ExploreCollections";
+import { useEffect, useMemo, useRef } from "react";
 import {
   FlatList,
   Pressable,
@@ -8,20 +9,13 @@ import {
   type ViewToken,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "expo-router";
 import { useTheme } from "../theme/ThemeProvider";
-import { useFlag } from "../store/feature-flags";
-import {
-  listExploreCollections,
-  type ExploreCollectionSummary,
-} from "../lib/data-source";
 import { selectHomeEditorial } from "../lib/home-editorial";
 import type { PlaceWithScore } from "../lib/matching";
 import type { ModeKey } from "./ModeStories";
 import { PlaceCover } from "./PlaceCover";
 import type { PlaceActivityMap } from "../lib/place-activity";
 import { PlaceActivityPill } from "./PlaceActivityPill";
-import { DataLoadNotice } from "./DataLoadNotice";
 
 export function HomeEditorial({
   mode,
@@ -42,40 +36,11 @@ export function HomeEditorial({
 }) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const router = useRouter();
-  const enabled = useFlag("mode-explore");
-  const [collections, setCollections] = useState<ExploreCollectionSummary[]>(
-    []
-  );
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [retry, setRetry] = useState(0);
   const { width } = useWindowDimensions();
   const places = useMemo(
     () => selectHomeEditorial(ranked, mode),
-    [ranked, mode]
+    [ranked, mode],
   );
-  const selections = mode === "selections";
-  useEffect(() => {
-    if (!selections || !enabled) return;
-    let cancelled = false;
-    setLoading(true);
-    setFailed(false);
-    void listExploreCollections({ throwOnError: true })
-      .then((rows) => {
-        if (!cancelled) setCollections(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selections, enabled, retry, refreshKey]);
-
   const report = useRef(onImpression);
   report.current = onImpression;
   const seen = useRef(new Set<string>());
@@ -95,47 +60,29 @@ export function HomeEditorial({
         seen.current.add(card.id);
         report.current?.(card.place, token.index);
       }
-    }
+    },
   ).current;
 
-  const cards = selections
-    ? (enabled ? collections : []).map((c) => ({
-        id: c.id,
-        title: t(c.title_key),
-        subtitle: c.subtitle_key ? t(c.subtitle_key) : "",
-        cover: c.cover_url,
-        place: undefined as PlaceWithScore | undefined,
-        onPress: () =>
-          router.push({
-            pathname: "/explore/[slug]",
-            params: { slug: c.slug },
-          }),
-      }))
-    : places.map((item) => ({
-        id: item.place.id,
-        title: item.place.name,
-        subtitle: item.place.location.neighborhood,
-        cover: item.place.cover_photo_url,
-        place: item,
-        onPress: () => onPlacePress(item),
-      }));
+  if (mode === "selections")
+    return <ExploreCollections refreshKey={refreshKey} />;
+  if (mode === "duo") return <DuoEditorial />;
+  const cards = places.map((item) => ({
+    id: item.place.id,
+    title: item.place.name,
+    subtitle: item.place.location.neighborhood,
+    cover: item.place.cover_photo_url,
+    place: item,
+    onPress: () => onPlacePress(item),
+  }));
 
   return (
     <View
       testID="home-editorial"
       style={{
-        marginTop: theme.spacing.base,
         paddingVertical: theme.spacing.base,
         backgroundColor: theme.colors.surface.subtle,
       }}
     >
-      {selections && enabled ? (
-        <DataLoadNotice
-          loading={loading}
-          failed={failed}
-          onRetry={() => setRetry((n) => n + 1)}
-        />
-      ) : null}
       {cards.length > 0 ? (
         <FlatList
           key={mode}
@@ -155,8 +102,7 @@ export function HomeEditorial({
             <EditorialCard {...item} width={width - 64} activity={activity} />
           )}
         />
-      ) : !(selections && enabled && (loading || failed)) &&
-        !(!selections && inventoryPending) ? (
+      ) : !inventoryPending ? (
         <Text
           accessibilityLiveRegion="polite"
           style={{
@@ -166,13 +112,7 @@ export function HomeEditorial({
             paddingVertical: theme.spacing.sm,
           }}
         >
-          {t(
-            selections
-              ? enabled
-                ? "home.collections_empty"
-                : "home.collections_unavailable"
-              : "home.editorial_empty"
-          )}
+          {t("home.editorial_empty")}
         </Text>
       ) : null}
     </View>

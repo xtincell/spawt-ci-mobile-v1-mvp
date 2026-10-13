@@ -15,7 +15,9 @@ import type {
 
 jest.mock("react-native-safe-area-context", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
     SafeAreaView: ({ children }: { children: ReactNode }) =>
       ReactMock.createElement(RNMock.View, null, children),
@@ -28,14 +30,19 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockTranslate }),
 }));
 
+let mockSlug = "maquis-braise";
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 jest.mock("expo-router", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
+    useFocusEffect: (effect: () => void) =>
+      require("react").useEffect(effect, [effect]),
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: mockBack }),
-    useLocalSearchParams: () => ({ slug: "maquis-braise" }),
+    useLocalSearchParams: () => ({ slug: mockSlug }),
     Redirect: ({ href }: { href: string }) =>
       ReactMock.createElement(RNMock.Text, { testID: "redirect" }, href),
   };
@@ -72,6 +79,8 @@ jest.mock("../../src/lib/data-source", () => ({
   getExploreCollection: jest.fn(() => Promise.resolve(mockDetail)),
 }));
 
+import { getExploreCollection } from "../../src/lib/data-source";
+import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import ExploreCollectionScreen from "../../app/explore/[slug]";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
 import { track } from "../../src/lib/analytics";
@@ -250,4 +259,89 @@ describe("ExploreCollectionScreen — gate + rendu", () => {
     });
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
+});
+
+it("distinguishes a detail read failure from an unpublished carnet and retries", async () => {
+  mockSlug = "maquis-braise";
+  mockFlags = { "mode-explore": true };
+  (getExploreCollection as jest.Mock).mockRejectedValueOnce(
+    new Error("offline"),
+  );
+  let tree!: TestRenderer.ReactTestRenderer;
+  await TestRenderer.act(async () => {
+    tree = TestRenderer.create(
+      <ThemeProvider>
+        <ExploreCollectionScreen />
+      </ThemeProvider>,
+    );
+  });
+  expect(tree.root.findByType(DataLoadNotice).props.failed).toBe(true);
+  expect(JSON.stringify(tree.toJSON())).not.toContain(
+    "explore.not_found_title",
+  );
+  (getExploreCollection as jest.Mock).mockResolvedValueOnce(makeDetail());
+  await TestRenderer.act(async () =>
+    tree.root.findByType(DataLoadNotice).props.onRetry(),
+  );
+  expect(JSON.stringify(tree.toJSON())).toContain("Maquis Fixture Un");
+  TestRenderer.act(() => tree.unmount());
+});
+
+it("discards a late response from a previous slug", async () => {
+  mockFlags = { "mode-explore": true };
+  mockSlug = "maquis-braise";
+  let resolve!: (data: ExploreCollectionDetail) => void;
+  (getExploreCollection as jest.Mock).mockReturnValueOnce(
+    new Promise((done) => {
+      resolve = done;
+    }),
+  );
+  let tree!: TestRenderer.ReactTestRenderer;
+  await TestRenderer.act(async () => {
+    tree = TestRenderer.create(
+      <ThemeProvider>
+        <ExploreCollectionScreen />
+      </ThemeProvider>,
+    );
+  });
+  mockSlug = "unknown";
+  (getExploreCollection as jest.Mock).mockResolvedValueOnce(null);
+  await TestRenderer.act(async () =>
+    tree.update(
+      <ThemeProvider>
+        <ExploreCollectionScreen />
+      </ThemeProvider>,
+    ),
+  );
+  await TestRenderer.act(async () => resolve(makeDetail()));
+  expect(JSON.stringify(tree.toJSON())).toContain("explore.not_found_title");
+  expect(JSON.stringify(tree.toJSON())).not.toContain("Maquis Fixture Un");
+  TestRenderer.act(() => tree.unmount());
+  mockSlug = "maquis-braise";
+});
+
+it("a published carnet with no visible spots has an explicit empty state and back action", async () => {
+  mockFlags = { "mode-explore": true };
+  mockSlug = "maquis-braise";
+  (getExploreCollection as jest.Mock).mockResolvedValueOnce({
+    ...makeDetail(),
+    items: [],
+  });
+  let tree!: TestRenderer.ReactTestRenderer;
+  await TestRenderer.act(async () => {
+    tree = TestRenderer.create(
+      <ThemeProvider>
+        <ExploreCollectionScreen />
+      </ThemeProvider>,
+    );
+  });
+  expect(JSON.stringify(tree.toJSON())).toContain("explore.items_empty_title");
+  const back = tree.root.findAll(
+    (n) =>
+      n.props.accessibilityLabel === "explore.back_to_collections" &&
+      typeof n.props.onPress === "function",
+  )[0]!;
+  TestRenderer.act(() => back.props.onPress());
+  expect(mockBack).toHaveBeenCalled();
+  TestRenderer.act(() => tree.unmount());
 });

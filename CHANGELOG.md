@@ -1,3 +1,18 @@
+## 2026-10-13 — Contenu de prévalidation des mini-interfaces
+
+- En duo : deux aperçus illustrés « Un café à deux » et « Une table pour deux », explicitement non publiés, sans lieux attribués arbitrairement.
+- Les sélections : aperçus éditoriaux des maquettes si aucun carnet publié n’est accessible ; publications réelles prioritaires, flags et erreurs conservés.
+- Carte indisponible : fiches des spots réels avec photo, quartier et navigation, sans inventer de géographie.
+- TypeScript, vocabulaire, i18n, 1 055 tests mobile et export web vérifiés. Captures actualisées ; aucun APK ni écriture de production.
+
+## 2026-10-13 — Mini-interfaces Accueil (prévalidation, aucun APK)
+
+- Base build 29 `bd0b61f`, branche locale `codex/mini-interfaces-build29`.
+- Suggestions, Rapide, Les sélections, En duo et Les spots dans le cadre commun ; moteurs swipe/carnets/carte partagés, classement Suggestions conservé.
+- Carnets en liste verticale, duo vide explicite en attente de curation, erreurs/réessais et retours protégés ; texte agrandi sans troncature dans les accès et la navigation inférieure.
+- 1 054 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis. Captures web réelles à 320/360/393 px ; carte native et accessibilité système restent à vérifier.
+- Aucun changement de flags ou données de production. Validation des captures obligatoire avant APK. Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
 ## Android 1.1.1 — build 29, La Bande (2026-10-13, préparation)
 
 - Fil communautaire réel : avis, notes détaillées, avatars Moka, photos officielles ou illustration explicite, coups de cœur et partage natif.

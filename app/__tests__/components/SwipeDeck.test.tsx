@@ -30,7 +30,12 @@ jest.mock("react-native-gesture-handler", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
   const makeChainable = () => {
     const gesture: Record<string, unknown> = {};
-    for (const method of ["activeOffsetX", "failOffsetY", "onUpdate", "onEnd"]) {
+    for (const method of [
+      "activeOffsetX",
+      "failOffsetY",
+      "onUpdate",
+      "onEnd",
+    ]) {
       gesture[method] = () => gesture;
     }
     return gesture;
@@ -134,7 +139,9 @@ function render(ui: React.ReactElement): RendererLike {
 
 function pressByLabel(r: RendererLike, label: string): void {
   const nodes = r.root.findAll(
-    (n) => n.props.accessibilityLabel === label && typeof n.props.onPress === "function",
+    (n) =>
+      n.props.accessibilityLabel === label &&
+      typeof n.props.onPress === "function",
   );
   expect(nodes.length).toBeGreaterThan(0);
   TestRenderer.act(() => {
@@ -160,7 +167,10 @@ describe("<SwipeDeck /> — Mode Rapide", () => {
   });
 
   it("rend la carte du dessus (1er du deck) + boutons fallback ✕/♥", () => {
-    const deck = [makeItem("p1", "Chez Fixture Un"), makeItem("p2", "Chez Fixture Deux")];
+    const deck = [
+      makeItem("p1", "Chez Fixture Un"),
+      makeItem("p2", "Chez Fixture Deux"),
+    ];
     const r = render(<SwipeDeck deck={deck} {...props} />);
     expect(treeText(r)).toContain("Chez Fixture Un");
     expect(
@@ -176,7 +186,10 @@ describe("<SwipeDeck /> — Mode Rapide", () => {
   });
 
   it("bouton ♥ → onLike(item, position) et la carte suivante monte", () => {
-    const deck = [makeItem("p1", "Chez Fixture Un"), makeItem("p2", "Chez Fixture Deux")];
+    const deck = [
+      makeItem("p1", "Chez Fixture Un"),
+      makeItem("p2", "Chez Fixture Deux"),
+    ];
     const r = render(<SwipeDeck deck={deck} {...props} />);
     pressByLabel(r, "rapide.keep_aria");
     expect(onLike).toHaveBeenCalledTimes(1);
@@ -204,7 +217,10 @@ describe("<SwipeDeck /> — Mode Rapide", () => {
   });
 
   it("fin de deck → état vide voix du Chat + onDeckEnded 1× + CTA retour feed", () => {
-    const deck = [makeItem("p1", "Chez Fixture Un"), makeItem("p2", "Chez Fixture Deux")];
+    const deck = [
+      makeItem("p1", "Chez Fixture Un"),
+      makeItem("p2", "Chez Fixture Deux"),
+    ];
     const r = render(<SwipeDeck deck={deck} {...props} />);
     pressByLabel(r, "rapide.keep_aria");
     pressByLabel(r, "rapide.pass_aria");
@@ -222,4 +238,30 @@ describe("<SwipeDeck /> — Mode Rapide", () => {
     pressByLabel(r, "rapide.empty_cta");
     expect(onBackToFeed).toHaveBeenCalledTimes(1);
   });
+});
+
+it("commits a repeated callback for the same rendered card only once", () => {
+  const like = jest.fn();
+  const ended = jest.fn();
+  const r = render(
+    <SwipeDeck
+      deck={[makeItem("p1", "Fixture")]}
+      onLike={like}
+      onPass={jest.fn()}
+      onOpenPlace={jest.fn()}
+      onDeckEnded={ended}
+      onBackToFeed={jest.fn()}
+    />,
+  );
+  const button = r.root.findAll(
+    (n) =>
+      n.props.accessibilityLabel === "rapide.keep_aria" &&
+      typeof n.props.onPress === "function",
+  )[0]!;
+  TestRenderer.act(() => {
+    (button.props.onPress as () => void)();
+    (button.props.onPress as () => void)();
+  });
+  expect(like).toHaveBeenCalledTimes(1);
+  expect(ended).toHaveBeenCalledTimes(1);
 });
