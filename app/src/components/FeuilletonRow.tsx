@@ -1,5 +1,5 @@
 // Story 3.3c — FeuilletonRow : liste verticale numérotée du feed (sous le carrousel).
-// Compose ListeCard pour chaque lieu hors top 3. Variant léger avec numéro à gauche.
+// Compose ListeCard pour le feed personnalisé. Variant léger avec numéro à gauche.
 
 import { Text, View } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
@@ -10,8 +10,7 @@ import type { PlaceActivityMap } from "../lib/place-activity";
 interface Props {
   places: readonly PlaceWithScore[];
   onPlacePress: (place: PlaceWithScore) => void;
-  /** Décalage de numérotation (Story 3.3c — les 3 premiers sont dans le carrousel,
-   *  le feuilleton commence à 04). */
+  /** Décalage de numérotation ; l’Accueil complet passe explicitement 1. */
   startIndex?: number;
   /** Pastilles événements/promos par lieu (0049/0050), chargées par LOT en
    *  amont. Absente/vide → rendu strictement identique (flag off). */

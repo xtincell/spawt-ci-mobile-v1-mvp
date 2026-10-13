@@ -805,74 +805,8 @@ export async function requestAccountDeletionFromSupabase(): Promise<boolean> {
 export async function listMeuteActivityFromSupabase(
   limit: number,
 ): Promise<import("./data-source").MeuteActivityItem[]> {
-  const half = Math.ceil(limit / 2);
-
-  const [reviews, coups] = await Promise.all([
-    // Vue `public_reviews` : le fil de la Meute montre l'activité des AUTRES.
-    // L'auteur y est déjà joint, plus besoin d'embarquer `spawters_public`.
-    supabase
-      .from("public_reviews")
-      .select(
-        "id, created_at, note_etoiles, texte_avis, place_id, display_name, avatar_url, places!inner(name, neighborhood)",
-      )
-      .eq("is_seed", false)
-      .order("created_at", { ascending: false })
-      .limit(half),
-    supabase
-      .from("coups_de_coeur")
-      .select(
-        "id, created_at, place_id, places!inner(name, neighborhood), spawters_public:spawters!inner(display_name, avatar_url)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(half),
-  ]);
-
-  const items: import("./data-source").MeuteActivityItem[] = [];
-
-  if (reviews.error) {
-    if (__DEV__) console.warn("[data-source] meute reviews failed", reviews.error);
-  } else {
-    for (const r of (reviews.data ?? []) as unknown as Array<Record<string, unknown>>) {
-      const place = r.places as { name?: string; neighborhood?: string } | null;
-      // `public_reviews` porte l'auteur à plat (la jointure est faite dans la
-      // vue) : plus de relation embarquée à aplatir ici.
-      items.push({
-        kind: "review",
-        id: String(r.id),
-        created_at: String(r.created_at),
-        spawter_display_name: (r.display_name as string | undefined) ?? "Spawter",
-        spawter_avatar_url: (r.avatar_url as string | null | undefined) ?? null,
-        place_id: String(r.place_id),
-        place_name: place?.name ?? "?",
-        place_neighborhood: place?.neighborhood ?? "",
-        note_etoiles: Number(r.note_etoiles),
-        texte_avis: (r.texte_avis as string | null) ?? null,
-      });
-    }
-  }
-
-  if (coups.error) {
-    if (__DEV__) console.warn("[data-source] meute coups failed", coups.error);
-  } else {
-    for (const c of (coups.data ?? []) as unknown as Array<Record<string, unknown>>) {
-      const place = c.places as { name?: string; neighborhood?: string } | null;
-      const sp = c.spawters_public as { display_name?: string; avatar_url?: string | null } | null;
-      items.push({
-        kind: "coup",
-        id: String(c.id),
-        created_at: String(c.created_at),
-        spawter_display_name: sp?.display_name ?? "Spawter",
-        spawter_avatar_url: sp?.avatar_url ?? null,
-        place_id: String(c.place_id),
-        place_name: place?.name ?? "?",
-        place_neighborhood: place?.neighborhood ?? "",
-      });
-    }
-  }
-
-  return items
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-    .slice(0, limit);
+  const { listCommunityPageFromSupabase } = await import("./community.supabase");
+  return (await listCommunityPageFromSupabase({ limit })).items;
 }
 
 // ━━━ Mode Crew (migration 0038) — RPC + INSERT sous RLS ━━━━━━━━━━━━━━━━━━━━
@@ -1167,7 +1101,7 @@ export async function fetchGoldEntitlementFromSupabase(): Promise<
  * est une défense en profondeur (staff actif voit AUSSI les brouillons via sa
  * policy dédiée, on ne veut jamais les rendre dans l'app).
  */
-export async function listExploreCollectionsFromSupabase(): Promise<
+export async function listExploreCollectionsFromSupabase(options?: { throwOnError?: boolean }): Promise<
   import("./data-source").ExploreCollectionSummary[]
 > {
   const { data, error } = await supabase
@@ -1178,6 +1112,7 @@ export async function listExploreCollectionsFromSupabase(): Promise<
 
   if (error || !data) {
     if (__DEV__ && error) console.warn("[data-source] listExploreCollections failed", error);
+    if (options?.throwOnError) throw error ?? new Error("Collections unavailable");
     return [];
   }
 

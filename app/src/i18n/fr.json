@@ -263,7 +263,31 @@
   "home": {
     "masthead_kicker": "ÉDITION DU JOUR",
     "modes_title": "Je sors pour…",
-    "suggestions_title": "Voici mes 3 suggestions du jour."
+    "suggestions_title": "Voici mes 3 suggestions du jour.",
+    "selector_label": "À la une",
+    "selector": {
+      "suggestions": {
+        "title": "Suggestions du jour",
+        "subtitle": "Pour vous"
+      },
+      "traine": {
+        "title": "Se poser",
+        "subtitle": "Sans chichi"
+      },
+      "decouvre": {
+        "title": "Découvrir",
+        "subtitle": "Des coins discrets"
+      },
+      "selections": {
+        "title": "Sélections",
+        "subtitle": "Nos carnets"
+      }
+    },
+    "personalized_feed": "Selon votre Palais",
+    "editorial_empty": "Pas encore de lieu dans cette sélection. Les autres adresses vous attendent juste en dessous.",
+    "collections_empty": "Les prochains carnets arrivent bientôt. Retrouvez vos adresses ci-dessous.",
+    "collections_unavailable": "Les carnets ne sont pas encore ouverts. Retrouvez vos adresses ci-dessous.",
+    "suggestions_short": "Suggestions"
   },
   "modes": {
     "traine": {
@@ -897,7 +921,9 @@
     "day_sat": "Sam",
     "day_sun": "Dim",
     "reviews_error": "Les avis ne sont pas disponibles pour le moment.",
-    "review_photo_alt": "Photo jointe à cet avis"
+    "review_photo_alt": "Photo jointe à cet avis",
+    "photo_pending": "Photo à venir",
+    "photo_illustration": "Illustration"
   },
   "place_activity": {
     "section_title": "En ce moment",
@@ -1047,7 +1073,26 @@
     "title": "La bande",
     "empty_body": "La bande chasse en silence pour l'instant. Les avis et Coups de Cœur des spawters apparaîtront ici.",
     "item_review": "{{spawter}} a laissé un avis sur {{place}}",
-    "item_coup": "{{spawter}} a donné son Coup de Cœur à {{place}}"
+    "item_coup": "{{spawter}} a donné son Coup de Cœur à {{place}}",
+    "subtitle": "Les découvertes, avis et coups de cœur de la bande.",
+    "crew_toggle": "Décider ensemble · Ton Crew",
+    "crew_context": "En duo ou en groupe, invite tes proches à proposer des adresses et à voter. Le vote est temporaire.",
+    "filter_all": "Tout",
+    "filter_review": "Avis",
+    "filter_coup": "Coups de cœur",
+    "kind_review": "Avis",
+    "kind_coup": "Coup de cœur",
+    "open_place": "Voir {{place}}",
+    "see_place": "Voir le lieu",
+    "coup_author": "{{spawter}} recommande cette adresse.",
+    "share": "Partager",
+    "share_message": "Une adresse repérée dans la bande : {{place}}.\n{{url}}",
+    "share_failed": "Le partage n’a pas abouti. Réessaie.",
+    "read_more": "Lire la suite",
+    "read_less": "Réduire",
+    "load_more": "Voir la suite",
+    "loading_more": "Chargement…",
+    "contribute": "Partager une découverte"
   },
   "crew": {
     "block_title": "Ton Crew",

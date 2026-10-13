@@ -1,3 +1,19 @@
+## Android 1.1.1 — build 29, La Bande (2026-10-13, préparation)
+
+- Fil communautaire réel : avis, notes détaillées, avatars Moka, photos officielles ou illustration explicite, coups de cœur et partage natif.
+- Lecture des auteurs via `spawters_public` : l’ancienne jointure sur les profils privés masquait les autres membres. Aucun élargissement des droits ni migration.
+- Filtres Tout/Avis/Coups de cœur, pagination chronologique, rechargement au retour et après publication, conservation du contenu en cas de panne et protection des requêtes concurrentes.
+- Filtres adaptatifs avec grand texte ; Crew temporaire secondaire. Tanière durable et abonnements réservés à la V2.
+- Accueil discret et tuiles illustrées inclus. Voir `documentation/ANDROID_1_1_1_BUILD29_BANDE.md`.
+
+## 2026-10-13 — Accueil compact et La Bande (revue, non publié)
+
+- Sélecteur discret Suggestions / Se poser / Découvrir / Sélections, quatre SVG dédiés et états actifs mobiles.
+- Carrousel éditorial indépendant du feed Palais ; carnets sur place, lecture sous flag avec chargement/erreur/vide/réessai.
+- Tuiles avec photos et illustration d’attente explicite, y compris en cas d’image défaillante.
+- La Bande garde son fil ; Crew secondaire replié, contextes duo/groupe sans nouvelle mécanique. Formulaire sans débordement.
+- Tests source et captures web : `documentation/ACCUEIL_BANDE_2026_10_13.md`. Pas de build natif, déploiement ou migration.
+
 # SPAWT — Changelog
 
 Toutes les modifications notables du repo. Format : Conventional Commits versionné par Sprint.

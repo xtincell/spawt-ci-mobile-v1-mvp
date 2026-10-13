@@ -15,14 +15,8 @@ jobs:
       GRADLE_USER_HOME: /tmp/spawt-gradle
     steps:
       - uses: actions/checkout@v4
-      - name: Épingler le code applicatif déjà contrôlé
-        run: |
-          SOURCE=$(node -p "require('./documentation/android-build28.json').sourceCommit")
-          test "$SOURCE" = 'adb12e452861dde5e4215551f82864da8f72ff67'
-          git fetch origin "$SOURCE"
-          git checkout --detach "$SOURCE"
-          test "$(git rev-parse HEAD)" = "$SOURCE"
-          echo "SPAWT_APK_SOURCE=$SOURCE" >> "$GITHUB_ENV"
+      - name: Identifier la source du tag
+        run: echo "SPAWT_APK_SOURCE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -50,14 +44,19 @@ jobs:
       - name: Installer les dépendances et épingler le backend
         run: |
           npm ci --prefix app --legacy-peer-deps
+          npm run --prefix app typecheck
+          npm run --prefix app lint:vocab
+          npm run --prefix app i18n:check
+          npm test --prefix app -- --runInBand
+          node scripts/conformity-check.mjs
           node scripts/check-eas-env.mjs
           node scripts/pin-backend-in-manifest.mjs preview
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           const path='app/app.json';
           const config=JSON.parse(fs.readFileSync(path));
-          if(config.expo.version!=='1.1.1' || config.expo.android.versionCode!==28) throw new Error('Version inattendue');
-          config.expo.extra.buildDate='2026-10-12';
+          if(config.expo.version!=='1.1.1' || config.expo.android.versionCode!==29) throw new Error('Version inattendue');
+          config.expo.extra.buildDate='2026-10-13';
           fs.writeFileSync(path,JSON.stringify(config,null,2)+'\n');
           JS
       - uses: expo/expo-github-action@v8
@@ -67,21 +66,21 @@ jobs:
       - name: Compiler avec la signature EAS existante
         working-directory: app
         env:
-          EXPO_PUBLIC_BUILD_DATE: '2026-10-12'
-        run: eas build --platform android --profile preview --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-1.1.1-build28.apk"
+          EXPO_PUBLIC_BUILD_DATE: '2026-10-13'
+        run: eas build --platform android --profile preview --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-1.1.1-build29.apk"
       - name: Vérifier la signature et tracer l'APK
         run: |
           curl -fsSL 'https://expo.dev/artifacts/eas/nRbb5bhMV3ExylApZjfy6vJlwaSfq1dF83XcBoHLNTA.apk' -o reference25.apk
           echo '25599e852085a983004e939d7d40f967e8c0cebcdab466910c244f12c5ddc5c0 reference25.apk' | sha256sum -c -
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs reference25.apk > reference-cert.txt
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs spawt-1.1.1-build28.apk > apk-cert.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs spawt-1.1.1-build29.apk > apk-cert.txt
           diff <(sed -n '/Signer #1 certificate SHA-256 digest:/p' reference-cert.txt) <(sed -n '/Signer #1 certificate SHA-256 digest:/p' apk-cert.txt)
           python3 - <<'PY'
           import hashlib,json,os,pathlib,zipfile
-          path=pathlib.Path('spawt-1.1.1-build28.apk')
+          path=pathlib.Path('spawt-1.1.1-build29.apk')
           with zipfile.ZipFile(path) as archive:
               assert archive.testzip() is None
-          data={'version':'1.1.1','build':28,'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'runId':int(os.environ['GITHUB_RUN_ID'])}
+          data={'version':'1.1.1','build':29,'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'runId':int(os.environ['GITHUB_RUN_ID'])}
           pathlib.Path('apk-metadata.json').write_text(json.dumps(data,indent=2)+'\n')
           print(json.dumps(data))
           PY
@@ -89,7 +88,7 @@ jobs:
         with:
           name: android-apk
           path: |
-            spawt-1.1.1-build28.apk
+            spawt-1.1.1-build29.apk
             apk-metadata.json
             apk-cert.txt
           retention-days: 14

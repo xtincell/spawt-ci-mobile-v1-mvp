@@ -1,12 +1,12 @@
 // Story 3.3c — HomeD canonique (UX spec §1119-1156).
-// Refonte du feed : Masthead + ModeStories + UneCarousel + édito ChatBubble + FeuilletonRow.
+// Editorial selection and personalized feed are independent.
 // Consomme rankPlaces (Story 3.3b) + listPlaces durci Zod (Story 3.3a) + saved_place_ids (Story 3.6).
 // Events analytics : feed_viewed, feed_card_impressed, feed_card_clicked, feed_refreshed, feed_first_view.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import {
-  ActivityIndicator,
+  Text,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -19,22 +19,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { usePlaces } from "../../src/lib/use-places";
 import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { useTheme } from "../../src/theme/ThemeProvider";
-import { ChatBubble } from "../../src/components/ChatBubble";
 import { DataSourceBanner } from "../../src/components/DataSourceBanner";
 import { EmptyState } from "../../src/components/EmptyState";
 import { Masthead } from "../../src/components/Masthead";
-import {
-  ModeStories,
-  type ModeEntry,
-  type ModeKey,
-} from "../../src/components/ModeStories";
-import { UneCarousel } from "../../src/components/UneCarousel";
+import { ModeStories, type ModeKey } from "../../src/components/ModeStories";
+import { HomeEditorial } from "../../src/components/HomeEditorial";
 import { FeuilletonRow } from "../../src/components/FeuilletonRow";
 import { Ico } from "../../src/components/primitives/Ico";
-import {
-  listPlaceActivity,
-  type PlaceWithAdn,
-} from "../../src/lib/data-source";
+import { listPlaceActivity } from "../../src/lib/data-source";
 // Événements & promos (0049/0050) — pastilles par LOT + rangée « Ça bouge
 // cette semaine ». Flag `evenements-promos` OFF → aucun fetch, feed identique.
 import { EventsWeekRow } from "../../src/components/EventsWeekRow";
@@ -55,38 +47,6 @@ import { GoldUpsellSheet } from "../../src/components/GoldUpsellSheet";
 
 const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 
-// Mapping mode → filtre heuristique (Dev Notes §1 Story 3.3c — à ajuster en alpha).
-// Le `default:` est un filet anti-régression : si `ModeKey` gagne une valeur
-// future ou si un mode invalide se persiste (rehydrate corruption), on
-// retourne la liste complète plutôt que `undefined`.
-export function applyModeFilter(
-  places: readonly PlaceWithAdn[],
-  mode: ModeKey | null,
-): PlaceWithAdn[] {
-  if (mode === null) return [...places];
-  switch (mode) {
-    case "traine":
-      return places.filter(
-        (p) => p.price.tier <= 2 && p.adn.axe_decontracte_habille < 0,
-      );
-    case "decouvre":
-      return places.filter(
-        (p) =>
-          p.adn.axe_populaire_prive > 0 || p.signals.includes("decouverte"),
-      );
-    case "tribu":
-      return places.filter((p) => p.adn.axe_decontracte_habille < 0.2);
-    case "chic":
-      return places.filter(
-        (p) => p.price.tier === 3 || p.adn.axe_decontracte_habille > 0.3,
-      );
-    case "vite":
-      return places.filter((p) => p.adn.axe_informel_etabli < 0);
-    default:
-      return [...places];
-  }
-}
-
 export default function HomeD() {
   const theme = useTheme();
   const router = useRouter();
@@ -99,14 +59,14 @@ export default function HomeD() {
 
   const { places, loading, failed, reload } = usePlaces();
   const refreshing = loading && places.length > 0;
-  const [selectedMode, setSelectedMode] = useState<ModeKey | null>(null);
+  const [selectedMode, setSelectedMode] = useState<ModeKey>("suggestions");
 
   const feedViewedRef = useRef(false);
   const firstViewRef = useRef(false);
 
   const visited = useMemo(
     () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
-    [spawts],
+    [spawts]
   );
 
   const position = useSpawterPosition();
@@ -119,24 +79,20 @@ export default function HomeD() {
       saved_place_ids: savedPlaceIds,
       now: new Date(),
     }),
-    [palais, position, visited, savedPlaceIds],
+    [palais, position, visited, savedPlaceIds]
   );
 
   const ranked = useMemo(() => {
-    const candidates = applyModeFilter(places, selectedMode);
     const scored = rankPlaces(
       ctx,
-      candidates.map((p) => ({ place: p, adn: p.adn, last_spawt_at: null })),
+      places.map((p) => ({ place: p, adn: p.adn, last_spawt_at: null }))
     );
     // R20 — les lieux OUVERTS maintenant remontent en tête (l'ordre match est
     // préservé dans chaque groupe — tri stable, cf. opening-hours.ts).
     return partitionOpenFirst(scored, (item) => item.place.hours, ctx.now);
-  }, [places, selectedMode, ctx]);
+  }, [places, ctx]);
 
-  const top3 = useMemo(() => ranked.slice(0, 3), [ranked]);
-  const feuilleton = useMemo(() => ranked.slice(3), [ranked]);
-
-  const stade = spawter?.stade ?? "touriste";
+  const [editorialRefresh, setEditorialRefresh] = useState(0);
 
   // feed_viewed — 1× par mount (dedup via ref).
   useEffect(() => {
@@ -183,37 +139,8 @@ export default function HomeD() {
       });
   }, [loading, failed, spawter, ranked]);
 
-  // Sprint 2 — hub des modes plein écran (post-MVP #1/#3). Flags OFF par
-  // défaut → `modeEntries` vide → ModeStories rend EXACTEMENT comme avant
-  // (critère de non-régression). Le Mode Crew (chantier parallèle) s'ajoutera
-  // ici par le même canal.
-  const rapideEnabled = useFlag("mode-rapide");
-  const exploreEnabled = useFlag("mode-explore");
-  // SPAWT Wrapped — bannière saisonnière (flag `wrapped` OFF par défaut +
-  // fenêtre 1er déc → 15 janv). Hors des deux gardes : feed inchangé.
   const wrappedEnabled = useFlag("wrapped");
   const wrappedSeason = wrappedEnabled && isWrappedSeason();
-  const modeEntries = useMemo(() => {
-    const entries: ModeEntry[] = [];
-    if (rapideEnabled) {
-      entries.push({
-        key: "rapide",
-        icon: "arrow-right",
-        labelKey: "modes.entry_rapide.label",
-        // typedRoutes regenerate les types au prochain build — V1 cast.
-        onPress: () => router.push("/rapide" as never),
-      });
-    }
-    if (exploreEnabled) {
-      entries.push({
-        key: "explore",
-        icon: "map",
-        labelKey: "modes.entry_explore.label",
-        onPress: () => router.push("/explore" as never),
-      });
-    }
-    return entries;
-  }, [rapideEnabled, exploreEnabled, router]);
 
   // Événements & promos (0049/0050) — pastilles de cartes chargées par LOT :
   // UN aller-retour pour tout le feed (jamais un fetch par carte). Flag OFF →
@@ -281,79 +208,14 @@ export default function HomeD() {
     });
   };
 
-  const onImpression = (item: PlaceWithScore, position: number) => {
-    track({
-      name: "feed_card_impressed",
-      properties: {
-        place_id: item.place.id,
-        position,
-        match_score: item.match_score,
-      },
-    });
-  };
-
   const onRefresh = () => {
     track({
       name: "feed_refreshed",
       properties: { places_count: places.length },
     });
     void reload();
+    setEditorialRefresh((n) => n + 1);
   };
-
-  if (loading && places.length === 0) {
-    return (
-      <SafeAreaView
-        edges={["top"]}
-        style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
-      >
-        <DataSourceBanner />
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <ActivityIndicator color={theme.colors.brand.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (failed && places.length === 0) {
-    return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
-      <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
-    </SafeAreaView>;
-  }
-
-  if (ranked.length === 0) {
-    return (
-      <SafeAreaView
-        edges={["top"]}
-        style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
-      >
-        <DataSourceBanner />
-        <DataLoadNotice loading={loading} failed={failed} onRetry={() => void reload()} />
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.base,
-          }}
-        >
-          <Masthead kicker={t("home.masthead_kicker")} />
-        </View>
-        <ModeStories
-          selectedMode={selectedMode}
-          onModePress={setSelectedMode}
-          entries={modeEntries}
-        />
-        <EmptyState
-          icon="search"
-          title={t("search.results_empty_title")}
-          body={t("search.results_empty_body")}
-        />
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView
@@ -361,7 +223,11 @@ export default function HomeD() {
       style={{ flex: 1, backgroundColor: theme.colors.surface.base }}
     >
       <DataSourceBanner />
-      <DataLoadNotice loading={false} failed={failed} onRetry={() => void reload()} />
+      <DataLoadNotice
+        loading={loading}
+        failed={failed}
+        onRetry={() => void reload()}
+      />
       <ScrollView
         refreshControl={
           <RefreshControl
@@ -389,7 +255,12 @@ export default function HomeD() {
             accessibilityRole="button"
             accessibilityLabel={t("search.title")}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}
+            style={{
+              minWidth: 44,
+              minHeight: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
             <Ico name="search" size={22} />
           </Pressable>
@@ -399,7 +270,6 @@ export default function HomeD() {
           <ModeStories
             selectedMode={selectedMode}
             onModePress={setSelectedMode}
-            entries={modeEntries}
           />
         </View>
 
@@ -413,38 +283,24 @@ export default function HomeD() {
           </View>
         ) : null}
 
-        {/* R7 — le bloc mascotte précède la sélection des 3 suggestions,
-            avec la copy définitive « Voici mes 3 suggestions du jour. » */}
-        {top3.length > 0 ? (
-          <View
-            style={{
-              paddingHorizontal: theme.spacing.lg,
-              marginTop: theme.spacing.lg,
-            }}
-          >
-            <ChatBubble
-              stade={stade}
-              moment="home_edito"
-              variant="edito"
-              overrideText={t("home.suggestions_title")}
-            />
-          </View>
-        ) : null}
-
-        {top3.length > 0 ? (
-          <View style={{ marginTop: theme.spacing.lg }}>
-            <UneCarousel
-              unes={top3}
-              onUnePress={onUnePress}
-              onImpression={onImpression}
-              // Invariant project-context — Palais "En construction" ne
-              // produit qu'un score cosine pseudo-aléatoire qu'il ne faut pas
-              // exposer en kicker éditorial.
-              showMatchScore={palais.confidence_score >= 0.3}
-              activity={activity}
-            />
-          </View>
-        ) : null}
+        <HomeEditorial
+          mode={selectedMode}
+          ranked={ranked}
+          onPlacePress={onUnePress}
+          refreshKey={editorialRefresh}
+          inventoryPending={loading || failed}
+          activity={activity}
+          onImpression={(item, position) =>
+            track({
+              name: "feed_card_impressed",
+              properties: {
+                place_id: item.place.id,
+                position,
+                match_score: item.match_score,
+              },
+            })
+          }
+        />
 
         {/* « Ça bouge cette semaine » — événements à venir (0049), auto-gatée
             par le flag `evenements-promos` (OFF → null, aucun fetch). */}
@@ -457,14 +313,36 @@ export default function HomeD() {
           }
         />
 
-        {feuilleton.length > 0 ? (
-          <View style={{ marginTop: theme.spacing.lg }}>
+        {ranked.length > 0 ? (
+          <View
+            testID="home-personalized-feed"
+            style={{ marginTop: theme.spacing.lg }}
+          >
+            <Text
+              accessibilityRole="header"
+              style={{
+                ...theme.typography.preset.h2,
+                color: theme.colors.text.primary,
+                paddingHorizontal: theme.spacing.lg,
+                marginBottom: theme.spacing.sm,
+              }}
+            >
+              {t("home.personalized_feed")}
+            </Text>
             <FeuilletonRow
-              places={feuilleton}
+              places={ranked}
+              startIndex={1}
               onPlacePress={onUnePress}
               activity={activity}
             />
           </View>
+        ) : null}
+        {!loading && !failed && ranked.length === 0 ? (
+          <EmptyState
+            icon="search"
+            title={t("search.results_empty_title")}
+            body={t("search.results_empty_body")}
+          />
         ) : null}
       </ScrollView>
       <GoldUpsellSheet

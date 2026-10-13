@@ -563,6 +563,13 @@ export interface MeuteActivityItem {
   place_id: string;
   place_name: string;
   place_neighborhood: string;
+  spawter_id?: string;
+  place_cover_photo_url?: string | null;
+  photos?: readonly string[];
+  note_globale?: number;
+  note_cuisine?: number | null;
+  note_cadre?: number | null;
+  note_service?: number | null;
   /** Renseigné pour kind="review". */
   note_etoiles?: number;
   texte_avis?: string | null;
@@ -572,6 +579,13 @@ export async function listMeuteActivity(limit = 30): Promise<MeuteActivityItem[]
   if (!isSupabaseConfigured) return [];
   const { listMeuteActivityFromSupabase } = await import("./data-source.supabase");
   return listMeuteActivityFromSupabase(limit);
+}
+
+/** Public community only. No synthetic activity is inserted in live mode. */
+export async function listCommunityPage(query: import("./community").CommunityQuery = {}): Promise<import("./community").CommunityPage> {
+  if (!isSupabaseConfigured) return { items: [], next: null };
+  const { listCommunityPageFromSupabase } = await import("./community.supabase");
+  return listCommunityPageFromSupabase(query);
 }
 
 // ─── Mode Crew (migration 0038) — vote de groupe temps réel ─────────────────
@@ -761,10 +775,10 @@ export interface ExploreCollectionDetail extends ExploreCollectionSummary {
 }
 
 /** Liste les collections publiées, ordonnées par sort_order. */
-export async function listExploreCollections(): Promise<ExploreCollectionSummary[]> {
+export async function listExploreCollections(options?: { throwOnError?: boolean }): Promise<ExploreCollectionSummary[]> {
   if (isSupabaseConfigured) {
     const { listExploreCollectionsFromSupabase } = await import("./data-source.supabase");
-    return listExploreCollectionsFromSupabase();
+    return listExploreCollectionsFromSupabase(options);
   }
   return SEED_EXPLORE_COLLECTIONS.filter((c) => c.is_published)
     .slice()
