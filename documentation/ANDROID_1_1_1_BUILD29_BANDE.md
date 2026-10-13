@@ -64,6 +64,9 @@ L’ancienne requête du coup de cœur renvoie **0**. Curseur testé sur deux pa
 | --- | --- | --- |
 | ![](qa/bande-build29/la-bande-activite-publique-393.png) | ![](qa/bande-build29/la-bande-coups-publics-393.png) | ![](qa/bande-build29/la-bande-320-150.png) |
 
+**[Télécharger l’APK alpha build 29](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-13-29/spawt-1.1.1-build29.apk)**.
+Publication vérifiée : préversion GitHub, taille et empreinte distantes identiques au fichier local ; téléchargement anonyme HTTP 200.
+
 Source du binaire : `bd0b61f1a2701abd28d205cb9d0375295b64ca9d`.
 Le premier lancement a été annulé avant compilation pour inclure les fonds différenciés.
 Le [lancement cloud final](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394175106)

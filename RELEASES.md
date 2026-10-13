@@ -35,6 +35,7 @@ Format d'une entrée :
 
 ## v1.1.1 — build 29 — 2026-10-13
 
+**APK** : [télécharger le build 29](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-13-29/spawt-1.1.1-build29.apk).
 **APK preview compilée et signée** — [compilation EAS locale](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394529426), signature existante. Quota Expo cloud gratuit épuisé.
 **Source** : `bd0b61f1a2701abd28d205cb9d0375295b64ca9d`.
 **SHA-256** : `4dbdc7cb94ecabf2691399dabe06d66093c503ea186988ebd5f36a363b62738a`.
