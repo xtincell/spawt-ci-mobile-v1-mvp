@@ -59,7 +59,13 @@ L’ancienne requête du coup de cœur renvoie **0**. Curseur testé sur deux pa
 | --- | --- | --- |
 | ![](qa/bande-build29/la-bande-activite-publique-393.png) | ![](qa/bande-build29/la-bande-coups-publics-393.png) | ![](qa/bande-build29/la-bande-320-150.png) |
 
-Compilation preview Android autorisée ; résultat et lien à compléter après le build.
+Source du binaire : `bd0b61f1a2701abd28d205cb9d0375295b64ca9d`.
+Le premier lancement a été annulé avant compilation pour inclure les fonds différenciés.
+Le [lancement cloud final](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394175106)
+a passé toutes les gates puis a été refusé par Expo : quota Android gratuit épuisé jusqu’au 1er novembre 2026.
+Repli EAS local avec signature existante : [compilation 38394529426](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394529426), résultat en attente.
+L’export Android/Hermes local (2 623 modules, 92 assets) réussit aussi.
+La recette native préparée utilise le compte alpha existant 0101, sans publication d’avis ni création de compte.
 Aucune fusion, publication store, OTA ni modification du backend de production.
 
 ## Préparation V2 — explicitement différée par Alexandre

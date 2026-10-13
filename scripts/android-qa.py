@@ -261,6 +261,14 @@ try:
         check('public activity card visible',bool(cards))
         tap_node(cards[0]); snap('bande-place-opened'); back(); find('community-filter-review')
         check('place round trip returns to community',True)
+        tree,_=nodes()
+        shares=[n for n in tree.iter('node') if n.get('resource-id','').startswith('community-share-')]
+        if not shares:
+            scroll(); tree,_=nodes(); shares=[n for n in tree.iter('node') if n.get('resource-id','').startswith('community-share-')]
+        check('native sharing action available',bool(shares))
+        tap_node(shares[0]); time.sleep(1)
+        check('native share chooser opened', 'ChooserActivity' in adb('shell','dumpsys','activity','activities'))
+        snap('bande-native-share-sheet'); back()
         restart(); deep('meute'); find('community-filter-all'); snap('bande-after-restart')
         check('community restored after process restart',True)
         home(); find('home-mode-suggestions'); snap('home-suggestions-native')
