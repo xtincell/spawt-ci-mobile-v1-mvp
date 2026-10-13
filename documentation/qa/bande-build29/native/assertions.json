@@ -1,0 +1,270 @@
+[
+  {
+    "check": "installed APK matches requested build",
+    "passed": true
+  },
+  {
+    "check": "cold animated launch keeps SPAWT in foreground",
+    "passed": true
+  },
+  {
+    "check": "320-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1: review touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.3: review touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.5: review touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "320-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1: review touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.3: review touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.5: review touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "360-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1: review touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.3: review touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.5: review touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "393-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1: review touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1: all touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.3: review touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.3: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.3: all touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.5: review touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.5: coup touch height",
+    "passed": true
+  },
+  {
+    "check": "430-1.5: all touch height",
+    "passed": true
+  },
+  {
+    "check": "public activity card visible",
+    "passed": true
+  },
+  {
+    "check": "place round trip returns to community",
+    "passed": true
+  },
+  {
+    "check": "native sharing action available",
+    "passed": true
+  },
+  {
+    "check": "native share chooser opened",
+    "passed": true
+  },
+  {
+    "check": "community restored after process restart",
+    "passed": true
+  }
+]

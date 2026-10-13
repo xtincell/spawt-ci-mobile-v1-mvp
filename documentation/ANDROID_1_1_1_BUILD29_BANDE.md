@@ -68,9 +68,27 @@ Source du binaire : `bd0b61f1a2701abd28d205cb9d0375295b64ca9d`.
 Le premier lancement a été annulé avant compilation pour inclure les fonds différenciés.
 Le [lancement cloud final](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394175106)
 a passé toutes les gates puis a été refusé par Expo : quota Android gratuit épuisé jusqu’au 1er novembre 2026.
-Repli EAS local avec signature existante : [compilation 38394529426](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394529426), résultat en attente.
+Repli EAS local avec signature existante : [compilation 38394529426](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394529426), **réussie**. APK 1.1.1 / build 29 : 162 425 603 octets ; signature vérifiée, identique au build 25, CRC valide.
+SHA-256 : `4dbdc7cb94ecabf2691399dabe06d66093c503ea186988ebd5f36a363b62738a`.
+Après téléchargement local : taille, empreinte et CRC vérifiés ; certificat extrait identique au build 27. La validation cryptographique complète reste celle du runner (`apksigner verify`).
 L’export Android/Hermes local (2 623 modules, 92 assets) réussit aussi.
-La recette native préparée utilise le compte alpha existant 0101, sans publication d’avis ni création de compte.
+La [recette native 38399174943](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38399174943) **réussie**, utilise le compte alpha existant 0101, sans publication d’avis ni création de compte.
+
+### Recette du binaire Android 29
+
+Android 35 sur émulateur : **67 assertions passent**. La Bande contrôlée à
+320/360/393/430 dp et avec le réglage natif de texte à 100/130/150 %.
+Les 12 hiérarchies UI confirment les filtres sur une seule ligne ; les captures
+ont été inspectées. Les cartes grandissent avec le texte et restent défilables.
+Les 60 changements de filtre conservent des cibles tactiles d’au moins 44 dp.
+Navigation fiche/retour, ouverture du partage natif sans envoi et restauration
+après arrêt du processus passent. L’Accueil est capturé en Suggestions et Se poser :
+le carrousel change tandis que les premiers lieux du classement restent identiques.
+Le contrôle de l’animation fournie passe également dans cette APK.
+
+[Preuves natives](qa/bande-build29/native/) : captures et assertions conservées.
+Les erreurs réseau et la pagination sont couvertes par les tests source ; cette
+recette native ne publie pas de contenu. TalkBack et appareil physique non testés.
 Aucune fusion, publication store, OTA ni modification du backend de production.
 
 ## Préparation V2 — explicitement différée par Alexandre

@@ -1,0 +1,49 @@
+name: Publish verified Android alpha APK
+on:
+  push:
+    tags: ['publish-alpha-android-*']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      QA_RUN: '38399174943'
+      RELEASE_TAG: local-build-android-2026-10-13-29
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify build, native QA and immutable APK source
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          const gh=(...args)=>execFileSync('gh',args,{encoding:'utf8'});
+          const api=path=>JSON.parse(gh('api','repos/'+process.env.GITHUB_REPOSITORY+path));
+          const config=JSON.parse(fs.readFileSync('documentation/android-qa.json','utf8'));
+          const build=api('/actions/runs/'+config.localBuildRun);
+          const qa=api('/actions/runs/'+process.env.QA_RUN);
+          const tag=api('/git/ref/tags/'+process.env.RELEASE_TAG);
+          if(build.conclusion!=='success' || build.head_sha!==config.buildWorkflowCommit || build.path!=='.github/workflows/android-local-build.yml') throw new Error('Unverified build');
+          if(qa.conclusion!=='success' || qa.path!=='.github/workflows/android-qa.yml') throw new Error('Native QA did not pass');
+          const qaConfig=JSON.parse(Buffer.from(api('/contents/documentation/android-qa.json?ref='+qa.head_sha).content,'base64').toString());
+          if(qaConfig.localBuildRun!==config.localBuildRun || qaConfig.sourceCommit!==config.sourceCommit || qaConfig.build!==config.build) throw new Error('QA targets another APK');
+          if(tag.object.type!=='commit' || tag.object.sha!==config.sourceCommit) throw new Error('Release tag targets another source');
+          gh('run','download',String(config.localBuildRun),'--name','android-apk','--dir','release-apk');
+          const metadata=JSON.parse(fs.readFileSync('release-apk/apk-metadata.json','utf8'));
+          const name='spawt-1.1.1-build'+config.build+'.apk';
+          const apk=fs.readFileSync('release-apk/'+name);
+          const digest=crypto.createHash('sha256').update(apk).digest('hex');
+          if(metadata.build!==config.build || metadata.version!=='1.1.1' || metadata.sourceCommit!==config.sourceCommit || metadata.runId!==config.localBuildRun || !metadata.signatureMatchesBuild25 || !metadata.zipCrcPassed || metadata.bytes!==apk.length || metadata.sha256!==digest) throw new Error('APK metadata mismatch');
+          fs.writeFileSync('release-apk/SHA256SUMS',digest+'  '+name+'\n');
+          console.log(JSON.stringify(metadata));
+          JS
+      - name: Publish alpha prerelease without replacing latest
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease --latest=false \
+            --title 'SPAWT Android 1.1.1 — build 29 (alpha)' \
+            --notes-file documentation/ANDROID_BUILD29_RELEASE_NOTES.md \
+            release-apk/spawt-1.1.1-build29.apk release-apk/apk-metadata.json release-apk/SHA256SUMS

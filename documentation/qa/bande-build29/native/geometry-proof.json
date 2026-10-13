@@ -1,0 +1,50 @@
+[
+  {
+    "capture": "bande-320-1-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-320-1.3-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-320-1.5-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-360-1-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-360-1.3-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-360-1.5-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-393-1-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-393-1.3-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-393-1.5-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-430-1-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-430-1.3-selected",
+    "filtersOneRow": true
+  },
+  {
+    "capture": "bande-430-1.5-selected",
+    "filtersOneRow": true
+  }
+]

@@ -1,4 +1,4 @@
-## Android 1.1.1 — build 29, La Bande (2026-10-13, préparation)
+## Android 1.1.1 — build 29, La Bande (2026-10-13, compilé et validé Android)
 
 - Fil communautaire réel : avis, notes détaillées, avatars Moka, photos officielles ou illustration explicite, coups de cœur et partage natif.
 - Lecture des auteurs via `spawters_public` : l’ancienne jointure sur les profils privés masquait les autres membres. Aucun élargissement des droits ni migration.

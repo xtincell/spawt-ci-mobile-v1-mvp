@@ -35,14 +35,17 @@ Format d'une entrée :
 
 ## v1.1.1 — build 29 — 2026-10-13
 
-**Préparation APK preview Expo** — résultat de compilation en attente.
+**APK preview compilée et signée** — [compilation EAS locale](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38394529426), signature existante. Quota Expo cloud gratuit épuisé.
+**Source** : `bd0b61f1a2701abd28d205cb9d0375295b64ca9d`.
+**SHA-256** : `4dbdc7cb94ecabf2691399dabe06d66093c503ea186988ebd5f36a363b62738a`.
 
 - Accueil : sélecteur discret, carrousel éditorial indépendant des préférences du fil.
 - Tuiles avec photos officielles ou illustration de secours explicitement indiquée.
 - La Bande : activité publique, avatars Moka, notes détaillées, filtres, pagination,
   partage et rafraîchissement au retour. Correction des coups de cœur invisibles.
 - Tanière privée et abonnements entre membres préparés dans le backlog V2.
-- Recette native de ce nouveau binaire à distinguer des captures Expo web.
+- Filtres défilants sur une seule ligne, fonds distincts pour avis et coups de cœur.
+- Recette Android 35 : 67 assertions passent, 12 combinaisons largeur/texte contrôlées ; captures inspectées. TalkBack et appareil physique non testés.
 
 Voir [le rapport build 29](./documentation/ANDROID_1_1_1_BUILD29_BANDE.md).
 
