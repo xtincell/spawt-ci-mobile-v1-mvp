@@ -6,7 +6,13 @@
 // « Reprendre le vote ».
 
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
@@ -73,8 +79,8 @@ export function CrewBlock() {
       result.reason === "session_closed"
         ? t("crew.join_error_closed")
         : result.reason === "session_not_found"
-          ? t("crew.join_error_not_found")
-          : t("crew.join_error_generic"),
+        ? t("crew.join_error_not_found")
+        : t("crew.join_error_generic")
     );
   };
 
@@ -82,7 +88,7 @@ export function CrewBlock() {
     <View
       testID="crew-block"
       style={{
-        marginHorizontal: theme.spacing.lg,
+        marginHorizontal: 0,
         marginTop: theme.spacing.base,
         marginBottom: theme.spacing.sm,
         padding: theme.spacing.base,
@@ -111,11 +117,26 @@ export function CrewBlock() {
       </Text>
 
       {persistedRef && inviteCode && persistedRef.code !== inviteCode ? (
-        <View testID="crew-pending-invite" style={{ padding: theme.spacing.sm, gap: theme.spacing.xs }}>
-          <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.primary }}>
+        <View
+          testID="crew-pending-invite"
+          style={{ padding: theme.spacing.sm, gap: theme.spacing.xs }}
+        >
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.text.primary,
+            }}
+          >
             {t("crew.invite_pending_body")}
           </Text>
-          <Text testID="crew-pending-invite-code" selectable style={{ ...theme.typography.preset.data, color: theme.colors.brand.primary }}>
+          <Text
+            testID="crew-pending-invite-code"
+            selectable
+            style={{
+              ...theme.typography.preset.data,
+              color: theme.colors.brand.primary,
+            }}
+          >
             {inviteCode}
           </Text>
         </View>
@@ -157,7 +178,13 @@ export function CrewBlock() {
       ) : (
         <>
           {busy ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: theme.spacing.sm,
+              }}
+            >
               <ActivityIndicator color={theme.colors.brand.primary} />
               <Text
                 style={{
@@ -187,7 +214,7 @@ export function CrewBlock() {
           >
             {t("crew.join_label")}
           </Text>
-          <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+          <View style={{ gap: theme.spacing.sm }}>
             <TextInput
               testID="crew-join-input"
               value={code}
@@ -198,7 +225,9 @@ export function CrewBlock() {
               autoCorrect={false}
               maxLength={5}
               style={{
-                flex: 1,
+                minWidth: 0,
+                minHeight: 48,
+                width: "100%",
                 ...theme.typography.preset.data,
                 fontSize: 16,
                 letterSpacing: 4,

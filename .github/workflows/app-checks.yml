@@ -5,6 +5,7 @@ on:
     paths:
       - 'app/**'
       - 'spawt-admin/**'
+      - 'shared/**'
       - 'scripts/check-eas-env.mjs'
       - 'scripts/__tests__/**'
       - '.github/workflows/app-checks.yml'

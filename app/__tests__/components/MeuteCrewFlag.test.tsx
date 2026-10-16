@@ -31,6 +31,7 @@ jest.mock("react-i18next", () => ({
 const mockPush = jest.fn();
 let mockCrewCode: string | undefined;
 jest.mock("expo-router", () => ({
+  useFocusEffect: (effect: () => unknown) => require("react").useEffect(effect, [effect]),
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
   useLocalSearchParams: () => ({ crewCode: mockCrewCode }),
 }));
@@ -129,10 +130,14 @@ describe("Onglet Meute — flag mode-crew ON", () => {
     const r = await renderScreen();
     const texts = gatherTexts(r);
 
+    expect(findCrewBlocks(r)).toHaveLength(0);
+    const toggle = r.root.findAll((n) => n.props.testID === "crew-toggle" && typeof n.props.onPress === "function")[0]!;
+    await TestRenderer.act(async () => { (toggle.props.onPress as () => void)(); });
+    const expandedTexts = gatherTexts(r);
     expect(findCrewBlocks(r).length).toBeGreaterThan(0);
-    expect(texts).toContain("crew.block_title");
-    expect(texts).toContain("crew.cta_launch");
-    expect(texts).toContain("crew.join_label");
+    expect(expandedTexts).toContain("crew.block_title");
+    expect(expandedTexts).toContain("crew.cta_launch");
+    expect(expandedTexts).toContain("crew.join_label");
 
     // L'existant reste rendu (EmptyState démo sous le bloc).
     expect(texts).toContain("empty_state.meute_title");

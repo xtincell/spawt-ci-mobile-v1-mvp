@@ -1,9 +1,10 @@
 // Story 3.6 — variant compact de PlaceCard pour la liste favoris.
 // Layout horizontal : vignette à gauche, contenu à droite + icon heart à droite.
 
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
+import { PlaceCover } from "./PlaceCover";
 import { Ico } from "./primitives/Ico";
 import { Stars } from "./primitives/Stars";
 import { Chip } from "./primitives/Chip";
@@ -45,31 +46,7 @@ export function ListeCard({ place, onPress, onUnsave, activity }: Props) {
         backgroundColor: theme.colors.surface.base,
       })}
     >
-      {place.cover_photo_url ? (
-        <Image
-          source={{ uri: place.cover_photo_url }}
-          style={{
-            width: 60,
-            height: 60,
-            borderRadius: theme.radius.md,
-            backgroundColor: theme.colors.surface.subtle,
-          }}
-          resizeMode="cover"
-        />
-      ) : (
-        <View
-          style={{
-            width: 60,
-            height: 60,
-            borderRadius: theme.radius.md,
-            backgroundColor: theme.colors.surface.subtle,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Ico name="pin" size={20} color={theme.colors.text.tertiary} />
-        </View>
-      )}
+      <PlaceCover uri={place.cover_photo_url} compact style={{ width: 72, height: 72, borderRadius: theme.radius.md }} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{ ...theme.typography.preset.h3, color: theme.colors.text.primary }}

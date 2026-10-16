@@ -1,8 +1,120 @@
+## 2026-10-13 — Contenu de prévalidation des mini-interfaces
+
+- En duo : deux aperçus illustrés « Un café à deux » et « Une table pour deux », explicitement non publiés, sans lieux attribués arbitrairement.
+- Les sélections : aperçus éditoriaux des maquettes si aucun carnet publié n’est accessible ; publications réelles prioritaires, flags et erreurs conservés.
+- Carte indisponible : fiches des spots réels avec photo, quartier et navigation, sans inventer de géographie.
+- TypeScript, vocabulaire, i18n, 1 055 tests mobile et export web vérifiés. Captures actualisées ; aucun APK ni écriture de production.
+
+## 2026-10-13 — Mini-interfaces Accueil (prévalidation, aucun APK)
+
+- Base build 29 `bd0b61f`, branche locale `codex/mini-interfaces-build29`.
+- Suggestions, Rapide, Les sélections, En duo et Les spots dans le cadre commun ; moteurs swipe/carnets/carte partagés, classement Suggestions conservé.
+- Carnets en liste verticale, duo vide explicite en attente de curation, erreurs/réessais et retours protégés ; texte agrandi sans troncature dans les accès et la navigation inférieure.
+- 1 054 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis. Captures web réelles à 320/360/393 px ; carte native et accessibilité système restent à vérifier.
+- Aucun changement de flags ou données de production. Validation des captures obligatoire avant APK. Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
+## Android 1.1.1 — build 29, La Bande (2026-10-13, préparation)
+
+- Fil communautaire réel : avis, notes détaillées, avatars Moka, photos officielles ou illustration explicite, coups de cœur et partage natif.
+- Lecture des auteurs via `spawters_public` : l’ancienne jointure sur les profils privés masquait les autres membres. Aucun élargissement des droits ni migration.
+- Filtres Tout/Avis/Coups de cœur, pagination chronologique, rechargement au retour et après publication, conservation du contenu en cas de panne et protection des requêtes concurrentes.
+- Filtres adaptatifs avec grand texte ; Crew temporaire secondaire. Tanière durable et abonnements réservés à la V2.
+- Accueil discret et tuiles illustrées inclus. Voir `documentation/ANDROID_1_1_1_BUILD29_BANDE.md`.
+
+## 2026-10-13 — Accueil compact et La Bande (revue, non publié)
+
+- Sélecteur discret Suggestions / Se poser / Découvrir / Sélections, quatre SVG dédiés et états actifs mobiles.
+- Carrousel éditorial indépendant du feed Palais ; carnets sur place, lecture sous flag avec chargement/erreur/vide/réessai.
+- Tuiles avec photos et illustration d’attente explicite, y compris en cas d’image défaillante.
+- La Bande garde son fil ; Crew secondaire replié, contextes duo/groupe sans nouvelle mécanique. Formulaire sans débordement.
+- Tests source et captures web : `documentation/ACCUEIL_BANDE_2026_10_13.md`. Pas de build natif, déploiement ou migration.
+
 # SPAWT — Changelog
 
 Toutes les modifications notables du repo. Format : Conventional Commits versionné par Sprint.
 
 ---
+
+## Réconcilier la source publiée avant la recette native 31 (2026-10-16)
+
+La préparation 29 du raccord de session est abandonnée : le build 29 avait déjà
+été publié et le build 30 compilé le 13 octobre depuis une lignée conservée par
+ses tags, sans branche à sa tête. La compilation 38897200580 est annulée ; elle
+n’a livré aucun APK. Le numéro de la branche d’audit (28) ne représentait donc
+pas la dernière application existante.
+
+Les trois commits menant à `3cc5e92` sont réintégrés avec leurs interfaces
+Accueil/La Bande/mini-interfaces, leurs tests, leurs assets et leurs preuves
+existantes. Le raccord de session partagé est conservé. La prochaine source
+passe au numéro natif 31, version applicative 1.1.1. Typage, vocabulaire,
+i18n, 1 075 tests mobile (quatre ignorés) et conformité passent sur cet ensemble.
+CI mobile/console verte sur `699d67d` (38898635497). APK31 compilé et signé
+sur la recette existante (38899084321) ; version, backend, CRC et signature
+contrôlés avant dépôt de l’artefact. La passe Android35 (38902277011) reçoit
+l’ouverture et le téléphone anonymes dans deux processus, avec cinq assertions,
+analyse vidéo réussie et deux captures examinées. Fichier complet reçu localement : taille, SHA-256 et CRC identiques ; `aapt`
+confirme le paquet/version/code31, `apksigner` confirme la signature et sa
+continuité avec le build29 publié. Session signée/AsyncStorage,
+clients historiques et appareil physique ne sont pas reçus. Aucune release31,
+OTA ou publication store livrée par cette passe.
+La recette existante refuse désormais un numéro déjà occupé par un autre tag
+et vérifie que la source préserve sa précédente compilation réussie. Un APK
+produit reste conservé comme diagnostic si sa réception ultérieure échoue ;
+seul un run entièrement réussi peut le qualifier.
+
+La recette ADB existante prépare aussi une passe `opening` sur cet APK exact :
+ouverture filmée, écran téléphone anonyme, arrêt du processus et réouverture.
+Cette passe n’envoie aucun OTP et n’utilise aucun compte ; elle ne reçoit pas
+la reprise de session signée ni AsyncStorage après changement de signature.
+Les anciennes recettes 27/29 restent attachées à leurs révisions historiques.
+
+## Préparation 29 abandonnée avant artefact (2026-10-16)
+
+La source passe au numéro natif 29 pour distinguer le prochain binaire contenant
+le raccord de session reçu sur SDK et console. Version applicative 1.1.1,
+backend, permissions et signature existants conservés. Les recettes 28/27
+restent des preuves historiques ; aucune compilation, réception sur appareil,
+OTA ou publication de cette version n’est déduite du seul numéro. Le journal
+des APK sera complété après réception de l’artefact réel.
+
+La recette Android locale existante sélectionne maintenant le descripteur de
+build : source exacte, numéro, date et dernière CI mobile/console verte. Elle
+conserve le profil EAS et la signature précédents, puis contrôle le paquet natif,
+le backend réellement embarqué, le CRC et l’empreinte avant dépôt de l’artefact.
+La source 29 a passé les deux jobs de CI ; le bundle Android Hermes compile.
+Les tests source utilisent leur environnement habituel ; les variables du profil
+distribuable restent réservées à la compilation. La persistance AsyncStorage
+après rotation fictive reste à recevoir sur le binaire natif.
+
+## Reprendre une session dont le jeton a été invalidé (2026-10-16)
+
+Après une rotation de signature, un jeton local peut sembler encore valable
+alors que le serveur le refuse. Le mobile et la console réutilisent désormais
+`auth.refreshSession()` du SDK pour reprendre une lecture d’identité ou une
+requête REST ainsi rejetée. Le raccord est partagé ; les stockages, comptes,
+permissions et règles métier existants restent les autorités.
+
+La reprise est limitée au jeton de la session courante et à un rejeu. Les appels
+simultanés partagent le renouvellement. Une déconnexion, un changement de compte,
+un refus de droits, une panne réseau ou une clé de passerelle inconnue ne sont
+pas convertis en accès. L’identité Auth est relue après libération du verrou SDK ;
+les transports Auth, Storage et Edge ne sont pas interceptés.
+
+Régression reproduite sur les SDK épinglés 2.105.1 et 2.106.0, puis correction
+éprouvée sur une copie isolée avec GoTrue, PostgREST et Kong réels : six scénarios
+identité/lectures simultanées/écriture, six renouvellements automatiques, deux
+écritures présentes chacune une seule fois et refus RLS conservés. Les six clients
+recréés reprennent les nouveaux jetons via un adaptateur mémoire de test. Les
+145 règles RLS sont identiques ; conteneurs et accès de test arrêtés.
+Validation locale sur checkout complet : typage, vocabulaire, i18n, 1 043 tests
+mobile (4 ignorés), 191 tests console, quatre gardes EAS et compilations web
+mobile/console réussis. CI distante encore à recevoir.
+
+Cette preuve SDK ne reçoit ni AsyncStorage sur appareil, ni localStorage en
+navigateur, ni l’APK publié, ni les sessions historiques. Storage, Realtime et Edge
+restent à recevoir avant une rotation réelle coordonnée. Aucun secret de production
+roté, aucune migration ni nouvelle permission ; aucun APK, OTA ou déploiement livré
+par ce lot. Le gestionnaire d’appels IA du Shinkiro reste celui de La Fusée.
 
 ## Android 1.1.1 — Accueil et la bande (2026-10-12, build 28 compilé)
 

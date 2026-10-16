@@ -6,7 +6,7 @@ import os, re, json, time, pathlib, subprocess, xml.etree.ElementTree as ET, url
 OUT=pathlib.Path('android-proof'); OUT.mkdir(exist_ok=True)
 PACKAGE='com.upgraders.spawt'; PLACE='a1000000-0000-4000-8000-000000000004'
 PHONE=os.environ['SPAWT_QA_PHONE']; MODE=os.environ.get('SPAWT_QA_MODE','observe')
-OWNER={'+2250000000193':'6445b010-5e4d-4322-9d4d-ea5a31fd922e','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
+OWNER={'+2250000000101':'fc8bc9b3-0bbb-447f-85a3-fe4bc0d4ed05','+2250000000193':'6445b010-5e4d-4322-9d4d-ea5a31fd922e','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
 RESULTS=[]
 RUN=os.environ.get('GITHUB_RUN_ID',str(int(time.time())))
 MARKER='Recette native SPAWT 1.1.1 '+RUN
@@ -57,7 +57,7 @@ def restart():
     # Android sur son dernier onglet ; ce n'est pas le parcours testé ici.
     adb('shell','am','force-stop',PACKAGE)
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
-    find('Feed',timeout=40,exact=True)
+    find('Accueil',timeout=40,exact=True)
 def snap(name):
     (OUT/(name+'.png')).write_bytes(adb('exec-out','screencap','-p',binary=True))
     tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
@@ -93,11 +93,11 @@ def login(phone):
     find('otp-cell-0',timeout=45)
     for i,digit in enumerate('123456'):
         tap(f'otp-cell-{i}'); adb('shell','input','text',digit)
-    find('Feed',timeout=40,exact=True)
+    find('Accueil',timeout=40,exact=True)
     time.sleep(1)
 
 def home():
-    deep(''); find('Feed',exact=True)
+    deep(''); find('Accueil',exact=True)
 
 def back(): adb('shell','input','keyevent','4'); time.sleep(.5)
 
@@ -237,9 +237,52 @@ try:
     check('cold animated launch keeps SPAWT in foreground',any(n.get('package')==PACKAGE for n in tree.iter('node')))
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
+    if MODE=='opening':
+        # Réception du vrai binaire distribué sans utiliser de compte ni envoyer
+        # d'OTP. La reprise d'une session signée reste une autre réception.
+        deep('phone'); find('phone-input'); find('phone-send')
+        snap('anonymous-phone-first-process')
+        check('anonymous phone controls available',True)
+        before=adb('shell','pidof',PACKAGE).strip()
+        check('first native process running',bool(before))
+        adb('shell','am','force-stop',PACKAGE)
+        adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
+        time.sleep(2)
+        deep('phone'); find('phone-input',timeout=40); find('phone-send')
+        after=adb('shell','pidof',PACKAGE).strip()
+        check('new native process after force-stop',bool(after) and before!=after)
+        snap('anonymous-phone-new-process')
+        check('anonymous phone controls after process restart',True)
+        raise SystemExit(0)  # finally conserve les assertions et l'état final.
     login(PHONE)
     snap('signed-in')
-    if MODE=='observe':
+    if MODE=='community':
+        # Existing alpha account; this path never publishes, saves or changes backend data.
+        for width in [320,360,393,430]:
+            for scale in [1,1.3,1.5]:
+                geometry(width,scale); deep('meute')
+                find('community-filter-all'); snap(f'bande-{width}-{scale}-all')
+                for value in ['coup','review','all','coup','all']:
+                    try: tap('community-filter-'+value,timeout=3)
+                    except AssertionError:
+                        b=bounds(find('community-filters'))
+                        x1,x2=(b[2]-20,b[0]+20) if value=='coup' else (b[0]+20,b[2]-20)
+                        adb('shell','input','swipe',x1,(b[1]+b[3])//2,x2,(b[1]+b[3])//2,300)
+                        tap('community-filter-'+value)
+                    selected=bounds(find('community-filter-'+value))
+                    check(f'{width}-{scale}: {value} touch height', selected[3]-selected[1]>=44*3-3)
+                snap(f'bande-{width}-{scale}-selected')
+        geometry(393,1); deep('meute'); find('community-filter-review'); tap('community-filter-review')
+        time.sleep(2); tree=snap('bande-avis-publics')
+        cards=[n for n in tree.iter('node') if n.get('resource-id','').startswith('community-place-')]
+        check('public activity card visible',bool(cards))
+        tap_node(cards[0]); snap('bande-place-opened'); back(); find('community-filter-review')
+        check('place round trip returns to community',True)
+        restart(); deep('meute'); find('community-filter-all'); snap('bande-after-restart')
+        check('community restored after process restart',True)
+        home(); find('home-mode-suggestions'); snap('home-suggestions-native')
+        tap('home-mode-traine'); snap('home-se-poser-native'); tap('home-mode-suggestions')
+    elif MODE=='observe':
         deep('place/'+PLACE); find('La Grande République'); snap('place-initial')
     elif MODE=='photos':
         photo_and_network_cases()

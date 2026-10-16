@@ -1,6 +1,6 @@
 # SPAWT — Releases (vue testeur)
 
-Journal des **APK publiés** pour l'alpha, destiné aux testeurs. Pour citer un
+Journal des **APK alpha**, publiés ou explicitement en réception, destiné aux testeurs. Pour citer un
 build dans un bug report, recopie la ligne affichée dans l'app (écran Profil →
 « À propos ») : **`vVERSION — build N (YYYY-MM-DD)`**.
 
@@ -32,6 +32,61 @@ Format d'une entrée :
 ```
 
 ---
+
+## v1.1.1 — build 31 — 2026-10-16 — en réception
+
+**Compilation et signature reçues en CI ; ouverture anonyme reçue sur Android 35.**
+
+- **Source applicative** : `699d67d62793553e07766f4953b6d2c915299b9f`.
+- **Compilation** : [run 38899084321](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38899084321),
+  tag `local-build-android-2026-10-16-31`, recette `dd170da`.
+- **APK produit** : 162 440 283 octets ; SHA-256
+  `113cbe92f52153a992974417f9b02471f8904cd53d229d23f470b4747e772158`.
+- Version, paquet, backend embarqué, CRC et continuité de signature avec le build 25 vérifiés en CI.
+- **Recette native** : [run 38902277011](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38902277011),
+  cinq assertions : ouverture, écran téléphone et nouveau processus après arrêt.
+  Vidéo contrôlée : surgissement, clin d’œil puis réouverture, aucune surface noire.
+  Captures d’accueil anonyme et téléphone examinées. Aucun OTP envoyé ni compte utilisé.
+- Les interfaces et assets du build 30 sont conservés ; le raccord de session partagé est ajouté.
+  1 075 tests mobile (quatre ignorés), conformité et CI mobile/console verts.
+- **Fichier reçu localement** : taille et empreinte identiques à la CI, CRC intact.
+  `aapt` lit le paquet `com.upgraders.spawt`, la version 1.1.1 et le numéro 31 ;
+  `apksigner` valide la signature, identique à celle de l’APK 29 publié.
+- **Restent à recevoir** : session authentifiée/AsyncStorage après invalidation,
+  clients historiques et appareil physique.
+  Aucun APK31 publié comme release, aucune OTA ni soumission store par cette recette.
+
+La préparation 29 du 16 octobre a été annulée avant artefact : ce numéro était déjà publié.
+
+## v1.1.1 — build 30 — 2026-10-13
+
+**APK preview compilé et signé** — [run 38458128552](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38458128552),
+source `3cc5e92112576cd21b2fb8a427bdbbdb8842043c`. Publication et recette native de ce build non reçues ici.
+
+- Cinq usages dans le cadre Accueil : Suggestions, Rapide, Les sélections, En duo, Les spots.
+- Moteurs swipe/carnets/carte existants réutilisés ; classement Suggestions conservé.
+- Aperçus éditoriaux illustrés explicitement non publiés si la curation manque ; aucun lieu associé arbitrairement.
+- Carte native partagée avec l’onglet Carte ; fiches réelles dans le remplacement web.
+- 1 055 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis.
+- Captures prévalidées pour passage à la compilation ; recette native de ce binaire restante.
+- Aucune fusion, OTA, publication store ou écriture de production.
+
+Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
+## v1.1.1 — build 29 — 2026-10-13
+
+**APK preview publié** — [télécharger le build 29](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-13-29/spawt-1.1.1-build29.apk).
+SHA-256 : `4dbdc7cb94ecabf2691399dabe06d66093c503ea186988ebd5f36a363b62738a` ;
+162 425 603 octets. Version et signature vérifiées localement le 16 octobre.
+
+- Accueil : sélecteur discret, carrousel éditorial indépendant des préférences du fil.
+- Tuiles avec photos officielles ou illustration de secours explicitement indiquée.
+- La Bande : activité publique, avatars Moka, notes détaillées, filtres, pagination,
+  partage et rafraîchissement au retour. Correction des coups de cœur invisibles.
+- Tanière privée et abonnements entre membres préparés dans le backlog V2.
+- Recette native de ce nouveau binaire à distinguer des captures Expo web.
+
+Voir [le rapport build 29](./documentation/ANDROID_1_1_1_BUILD29_BANDE.md).
 
 ## v1.1.1 — build 28 — 2026-10-12
 

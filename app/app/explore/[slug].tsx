@@ -1,3 +1,5 @@
+import { DataLoadNotice } from "../../src/components/DataLoadNotice";
+import { useNavigationAction } from "../../src/lib/use-navigation-action";
 // Mode Explore — détail d'un carnet éditorial (feature post-MVP #3).
 //
 // Items ordonnés par sort_order : le mot du Chat (editorial_text, filet Or)
@@ -41,6 +43,7 @@ import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 export default function ExploreCollectionScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const navigate = useNavigationAction();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = typeof params.slug === "string" ? params.slug : "";
@@ -53,30 +56,40 @@ export default function ExploreCollectionScreen() {
   const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
 
   // null = introuvable/dépublié, undefined = chargement en cours.
-  const [detail, setDetail] = useState<ExploreCollectionDetail | null | undefined>(
-    undefined,
-  );
-  const openedTrackedRef = useRef(false);
+  const [detail, setDetail] = useState<
+    ExploreCollectionDetail | null | undefined
+  >(undefined);
+  const openedTrackedRef = useRef<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!enabled || slug.length === 0) return;
+    if (!enabled) return;
+    if (!slug) {
+      setDetail(null);
+      return;
+    }
+    setDetail(undefined);
+    setFailed(false);
     let cancelled = false;
     void (async () => {
-      const data = await getExploreCollection(slug);
+      const data = await getExploreCollection(slug, { throwOnError: true });
       if (cancelled) return;
       setDetail(data);
-      if (data && !openedTrackedRef.current) {
-        openedTrackedRef.current = true;
+      if (data && openedTrackedRef.current !== slug) {
+        openedTrackedRef.current = slug;
         track({
           name: "explore_collection_opened",
           properties: { slug: data.slug, items_count: data.items.length },
         });
       }
-    })();
+    })().catch(() => {
+      if (!cancelled) setFailed(true);
+    });
     return () => {
       cancelled = true;
     };
-  }, [enabled, slug]);
+  }, [enabled, slug, attempt]);
 
   // Scores de matching du moteur canonique, indexés par place_id — l'ordre
   // affiché reste celui du carnet (sort_order), seuls les chiffres viennent
@@ -95,7 +108,11 @@ export default function ExploreCollectionScreen() {
         saved_place_ids: savedPlaceIds,
         now: new Date(),
       },
-      detail.items.map((i) => ({ place: i.place, adn: i.place.adn, last_spawt_at: null })),
+      detail.items.map((i) => ({
+        place: i.place,
+        adn: i.place.adn,
+        last_spawt_at: null,
+      })),
     );
     for (const s of scored) {
       map.set(s.place.id, {
@@ -111,17 +128,19 @@ export default function ExploreCollectionScreen() {
   }
 
   const onItemPress = (item: ExploreItem) => {
-    track({
-      name: "explore_item_clicked",
-      properties: {
-        place_id: item.place.id,
-        slug,
-        position: detail?.items.findIndex((i) => i.id === item.id) ?? -1,
-      },
-    });
-    router.push({
-      pathname: "/place/[id]",
-      params: { id: item.place.id, ref: "explore" },
+    navigate(() => {
+      track({
+        name: "explore_item_clicked",
+        properties: {
+          place_id: item.place.id,
+          slug,
+          position: detail?.items.findIndex((i) => i.id === item.id) ?? -1,
+        },
+      });
+      router.push({
+        pathname: "/place/[id]",
+        params: { id: item.place.id, ref: "explore" },
+      });
     });
   };
 
@@ -179,14 +198,30 @@ export default function ExploreCollectionScreen() {
         ) : null}
       </View>
 
-      {detail === undefined ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <DataLoadNotice
+        loading={false}
+        failed={failed}
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+      {failed ? null : detail === undefined ? (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ActivityIndicator color={theme.colors.brand.primary} />
         </View>
       ) : detail === null ? (
         <EmptyState
           title={t("explore.not_found_title")}
           body={t("explore.not_found_body")}
+          cta={{
+            label: t("explore.back_to_collections"),
+            onPress: () => router.back(),
+          }}
+        />
+      ) : detail.items.length === 0 ? (
+        <EmptyState
+          title={t("explore.items_empty_title")}
+          body={t("explore.items_empty_body")}
           cta={{
             label: t("explore.back_to_collections"),
             onPress: () => router.back(),

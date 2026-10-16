@@ -53,6 +53,7 @@ jest.mock("../../src/lib/account-recovery", () => ({
   requireAccountSession: (...args: unknown[]) => mockRequireSession(...args),
 }));
 jest.mock("../../src/lib/supabase", () => ({
+  getAuthenticatedSpawter: () => mockGetUser(),
   supabase: {
     auth: {
       getUser: () => mockGetUser(),

@@ -3,6 +3,7 @@
 // Toute opération privilégiée passe par une Edge Function.
 
 import { createClient } from "@supabase/supabase-js";
+import { createSupabaseSessionRecovery, type SessionAuth } from "../../../shared/supabase-session";
 
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
@@ -38,10 +39,14 @@ export const supabaseConfigError: string | null =
       ? "Configuration invalide : VITE_SUPABASE_URL doit être une adresse HTTP ou HTTPS valide. Corrigez la variable puis reconstruisez la console."
       : null;
 
+const clientUrl = supabaseConfigError ? "https://configuration-manquante.invalid" : SUPABASE_URL!;
+const recovery = createSupabaseSessionRecovery(clientUrl, () => sessionAuth);
+
 export const supabaseClient = createClient(
-  supabaseConfigError ? "https://configuration-manquante.invalid" : SUPABASE_URL!,
+  clientUrl,
   supabaseConfigError ? "cle-anon-manquante" : SUPABASE_ANON_KEY!,
   {
+    global: { fetch: recovery.fetch },
     auth: {
       persistSession: true,
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
@@ -49,3 +54,5 @@ export const supabaseClient = createClient(
     },
   },
 );
+const sessionAuth: SessionAuth = supabaseClient.auth;
+export const getAuthenticatedStaff = () => recovery.getUser(() => supabaseClient.auth.getUser());

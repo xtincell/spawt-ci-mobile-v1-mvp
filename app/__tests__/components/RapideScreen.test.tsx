@@ -14,7 +14,9 @@ import { listPlaces, type PlaceWithAdn } from "../../src/lib/data-source";
 
 jest.mock("react-native-safe-area-context", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
     SafeAreaView: ({ children }: { children: ReactNode }) =>
       ReactMock.createElement(RNMock.View, null, children),
@@ -42,7 +44,12 @@ jest.mock("react-native-gesture-handler", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
   const makeChainable = () => {
     const gesture: Record<string, unknown> = {};
-    for (const method of ["activeOffsetX", "failOffsetY", "onUpdate", "onEnd"]) {
+    for (const method of [
+      "activeOffsetX",
+      "failOffsetY",
+      "onUpdate",
+      "onEnd",
+    ]) {
       gesture[method] = () => gesture;
     }
     return gesture;
@@ -67,8 +74,12 @@ const mockReplace = jest.fn();
 const mockBack = jest.fn();
 jest.mock("expo-router", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
+    useFocusEffect: (effect: () => void) =>
+      require("react").useEffect(effect, [effect]),
     useRouter: () => ({ push: mockPush, replace: mockReplace, back: mockBack }),
     Redirect: ({ href }: { href: string }) =>
       ReactMock.createElement(RNMock.Text, { testID: "redirect" }, href),
@@ -85,7 +96,11 @@ jest.mock("../../src/lib/analytics", () => ({
   track: jest.fn(),
 }));
 
-let mockPosition: { lat: number; lng: number; source: "gps" | "fallback" } = { lat: 5.358, lng: -3.97, source: "fallback" };
+let mockPosition: { lat: number; lng: number; source: "gps" | "fallback" } = {
+  lat: 5.358,
+  lng: -3.97,
+  source: "fallback",
+};
 jest.mock("../../src/lib/use-spawter-position", () => ({
   useSpawterPosition: () => mockPosition,
 }));
@@ -125,7 +140,8 @@ const mockStoreState = {
 // fonctions (lazy) — jamais au chargement du module (TDZ, hoisting jest.mock).
 jest.mock("../../src/store/spawter-store", () => ({
   useSpawterStore: Object.assign(
-    (selector: (s: typeof mockStoreState) => unknown) => selector(mockStoreState),
+    (selector: (s: typeof mockStoreState) => unknown) =>
+      selector(mockStoreState),
     { getState: () => mockStoreState },
   ),
 }));
@@ -201,7 +217,9 @@ beforeEach(() => {
   readMock.mockReset().mockImplementation(() => Promise.resolve(mockPlaces));
 });
 afterEach(() => {
-  TestRenderer.act(() => { for (const renderer of renderers.splice(0)) renderer.unmount(); });
+  TestRenderer.act(() => {
+    for (const renderer of renderers.splice(0)) renderer.unmount();
+  });
 });
 
 async function renderScreen(): Promise<RendererLike> {
@@ -222,7 +240,9 @@ async function renderScreen(): Promise<RendererLike> {
 
 function pressByLabel(r: RendererLike, label: string): void {
   const nodes = r.root.findAll(
-    (n) => n.props.accessibilityLabel === label && typeof n.props.onPress === "function",
+    (n) =>
+      n.props.accessibilityLabel === label &&
+      typeof n.props.onPress === "function",
   );
   expect(nodes.length).toBeGreaterThan(0);
   TestRenderer.act(() => {
@@ -235,7 +255,11 @@ const trackMock = track as jest.Mock;
 async function updateGps(r: RendererLike) {
   mockPosition = { lat: 5.359, lng: -3.97, source: "gps" };
   await TestRenderer.act(async () => {
-    r.update(<ThemeProvider><RapideScreen /></ThemeProvider>);
+    r.update(
+      <ThemeProvider>
+        <RapideScreen />
+      </ThemeProvider>,
+    );
   });
 }
 
@@ -259,7 +283,10 @@ describe("RapideScreen — gate du flag mode-rapide", () => {
 
   it("flag ON → deck construit + rapide_opened(deck_size)", async () => {
     mockFlags = { "mode-rapide": true };
-    mockPlaces = [makePlace("p1", "Chez Fixture Un"), makePlace("p2", "Chez Fixture Deux")];
+    mockPlaces = [
+      makePlace("p1", "Chez Fixture Un"),
+      makePlace("p2", "Chez Fixture Deux"),
+    ];
     const r = await renderScreen();
     expect(JSON.stringify(r.toJSON())).toContain("Chez Fixture Un");
     expect(trackMock).toHaveBeenCalledWith({
@@ -273,7 +300,10 @@ describe("RapideScreen — décisions de swipe", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFlags = { "mode-rapide": true };
-    mockPlaces = [makePlace("p1", "Chez Fixture Un"), makePlace("p2", "Chez Fixture Deux")];
+    mockPlaces = [
+      makePlace("p1", "Chez Fixture Un"),
+      makePlace("p2", "Chez Fixture Deux"),
+    ];
     mockStoreState.savedPlaceIds = new Set();
   });
 
@@ -334,32 +364,74 @@ describe("RapideScreen — décisions de swipe", () => {
   it("ignore l'échec d'une lecture GPS commencée avant le premier swipe", async () => {
     const r = await renderScreen();
     let rejectRead!: (error: Error) => void;
-    readMock.mockReturnValueOnce(new Promise<PlaceWithAdn[]>((_resolve, reject) => { rejectRead = reject; }));
+    readMock.mockReturnValueOnce(
+      new Promise<PlaceWithAdn[]>((_resolve, reject) => {
+        rejectRead = reject;
+      }),
+    );
     await updateGps(r);
     expect(readMock).toHaveBeenCalledTimes(2);
     pressByLabel(r, "rapide.pass_aria");
-    await TestRenderer.act(async () => { rejectRead(new Error("offline")); });
+    await TestRenderer.act(async () => {
+      rejectRead(new Error("offline"));
+    });
     expect(JSON.stringify(r.toJSON())).not.toContain("common.data_read_error");
     expect(JSON.stringify(r.toJSON())).toContain("Chez Fixture Deux");
   });
 
-  it.each(["rapide.keep_aria", "rapide.pass_aria"])("%s retire une erreur de rafraîchissement déjà affichée en figeant le deck", async (label) => {
-    const r = await renderScreen();
-    readMock.mockRejectedValueOnce(new Error("offline"));
-    await updateGps(r);
-    expect(JSON.stringify(r.toJSON())).toContain("common.data_read_error");
-    pressByLabel(r, label);
-    expect(JSON.stringify(r.toJSON())).not.toContain("common.data_read_error");
-    expect(readMock).toHaveBeenCalledTimes(2);
-  });
+  it.each(["rapide.keep_aria", "rapide.pass_aria"])(
+    "%s retire une erreur de rafraîchissement déjà affichée en figeant le deck",
+    async (label) => {
+      const r = await renderScreen();
+      readMock.mockRejectedValueOnce(new Error("offline"));
+      await updateGps(r);
+      expect(JSON.stringify(r.toJSON())).toContain("common.data_read_error");
+      pressByLabel(r, label);
+      expect(JSON.stringify(r.toJSON())).not.toContain(
+        "common.data_read_error",
+      );
+      expect(readMock).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it("permet de relancer une première lecture en échec avant tout swipe", async () => {
     readMock.mockRejectedValueOnce(new Error("offline"));
     const r = await renderScreen();
     expect(JSON.stringify(r.toJSON())).toContain("common.data_read_error");
-    await TestRenderer.act(async () => { pressByLabel(r, "common.retry"); });
+    await TestRenderer.act(async () => {
+      pressByLabel(r, "common.retry");
+    });
     expect(readMock).toHaveBeenCalledTimes(2);
     expect(JSON.stringify(r.toJSON())).toContain("Chez Fixture Un");
     expect(JSON.stringify(r.toJSON())).not.toContain("common.data_read_error");
   });
+});
+
+it("initial read failure offers a retry instead of an empty deck", async () => {
+  mockFlags = { "mode-rapide": true };
+  mockPlaces = [makePlace("p1", "Chez Fixture Un")];
+  mockStoreState.savedPlaceIds = new Set();
+  readMock.mockRejectedValueOnce(new Error("offline"));
+  const r = await renderScreen();
+  expect(JSON.stringify(r.toJSON())).toContain("common.data_read_error");
+  expect(JSON.stringify(r.toJSON())).not.toContain("rapide.empty_title");
+  await TestRenderer.act(async () => {
+    pressByLabel(r, "common.retry");
+  });
+  expect(JSON.stringify(r.toJSON())).toContain("Chez Fixture Un");
+});
+
+it("a late GPS fix never rebuilds a deck after its first swipe", async () => {
+  mockFlags = { "mode-rapide": true };
+  mockPlaces = [
+    makePlace("p1", "Chez Fixture Un"),
+    makePlace("p2", "Chez Fixture Deux"),
+  ];
+  mockStoreState.savedPlaceIds = new Set();
+  const r = await renderScreen();
+  pressByLabel(r, "rapide.pass_aria");
+  readMock.mockClear();
+  await updateGps(r);
+  expect(readMock).not.toHaveBeenCalled();
+  expect(JSON.stringify(r.toJSON())).toContain("Chez Fixture Deux");
 });

@@ -5,7 +5,7 @@
 // sans audit (violation invariant compliance). Maintenant : throw, le caller
 // décide de rollback ou continuer (typique pour ban/delete : on rollback).
 
-import { supabaseClient } from "../utility/supabaseClient";
+import { supabaseClient, getAuthenticatedStaff } from "../utility/supabaseClient";
 
 // Console admin complète 07/2026 — le CHECK DB fait foi (migrations 0047 +
 // 0049) : toute valeur ici DOIT exister dans admin_audit_log_action_check,
@@ -93,7 +93,7 @@ export class AuditLogError extends Error {
  * ne l'est pas.
  */
 export async function logAuditAction(entry: AuditEntry): Promise<void> {
-  const { data, error: getUserErr } = await supabaseClient.auth.getUser();
+  const { data, error: getUserErr } = await getAuthenticatedStaff();
   if (getUserErr || !data.user) {
     throw new AuditLogError(getUserErr ?? new Error("no auth session"));
   }

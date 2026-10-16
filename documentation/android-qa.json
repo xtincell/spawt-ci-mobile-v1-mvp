@@ -1,8 +1,8 @@
 {
-  "build": 27,
-  "sourceCommit": "6ba39d2b8b54c2bd7e5867b1dad6334a914df5f8",
-  "mode": "photos",
+  "build": 31,
+  "sourceCommit": "699d67d62793553e07766f4953b6d2c915299b9f",
+  "mode": "opening",
   "phone": "+2250000000193",
-  "localBuildRun": 38019749515,
-  "buildWorkflowCommit": "73075c98bc84d780993794b3455501b509ae342f"
+  "localBuildRun": 38899084321,
+  "buildWorkflowCommit": "dd170da64c3e10b2fcc07d217e34fadb8f0eec72"
 }

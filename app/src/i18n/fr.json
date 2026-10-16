@@ -263,7 +263,68 @@
   "home": {
     "masthead_kicker": "ÉDITION DU JOUR",
     "modes_title": "Je sors pour…",
-    "suggestions_title": "Voici mes 3 suggestions du jour."
+    "suggestions_title": "Voici mes 3 suggestions du jour.",
+    "selector_label": "À la une",
+    "selector": {
+      "suggestions": {
+        "title": "Suggestions",
+        "subtitle": "Pour vous"
+      },
+      "rapide": {
+        "title": "Rapide",
+        "subtitle": "Décider vite"
+      },
+      "selections": {
+        "title": "Les sélections",
+        "subtitle": "Nos carnets"
+      },
+      "duo": {
+        "title": "En duo",
+        "subtitle": "À deux"
+      },
+      "spots": {
+        "title": "Les spots",
+        "subtitle": "La carte"
+      }
+    },
+    "personalized_feed": "Selon votre Palais",
+    "editorial_empty": "Pas encore de lieu dans cette sélection. Les autres adresses vous attendent juste en dessous.",
+    "collections_empty": "Chaque carnet apparaîtra ici dès sa publication. Retrouvez les lieux dans Suggestions en attendant.",
+    "collections_unavailable": "Les carnets ne sont pas encore ouverts. Retrouvez les lieux dans Suggestions.",
+    "suggestions_short": "Suggestions",
+    "interfaces": {
+      "suggestions": {
+        "title": "Suggestions pour vous",
+        "subtitle": "Voici mes 3 suggestions du jour."
+      },
+      "selections": {
+        "title": "Les sélections",
+        "subtitle": "Choisissez un carnet, puis ses adresses."
+      },
+      "duo": {
+        "title": "En duo",
+        "subtitle": "Des sélections pensées pour deux."
+      },
+      "spots": {
+        "title": "Les spots",
+        "subtitle": "Les adresses sur la carte."
+      }
+    },
+    "duo_empty_title": "Les carnets à deux se préparent",
+    "duo_empty_body": "La sélection à deux est en préparation. En attendant, retrouvez les lieux dans Suggestions.",
+    "collections_hint": "Un carnet ouvre sa liste de spots.",
+    "preview": {
+      "label": "Aperçu de carnet",
+      "notice": "Exemples de présentation · Curation à préparer. Ces aperçus ne contiennent pas encore de spots et ne sont pas des carnets publiés.",
+      "coffee": {
+        "title": "Un café à deux",
+        "body": "Pour prendre le temps de se retrouver."
+      },
+      "table": {
+        "title": "Une table pour deux",
+        "body": "Pour partager un moment à deux."
+      }
+    }
   },
   "modes": {
     "traine": {
@@ -294,19 +355,20 @@
     }
   },
   "rapide": {
-    "title": "Mode Rapide",
+    "title": "Rapide",
     "subtitle": "Garde ou passe. Ton nez décide.",
     "keep_label": "Je le garde",
     "pass_label": "Passe",
-    "keep_aria": "Garder ce spot dans tes favoris",
-    "pass_aria": "Passer ce spot",
+    "keep_aria": "Je le garde, ajouter ce spot aux favoris",
+    "pass_aria": "Passe, voir le spot suivant",
     "card_open_aria": "Ouvrir la fiche de {{name}}",
     "deck_end_title": "Tu as tout reniflé par ici.",
     "deck_end_body": "Reviens plus tard — le Chat garde le nez ouvert.",
     "deck_end_cta": "Retour à l’accueil",
     "empty_title": "Rien à renifler pour l'instant",
     "empty_body": "Aucun spot à te proposer dans le coin. Repasse plus tard.",
-    "empty_cta": "Retour à l’accueil"
+    "empty_cta": "Retour à l’accueil",
+    "unavailable": "Rapide n’est pas encore disponible pour ce compte."
   },
   "explore": {
     "title": "Mode Explore",
@@ -327,7 +389,9 @@
     "sucre-cocody": {
       "title": "Sucré comme Cocody",
       "subtitle": "Cafés, douceurs et terrasses — pour les après-midis qui traînent."
-    }
+    },
+    "items_empty_title": "Ce carnet attend ses adresses",
+    "items_empty_body": "Aucun spot publié n’est disponible dans ce carnet pour le moment."
   },
   "search": {
     "placeholder": "Cherche un spawt, un plat, une zone…",
@@ -897,7 +961,9 @@
     "day_sat": "Sam",
     "day_sun": "Dim",
     "reviews_error": "Les avis ne sont pas disponibles pour le moment.",
-    "review_photo_alt": "Photo jointe à cet avis"
+    "review_photo_alt": "Photo jointe à cet avis",
+    "photo_pending": "Photo à venir",
+    "photo_illustration": "Illustration"
   },
   "place_activity": {
     "section_title": "En ce moment",
@@ -942,7 +1008,13 @@
     "cancel": "Annuler"
   },
   "carte": {
-    "module_unavailable": "La carte a besoin d'un vrai build (APK/TestFlight) — Expo Go ne l'embarque pas. Le Chat patiente."
+    "module_unavailable": "La carte interactive n’est pas disponible dans cette version. Vous pouvez consulter les fiches des spots.",
+    "city_fallback": "Position indisponible : carte centrée sur la ville.",
+    "empty": "Aucun lieu publié à afficher sur la carte.",
+    "loading": "Chargement de la carte…",
+    "unavailable_title": "La carte est indisponible ici",
+    "available_places": "Les spots à consulter",
+    "open_place": "Voir la fiche"
   },
   "cdc": {
     "button": "❤️ Mon Coup de Cœur",
@@ -1047,7 +1119,26 @@
     "title": "La bande",
     "empty_body": "La bande chasse en silence pour l'instant. Les avis et Coups de Cœur des spawters apparaîtront ici.",
     "item_review": "{{spawter}} a laissé un avis sur {{place}}",
-    "item_coup": "{{spawter}} a donné son Coup de Cœur à {{place}}"
+    "item_coup": "{{spawter}} a donné son Coup de Cœur à {{place}}",
+    "subtitle": "Les découvertes, avis et coups de cœur de la bande.",
+    "crew_toggle": "Décider ensemble · Ton Crew",
+    "crew_context": "En duo ou en groupe, invite tes proches à proposer des adresses et à voter. Le vote est temporaire.",
+    "filter_all": "Tout",
+    "filter_review": "Avis",
+    "filter_coup": "Coups de cœur",
+    "kind_review": "Avis",
+    "kind_coup": "Coup de cœur",
+    "open_place": "Voir {{place}}",
+    "see_place": "Voir le lieu",
+    "coup_author": "{{spawter}} recommande cette adresse.",
+    "share": "Partager",
+    "share_message": "Une adresse repérée dans la bande : {{place}}.\n{{url}}",
+    "share_failed": "Le partage n’a pas abouti. Réessaie.",
+    "read_more": "Lire la suite",
+    "read_less": "Réduire",
+    "load_more": "Voir la suite",
+    "loading_more": "Chargement…",
+    "contribute": "Partager une découverte"
   },
   "crew": {
     "block_title": "Ton Crew",

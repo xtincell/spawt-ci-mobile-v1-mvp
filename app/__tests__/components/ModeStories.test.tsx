@@ -1,99 +1,119 @@
-// Tests hub des modes — <ModeStories /> (non-régression + entrées Sprint 2).
-// Critère de non-régression : sans `entries` (ou entries=[]), le rendu est
-// STRICTEMENT identique à l'existant — 4 chips radio, aucune entrée bouton.
+import { useState } from "react";
+import TestRenderer, { act } from "react-test-renderer";
+import { Pressable, Text } from "react-native";
+import {
+  ModeStories,
+  HOME_MODES,
+  type ModeKey,
+} from "../../src/components/ModeStories";
+import { ThemeProvider } from "../../src/theme/ThemeProvider";
+import { tokens } from "../../src/theme/tokens";
+import fr from "../../src/i18n/fr.json";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — react-test-renderer ships JS only.
-import TestRenderer from "react-test-renderer";
-
-const mockTranslate = jest.fn((key: string) => key);
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: mockTranslate }),
+  useTranslation: () => ({
+    t: (key: string) => {
+      const parts = key.split(".");
+      return (
+        parts.reduce(
+          (value: any, part) => value?.[part],
+          require("../../src/i18n/fr.json"),
+        ) ?? key
+      );
+    },
+  }),
 }));
 
-import { ModeStories, type ModeEntry } from "../../src/components/ModeStories";
-import { ThemeProvider } from "../../src/theme/ThemeProvider";
-
-interface NodeLike {
-  type: unknown;
-  props: Record<string, unknown>;
-}
-
-/** Éléments HOST only — findAll matche aussi les composites (doublons). */
-function isHost(n: NodeLike): boolean {
-  return typeof n.type === "string";
-}
-interface RendererLike {
-  root: { findAll: (predicate: (n: NodeLike) => boolean) => NodeLike[] };
-}
-
-function render(entries?: readonly ModeEntry[]): RendererLike {
-  let r: RendererLike | null = null;
-  TestRenderer.act(() => {
-    r = TestRenderer.create(
-      <ThemeProvider>
-        <ModeStories
-          selectedMode={null}
-          onModePress={jest.fn()}
-          {...(entries !== undefined ? { entries } : {})}
-        />
-      </ThemeProvider>,
-    ) as unknown as RendererLike;
-  });
-  if (!r) throw new Error("renderer did not init");
-  return r;
-}
-
-function radios(r: RendererLike): NodeLike[] {
-  return r.root.findAll(
-    (n) => isHost(n) && n.props.accessibilityRole === "radio",
+function Harness() {
+  const [mode, setMode] = useState<ModeKey>("suggestions");
+  return (
+    <ThemeProvider>
+      <ModeStories selectedMode={mode} onModePress={setMode} />
+    </ThemeProvider>
   );
 }
 
-function buttons(r: RendererLike): NodeLike[] {
-  return r.root.findAll(
-    (n) => isHost(n) && n.props.accessibilityRole === "button",
-  );
-}
-
-describe("<ModeStories /> — non-régression (flags off)", () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it("sans entries : 4 chips radio, AUCUNE entrée de navigation", () => {
-    const r = render();
-    expect(radios(r)).toHaveLength(4);
-    expect(buttons(r)).toHaveLength(0);
+it("keeps five peers in order, with all subtitles and one active choice through repeated taps", () => {
+  let tree!: TestRenderer.ReactTestRenderer;
+  act(() => {
+    tree = TestRenderer.create(<Harness />);
   });
-
-  it("entries=[] : rendu identique (0 bouton)", () => {
-    const r = render([]);
-    expect(radios(r)).toHaveLength(4);
-    expect(buttons(r)).toHaveLength(0);
-  });
-});
-
-describe("<ModeStories /> — entrées de modes plein écran (Sprint 2)", () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it("rend les entrées AVANT les chips d'humeur, role button + label i18n", () => {
-    const onRapide = jest.fn();
-    const r = render([
-      { key: "rapide", icon: "arrow-right", labelKey: "modes.entry_rapide.label", onPress: onRapide },
-      { key: "explore", icon: "map", labelKey: "modes.entry_explore.label", onPress: jest.fn() },
-    ]);
-    const entryButtons = buttons(r);
-    expect(entryButtons).toHaveLength(2);
-    expect(entryButtons[0]!.props.accessibilityLabel).toBe("modes.entry_rapide.label");
-    // Les 4 chips d'humeur restent intactes à côté des entrées.
-    expect(radios(r)).toHaveLength(4);
-    // Press via le composite Pressable (le host View ne porte pas onPress).
-    const pressables = r.root.findAll(
+  const buttons = () =>
+    tree.root.findAll(
       (n) =>
-        n.props.accessibilityLabel === "modes.entry_rapide.label" &&
+        n.props.accessibilityRole === "radio" &&
         typeof n.props.onPress === "function",
     );
-    expect(pressables.length).toBeGreaterThan(0);
-    (pressables[0]!.props.onPress as () => void)();
-    expect(onRapide).toHaveBeenCalledTimes(1);
-  });
+  expect(buttons().map((b) => b.props.testID)).toEqual(
+    HOME_MODES.map((key) => `home-mode-${key}`),
+  );
+  expect(buttons()).toHaveLength(5);
+  for (const key of [
+    ...HOME_MODES,
+    "rapide",
+    "rapide",
+    "suggestions",
+  ] as ModeKey[]) {
+    act(() =>
+      buttons()
+        .find((b) => b.props.testID === `home-mode-${key}`)!
+        .props.onPress(),
+    );
+    expect(
+      buttons().filter((b) => b.props.accessibilityState.selected),
+    ).toHaveLength(1);
+    for (const button of buttons()) {
+      const active = button.props.testID === `home-mode-${key}`;
+      expect(button.props.accessibilityState.selected).toBe(active);
+      const style = button.props.style({ pressed: false });
+      const disc = button.findAll(
+        (n) =>
+          n.props.testID ===
+          button.props.testID.replace("home-mode-", "home-mode-disc-"),
+      )[0]!;
+      expect(disc.props.style.backgroundColor).toBe(
+        active ? tokens.surface.inverse : tokens.surface.subtle,
+      );
+      expect(style.minHeight).toBeGreaterThanOrEqual(44);
+      expect(button.findAllByType(Text)[1]!.props.style.color).toBe(
+        tokens.text.secondary,
+      );
+    }
+  }
+  expect(buttons().map((b) => b.props.accessibilityLabel)).toEqual(
+    HOME_MODES.map(
+      (key) =>
+        `${fr.home.selector[key].title}, ${fr.home.selector[key].subtitle}`,
+    ),
+  );
+  act(() => tree.unmount());
 });
+
+it.each([320, 360, 393])(
+  "keeps targets and complete labels at %ipx with enlarged text",
+  (width) => {
+    const RN = require("react-native");
+    const dimensions = jest
+      .spyOn(RN, "useWindowDimensions")
+      .mockReturnValue({ width, height: 852, scale: 1, fontScale: 1.5 });
+    let tree!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(<Harness />);
+    });
+    const buttons = tree.root.findAll(
+      (n) =>
+        n.props.accessibilityRole === "radio" &&
+        typeof n.props.onPress === "function",
+    );
+    expect(buttons).toHaveLength(5);
+    for (const b of buttons) {
+      const style = b.props.style({ pressed: false });
+      expect(style.width).toBeGreaterThanOrEqual(102);
+      expect(style.minHeight).toBeGreaterThanOrEqual(44);
+      for (const label of b.findAllByType(Text))
+        expect(label.props.numberOfLines).toBeUndefined();
+    }
+    act(() => tree.unmount());
+    dimensions.mockRestore();
+  },
+);
