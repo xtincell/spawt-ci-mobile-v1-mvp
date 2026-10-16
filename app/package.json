@@ -81,6 +81,7 @@
       "node_modules",
       "node_modules/expo/node_modules"
     ],
+    "modulePaths": ["<rootDir>/node_modules"],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "\\.test-d\\.[jt]sx?$"

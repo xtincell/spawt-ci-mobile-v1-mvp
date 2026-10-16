@@ -4,6 +4,36 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Reprendre une session dont le jeton a été invalidé (2026-10-16)
+
+Après une rotation de signature, un jeton local peut sembler encore valable
+alors que le serveur le refuse. Le mobile et la console réutilisent désormais
+`auth.refreshSession()` du SDK pour reprendre une lecture d’identité ou une
+requête REST ainsi rejetée. Le raccord est partagé ; les stockages, comptes,
+permissions et règles métier existants restent les autorités.
+
+La reprise est limitée au jeton de la session courante et à un rejeu. Les appels
+simultanés partagent le renouvellement. Une déconnexion, un changement de compte,
+un refus de droits, une panne réseau ou une clé de passerelle inconnue ne sont
+pas convertis en accès. L’identité Auth est relue après libération du verrou SDK ;
+les transports Auth, Storage et Edge ne sont pas interceptés.
+
+Régression reproduite sur les SDK épinglés 2.105.1 et 2.106.0, puis correction
+éprouvée sur une copie isolée avec GoTrue, PostgREST et Kong réels : six scénarios
+identité/lectures simultanées/écriture, six renouvellements automatiques, deux
+écritures présentes chacune une seule fois et refus RLS conservés. Les six clients
+recréés reprennent les nouveaux jetons via un adaptateur mémoire de test. Les
+145 règles RLS sont identiques ; conteneurs et accès de test arrêtés.
+Validation locale sur checkout complet : typage, vocabulaire, i18n, 1 043 tests
+mobile (4 ignorés), 191 tests console, quatre gardes EAS et compilations web
+mobile/console réussis. CI distante encore à recevoir.
+
+Cette preuve SDK ne reçoit ni AsyncStorage sur appareil, ni localStorage en
+navigateur, ni l’APK publié, ni les sessions historiques. Storage, Realtime et Edge
+restent à recevoir avant une rotation réelle coordonnée. Aucun secret de production
+roté, aucune migration ni nouvelle permission ; aucun APK, OTA ou déploiement livré
+par ce lot. Le gestionnaire d’appels IA du Shinkiro reste celui de La Fusée.
+
 ## Android 1.1.1 — Accueil et la bande (2026-10-12, build 28 compilé)
 
 - « Accueil » remplace « Feed » dans la navigation et les retours du mode Rapide.

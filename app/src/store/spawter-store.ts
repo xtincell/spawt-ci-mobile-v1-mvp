@@ -77,7 +77,7 @@ import { enqueue } from "../lib/offline-queue";
 import { applyReviewToPalais } from "../lib/palais-signals";
 import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
-import { supabase } from "../lib/supabase";
+import { supabase, getAuthenticatedSpawter } from "../lib/supabase";
 import { canResumeMissingPalais, readAuthenticatedAccount, requireAccountSession } from "../lib/account-recovery";
 import { readAccountHistory } from "../lib/account-history";
 import { canPublishCachedAccount } from "../lib/cached-session";
@@ -756,7 +756,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     // ci-dessous gate l'appel `auth.getUser`).
     let id: string;
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.auth.getUser();
+      const { data, error } = await getAuthenticatedSpawter();
       if (error || !data.user) {
         throw new Error("FINALIZE_NO_AUTH_USER");
       }

@@ -4,6 +4,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createSupabaseSessionRecovery, type SessionAuth } from "../../../shared/supabase-session";
 
 // Résolution unique et traçable (voir `backend-identity.ts`). Cette expression
 // était recopiée ici et dans trois autres fichiers : quatre copies qui pouvaient
@@ -29,7 +30,10 @@ if (!RAW_URL || !RAW_KEY) {
   );
 }
 
+const recovery = createSupabaseSessionRecovery(SUPABASE_URL, () => sessionAuth);
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: { fetch: recovery.fetch },
   auth: {
     // ⚠️ SANS cet adaptateur, `persistSession: true` est un piège sur mobile.
     //
@@ -51,3 +55,5 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     detectSessionInUrl: false,
   },
 });
+const sessionAuth: SessionAuth = supabase.auth;
+export const getAuthenticatedSpawter = () => recovery.getUser(() => supabase.auth.getUser());
