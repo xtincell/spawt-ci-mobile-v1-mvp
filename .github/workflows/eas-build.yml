@@ -64,7 +64,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # Node 22 (LTS) et non 20 : `eas-version: latest` a fini par
+          # Node 22 (LTS) et non 20 : `eas-version: 22.5.0` a fini par
           # résoudre eas-cli 22.5.0, dont une dépendance
           # (@oclif/plugin-autocomplete) exige Node >= 22. Le build échouait
           # alors AVANT toute compilation, sur l'installation de l'outil —
@@ -137,7 +137,7 @@ jobs:
       - name: Setup EAS
         uses: expo/expo-github-action@v8
         with:
-          eas-version: latest
+          eas-version: 22.5.0
           token: ${{ secrets.EXPO_TOKEN }}
 
       # ── Quelles variables le build va-t-il RÉELLEMENT recevoir ? ──────────

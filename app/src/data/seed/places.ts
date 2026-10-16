@@ -59,7 +59,7 @@ export const SEED_PLACES: SeedPlace[] = [
     hours: defaultHours("11:00", "00:00"),
     phone: null,
     whatsapp: "+22507XXXXXXX",
-    cover_photo_url: null,
+    cover_photo_url: "https://api.spawt.online/storage/v1/object/public/place-covers/places/a1000000-0000-4000-8000-000000000005/official-20261009-b66112eaae8dceed.webp",
     gallery_urls: [],
     menu_urls: [],
     signals: ["coup_de_coeur"],

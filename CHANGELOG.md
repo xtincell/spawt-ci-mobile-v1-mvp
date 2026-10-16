@@ -1,10 +1,56 @@
+## 2026-10-13 — Contenu de prévalidation des mini-interfaces
+
+- En duo : deux aperçus illustrés « Un café à deux » et « Une table pour deux », explicitement non publiés, sans lieux attribués arbitrairement.
+- Les sélections : aperçus éditoriaux des maquettes si aucun carnet publié n’est accessible ; publications réelles prioritaires, flags et erreurs conservés.
+- Carte indisponible : fiches des spots réels avec photo, quartier et navigation, sans inventer de géographie.
+- TypeScript, vocabulaire, i18n, 1 055 tests mobile et export web vérifiés. Captures actualisées ; aucun APK ni écriture de production.
+
+## 2026-10-13 — Mini-interfaces Accueil (prévalidation, aucun APK)
+
+- Base build 29 `bd0b61f`, branche locale `codex/mini-interfaces-build29`.
+- Suggestions, Rapide, Les sélections, En duo et Les spots dans le cadre commun ; moteurs swipe/carnets/carte partagés, classement Suggestions conservé.
+- Carnets en liste verticale, duo vide explicite en attente de curation, erreurs/réessais et retours protégés ; texte agrandi sans troncature dans les accès et la navigation inférieure.
+- 1 054 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis. Captures web réelles à 320/360/393 px ; carte native et accessibilité système restent à vérifier.
+- Aucun changement de flags ou données de production. Validation des captures obligatoire avant APK. Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
+## Android 1.1.1 — build 29, La Bande (2026-10-13, préparation)
+
+- Fil communautaire réel : avis, notes détaillées, avatars Moka, photos officielles ou illustration explicite, coups de cœur et partage natif.
+- Lecture des auteurs via `spawters_public` : l’ancienne jointure sur les profils privés masquait les autres membres. Aucun élargissement des droits ni migration.
+- Filtres Tout/Avis/Coups de cœur, pagination chronologique, rechargement au retour et après publication, conservation du contenu en cas de panne et protection des requêtes concurrentes.
+- Filtres adaptatifs avec grand texte ; Crew temporaire secondaire. Tanière durable et abonnements réservés à la V2.
+- Accueil discret et tuiles illustrées inclus. Voir `documentation/ANDROID_1_1_1_BUILD29_BANDE.md`.
+
+## 2026-10-13 — Accueil compact et La Bande (revue, non publié)
+
+- Sélecteur discret Suggestions / Se poser / Découvrir / Sélections, quatre SVG dédiés et états actifs mobiles.
+- Carrousel éditorial indépendant du feed Palais ; carnets sur place, lecture sous flag avec chargement/erreur/vide/réessai.
+- Tuiles avec photos et illustration d’attente explicite, y compris en cas d’image défaillante.
+- La Bande garde son fil ; Crew secondaire replié, contextes duo/groupe sans nouvelle mécanique. Formulaire sans débordement.
+- Tests source et captures web : `documentation/ACCUEIL_BANDE_2026_10_13.md`. Pas de build natif, déploiement ou migration.
+
 # SPAWT — Changelog
 
 Toutes les modifications notables du repo. Format : Conventional Commits versionné par Sprint.
 
 ---
 
-## Préparation de la recette native 29 (2026-10-16)
+## Réconcilier la source publiée avant la recette native 31 (2026-10-16)
+
+La préparation 29 du raccord de session est abandonnée : le build 29 avait déjà
+été publié et le build 30 compilé le 13 octobre depuis une lignée conservée par
+ses tags, sans branche à sa tête. La compilation 38897200580 est annulée ; elle
+n’a livré aucun APK. Le numéro de la branche d’audit (28) ne représentait donc
+pas la dernière application existante.
+
+Les trois commits menant à `3cc5e92` sont réintégrés avec leurs interfaces
+Accueil/La Bande/mini-interfaces, leurs tests, leurs assets et leurs preuves
+existantes. Le raccord de session partagé est conservé. La prochaine source
+passe au numéro natif 31, version applicative 1.1.1. Typage, vocabulaire,
+i18n, 1 075 tests mobile (quatre ignorés) et conformité passent sur cet ensemble.
+La CI puis l’artefact combinés restent à recevoir avant toute livraison.
+
+## Préparation 29 abandonnée avant artefact (2026-10-16)
 
 La source passe au numéro natif 29 pour distinguer le prochain binaire contenant
 le raccord de session reçu sur SDK et console. Version applicative 1.1.1,

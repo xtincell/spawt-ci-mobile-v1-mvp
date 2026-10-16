@@ -25,6 +25,10 @@ describe("TabBar visible and accessibility labels", () => {
       renderer = TestRenderer.create(<TabBar active="home" onTabPress={onTabPress} />);
     });
     const labels = renderer.root.findAllByType(Text).map((node) => node.props.children);
+    for (const node of renderer.root.findAllByType(Text)) {
+      expect(node.props.numberOfLines).toBeUndefined();
+      expect(node.props.adjustsFontSizeToFit).toBeUndefined();
+    }
     expect(labels).toEqual(["Accueil", "Carte", "La bande", "Palais"]);
     const controls = renderer.root.findAll((node) => typeof node.type === "string" && ["tab", "button"].includes(node.props.accessibilityRole));
     expect(controls.map((node) => node.props.accessibilityLabel)).toEqual(["Accueil", "Carte", "Spawter", "La bande", "Palais"]);

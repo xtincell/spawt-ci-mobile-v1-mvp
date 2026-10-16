@@ -40,7 +40,7 @@ jobs:
           fs.mkdirSync('android-proof',{recursive:true});
           const config=JSON.parse(fs.readFileSync('documentation/android-qa.json','utf8'));
           const phone=config.phone ?? '+2250000000193';
-          if(!['+2250000000193','+2250000000194'].includes(phone)) throw new Error('Compte de recette non autorisé');
+          if(!(config.mode==='community' ? ['+2250000000101'] : ['+2250000000193','+2250000000194']).includes(phone)) throw new Error('Compte de recette non autorisé');
           let url=process.env.APK_INPUT;
           let localReady=false;
           if(config.localBuildRun && !url){

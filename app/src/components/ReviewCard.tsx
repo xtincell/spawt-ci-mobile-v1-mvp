@@ -21,19 +21,27 @@ const TEXTE_TRUNCATE_AT = 140;
 export function ReviewCard({
   review,
   theme,
+  expandable = false,
 }: {
   review: PlaceReview;
   theme: Theme;
+  expandable?: boolean;
 }) {
   const { t } = useTranslation();
   const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
+  const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   // Signaler : uniquement en mode Supabase (la file 0026 n'existe pas en démo)
   // et jamais sur ses propres avis ni les seeds fondateurs.
   const canReport =
-    isSupabaseConfigured && !review.is_seed && spawterId !== null && spawterId !== review.spawter_id;
+    isSupabaseConfigured &&
+    !review.is_seed &&
+    spawterId !== null &&
+    spawterId !== review.spawter_id;
   const truncated =
-    review.texte_avis !== null && review.texte_avis.length > TEXTE_TRUNCATE_AT
+    review.texte_avis !== null &&
+    review.texte_avis.length > TEXTE_TRUNCATE_AT &&
+    !expanded
       ? `${review.texte_avis.slice(0, TEXTE_TRUNCATE_AT).trimEnd()}…`
       : review.texte_avis;
 
@@ -84,8 +92,34 @@ export function ReviewCard({
           ) : null}
         </View>
         <Stars value={review.note_globale ?? review.note_etoiles} size="sm" />
-        {review.note_globale !== undefined ? <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("review.global_rating", { rating: review.note_globale.toFixed(1).replace(".", ",") })}</Text> : null}
-        {review.note_cuisine != null && review.note_cadre != null && review.note_service != null ? <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("review.ratings_detail", { cuisine: review.note_cuisine, cadre: review.note_cadre, service: review.note_service })}</Text> : null}
+        {review.note_globale !== undefined ? (
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.text.secondary,
+            }}
+          >
+            {t("review.global_rating", {
+              rating: review.note_globale.toFixed(1).replace(".", ","),
+            })}
+          </Text>
+        ) : null}
+        {review.note_cuisine != null &&
+        review.note_cadre != null &&
+        review.note_service != null ? (
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.text.secondary,
+            }}
+          >
+            {t("review.ratings_detail", {
+              cuisine: review.note_cuisine,
+              cadre: review.note_cadre,
+              service: review.note_service,
+            })}
+          </Text>
+        ) : null}
         {truncated !== null ? (
           <Text
             style={{
@@ -96,6 +130,29 @@ export function ReviewCard({
           >
             {truncated}
           </Text>
+        ) : null}
+        {expandable &&
+        review.texte_avis &&
+        review.texte_avis.length > TEXTE_TRUNCATE_AT ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+            onPress={() => setExpanded((value) => !value)}
+            style={{
+              minHeight: 44,
+              justifyContent: "center",
+              alignSelf: "flex-start",
+            }}
+          >
+            <Text
+              style={{
+                ...theme.typography.preset.small,
+                color: theme.colors.text.primary,
+              }}
+            >
+              {t(expanded ? "meute.read_less" : "meute.read_more")}
+            </Text>
+          </Pressable>
         ) : null}
         {review.photos.length > 0 ? (
           <View
@@ -131,7 +188,12 @@ export function ReviewCard({
               testID={`report-review-${review.id}`}
               onPress={() => setReportOpen(true)}
               hitSlop={8}
-              style={{ alignSelf: "flex-start", marginTop: theme.spacing.xs }}
+              style={{
+                alignSelf: "flex-start",
+                minHeight: 44,
+                justifyContent: "center",
+                marginTop: theme.spacing.xs,
+              }}
             >
               <Text
                 style={{
@@ -155,6 +217,12 @@ export function ReviewCard({
   );
 }
 
-export function Avatar({ url }: { name: string; url: string | null; theme: Theme }) {
+export function Avatar({
+  url,
+}: {
+  name: string;
+  url: string | null;
+  theme: Theme;
+}) {
   return <SpawterAvatar url={url} />;
 }

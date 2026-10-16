@@ -69,3 +69,6 @@ nul
 /public/
 /prototype-web/
 *.docx
+
+# Local QA captures and user-provided archives are not app assets.
+/outputs/

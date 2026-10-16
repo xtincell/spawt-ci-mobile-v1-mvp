@@ -1,6 +1,6 @@
 // TabBar 5 onglets — Accueil · Carte · [FAB +] · La bande · Palais.
 // Cf. midfi-kit.jsx ligne 120 + ux-design-spec § "Navigation patterns".
-// Hauteur 78pt + safe-area home indicator (paddingBottom: insets.bottom).
+// Hauteur minimale 78pt, extensible avec le texte + safe-area home indicator.
 // FAB central 48px débord -22, bg noir, Ico plus or, elevation md.
 
 import { Pressable, Text, View } from "react-native";
@@ -44,8 +44,9 @@ export function TabBar({ active, onTabPress }: Props) {
   return (
     <View
       style={{
-        height: 78 + insets.bottom,
-        paddingBottom: insets.bottom,
+        minHeight: 78 + insets.bottom,
+        paddingTop: 12,
+        paddingBottom: Math.max(12, insets.bottom),
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.colors.surface.base,
@@ -66,7 +67,7 @@ export function TabBar({ active, onTabPress }: Props) {
               accessibilityRole="button"
               accessibilityLabel={label}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+              style={{ flex: 0.8, minHeight: 48, alignItems: "center", justifyContent: "center" }}
             >
               <View
                 style={{
@@ -95,7 +96,7 @@ export function TabBar({ active, onTabPress }: Props) {
             accessibilityLabel={label}
             hitSlop={{ top: 8, bottom: 8 }}
             style={{
-              flex: 1,
+              flex: tab.id === "home" ? 1.2 : 1,
               alignItems: "center",
               justifyContent: "center",
               gap: 2,
@@ -109,12 +110,11 @@ export function TabBar({ active, onTabPress }: Props) {
               color={isActive ? theme.colors.text.primary : theme.colors.text.tertiary}
             />
             <Text
-              numberOfLines={label.includes(" ") ? 2 : 1}
-              adjustsFontSizeToFit
               style={{
                 ...theme.typography.preset.overline,
                 color: isActive ? theme.colors.text.primary : theme.colors.text.tertiary,
                 width: "100%",
+                letterSpacing: 0,
                 textAlign: "center",
               }}
             >

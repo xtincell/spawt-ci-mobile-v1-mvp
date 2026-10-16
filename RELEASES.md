@@ -33,6 +33,33 @@ Format d'une entrée :
 
 ---
 
+## v1.1.1 — build 30 — 2026-10-13
+
+**Compilation APK preview autorisée par le demandeur, résultat en attente.**
+
+- Cinq usages dans le cadre Accueil : Suggestions, Rapide, Les sélections, En duo, Les spots.
+- Moteurs swipe/carnets/carte existants réutilisés ; classement Suggestions conservé.
+- Aperçus éditoriaux illustrés explicitement non publiés si la curation manque ; aucun lieu associé arbitrairement.
+- Carte native partagée avec l’onglet Carte ; fiches réelles dans le remplacement web.
+- 1 055 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis.
+- Captures prévalidées pour passage à la compilation ; recette native de ce binaire restante.
+- Aucune fusion, OTA, publication store ou écriture de production.
+
+Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
+## v1.1.1 — build 29 — 2026-10-13
+
+**Préparation APK preview Expo** — résultat de compilation en attente.
+
+- Accueil : sélecteur discret, carrousel éditorial indépendant des préférences du fil.
+- Tuiles avec photos officielles ou illustration de secours explicitement indiquée.
+- La Bande : activité publique, avatars Moka, notes détaillées, filtres, pagination,
+  partage et rafraîchissement au retour. Correction des coups de cœur invisibles.
+- Tanière privée et abonnements entre membres préparés dans le backlog V2.
+- Recette native de ce nouveau binaire à distinguer des captures Expo web.
+
+Voir [le rapport build 29](./documentation/ANDROID_1_1_1_BUILD29_BANDE.md).
+
 ## v1.1.1 — build 28 — 2026-10-12
 
 **APK interne compilé et signé** : [artefact GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38262258947/artifacts/11754938097) (jusqu’au 26 octobre).
