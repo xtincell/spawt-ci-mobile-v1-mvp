@@ -49,6 +49,10 @@ existantes. Le raccord de session partagé est conservé. La prochaine source
 passe au numéro natif 31, version applicative 1.1.1. Typage, vocabulaire,
 i18n, 1 075 tests mobile (quatre ignorés) et conformité passent sur cet ensemble.
 La CI puis l’artefact combinés restent à recevoir avant toute livraison.
+La recette existante refuse désormais un numéro déjà occupé par un autre tag
+et vérifie que la source préserve sa précédente compilation réussie. Un APK
+produit reste conservé comme diagnostic si sa réception ultérieure échoue ;
+seul un run entièrement réussi peut le qualifier.
 
 ## Préparation 29 abandonnée avant artefact (2026-10-16)
 

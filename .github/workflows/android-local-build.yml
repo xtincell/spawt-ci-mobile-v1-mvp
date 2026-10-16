@@ -7,7 +7,7 @@ on:
       recipe:
         description: Recette de compilation déjà contrôlée
         type: string
-        default: documentation/android-build29.json
+        default: documentation/android-build31.json
         required: true
 permissions:
   contents: read
@@ -21,9 +21,11 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
-      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build29.json' }}
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build31.json' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Recevoir la recette et sa CI avant compilation
         env:
           GH_TOKEN: ${{ github.token }}
@@ -31,21 +33,29 @@ jobs:
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           import path from 'node:path';
+          import {execFileSync} from 'node:child_process';
           const recipePath=process.env.SPAWT_BUILD_RECIPE;
           if(!/^documentation\/android-build[0-9]+\.json$/.test(recipePath)) throw new Error('Chemin de recette non autorisé');
-          const recipe=JSON.parse(fs.readFileSync(recipePath,'utf8'));
+          const rawRecipe=fs.readFileSync(recipePath,'utf8');
+          const recipe=JSON.parse(rawRecipe);
           if(!/^\d+\.\d+\.\d+$/.test(recipe.version) || !Number.isSafeInteger(recipe.build) || recipe.build<1 || recipe.build>2147483647 || !/^\d{4}-\d{2}-\d{2}$/.test(recipe.buildDate) || !/^[a-f0-9]{40}$/.test(recipe.sourceCommit)) throw new Error('Recette invalide');
           if(new Date(recipe.buildDate).toISOString().slice(0,10)!==recipe.buildDate) throw new Error('Date de recette invalide');
+          if(!Number.isSafeInteger(recipe.previousBuild) || recipe.previousBuild>=recipe.build || !/^[a-f0-9]{40}$/.test(recipe.previousSourceCommit) || !Number.isSafeInteger(recipe.previousBuildRun)) throw new Error('Lignée précédente absente ou invalide');
+          const refs=execFileSync('git',['ls-remote','--refs','--tags','origin'],{encoding:'utf8'}).trim().split('\n');
+          const occupied=refs.map(line=>line.split(/\s+/)[1]).filter(ref=>ref && ref!==process.env.GITHUB_REF).map(ref=>({ref,match:ref.match(/(?:local-build-android|build-android(?:-prod)?)-\d{4}-\d{2}-\d{2}-(\d+)$/)})).filter(x=>x.match && Number(x.match[1])>=recipe.build);
+          if(occupied.length) throw new Error('Numéro natif déjà occupé par un autre tag ; sélectionner le prochain numéro après rapprochement des livraisons');
           const api='https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY;
           const headers={accept:'application/vnd.github+json','user-agent':'SPAWT-native-release',...(process.env.GH_TOKEN?{authorization:'Bearer '+process.env.GH_TOKEN}:{})};
           const read=async suffix=>{const response=await fetch(api+suffix,{headers});if(!response.ok) throw new Error('Lecture CI HTTP '+response.status);return response.json();};
+          const previous=await read('/actions/runs/'+recipe.previousBuildRun);
+          if(previous.status!=='completed' || previous.conclusion!=='success' || previous.head_sha!==recipe.previousSourceCommit || previous.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation précédente non reçue');
           const runs=await read('/actions/runs?head_sha='+recipe.sourceCommit+'&per_page=100');
           const run=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/app-checks.yml').sort((a,b)=>b.id-a.id)[0];
           if(!run || run.status!=='completed' || run.conclusion!=='success') throw new Error('La dernière CI source doit être terminée et verte avant compilation');
           const jobs=await read('/actions/runs/'+run.id+'/jobs?per_page=100');
           if(!['app','admin'].every(name=>jobs.jobs.some(j=>j.name===name && j.status==='completed' && j.conclusion==='success'))) throw new Error('Contrôles mobile/console incomplets');
-          fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'spawt-build-recipe.json'),JSON.stringify(recipe));
-          fs.appendFileSync(process.env.GITHUB_ENV,Object.entries({SPAWT_APK_SOURCE:recipe.sourceCommit,SPAWT_APK_VERSION:recipe.version,SPAWT_APK_BUILD:recipe.build,SPAWT_APK_DATE:recipe.buildDate,SPAWT_SOURCE_CI_RUN:run.id}).map(([k,v])=>k+'='+v+'\n').join(''));
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'spawt-build-recipe.json'),rawRecipe);
+          fs.appendFileSync(process.env.GITHUB_ENV,Object.entries({SPAWT_APK_SOURCE:recipe.sourceCommit,SPAWT_PREVIOUS_SOURCE:recipe.previousSourceCommit,SPAWT_APK_VERSION:recipe.version,SPAWT_APK_BUILD:recipe.build,SPAWT_APK_DATE:recipe.buildDate,SPAWT_SOURCE_CI_RUN:run.id}).map(([k,v])=>k+'='+v+'\n').join(''));
           console.log(JSON.stringify({recipe:recipePath,source:recipe.sourceCommit,build:recipe.build,sourceCiRun:run.id}));
           JS
       - name: Épingler le code applicatif déjà contrôlé
@@ -53,6 +63,7 @@ jobs:
           git fetch origin "$SPAWT_APK_SOURCE"
           git checkout --detach "$SPAWT_APK_SOURCE"
           test "$(git rev-parse HEAD)" = "$SPAWT_APK_SOURCE"
+          git merge-base --is-ancestor "$SPAWT_PREVIOUS_SOURCE" "$SPAWT_APK_SOURCE"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -80,6 +91,7 @@ jobs:
       - name: Installer les dépendances et épingler le backend
         run: |
           npm ci --prefix app --legacy-peer-deps
+          node scripts/conformity-check.mjs
           node scripts/check-eas-env.mjs
           node scripts/pin-backend-in-manifest.mjs preview
           node --input-type=module - <<'JS'
@@ -126,8 +138,10 @@ jobs:
           print(json.dumps(data))
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: android-apk
+          if-no-files-found: ignore
           path: |
             spawt-${{ env.SPAWT_APK_VERSION }}-build${{ env.SPAWT_APK_BUILD }}.apk
             apk-metadata.json

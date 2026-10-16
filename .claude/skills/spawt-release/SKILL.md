@@ -60,3 +60,26 @@ Le suivi se fait sur expo.dev (compte xtincell) — le workflow CI logue l'URL d
 ## Ce qui reste côté humain
 
 Voir `HUMAN_TODO.md` à la racine : compte Apple Developer, service account Play Console, secrets Supabase (MOCK_TERMII/ALLOWED_ORIGINS/TERMII_API_KEY), DSN Sentry, juriste, sign-offs, merge vers main.
+
+## Numéro déjà livré hors branche (reçu le 2026-10-16)
+
+- **Symptôme** : `app.json` sur la branche d’audit annonce 28, mais le manifeste
+  de l’APK publié annonce 29 et une compilation réussie annonce 30.
+- **Fausse piste** : incrémenter le numéro de cette seule branche et traiter sa
+  CI verte comme preuve que l’application actuelle est préservée.
+- **Cause racine** : les interfaces du 13 octobre sont dans les trois commits
+  menant au tag/source `3cc5e92`, sans branche à sa tête. Lire les seules branches
+  omet donc une application déjà existante. Le run 38897200580 préparé ainsi a
+  été annulé, sans APK livré.
+- **Fix** : rapprocher `gh release list`, `gh run list --workflow
+  android-local-build.yml`, les tags et le manifeste du dernier APK ; récupérer
+  puis intégrer la lignée compilée avant les gates. Pour ce cas :
+  `git fetch origin 3cc5e92112576cd21b2fb8a427bdbbdb8842043c`, puis intégrer
+  cette source en conservant ses interfaces. La recette suivante sélectionne
+  31 et refuse un numéro occupé par un autre tag ; elle vérifie aussi la
+  compilation précédente et `git merge-base --is-ancestor` sur sa source.
+- **Signature** : une release ou un run réussi plus récent que la tête
+  documentée, avec un `versionCode` supérieur dans son manifeste.
+- **Portée** : général à toute livraison par tags ou branches de travail.
+  Le dossier de preuves n’est pas une branche canonique, mais peut révéler
+  qu’une lignée manque. Ne jamais déduire le prochain numéro d’un seul fichier.
