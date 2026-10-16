@@ -4,6 +4,15 @@ Toutes les modifications notables du repo. Format : Conventional Commits version
 
 ---
 
+## Préparation de la recette native 29 (2026-10-16)
+
+La source passe au numéro natif 29 pour distinguer le prochain binaire contenant
+le raccord de session reçu sur SDK et console. Version applicative 1.1.1,
+backend, permissions et signature existants conservés. Les recettes 28/27
+restent des preuves historiques ; aucune compilation, réception sur appareil,
+OTA ou publication de cette version n’est déduite du seul numéro. Le journal
+des APK sera complété après réception de l’artefact réel.
+
 ## Reprendre une session dont le jeton a été invalidé (2026-10-16)
 
 Après une rotation de signature, un jeton local peut sembler encore valable
