@@ -48,7 +48,14 @@ Accueil/La Bande/mini-interfaces, leurs tests, leurs assets et leurs preuves
 existantes. Le raccord de session partagé est conservé. La prochaine source
 passe au numéro natif 31, version applicative 1.1.1. Typage, vocabulaire,
 i18n, 1 075 tests mobile (quatre ignorés) et conformité passent sur cet ensemble.
-La CI puis l’artefact combinés restent à recevoir avant toute livraison.
+CI mobile/console verte sur `699d67d` (38898635497). APK31 compilé et signé
+sur la recette existante (38899084321) ; version, backend, CRC et signature
+contrôlés avant dépôt de l’artefact. La passe Android35 (38902277011) reçoit
+l’ouverture et le téléphone anonymes dans deux processus, avec cinq assertions,
+analyse vidéo réussie et deux captures examinées. Téléchargement local intégral
+et vérification indépendante encore en cours ; session signée/AsyncStorage,
+clients historiques et appareil physique ne sont pas reçus. Aucune release31,
+OTA ou publication store livrée par cette passe.
 La recette existante refuse désormais un numéro déjà occupé par un autre tag
 et vérifie que la source préserve sa précédente compilation réussie. Un APK
 produit reste conservé comme diagnostic si sa réception ultérieure échoue ;

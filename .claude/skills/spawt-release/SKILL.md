@@ -27,14 +27,17 @@ description: 'Builds, releases et CI SPAWT : profils EAS, conventions de tags, v
 
 ## Versioning
 
-- `version` figée à `1.0.0` jusqu'à la beta publique (décision `RELEASES.md`).
+- `version` : lire `app/app.json` et `RELEASES.md` ; valeur actuelle `1.1.1`.
 - `versionCode` (Android) / `buildNumber` (iOS) : incrémentés par build, journalisés dans `RELEASES.md` (numéro, date, tag, contenu). **Toujours** logger un build livré dans RELEASES.md.
-- `runtimeVersion.policy: appVersion` → une OTA ne passe que sur builds de même `version`.
+- `runtimeVersion.policy: nativeVersion` dans `app/app.json` : relire ce contrat avant toute OTA ; sa compatibilité reste une réception distincte.
 
 ## Procédure de build Android (éprouvée, 3 APK livrés)
 
 ```bash
-git tag build-android-$(date +%Y-%m-%d)-1 && git push origin --tags
+# Sélectionner d'abord une source et un numéro réconciliés avec les livraisons.
+# Pousser uniquement le tag voulu, jamais tous les tags locaux.
+git tag <tag-CI-verifie> <commit-verifie>
+git push origin refs/tags/<tag-CI-verifie>
 # ou : gh workflow run eas-build.yml  (via MCP GitHub actions_run_trigger)
 ```
 Le suivi se fait sur expo.dev (compte xtincell) — le workflow CI logue l'URL du build.
