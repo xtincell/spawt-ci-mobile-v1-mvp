@@ -36,8 +36,10 @@ description: 'Builds, releases et CI SPAWT : profils EAS, conventions de tags, v
 ```bash
 # Sélectionner d'abord une source et un numéro réconciliés avec les livraisons.
 # Pousser uniquement le tag voulu, jamais tous les tags locaux.
-git tag <tag-CI-verifie> <commit-verifie>
-git push origin refs/tags/<tag-CI-verifie>
+: "${SPAWT_BUILD_TAG:?Renseigner le tag CI vérifié}"
+: "${SPAWT_SOURCE_COMMIT:?Renseigner le commit vérifié}"
+git tag "$SPAWT_BUILD_TAG" "$SPAWT_SOURCE_COMMIT"
+git push origin "refs/tags/$SPAWT_BUILD_TAG"
 # ou : gh workflow run eas-build.yml  (via MCP GitHub actions_run_trigger)
 ```
 Le suivi se fait sur expo.dev (compte xtincell) — le workflow CI logue l'URL du build.

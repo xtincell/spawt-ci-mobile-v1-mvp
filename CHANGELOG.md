@@ -52,8 +52,9 @@ CI mobile/console verte sur `699d67d` (38898635497). APK31 compilé et signé
 sur la recette existante (38899084321) ; version, backend, CRC et signature
 contrôlés avant dépôt de l’artefact. La passe Android35 (38902277011) reçoit
 l’ouverture et le téléphone anonymes dans deux processus, avec cinq assertions,
-analyse vidéo réussie et deux captures examinées. Téléchargement local intégral
-et vérification indépendante encore en cours ; session signée/AsyncStorage,
+analyse vidéo réussie et deux captures examinées. Fichier complet reçu localement : taille, SHA-256 et CRC identiques ; `aapt`
+confirme le paquet/version/code31, `apksigner` confirme la signature et sa
+continuité avec le build29 publié. Session signée/AsyncStorage,
 clients historiques et appareil physique ne sont pas reçus. Aucune release31,
 OTA ou publication store livrée par cette passe.
 La recette existante refuse désormais un numéro déjà occupé par un autre tag

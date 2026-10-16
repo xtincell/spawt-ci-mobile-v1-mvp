@@ -49,8 +49,11 @@ Format d'une entrée :
   Captures d’accueil anonyme et téléphone examinées. Aucun OTP envoyé ni compte utilisé.
 - Les interfaces et assets du build 30 sont conservés ; le raccord de session partagé est ajouté.
   1 075 tests mobile (quatre ignorés), conformité et CI mobile/console verts.
-- **Restent à recevoir** : téléchargement local intégral et vérification indépendante,
-  session authentifiée/AsyncStorage après invalidation, clients historiques et appareil physique.
+- **Fichier reçu localement** : taille et empreinte identiques à la CI, CRC intact.
+  `aapt` lit le paquet `com.upgraders.spawt`, la version 1.1.1 et le numéro 31 ;
+  `apksigner` valide la signature, identique à celle de l’APK 29 publié.
+- **Restent à recevoir** : session authentifiée/AsyncStorage après invalidation,
+  clients historiques et appareil physique.
   Aucun APK31 publié comme release, aucune OTA ni soumission store par cette recette.
 
 La préparation 29 du 16 octobre a été annulée avant artefact : ce numéro était déjà publié.
