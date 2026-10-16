@@ -13,6 +13,15 @@ restent des preuves historiques ; aucune compilation, réception sur appareil,
 OTA ou publication de cette version n’est déduite du seul numéro. Le journal
 des APK sera complété après réception de l’artefact réel.
 
+La recette Android locale existante sélectionne maintenant le descripteur de
+build : source exacte, numéro, date et dernière CI mobile/console verte. Elle
+conserve le profil EAS et la signature précédents, puis contrôle le paquet natif,
+le backend réellement embarqué, le CRC et l’empreinte avant dépôt de l’artefact.
+La source 29 a passé les deux jobs de CI ; le bundle Android Hermes compile.
+Les tests source utilisent leur environnement habituel ; les variables du profil
+distribuable restent réservées à la compilation. La persistance AsyncStorage
+après rotation fictive reste à recevoir sur le binaire natif.
+
 ## Reprendre une session dont le jeton a été invalidé (2026-10-16)
 
 Après une rotation de signature, un jeton local peut sembler encore valable

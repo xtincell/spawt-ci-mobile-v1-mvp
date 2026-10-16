@@ -2,8 +2,16 @@ name: Android preview local build
 on:
   push:
     tags: ['local-build-android-*']
+  workflow_dispatch:
+    inputs:
+      recipe:
+        description: Recette de compilation déjà contrôlée
+        type: string
+        default: documentation/android-build29.json
+        required: true
 permissions:
   contents: read
+  actions: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,16 +21,38 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build29.json' }}
     steps:
       - uses: actions/checkout@v4
+      - name: Recevoir la recette et sa CI avant compilation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const recipePath=process.env.SPAWT_BUILD_RECIPE;
+          if(!/^documentation\/android-build[0-9]+\.json$/.test(recipePath)) throw new Error('Chemin de recette non autorisé');
+          const recipe=JSON.parse(fs.readFileSync(recipePath,'utf8'));
+          if(!/^\d+\.\d+\.\d+$/.test(recipe.version) || !Number.isSafeInteger(recipe.build) || recipe.build<1 || recipe.build>2147483647 || !/^\d{4}-\d{2}-\d{2}$/.test(recipe.buildDate) || !/^[a-f0-9]{40}$/.test(recipe.sourceCommit)) throw new Error('Recette invalide');
+          if(new Date(recipe.buildDate).toISOString().slice(0,10)!==recipe.buildDate) throw new Error('Date de recette invalide');
+          const api='https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY;
+          const headers={accept:'application/vnd.github+json','user-agent':'SPAWT-native-release',...(process.env.GH_TOKEN?{authorization:'Bearer '+process.env.GH_TOKEN}:{})};
+          const read=async suffix=>{const response=await fetch(api+suffix,{headers});if(!response.ok) throw new Error('Lecture CI HTTP '+response.status);return response.json();};
+          const runs=await read('/actions/runs?head_sha='+recipe.sourceCommit+'&per_page=100');
+          const run=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/app-checks.yml').sort((a,b)=>b.id-a.id)[0];
+          if(!run || run.status!=='completed' || run.conclusion!=='success') throw new Error('La dernière CI source doit être terminée et verte avant compilation');
+          const jobs=await read('/actions/runs/'+run.id+'/jobs?per_page=100');
+          if(!['app','admin'].every(name=>jobs.jobs.some(j=>j.name===name && j.status==='completed' && j.conclusion==='success'))) throw new Error('Contrôles mobile/console incomplets');
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'spawt-build-recipe.json'),JSON.stringify(recipe));
+          fs.appendFileSync(process.env.GITHUB_ENV,Object.entries({SPAWT_APK_SOURCE:recipe.sourceCommit,SPAWT_APK_VERSION:recipe.version,SPAWT_APK_BUILD:recipe.build,SPAWT_APK_DATE:recipe.buildDate,SPAWT_SOURCE_CI_RUN:run.id}).map(([k,v])=>k+'='+v+'\n').join(''));
+          console.log(JSON.stringify({recipe:recipePath,source:recipe.sourceCommit,build:recipe.build,sourceCiRun:run.id}));
+          JS
       - name: Épingler le code applicatif déjà contrôlé
         run: |
-          SOURCE=$(node -p "require('./documentation/android-build28.json').sourceCommit")
-          test "$SOURCE" = 'adb12e452861dde5e4215551f82864da8f72ff67'
-          git fetch origin "$SOURCE"
-          git checkout --detach "$SOURCE"
-          test "$(git rev-parse HEAD)" = "$SOURCE"
-          echo "SPAWT_APK_SOURCE=$SOURCE" >> "$GITHUB_ENV"
+          git fetch origin "$SPAWT_APK_SOURCE"
+          git checkout --detach "$SPAWT_APK_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SPAWT_APK_SOURCE"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -56,8 +86,8 @@ jobs:
           import fs from 'node:fs';
           const path='app/app.json';
           const config=JSON.parse(fs.readFileSync(path));
-          if(config.expo.version!=='1.1.1' || config.expo.android.versionCode!==28) throw new Error('Version inattendue');
-          config.expo.extra.buildDate='2026-10-12';
+          if(config.expo.version!==process.env.SPAWT_APK_VERSION || config.expo.android.versionCode!==Number(process.env.SPAWT_APK_BUILD) || config.expo.ios.buildNumber!==process.env.SPAWT_APK_BUILD) throw new Error('La source ne correspond pas à la version de recette');
+          config.expo.extra.buildDate=process.env.SPAWT_APK_DATE;
           fs.writeFileSync(path,JSON.stringify(config,null,2)+'\n');
           JS
       - uses: expo/expo-github-action@v8
@@ -67,21 +97,31 @@ jobs:
       - name: Compiler avec la signature EAS existante
         working-directory: app
         env:
-          EXPO_PUBLIC_BUILD_DATE: '2026-10-12'
-        run: eas build --platform android --profile preview --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-1.1.1-build28.apk"
+          EXPO_PUBLIC_BUILD_DATE: ${{ env.SPAWT_APK_DATE }}
+        run: eas build --platform android --profile preview --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-${SPAWT_APK_VERSION}-build${SPAWT_APK_BUILD}.apk"
       - name: Vérifier la signature et tracer l'APK
         run: |
           curl -fsSL 'https://expo.dev/artifacts/eas/nRbb5bhMV3ExylApZjfy6vJlwaSfq1dF83XcBoHLNTA.apk' -o reference25.apk
           echo '25599e852085a983004e939d7d40f967e8c0cebcdab466910c244f12c5ddc5c0 reference25.apk' | sha256sum -c -
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs reference25.apk > reference-cert.txt
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs spawt-1.1.1-build28.apk > apk-cert.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "spawt-${SPAWT_APK_VERSION}-build${SPAWT_APK_BUILD}.apk" > apk-cert.txt
           diff <(sed -n '/Signer #1 certificate SHA-256 digest:/p' reference-cert.txt) <(sed -n '/Signer #1 certificate SHA-256 digest:/p' apk-cert.txt)
           python3 - <<'PY'
-          import hashlib,json,os,pathlib,zipfile
-          path=pathlib.Path('spawt-1.1.1-build28.apk')
+          import hashlib,json,os,pathlib,zipfile,subprocess,re
+          version=os.environ['SPAWT_APK_VERSION'];build=int(os.environ['SPAWT_APK_BUILD'])
+          path=pathlib.Path('spawt-'+version+'-build'+str(build)+'.apk')
+          tools=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/36.0.0'
+          badging=subprocess.check_output([str(tools/'aapt'),'dump','badging',str(path)],text=True)
+          package=re.search(r"package: name='([^']+)' versionCode='([0-9]+)' versionName='([^']+)'",badging)
+          assert package and package.groups()==('com.upgraders.spawt',str(build),version),'Identité native du binaire incorrecte'
+          expected=json.loads(pathlib.Path('app/app.json').read_text())['expo']['extra']
           with zipfile.ZipFile(path) as archive:
               assert archive.testzip() is None
-          data={'version':'1.1.1','build':28,'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'runId':int(os.environ['GITHUB_RUN_ID'])}
+              config=json.loads(archive.read('assets/app.config'))
+          extra=config.get('extra',config.get('expo',{}).get('extra',{}))
+          assert extra.get('supabaseUrl')==expected['supabaseUrl'] and extra.get('supabaseAnonKey')==expected['supabaseAnonKey'],'Backend embarqué différent de la recette'
+          recipe=pathlib.Path(os.environ['RUNNER_TEMP'])/'spawt-build-recipe.json'
+          data={'version':version,'build':build,'buildDate':os.environ['SPAWT_APK_DATE'],'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sourceCiRun':int(os.environ['SPAWT_SOURCE_CI_RUN']),'recipeSha256':hashlib.sha256(recipe.read_bytes()).hexdigest(),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'nativePackageVerified':True,'compiledBackendConfigVerified':True,'backendUrl':extra['supabaseUrl'],'backendKeySha256':hashlib.sha256(extra['supabaseAnonKey'].encode()).hexdigest(),'runId':int(os.environ['GITHUB_RUN_ID'])}
           pathlib.Path('apk-metadata.json').write_text(json.dumps(data,indent=2)+'\n')
           print(json.dumps(data))
           PY
@@ -89,7 +129,7 @@ jobs:
         with:
           name: android-apk
           path: |
-            spawt-1.1.1-build28.apk
+            spawt-${{ env.SPAWT_APK_VERSION }}-build${{ env.SPAWT_APK_BUILD }}.apk
             apk-metadata.json
             apk-cert.txt
           retention-days: 14
