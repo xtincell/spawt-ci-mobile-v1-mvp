@@ -54,6 +54,12 @@ et vérifie que la source préserve sa précédente compilation réussie. Un APK
 produit reste conservé comme diagnostic si sa réception ultérieure échoue ;
 seul un run entièrement réussi peut le qualifier.
 
+La recette ADB existante prépare aussi une passe `opening` sur cet APK exact :
+ouverture filmée, écran téléphone anonyme, arrêt du processus et réouverture.
+Cette passe n’envoie aucun OTP et n’utilise aucun compte ; elle ne reçoit pas
+la reprise de session signée ni AsyncStorage après changement de signature.
+Les anciennes recettes 27/29 restent attachées à leurs révisions historiques.
+
 ## Préparation 29 abandonnée avant artefact (2026-10-16)
 
 La source passe au numéro natif 29 pour distinguer le prochain binaire contenant

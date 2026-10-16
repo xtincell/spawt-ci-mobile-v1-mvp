@@ -237,6 +237,23 @@ try:
     check('cold animated launch keeps SPAWT in foreground',any(n.get('package')==PACKAGE for n in tree.iter('node')))
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
+    if MODE=='opening':
+        # Réception du vrai binaire distribué sans utiliser de compte ni envoyer
+        # d'OTP. La reprise d'une session signée reste une autre réception.
+        deep('phone'); find('phone-input'); find('phone-send')
+        snap('anonymous-phone-first-process')
+        check('anonymous phone controls available',True)
+        before=adb('shell','pidof',PACKAGE).strip()
+        check('first native process running',bool(before))
+        adb('shell','am','force-stop',PACKAGE)
+        adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
+        time.sleep(2)
+        deep('phone'); find('phone-input',timeout=40); find('phone-send')
+        after=adb('shell','pidof',PACKAGE).strip()
+        check('new native process after force-stop',bool(after) and before!=after)
+        snap('anonymous-phone-new-process')
+        check('anonymous phone controls after process restart',True)
+        raise SystemExit(0)  # finally conserve les assertions et l'état final.
     login(PHONE)
     snap('signed-in')
     if MODE=='community':
