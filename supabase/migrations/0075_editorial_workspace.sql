@@ -276,7 +276,7 @@ GRANT EXECUTE ON FUNCTION public.edit_editorial_note(uuid,text,text) TO authenti
 CREATE FUNCTION public.save_place_with_editorial_adn(p_place_id uuid,p_fields jsonb,p_axes jsonb,
  p_expected_place_updated_at timestamptz,p_expected_adn_updated_at timestamptz)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE current_place public.places; next_place public.places;
+DECLARE current_place public.places; next_place public.places; day_value jsonb; slot jsonb;
 BEGIN
  IF NOT public.is_active_staff() THEN RAISE EXCEPTION 'staff_required' USING ERRCODE='42501'; END IF;
  SELECT * INTO STRICT current_place FROM public.places WHERE id=p_place_id FOR UPDATE;
@@ -284,6 +284,15 @@ BEGIN
  IF jsonb_typeof(p_fields) IS DISTINCT FROM 'object' OR EXISTS(SELECT 1 FROM jsonb_object_keys(p_fields) k WHERE k NOT IN
  ('name','cuisine','lat','lng','descriptive_address','neighborhood','city','price_tier','avg_ticket_xof','hours','phone','whatsapp','cover_photo_url','gallery_urls','menu_urls','signals','is_published')) THEN RAISE EXCEPTION 'invalid_place_fields'; END IF;
  SELECT * INTO next_place FROM jsonb_populate_record(current_place,p_fields);
+ IF NULLIF(btrim(next_place.name),'') IS NULL OR jsonb_typeof(next_place.hours) IS DISTINCT FROM 'object'
+ OR EXISTS(SELECT 1 FROM jsonb_object_keys(next_place.hours) k WHERE k NOT IN ('mon','tue','wed','thu','fri','sat','sun')) THEN RAISE EXCEPTION 'invalid_practical_profile'; END IF;
+ FOR day_value IN SELECT value FROM jsonb_each(next_place.hours) LOOP
+   IF jsonb_typeof(day_value) IS DISTINCT FROM 'array' OR jsonb_array_length(day_value)>10 THEN RAISE EXCEPTION 'invalid_opening_slots'; END IF;
+   FOR slot IN SELECT value FROM jsonb_array_elements(day_value) LOOP
+     IF jsonb_typeof(slot) IS DISTINCT FROM 'object' OR COALESCE(slot->>'open','') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+       OR COALESCE(slot->>'close','') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' THEN RAISE EXCEPTION 'invalid_opening_time'; END IF;
+   END LOOP;
+ END LOOP;
  UPDATE public.places SET name=next_place.name,cuisine=next_place.cuisine,lat=next_place.lat,lng=next_place.lng,
  descriptive_address=next_place.descriptive_address,neighborhood=next_place.neighborhood,city=next_place.city,
  price_tier=next_place.price_tier,avg_ticket_xof=next_place.avg_ticket_xof,hours=next_place.hours,phone=next_place.phone,

@@ -60,6 +60,19 @@ await test('practical facts rollback when ADN version conflicts',async()=>{
  await fails(()=>db.query('SELECT save_place_with_editorial_adn($1,$2,$3,$4,$5)',[place,JSON.stringify({name:'Must rollback'}),'{}',p.updated_at,'2000-01-01']),'40001');
  assert.equal((await db.query('SELECT name FROM places')).rows[0].name,p.name);
 });
+await test('malformed practical hours cannot invalidate the mobile place',async()=>{
+ const p=(await db.query('SELECT * FROM places')).rows[0];
+ const a=(await db.query('SELECT * FROM place_adn')).rows[0];
+ await fails(()=>db.query('SELECT save_place_with_editorial_adn($1,$2,$3,$4,$5)',[place,JSON.stringify({hours:{mon:[{open:'29:00',close:'30:00'}]}}),'{}',p.updated_at,a.updated_at]));
+ assert.deepEqual((await db.query('SELECT hours FROM places')).rows[0].hours,p.hours);
+});
+await test('practical facts and base ADN save together on current versions',async()=>{
+ const p=(await db.query('SELECT * FROM places')).rows[0];const a=(await db.query('SELECT * FROM place_adn')).rows[0];
+ const axes=Object.fromEntries(['local_international','informel_etabli','budget_premium','populaire_prive','decontracte_habille'].map(k=>['axe_'+k,0.3]));
+ await db.query('SELECT save_place_with_editorial_adn($1,$2,$3,$4,$5)',[place,JSON.stringify({name:'Revised fixture'}),JSON.stringify(axes),p.updated_at,a.updated_at]);
+ assert.equal((await db.query('SELECT name FROM places')).rows[0].name,'Revised fixture');
+ assert.ok(Math.abs((await db.query('SELECT base_axe_budget_premium n FROM place_adn')).rows[0].n-.3)<.00001);
+});
 await as(other);
 await test('nonstaff cannot read drafts or research via RLS',async()=>{for(const t of ['research_records','place_editorial_notes','place_editorial_profiles','editorial_history'])assert.equal((await db.query('SELECT * FROM '+t)).rows.length,0);});
 await as('', 'anon');
