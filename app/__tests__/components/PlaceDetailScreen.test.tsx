@@ -57,6 +57,7 @@ jest.mock("../../src/lib/data-source", () => ({
   dataSourceMode: "fallback",
   getPlace: jest.fn(() => Promise.resolve(mockPlace)),
   listPlacePhotosFromSpawts: jest.fn(() => Promise.resolve([] as string[])),
+  listEditorialReviews: jest.fn(() => Promise.resolve([])),
   listReviewsForPlace: jest.fn(() => Promise.resolve([])),
   countReviewsForPlace: jest.fn(() => Promise.resolve(0)),
   giveCoupDeCoeur: jest.fn(() => Promise.resolve(null)),

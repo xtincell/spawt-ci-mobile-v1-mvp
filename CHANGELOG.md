@@ -1,3 +1,7 @@
+## 2026-10-17 — Recherche et espace éditorial (préparation build 32)
+
+Profils identitaires, notes internes éditables et avis de terrain ; corpus privé rapprochable, publication explicite et historique. Horaires/galerie éditables, ADN de référence recalculé atomiquement, carnets duo gérés sur serveur et lecteur mobile de rubriques. Migration 0075 testée localement ; serveur/admin non déployés, compilation Android à recevoir. Voir documentation/ESPACE_EDITORIAL_ET_RECHERCHE_2026-10-17.md.
+
 ## 2026-10-13 — Contenu de prévalidation des mini-interfaces
 
 - En duo : deux aperçus illustrés « Un café à deux » et « Une table pour deux », explicitement non publiés, sans lieux attribués arbitrairement.

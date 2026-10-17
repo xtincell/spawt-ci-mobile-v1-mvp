@@ -38,7 +38,14 @@ export const HoursSchema = z.partialRecord(
   z.array(OpeningSlotSchema),
 );
 
+export const EditorialProfileSchema = z.object({
+  identity: z.string(), specialties: z.string().nullable().optional(),
+  occasions: z.string().nullable().optional(), budget_context: z.string().nullable().optional(),
+  service_context: z.string().nullable().optional(), access_context: z.string().nullable().optional(),
+  verified_on: z.string(), sections: z.array(z.object({ title: z.string(), body: z.string() })).default([]),
+});
 export const PlaceSchema = z.object({
+  editorial_profile: EditorialProfileSchema.nullable().optional().catch(null),
   id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
   name: z.string().min(1),
   cuisine: z.array(z.string()),

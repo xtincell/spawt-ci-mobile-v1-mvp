@@ -139,10 +139,10 @@ describe("ExploreScreen — gate du flag mode-explore", () => {
     });
   });
 
-  it("zéro collection → aperçus éditoriaux explicitement non publiés", async () => {
+  it("zéro collection → état vide sans faux carnet", async () => {
     mockFlags = { "mode-explore": true };
     const r = await renderScreen();
-    expect(JSON.stringify(r.toJSON())).toContain("home.preview.notice");
+    expect(JSON.stringify(r.toJSON())).toContain("editorial.collections_empty");
   });
 
   it("tap sur un carnet → push /explore/[slug]", async () => {

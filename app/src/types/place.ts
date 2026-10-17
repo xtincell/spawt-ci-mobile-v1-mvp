@@ -89,6 +89,7 @@ export interface PriceRange {
 }
 
 export interface Place {
+  editorial_profile?: import("zod").infer<typeof import("./place.schema").EditorialProfileSchema> | null;
   id: string;
   name: string;
   cuisine: CuisineCategory[];

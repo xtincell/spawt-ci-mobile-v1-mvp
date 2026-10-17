@@ -56,7 +56,7 @@ it("loads collections in place, opens only the selected published carnet", async
     tree = TestRenderer.create(render());
   });
   expect(mockList).toHaveBeenCalledWith({ throwOnError: true });
-  expect(JSON.stringify(tree.toJSON())).not.toContain("home.preview.notice");
+  expect(JSON.stringify(tree.toJSON())).not.toContain("editorial.collections_empty");
   expect(mockPush).not.toHaveBeenCalled();
   const card = tree.root.findAll(
     (n) =>
@@ -88,11 +88,11 @@ it("reports loading, distinguishes error from empty, retries successfully", asyn
     reject(new Error("offline"));
   });
   expect(tree.root.findByType(DataLoadNotice).props.failed).toBe(true);
-  expect(JSON.stringify(tree.toJSON())).not.toContain("home.preview.notice");
+  expect(JSON.stringify(tree.toJSON())).not.toContain("editorial.collections_empty");
   mockList.mockResolvedValue([]);
   await act(async () => tree.root.findByType(DataLoadNotice).props.onRetry());
   expect(tree.root.findByType(DataLoadNotice).props.failed).toBe(false);
-  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.notice");
+  expect(JSON.stringify(tree.toJSON())).toContain("editorial.collections_empty");
 });
 it("keeps readable collections when refresh fails and ignores stale request on mode switch", async () => {
   mockList.mockResolvedValue([carnet]);
@@ -125,27 +125,26 @@ it("respects disabled flag, fetches nothing, and does not redirect", async () =>
     tree = TestRenderer.create(render());
   });
   expect(mockList).not.toHaveBeenCalled();
-  expect(JSON.stringify(tree.toJSON())).not.toContain("home.preview.notice");
+  expect(JSON.stringify(tree.toJSON())).not.toContain("editorial.collections_empty");
   expect(mockPush).not.toHaveBeenCalled();
   expect(JSON.stringify(tree.toJSON())).toContain(
     "home.collections_unavailable",
   );
 });
 
-it("shows labelled duo concepts without fetching or reclassifying places", async () => {
-  await act(async () => {
-    tree = TestRenderer.create(
-      <ThemeProvider>
-        <HomeEditorial {...props} mode="duo" />
-      </ThemeProvider>,
-    );
-  });
-  expect(mockList).not.toHaveBeenCalled();
-  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.coffee.title");
-  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.table.title");
-  expect(JSON.stringify(tree.toJSON())).toContain("home.preview.notice");
+it("duo reads only server-tagged collections and handles empty honestly", async () => {
+  mockList.mockResolvedValue([carnet]);
+  await act(async () => { tree = TestRenderer.create(<ThemeProvider><HomeEditorial {...props} mode="duo" /></ThemeProvider>); });
+  expect(mockList).toHaveBeenCalled();
+  expect(JSON.stringify(tree.toJSON())).toContain("editorial.duo_empty");
+  expect(JSON.stringify(tree.toJSON())).not.toContain(carnet.title_key);
   expect(mockPush).not.toHaveBeenCalled();
-  expect(tree.root.findAll((node) => node.props.accessibilityRole === "button")).toHaveLength(0);
+});
+it("duo displays an explicitly curated server collection", async () => {
+  mockList.mockResolvedValue([carnet, { ...carnet, id: "duo", slug: "duo", title_key: "Carnet terrain", audience: "duo" }]);
+  await act(async () => { tree = TestRenderer.create(<ThemeProvider><HomeEditorial {...props} mode="duo" /></ThemeProvider>); });
+  expect(JSON.stringify(tree.toJSON())).toContain("Carnet terrain");
+  expect(JSON.stringify(tree.toJSON())).not.toContain(carnet.title_key);
 });
 
 it("ignores a collection response that arrives after switching to Suggestions", async () => {

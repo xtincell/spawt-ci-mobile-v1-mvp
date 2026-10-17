@@ -2,12 +2,14 @@ name: Android preview local build
 on:
   push:
     tags: ['local-build-android-*']
+    branches: ['codex/editorial-research-admin']
+    paths: ['documentation/android-build32.json']
   workflow_dispatch:
     inputs:
       recipe:
         description: Recette de compilation déjà contrôlée
         type: string
-        default: documentation/android-build31.json
+        default: documentation/android-build32.json
         required: true
 permissions:
   contents: read
@@ -21,7 +23,7 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
-      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build31.json' }}
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build32.json' }}
     steps:
       - uses: actions/checkout@v4
         with:

@@ -751,6 +751,7 @@ function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {
 // profondeur, même doctrine que PlaceCard).
 
 export interface ExploreCollectionSummary {
+  audience?: "general" | "duo";
   id: string;
   slug: string;
   /** Clé i18n (`explore.<slug>.title`) — résolue côté écran via t(). */
@@ -1161,4 +1162,13 @@ export async function listPlaceActivity(
     }
   }
   return map;
+}
+
+export interface EditorialReview {
+  id: string; display_name: string; body: string; visited_on: string;
+}
+export async function listEditorialReviews(placeId: string): Promise<EditorialReview[]> {
+  if (!isSupabaseConfigured) return [];
+  const { listEditorialReviewsFromSupabase } = await import("./data-source.supabase");
+  return listEditorialReviewsFromSupabase(placeId);
 }
