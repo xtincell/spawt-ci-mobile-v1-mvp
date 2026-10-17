@@ -1070,3 +1070,8 @@ Toujours pending (process humain). **Statut story 2.3a : reste `review`** — l'
 - *Stéphanie* : tokens en source unique ✓ — TypeScript strict ✓ — i18n setup ✓ — lint scripts ✓
 - *Kidam* : taxonomie events à venir (Claude amendment 5.1) — funnel onboarding scaffolded
 - *Alexandre* : voix du Chat par stade dans `fr.json` ✓ — vocabulaire SPAWT strict ✓ — audit anti-leaderboard ✓
+
+### Édition exploration — 17 octobre 2026
+- Trois carnets éditoriaux préparés, couvertures dessinées avec titres et publication SQL protégée contre l’écrasement.
+- Import recherche : conserve cuisines, liens de menus et dates de modification sourcés, sans photos ni verbatim externes.
+- Build 32 compilé et recette native de démarrage réussie ; backend/admin éditorial toujours non déployés.

@@ -58,3 +58,13 @@ Rollback : exporter les brouillons, notes, avis et historique AVANT le `.down.sq
 ## Audit public effectué ce jour
 
 Lecture anonyme autorisée du backend : 10 fiches publiques retournées. Dans les champs pratiques audités, seul le téléphone manque pour 6 fiches ; présence d’une valeur ne signifie pas validation terrain, droits photo ou profil identitaire complet. Une seule fiche présente un rapprochement candidat strict (nom normalisé identique et coordonnées à moins de 500 m) dans le corpus. Aucune fusion ni mise à jour appliquée. Le CSV de complétude, les fiches publiques auditées et la règle de rapprochement sont livrés dans le dossier d’intégration Drive.
+
+## Livraison complétée — build 32 et première édition
+
+APK compilé : run 39069028308, source applicative aff0e1f2129539659ff0ead4790fa2d899d39344. SHA256 ed1693324b285237276116396102bd76447ea08ed8caf1810eda1a82927267e1. Recette Android 35 de démarrage : run 39071413946 réussi (sans connexion ; parcours éditoriaux et MapLibre non validés).
+
+Première édition : `editorial/edition-2026-10/`, trois carnets, sept entrées sur six lieux existants, couvertures dessinées titrées. SQL de publication transactionnel et idempotent, arrêté si une édition existante a été modifiée. Aucun carnet écrit en production faute d’accès serveur. Aperçu HTML = contenu préparé, pas capture de l’app.
+
+L’enrichissement web du 17 octobre recoupe sites d’établissements et menus marchands ; les cuisines brutes, liens de menus et dates de modification sont conservés dans la zone de recherche. Une publication ou un avis daté ne devient jamais une date de visite. Une date de collecte ne devient pas une activité récente. Les conflits de succursale, coordonnées et cuisine restent à arbitrer avant publication.
+
+Correction d’audit : une lecture anonyme vide d’explore_collections ne prouve pas l’absence de carnets publiés ; cette table exige une session authentifiée.

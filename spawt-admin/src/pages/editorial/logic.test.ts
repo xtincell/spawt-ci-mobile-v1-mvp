@@ -9,6 +9,13 @@ describe("research privacy and import", () => {
     expect(r.analysis).toEqual({ aspects: [{ aspect: "service" }] });
     expect(r.date_semantics).toBe("publication_not_visit");
   });
+  it("keeps sourced cuisine and menu links without importing source photos", () => {
+    const [r] = parseResearchJsonl(JSON.stringify({ ...record, record_type: "place", cuisine_raw: ["Ivoirien"], menu_urls: ["https://restaurant.example/menu"], source_modified_at: "2026-10-15", image_candidates: ["https://example/photo"] }));
+    expect(r.cuisine_raw).toEqual(["Ivoirien"]);
+    expect(r.menu_urls).toEqual(["https://restaurant.example/menu"]);
+    expect(r.source_modified_at).toBe("2026-10-15");
+    expect(r).not.toHaveProperty("image_candidates");
+  });
   it("rejects a malformed batch before writes", () => {
     expect(() => parseResearchJsonl(JSON.stringify(record) + "\n{bad}")).toThrow(/Ligne 2/);
     expect(() => parseResearchJsonl(JSON.stringify(record) + "\n" + JSON.stringify(record))).toThrow(/doublon/);

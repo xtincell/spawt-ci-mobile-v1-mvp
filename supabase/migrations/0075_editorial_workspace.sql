@@ -114,7 +114,7 @@ BEGIN
     END IF;
     -- Explicit allowlist: no source prose, authors, photos or inferred app rights.
     SELECT COALESCE(jsonb_object_agg(key,value),'{}') INTO safe_facts FROM jsonb_each(r)
-      WHERE key IN ('latitude','longitude','address_raw','district_raw','city_raw','category','price_range_raw',
+      WHERE key IN ('latitude','longitude','address_raw','district_raw','city_raw','category','cuisine_raw','menu_urls','source_modified_at','price_range_raw',
        'source_rating','source_review_count','rating','has_review_prose','food_related','target_dining_venue_candidate',
        'abidjan_district_spatial_match','operating_status','operating_status_verified','place_source_native_id','sampling_parameters','business_phone_raw','business_website','opening_hours_raw','last_public_activity_at','date_semantics','source_permanently_closed','source_temporarily_closed','operating_status_origin','geographic_relevance','place_identity_verified','rights_product_use','reuse_scope','parent_place_native_id','website_url','linked_page_url');
     IF r ? 'analysis' THEN
