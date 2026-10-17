@@ -61,7 +61,7 @@ export function ResearchQueue() {
       if (r.error) throw r.error; setAttempt(n => n + 1); setProgress("Rapprochement enregistré. La fiche du lieu n’a pas été écrasée.");
     } catch (e) { setError(editorialError(e)); } finally { lock.current = false; setBusy(false); }
   }
-  return <div style={{ maxWidth: 1100 }}><h1>Recherche et rapprochement des lieux</h1>
+  return <div className="editorial-workspace" style={{ maxWidth: 1100 }}><h1>Recherche et rapprochement des lieux</h1>
     <p>Importer le corpus minimisé, examiner les sources et les rattacher à une fiche. Aucune note externe ne devient un avis SPAWT ; aucun rapprochement ne remplace automatiquement le contenu éditorial.</p>
     <p><a href="https://spawt-etude-marche-abidjan.sunsetbream2.chatgpt.site" target="_blank" rel="noreferrer">Consulter l’étude et le classeur ↗</a></p>
     <fieldset disabled={busy}><legend>Importer un export JSONL de recherche</legend><input aria-label="Fichier de recherche JSONL" type="file" accept=".jsonl,.ndjson" onChange={e => { const f = e.target.files?.[0]; if (f) void read(f); }} /><p>Seuls les identifiants, faits sourcés, dates et codes de thèmes autorisés sont retenus. Textes d’avis et auteurs sont écartés.</p><button disabled={!pending.length} onClick={() => void importRecords()}>Importer {pending.length.toLocaleString("fr-FR")} lignes dans la recherche</button></fieldset>

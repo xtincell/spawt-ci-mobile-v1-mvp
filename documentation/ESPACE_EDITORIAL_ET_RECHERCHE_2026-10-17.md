@@ -54,3 +54,7 @@ Rollback : exporter les brouillons, notes, avis et historique AVANT le `.down.sq
 - Reproductible : installer `@electric-sql/pglite` dans un répertoire temporaire, puis `PGLITE_MODULE=/chemin/node_modules/@electric-sql/pglite/dist/index.js node supabase/tests/editorial-workspace.mjs`. Option `RESEARCH_JSONL=/chemin/records.jsonl` pour le corpus réel.
 - Le portail a été vérifié dans Chromium, dont écran 360 px et navigation des tableaux. L’admin a une recette navigateur locale avec backend simulé ; les captures doivent être identifiées comme telles.
 - Restent : migration sur l’instance réelle, déploiement admin, rapprochements/compléments éditoriaux terrain, recette native et accès nominatifs de l’équipe. Une compilation réussie seule ne prouve pas ces points.
+
+## Audit public effectué ce jour
+
+Lecture anonyme autorisée du backend : 10 fiches publiques retournées. Dans les champs pratiques audités, seul le téléphone manque pour 6 fiches ; présence d’une valeur ne signifie pas validation terrain, droits photo ou profil identitaire complet. Une seule fiche présente un rapprochement candidat strict (nom normalisé identique et coordonnées à moins de 500 m) dans le corpus. Aucune fusion ni mise à jour appliquée. Le CSV de complétude, les fiches publiques auditées et la règle de rapprochement sont livrés dans le dossier d’intégration Drive.

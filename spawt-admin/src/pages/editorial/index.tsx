@@ -62,7 +62,7 @@ export function PlaceEditorial() {
   if (loading) return <p role="status">Chargement de l’espace éditorial…</p>;
   if (!place) return <div><p role="alert">{error || "Lieu introuvable."}</p><button onClick={() => setAttempt(n => n + 1)}>Réessayer</button></div>;
   const missing = missingProfileFields(place, doc);
-  return <div style={{ maxWidth: 920, display: "grid", gap: 18 }}>
+  return <div className="editorial-workspace" style={{ maxWidth: 920, display: "grid", gap: 18 }}>
     <h1>{String(place.name)} — rédaction</h1>
     <p><Link to={`/lieux/edit/${id}`}>Fiche pratique, photos, horaires et ADN</Link> · <Link to="/explore">Carnets éditoriaux</Link></p>
     <p>Les notes d’équipe sont internes. Les textes et avis ne deviennent publics qu’après publication. Les avis de recherche restent séparés.</p>
