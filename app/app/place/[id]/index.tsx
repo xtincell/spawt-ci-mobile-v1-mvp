@@ -1,3 +1,4 @@
+import { PlaceEditorial } from "../../../src/components/place/PlaceEditorial";
 // Story 3.4 — Fiche lieu canonique (UX spec §1127).
 // Story 3.6 — toggle favori (heart top-right) + signal matching +0.05.
 // Story 3.7 — bouton partager (share) + payload WhatsApp natif.
@@ -851,6 +852,8 @@ export default function PlaceDetailScreen() {
               />
             ) : null}
           </View>
+
+          <PlaceEditorial place={place} />
 
           {/* Section ADN */}
           <View

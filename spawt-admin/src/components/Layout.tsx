@@ -31,6 +31,7 @@ export const Layout = () => {
           <NavLink to="/lieux" className={({ isActive }) => (isActive ? "active" : "")}>
             Lieux
           </NavLink>
+          <NavLink to="/recherche" className={({ isActive }) => (isActive ? "active" : "")}>Recherche & rédaction</NavLink>
           <NavLink to="/evenements" className={({ isActive }) => (isActive ? "active" : "")}>
             Événements
           </NavLink>

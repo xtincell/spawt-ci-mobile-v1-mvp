@@ -1,0 +1,131 @@
+{
+  "prepared_at": "2026-10-17",
+  "collections": [
+    {
+      "slug": "premiers-pas-cote-ivoirien-octobre-2026",
+      "title_key": "Premiers pas côté ivoirien",
+      "subtitle_key": "Édition exploration · Deux premières pistes pour ouvrir son carnet ivoirien, une sortie à la fois. Couverture illustrée.",
+      "audience": "general",
+      "sort_order": 10,
+      "cover_asset": "premiers-pas.png",
+      "items": [
+        {
+          "place_id": "a1000000-0000-4000-8000-000000000004",
+          "editorial_text": "Première piste : La Grande République, à Riviera Bonoumin. Sa fiche SPAWT indique une cuisine ivoirienne. Avant de partir, choisissez le plat que vous voulez découvrir et faites confirmer sa disponibilité.",
+          "selection_basis": "Cuisine ivoirienne déclarée dans la fiche SPAWT ; point de départ de découverte, sans visite revendiquée.",
+          "sort_order": 10
+        },
+        {
+          "place_id": "a1000000-0000-4000-8000-000000000010",
+          "editorial_text": "Le Paon, à Riviera 3, réunit les catégories française et ivoirienne dans SPAWT. Une piste pour comparer vos envies et demander quelles spécialités ivoiriennes sont proposées le jour de votre passage.",
+          "selection_basis": "Croisement des cuisines déclarées, sans supposer une spécialité précise.",
+          "sort_order": 30
+        }
+      ],
+      "city_code": "abidjan",
+      "edition": "2026-10",
+      "editorial_status": "ready_for_authorized_publication",
+      "published_in_production": false,
+      "cover_url": "https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/d78f4359e4c8853a5f83663ac6441c6b859c59d8/editorial/edition-2026-10/covers/premiers-pas.png"
+    },
+    {
+      "slug": "zone-4-trois-pistes-octobre-2026",
+      "title_key": "Zone 4 · Trois pistes à goûter",
+      "subtitle_key": "Édition exploration · Trois adresses, trois envies à comparer en Zone 4. Couverture illustrée ; pas un itinéraire.",
+      "audience": "general",
+      "sort_order": 20,
+      "cover_asset": "zone-quatre.png",
+      "items": [
+        {
+          "place_id": "a1000000-0000-4000-8000-000000000001",
+          "editorial_text": "Piste japonaise : Kaiten, rue du Dr Blanchard. Son menu en ligne propose sushi, sashimi et gyozas. Le déjeuner est affiché à 20 000 ou 22 000 FCFA selon la formule : vérifiez la carte avant de choisir.",
+          "selection_basis": "Menu et adresse du site officiel kaiten.ci vérifiés le 17 octobre 2026.",
+          "sort_order": 10
+        },
+        {
+          "place_id": "a1000000-0000-4000-8000-000000000003",
+          "editorial_text": "Piste burgers : Sam’s. Sa fiche SPAWT le situe en Zone 4 et le classe en burger/pizza et fusion. Votre mission : repérer une proposition qui vous intrigue et vérifier son prix avant de vous déplacer.",
+          "selection_basis": "Quartier et cuisines SPAWT ; aucune spécialité ajoutée sans source.",
+          "sort_order": 20
+        },
+        {
+          "place_id": "a1000000-0000-4000-8000-000000000009",
+          "editorial_text": "Piste camerounaise : L’Impasse, ex-Ô Feu de Bois. Tripinafrica y signale ndolé et poulet DG. Demandez la carte du jour avant de choisir, puis gardez votre découverte pour la prochaine sortie de la Bande.",
+          "selection_basis": "Conflit cuisine détecté : SPAWT ivoirienne contre présentation camerounaise Tripinafrica ; aucun changement silencieux de la fiche.",
+          "sort_order": 30
+        }
+      ],
+      "city_code": "abidjan",
+      "edition": "2026-10",
+      "editorial_status": "ready_for_authorized_publication",
+      "published_in_production": false,
+      "cover_url": "https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/d78f4359e4c8853a5f83663ac6441c6b859c59d8/editorial/edition-2026-10/covers/zone-quatre.png"
+    },
+    {
+      "slug": "a-deux-hors-habitudes-octobre-2026",
+      "title_key": "À deux · On sort des habitudes",
+      "subtitle_key": "Édition exploration · Deux pistes, une décision à deux : comparer les envies et le budget avant de réserver. Couverture illustrée.",
+      "audience": "duo",
+      "sort_order": 10,
+      "cover_asset": "duo.png",
+      "items": [
+        {
+          "place_id": "a1000000-0000-4000-8000-000000000001",
+          "editorial_text": "À deux chez Kaiten : le menu affiche des gyozas par six à 9 000 FCFA dans les apéritifs à partager. Choisissez ensemble la suite du repas et votre budget total. Une piste de partage, sans promesse d’ambiance romantique.",
+          "selection_basis": "Critère duo explicite : portion à partager documentée sur le menu officiel ; prix de portion, pas repas pour deux.",
+          "sort_order": 10
+        },
+        {
+          "place_id": "a1000000-0000-4000-8000-000000000007",
+          "editorial_text": "Madame Antika pour une découverte à deux : l’établissement se présente comme afro-latino. Chacun choisit une saveur qu’il veut explorer ; comparez vos envies avant de réserver. Menu, budget et disponibilité restent à confirmer.",
+          "selection_basis": "Positionnement afro-latino recoupé Tripadvisor et Tripinafrica ; proposition éditoriale à tester, pas certification duo.",
+          "sort_order": 20
+        }
+      ],
+      "city_code": "abidjan",
+      "edition": "2026-10",
+      "editorial_status": "ready_for_authorized_publication",
+      "published_in_production": false,
+      "cover_url": "https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/d78f4359e4c8853a5f83663ac6441c6b859c59d8/editorial/edition-2026-10/covers/duo.png"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://api.spawt.online/rest/v1/places",
+      "checked_at": "2026-10-17",
+      "scope": "10 fiches publiées accessibles anonymement ; métadonnées existantes, sans vérification terrain"
+    },
+    {
+      "url": "https://www.kaiten.ci/fr/menu",
+      "checked_at": "2026-10-17",
+      "scope": "Menu et prix de formules et portions"
+    },
+    {
+      "url": "https://www.kaiten.ci/fr/contacts",
+      "checked_at": "2026-10-17",
+      "scope": "Adresse, contacts et horaires du site officiel"
+    },
+    {
+      "url": "https://www.tripadvisor.fr/Restaurant_Review-g17512259-d25197654-Reviews-Madame_Antika-Cocody_Abidjan_Lagunes_Region.html",
+      "checked_at": "2026-10-17",
+      "scope": "Présentation afro-latino et contact ; pas de reprise des avis"
+    },
+    {
+      "url": "https://fr.tripinafrica.com/restaurants/abidjan/madame-antika",
+      "checked_at": "2026-10-17",
+      "scope": "Recoupement positionnement afro-latino, localisation exacte à vérifier"
+    },
+    {
+      "url": "https://fr.tripinafrica.com/restaurants/abidjan/limpasse-ex-maquis-o-feu-de-bois",
+      "checked_at": "2026-10-17",
+      "scope": "Cuisine camerounaise déclarée ; contradiction avec la catégorie SPAWT à corriger"
+    },
+    {
+      "url": "https://www.restaurantlepaon.com/fr/",
+      "checked_at": "2026-10-17",
+      "scope": "Adresse Riviera 3 corroborée ; site ancien avec téléphones à 8 chiffres, ni horaires ni tarifs actuels déduits"
+    }
+  ],
+  "cover_disclosure": "Illustrations générées ; aucun lieu, plat ou trajet réel représenté. Ne pas utiliser comme photo de fiche lieu.",
+  "publication_requires": "Accès administrateur et migration 0075 pour audience=duo. Aucun carnet écrit en production à ce stade."
+}

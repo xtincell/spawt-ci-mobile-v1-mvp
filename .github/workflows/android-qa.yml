@@ -5,6 +5,8 @@ permissions:
 on:
   push:
     tags: ['qa-android-*']
+    branches: ['codex/editorial-research-admin']
+    paths: ['documentation/android-qa.json']
   workflow_dispatch:
     inputs:
       apk_url:

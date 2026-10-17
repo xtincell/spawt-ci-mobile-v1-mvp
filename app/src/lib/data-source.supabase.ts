@@ -152,6 +152,7 @@ function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
       whatsapp: r.whatsapp ?? null,
       cover_photo_url: r.cover_photo_url ?? null,
       gallery_urls: r.gallery_urls ?? [],
+      editorial_profile: r.editorial_profile,
       // Refonte fiche lieu (R17/R19, migration 0030). `?? []` : une DB live
       // pas encore migrée renvoie undefined — le lieu doit parser quand même.
       menu_urls: r.menu_urls ?? [],
@@ -1106,7 +1107,7 @@ export async function listExploreCollectionsFromSupabase(options?: { throwOnErro
 > {
   const { data, error } = await supabase
     .from("explore_collections")
-    .select("id, slug, title_key, subtitle_key, cover_url, sort_order, city_code")
+    .select("*")
     .eq("is_published", true)
     .order("sort_order", { ascending: true });
 
@@ -1126,6 +1127,7 @@ export async function listExploreCollectionsFromSupabase(options?: { throwOnErro
     out.push({
       id: String(r.id),
       slug: r.slug,
+      audience: r.audience === "duo" ? "duo" : "general",
       title_key: r.title_key,
       subtitle_key: typeof r.subtitle_key === "string" ? r.subtitle_key : null,
       cover_url: typeof r.cover_url === "string" && r.cover_url.length > 0 ? r.cover_url : null,
@@ -1828,4 +1830,15 @@ export async function listPlaceActivityFromSupabase(
   }
 
   return map;
+}
+
+export async function listEditorialReviewsFromSupabase(placeId: string): Promise<import("./data-source").EditorialReview[]> {
+  const { data, error } = await withReadTimeout("place", signal => supabase
+    .from("public_editorial_reviews").select("id,display_name,body,visited_on")
+    .eq("place_id", placeId).order("visited_on", { ascending: false }).limit(50).abortSignal(signal));
+  // Additive deployment: a client can precede migration 0075.
+  if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+  if (error) throw new DataReadError("place");
+  return (data ?? []).filter(r => typeof r.id === "string" && typeof r.body === "string" && typeof r.visited_on === "string")
+    .map(r => ({ id: r.id, body: r.body, visited_on: r.visited_on, display_name: r.display_name ?? "" }));
 }

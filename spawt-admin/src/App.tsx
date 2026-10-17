@@ -26,6 +26,8 @@ import { PaiementsList } from "./pages/paiements";
 import { RunbookPage } from "./pages/runbook";
 import { B2bList } from "./pages/b2b";
 import { PushCampaigns } from "./pages/push";
+import { PlaceEditorial } from "./pages/editorial";
+import { ResearchQueue } from "./pages/editorial/research";
 import { ExploreCuration } from "./pages/explore";
 
 // CR Chunk B C6 — Guard d'auth wrapper. Refine v5 `<Authenticated>` redirige
@@ -136,6 +138,8 @@ export const App = () =>
           <Route path="/lieux/create" element={<LieuCreate />} />
           <Route path="/lieux/import" element={<LieuxImport />} />
           <Route path="/lieux/edit/:id" element={<LieuEdit />} />
+          <Route path="/lieux/editorial/:id" element={<PlaceEditorial />} />
+          <Route path="/recherche" element={<ResearchQueue />} />
           <Route path="/moderation" element={<ModerationList />} />
           <Route path="/signalements" element={<SignalementsList />} />
           <Route path="/comptes" element={<ComptesList />} />

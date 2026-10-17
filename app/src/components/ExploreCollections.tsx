@@ -11,16 +11,17 @@ import {
 import { useNavigationAction } from "../lib/use-navigation-action";
 import { track } from "../lib/analytics";
 import { DataLoadNotice } from "./DataLoadNotice";
-import { EditorialPreview } from "./EditorialPreview";
 import { Ico } from "./primitives/Ico";
 
 /** Same published collection reader for the home panel and the standalone index. */
 export function ExploreCollections({
   refreshKey = 0,
   active = true,
+  audience = "general",
 }: {
   refreshKey?: number;
   active?: boolean;
+  audience?: "general" | "duo";
 }) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -40,7 +41,7 @@ export function ExploreCollections({
     void listExploreCollections({ throwOnError: true })
       .then((next) => {
         if (cancelled) return;
-        setRows(next);
+        setRows(next.filter(c => (c.audience ?? "general") === audience));
         if (!opened.current) {
           opened.current = true;
           track({
@@ -58,7 +59,7 @@ export function ExploreCollections({
     return () => {
       cancelled = true;
     };
-  }, [enabled, active, refreshKey, retry]);
+  }, [enabled, active, refreshKey, retry, audience]);
   if (!enabled)
     return <PanelNotice message={t("home.collections_unavailable")} />;
   return (
@@ -84,7 +85,7 @@ export function ExploreCollections({
       ))}
       {!loading && !failed && rows?.length === 0 ? (
         <View testID="collections-empty">
-          <EditorialPreview />
+          <PanelNotice message={t(audience === "duo" ? "editorial.duo_empty" : "editorial.collections_empty")} />
         </View>
       ) : null}
       {rows && rows.length > 0 ? (
@@ -130,8 +131,7 @@ export function PanelNotice({
 }
 
 export function DuoEditorial() {
-  // No audience category exists: these are explicit, non-published concepts only.
-  return <EditorialPreview duo />;
+  return <ExploreCollections audience="duo" />;
 }
 
 function CollectionCard({

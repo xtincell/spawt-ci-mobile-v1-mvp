@@ -13,6 +13,7 @@ export const SLUG_REGEX = /^[a-z0-9][a-z0-9_-]*$/;
 export const EDITORIAL_MAX = 280;
 
 export interface ExploreCollectionRow {
+  audience?: "general" | "duo";
   id: string;
   slug: string;
   title_key: string;
@@ -37,6 +38,7 @@ export interface ExploreItemRow {
 // ── Validation collection ───────────────────────────────────────────────────
 
 export interface CollectionFormValues {
+  audience?: "general" | "duo";
   slug: string;
   title: string;
   subtitle: string;
@@ -51,6 +53,7 @@ export const EMPTY_COLLECTION_FORM: CollectionFormValues = {
 };
 
 export interface CollectionDbRow {
+  audience?: "general" | "duo";
   slug: string;
   title_key: string;
   subtitle_key: string | null;
@@ -74,6 +77,7 @@ export function validateCollectionForm(v: CollectionFormValues): CollectionValid
   return {
     ok: true,
     row: {
+      ...(v.audience ? { audience: v.audience } : {}),
       slug: v.slug.trim(),
       title_key: v.title.trim(),
       subtitle_key: v.subtitle.trim() || null,
@@ -84,6 +88,7 @@ export function validateCollectionForm(v: CollectionFormValues): CollectionValid
 
 export function collectionRowToForm(row: ExploreCollectionRow): CollectionFormValues {
   return {
+    audience: row.audience ?? "general",
     slug: row.slug,
     title: row.title_key,
     subtitle: row.subtitle_key ?? "",

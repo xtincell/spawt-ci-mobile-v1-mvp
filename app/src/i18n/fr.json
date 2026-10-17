@@ -963,7 +963,8 @@
     "reviews_error": "Les avis ne sont pas disponibles pour le moment.",
     "review_photo_alt": "Photo jointe à cet avis",
     "photo_pending": "Photo à venir",
-    "photo_illustration": "Illustration"
+    "photo_illustration": "Illustration",
+    "info_hours_unknown": "À confirmer"
   },
   "place_activity": {
     "section_title": "En ce moment",
@@ -1379,5 +1380,18 @@
     "empty_body": "Passe dans un spot, le Chat fait le guet et note ton passage.",
     "place_unknown": "Spot retiré",
     "verified": "Vérifié"
+  },
+  "editorial": {
+    "title": "Le regard de SPAWT",
+    "specialties": "À goûter",
+    "occasions": "Pour quelle occasion",
+    "budget_context": "Le budget en pratique",
+    "service_context": "Le service",
+    "access_context": "Bon à savoir",
+    "verified": "Informations vérifiées le {{date}}",
+    "reviews": "Les visites de la rédaction",
+    "visit": "{{name}} · visite du {{date}}",
+    "duo_empty": "Les carnets pour deux sont en préparation. Ils apparaîtront ici dès leur publication.",
+    "collections_empty": "Les carnets sont en préparation. Ils apparaîtront ici dès leur publication."
   }
 }

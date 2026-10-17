@@ -294,3 +294,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* Rédaction : saisie lisible et commandes tactiles, sans modifier les autres pages. */
+.editorial-workspace { min-width: 0; line-height: 1.55; }
+.editorial-workspace fieldset { display: grid; gap: 14px; padding: 20px; min-width: 0; }
+.editorial-workspace label { display: grid; gap: 6px; min-width: 0; }
+.editorial-workspace input:not([type="checkbox"]),
+.editorial-workspace select, .editorial-workspace textarea {
+  min-height: 44px; max-width: 100%; width: 100%; padding: 10px 12px;
+  border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--bg-card); color: var(--ink); font: inherit;
+}
+.editorial-workspace textarea { resize: vertical; }
+.editorial-workspace button { min-height: 44px; padding: 10px 14px; font: inherit; }
+.editorial-workspace a { color: var(--spawt-gold-deep); text-underline-offset: 3px; }
+.editorial-workspace article { padding: 16px; border: 1px solid var(--line); border-radius: 8px; overflow-wrap: anywhere; }
+.editorial-workspace details { padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.editorial-workspace summary { min-height: 44px; cursor: pointer; }
+.editorial-workspace pre { overflow-wrap: anywhere; font: inherit; font-size: 13px; }
+.editorial-workspace label:has(input[type="checkbox"]) { display: flex; align-items: center; min-height: 44px; }
