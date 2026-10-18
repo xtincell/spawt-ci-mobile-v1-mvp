@@ -47,7 +47,7 @@ export function ActualitesList() {
     <form onSubmit={save} style={{ display: "grid", gap: 12, maxWidth: 760, padding: 20, background: "var(--bg-card)" }}>
       <h2>{editing ? "Modifier la publication" : "Nouvelle publication"}</h2>
       <label>Titre<input required maxLength={178} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
-      <label>Texte<textarea required rows={6} maxLength={10000} value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} /></label>
+      <label htmlFor="news-body">Texte</label><textarea id="news-body" required rows={6} maxLength={10000} value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} />
       <label>Type<select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value })}><option value="info">Information</option><option value="news">Actualité</option><option value="promo">Promotion</option></select></label>
       <label>Ville<select value={form.city_code} onChange={e => setForm({ ...form, city_code: e.target.value })}><option value="abidjan">Abidjan</option><option value="">Toutes les villes</option></select></label>
       <label>Destination facultative dans l’app<input placeholder="/place/identifiant ou /explore/nom-du-carnet" value={form.deep_link} onChange={e => setForm({ ...form, deep_link: e.target.value })} /></label>

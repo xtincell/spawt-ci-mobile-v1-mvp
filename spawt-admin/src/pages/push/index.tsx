@@ -35,6 +35,7 @@ interface Toast {
 export const PushCampaigns = () => {
   const { state } = useLocation();
   const [form, setForm] = useState<PushFormValues>(() => ({ ...EMPTY_PUSH_FORM, ...(state ?? {}), ...(state?.spawter_id ? { target: "account" } : {}) }));
+  const estimateEpoch = useRef(0);
   const reservation = useRef<{ content: string; id: string } | null>(null);
   const [dailyCount, setDailyCount] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -80,10 +81,11 @@ export const PushCampaigns = () => {
     }
     setFormErrors([]);
     setEstimating(true);
+    const epoch = ++estimateEpoch.current;
     try {
       const { data, error } = await supabaseClient.functions.invoke("push-send", { body: { ...buildPushBody(form,null), dry_run: true } });
       if (error || !data?.dry_run) throw new Error(error?.message ?? "Estimation indisponible");
-      setEstimate({ spawters: data.targets, tokens: data.tokens });
+      if (epoch === estimateEpoch.current) setEstimate({ spawters: data.targets, tokens: data.tokens });
     } catch (err) {
       showToast({
         kind: "error",
@@ -102,6 +104,7 @@ export const PushCampaigns = () => {
       return;
     }
     setFormErrors([]);
+    if (!estimate || estimate.tokens === 0) { setFormErrors(["Estime un ciblage avec au moins un appareil joignable avant l’envoi."]); return; }
     if (
       typeof window !== "undefined" &&
       !window.confirm(
@@ -180,7 +183,7 @@ export const PushCampaigns = () => {
       ) : null}
 
       {/* ── Composer ── */}
-      <form onChange={() => { setEstimate(null); setResult(null); }} onSubmit={onSend} style={{ display: "grid", gap: 8, maxWidth: 560, margin: "16px 0", background: "var(--bg-card)", padding: 16, borderRadius: 8, border: "1px solid var(--line)" }}>
+      <form onChange={() => { estimateEpoch.current += 1; setEstimate(null); setResult(null); }} onSubmit={onSend} style={{ display: "grid", gap: 8, maxWidth: 560, margin: "16px 0", background: "var(--bg-card)", padding: 16, borderRadius: 8, border: "1px solid var(--line)" }}>
         <h2 style={{ margin: 0, fontSize: 16 }}>Composer</h2>
         {formErrors.length > 0 ? (
           <div style={{ background: "var(--bg-warm)", padding: 8, borderRadius: 6 }}>
