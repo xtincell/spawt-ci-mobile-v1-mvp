@@ -17,12 +17,21 @@
 //         pas un stub ; une fois relié, le paiement est 100 % en ligne)
 //   409 → {"error":"already_active"} (droit déjà actif — B2C : par customer ;
 //         B2B : par LIEU, tous comptes du lieu confondus)
+//   409 → {"error":"plan_unavailable"} (plan absent de `plans` ou désactivé
+//         depuis la console : on ne vend pas un plan retiré)
 //   502 → {"error":"provider_error"} (CinetPay indisponible)
-//   500 → {"error":"edge_misconfigured"|"db_error"}
+//   500 → {"error":"edge_misconfigured"|"db_error"|"plan_misconfigured"}
 //
-// Plans B2B (pro 15 000 HT / b2b_gold 65 000 HT, TVA 18 %) : l'appelant est
-// le compte auth du lieu (0043). subscriptions.customer_type='b2b' ; le
-// retour navigateur par défaut est /pro/retour (portail espace lieux).
+// Prix : la table `plans`, seule source (0079) — aucun montant dans ce code.
+// Le plan est lu (actif seulement) AVANT toute écriture ; à la moindre
+// anomalie, rien n'est écrit ni envoyé au provider. Le montant envoyé est le
+// prix payé (`price_ttc`) ; HT et TTC sont figés sur l'abonnement pour que la
+// facture du webhook dise ce qui a été encaissé, même si le tarif change
+// entre-temps.
+//
+// Plans B2B (pro / b2b_gold) : l'appelant est le compte auth du lieu (0043).
+// subscriptions.customer_type='b2b' ; le retour navigateur par défaut est
+// /pro/retour (portail espace lieux).
 //
 // Secrets attendus côté Supabase Edge env :
 //   CINETPAY_API_KEY / CINETPAY_SITE_ID / CINETPAY_SECRET_KEY
@@ -34,13 +43,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import {
-  computeTtc,
   isB2bPlan,
   isPaidPlan,
-  PLAN_PRICING,
   PaymentProviderError,
+  PLAN_DESCRIPTION,
   TVA_RATE,
 } from "../_shared/payment/types.ts";
+import { loadSellablePlan } from "../_shared/payment/plans.ts";
 import { createPaymentProvider, PaymentConfigError } from "../_shared/payment/factory.ts";
 
 // @ts-expect-error — Deno global
@@ -171,6 +180,26 @@ export async function handleRequest(req: Request): Promise<Response> {
   // Écritures : service_role (les tables 0032 n'ont AUCUNE policy d'écriture
   // authenticated — design volontaire, cf. migration).
   const admin = createClient(supabaseUrl, serviceRole);
+
+  // ── Le prix : `plans`, actif seulement, lu AVANT toute écriture ───────────
+  // Échec fermé : plan retiré → 409, lecture impossible ou ligne incohérente
+  // → 500. Jamais de prix deviné, jamais de customer ni d'abonnement créé pour
+  // une vente qui n'aura pas lieu.
+  const planRead = await loadSellablePlan(admin, plan);
+  if (!planRead.ok) {
+    console.log(
+      JSON.stringify({
+        evt: "payment_checkout_plan_refused",
+        plan,
+        reason: planRead.reason,
+        detail: planRead.detail ?? null,
+      }),
+    );
+    if (planRead.reason === "unavailable") return json({ error: "plan_unavailable" }, req, 409);
+    if (planRead.reason === "misconfigured") return json({ error: "plan_misconfigured" }, req, 500);
+    return json({ error: "db_error" }, req, 500);
+  }
+  const sellable = planRead.plan;
 
   // Prédicat « droit encore vivant » — même fenêtre que la vue
   // active_entitlements (0032), partagé entre les checks B2C et B2B.
@@ -365,7 +394,8 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
 
   // ── Subscription pending + provider_tx_id unique (idempotence webhook) ────
-  const pricing = PLAN_PRICING[plan];
+  // HT et TTC du plan y sont FIGÉS : la facture reprendra ces montants, pas le
+  // prix courant (montant facturé = montant encaissé).
   const transactionId = `SPAWT-TX-${crypto.randomUUID()}`;
   const { data: subscription, error: subErr } = await admin
     .from("subscriptions")
@@ -373,7 +403,8 @@ export async function handleRequest(req: Request): Promise<Response> {
       customer_id: customerId,
       customer_type: isB2bCheckout ? "b2b" : "b2c",
       plan,
-      price_ht: pricing.price_ht,
+      price_ht: sellable.price_ht,
+      price_ttc: sellable.price_ttc,
       tva_rate: TVA_RATE,
       currency: "XOF",
       status: "pending",
@@ -389,9 +420,10 @@ export async function handleRequest(req: Request): Promise<Response> {
     const provider = createPaymentProvider();
     const result = await provider.initiate({
       transactionId,
-      amount: computeTtc(pricing.price_ht), // TTC XOF entier (TVA CI 18 %)
+      // Le prix payé du plan (TTC, XOF entier), celui figé sur l'abonnement.
+      amount: sellable.price_ttc,
       currency: "XOF",
-      description: pricing.description,
+      description: PLAN_DESCRIPTION[plan],
       customerPhone,
       customerName,
       returnUrl,
@@ -405,6 +437,7 @@ export async function handleRequest(req: Request): Promise<Response> {
         provider: provider.name,
         transaction_id: transactionId,
         plan,
+        amount_ttc: sellable.price_ttc,
         customer_type: isB2bCheckout ? "b2b" : "b2c",
         caller_id: callerId,
       }),
