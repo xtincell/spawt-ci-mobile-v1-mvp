@@ -11,7 +11,7 @@ interface PlaceRow {
   name: string;
   neighborhood: string;
   cuisine: string[];
-  price_tier: 1 | 2 | 3;
+  price_tier: 1 | 2 | 3 | null;
   is_published: boolean;
   updated_at: string;
   place_adn?: { weighted_rating: number; total_reviews: number; confidence_score: number } | null;
@@ -110,8 +110,8 @@ export const LieuxList = () => {
               <td><strong>{row.name}</strong></td>
               <td>{row.neighborhood}</td>
               <td>{row.cuisine.join(", ")}</td>
-              <td>{row.price_tier}</td>
-              <td>{row.place_adn?.weighted_rating?.toFixed(2) ?? "—"}</td>
+              <td>{row.price_tier ?? "—"}</td>
+              <td>{(row.place_adn?.total_reviews ?? 0) > 0 ? row.place_adn?.weighted_rating?.toFixed(2) ?? "—" : "—"}</td>
               <td>{row.place_adn?.total_reviews ?? 0}</td>
               <td>{row.is_published ? "Publié" : "Brouillon"}</td>
               <td style={{ display: "flex", gap: 6 }}>

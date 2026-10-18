@@ -1,0 +1,39 @@
+{
+  "batch": "documentary-drafts-2026-10-18",
+  "checked_at": "2026-10-18 12:52:53.272422+00",
+  "database": {
+    "drafts": 145,
+    "published": 0,
+    "missing_coordinates": 44,
+    "assigned_prices": 0,
+    "total_reviews": 0,
+    "confidence_sum": 0,
+    "rating_aggregate_sum": 0,
+    "new_visits": 0,
+    "new_editorial_reviews": 0,
+    "draft_profiles": 145,
+    "linked_sources": 147
+  },
+  "inventory": {
+    "total": 155,
+    "published": 10
+  },
+  "checks": {
+    "admin_tests": 205,
+    "mobile_tests": 1080,
+    "mobile_skipped": 4,
+    "snapshots": 4,
+    "typescript": true,
+    "eslint": true,
+    "vocabulary": true,
+    "i18n": true,
+    "postgres_drafts": true,
+    "transaction_dry_run": true
+  },
+  "browser": {
+    "status": "pending"
+  },
+  "deployment": {
+    "status": "pending"
+  }
+}

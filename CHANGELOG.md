@@ -1,3 +1,9 @@
+## 18 octobre 2026 — Fiches documentaires sans note
+
+- 145 nouveaux brouillons issus des missions, préparatifs, brunchs et recherches Drive, avec provenance et 147 rapprochements.
+- Brouillons enregistrables sans GPS ni prix inventés ; publication bloquée tant que les champs nécessaires manquent. Absence de note affichée « — ».
+- Aucun avis, visite ou changement des dix lieux publics.
+
 ## 2026-10-18 — Mise en service de la rédaction et du corpus
 
 - Migration 0075 appliquée après sauvegarde PostgreSQL vérifiée. Import effectif de 31 492 références (31 sources), dont 129 enrichissements ; dix profils brouillons créés.

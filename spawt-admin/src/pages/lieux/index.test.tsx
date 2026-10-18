@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Refine, type DataProvider, type GetListParams } from "@refinedev/core";
 import { MemoryRouter } from "react-router";
@@ -41,6 +41,15 @@ beforeEach(() => {
 });
 
 describe("inventaire paginé", () => {
+  it("affiche une absence de note pour un lieu sans avis, même si l’agrégat technique vaut zéro", async () => {
+    getList.mockResolvedValue({ data: [{ ...places[0], price_tier: null,
+      place_adn: { weighted_rating: 0, total_reviews: 0, confidence_score: 0 } }], total: 1 });
+    mount();
+    const row = (await screen.findByText("Spot 1")).closest("tr")!;
+    expect(within(row).getAllByText("—")).toHaveLength(2);
+    expect(within(row).queryByText("0.00")).not.toBeInTheDocument();
+  });
+
   it("permet de consulter les textes même lorsque le compteur communautaire est nul", async () => {
     mount();
     const link = await screen.findByRole("link", { name: "Voir les avis de Spot 1" });

@@ -1,5 +1,5 @@
 // Port autonome — pas d'import croisé app/ ↔ spawt-admin/.
-// Synchronisé manuellement avec app/src/types/place.schema.ts (revue PR).
+// Published records keep the mobile contract; staff drafts may be incomplete.
 
 import { z } from "zod";
 
@@ -9,15 +9,15 @@ const ADN_AXIS = z.number().min(-1).max(1);
 // la saisie accidentelle d'un lieu à Hanoi (PRD V1 = Abidjan only).
 // Bbox approximative grand Abidjan + Bingerville : 5.20-5.60 lat, -4.20 -3.70 lng.
 export const PlaceLocationSchema = z.object({
-  lat: z.number().min(5.20, "Hors zone Abidjan (lat trop basse)").max(5.60, "Hors zone Abidjan (lat trop haute)"),
-  lng: z.number().min(-4.30, "Hors zone Abidjan (lng trop à l'ouest)").max(-3.70, "Hors zone Abidjan (lng trop à l'est)"),
-  descriptive_address: z.string().min(1, "Adresse descriptive requise"),
-  neighborhood: z.string().min(1, "Quartier requis"),
-  city: z.string().min(1).default("Abidjan"),
+  lat: z.number().min(5.20, "Hors zone Abidjan (lat trop basse)").max(5.60, "Hors zone Abidjan (lat trop haute)").nullable(),
+  lng: z.number().min(-4.30, "Hors zone Abidjan (lng trop à l'ouest)").max(-3.70, "Hors zone Abidjan (lng trop à l'est)").nullable(),
+  descriptive_address: z.string(),
+  neighborhood: z.string(),
+  city: z.string().default("Abidjan"),
 });
 
 export const PriceRangeSchema = z.object({
-  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable(),
   avg_ticket_xof: z.number().int().nonnegative().nullable().optional(),
 });
 
@@ -33,8 +33,8 @@ export const HoursSchema = z.record(
 );
 
 export const PlaceFormSchema = z.object({
-  name: z.string().min(1, "Nom du lieu requis").max(120),
-  cuisine: z.array(z.string().min(1)).min(1, "Au moins une cuisine"),
+  name: z.string().trim().min(1, "Nom du lieu requis").max(120),
+  cuisine: z.array(z.string().min(1)),
   location: PlaceLocationSchema,
   price: PriceRangeSchema,
   hours: HoursSchema,
@@ -58,6 +58,20 @@ export const PlaceFormSchema = z.object({
     )
     .default([]),
   is_published: z.boolean().default(false),
+}).superRefine((value, ctx) => {
+  if (!value.is_published) return;
+  const required: [boolean, (string | number)[], string][] = [
+    [value.cuisine.length > 0, ["cuisine"], "Au moins une cuisine"],
+    [value.location.lat !== null, ["location", "lat"], "Latitude requise"],
+    [value.location.lng !== null, ["location", "lng"], "Longitude requise"],
+    [!!value.location.descriptive_address.trim(), ["location", "descriptive_address"], "Adresse requise"],
+    [!!value.location.neighborhood.trim(), ["location", "neighborhood"], "Quartier requis"],
+    [!!value.location.city.trim(), ["location", "city"], "Ville requise"],
+    [value.price.tier !== null, ["price", "tier"], "Gamme de prix requise"],
+  ];
+  for (const [valid, path, message] of required) {
+    if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, path, message: `${message} pour publier ; le brouillon peut rester incomplet.` });
+  }
 });
 
 export const PlaceAdnFormSchema = z.object({

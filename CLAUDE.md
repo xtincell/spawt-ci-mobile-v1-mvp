@@ -36,6 +36,11 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
+## Fiches documentaires créées le 2026-10-18
+
+- Migration 0076 : brouillons avec GPS/prix inconnus ; publication protégée.
+- 145 nouveaux brouillons sans note ni visite, 147 références rattachées : inventaire total 155 dont dix publics. Provenance, limites et vérifications dans `editorial/documentation-2026-10-18/`.
+
 ## Mise en service confirmée le 2026-10-18
 
 - Migration 0075 appliquée après sauvegarde PostgreSQL ; 31 492 références de recherche privées (31 sources), dont 129 enrichissements, et dix profils brouillons.
