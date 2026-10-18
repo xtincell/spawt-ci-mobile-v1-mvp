@@ -6,6 +6,14 @@
 - Checkout : plan lu en base, actif seulement, échec fermé ; HT et TTC figés sur l'abonnement. Webhook et validation manuelle facturent ces montants figés (facturé = encaissé).
 - Migration 0079 + down + test SQL autonome, exécutés sur un PostgreSQL 16 local reconstruit depuis 0001 (montée, descente à l'identique, remontée). **Non appliquée en production.**
 
+## 2026-10-18 — Firebase Android et publication automatique, build 35
+
+- Application Android `com.upgraders.spawt` enregistrée dans le projet existant `spawt-ci`, avec la signature de distribution actuelle.
+- Configuration client Firebase ajoutée au binaire ; contrôles du projet, du package et des ressources effectivement compilées.
+- Compte technique FCM dédié ; workflow de liaison Expo par identité Google temporaire. La clé privée reste hors dépôt et hors APK.
+- Build 35 compilé, signé et publié après recette native : cinq contrôles de démarrage/réouverture, animation et initialisation Firebase réussis. Validation Google sans envoi réel ; réception sur téléphone encore à vérifier.
+- Publication Android : contrôle de l’empreinte de l’asset puis mise à jour automatique du manifeste public, sans régression de numéro. Les boutons de la vitrine suivent ce manifeste avec repli local.
+
 ## 2026-10-18 — liaison panel / app, build 34
 
 - Actualités, informations et promotions éditoriales : brouillon, publication, programmation, retrait et suppression depuis le panel ; lecture dans le fil mobile.

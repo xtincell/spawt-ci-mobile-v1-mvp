@@ -1,3 +1,5 @@
+> Mise à jour : le build 35 ajoute Firebase/FCM configuré et reçu sur émulateur, avec téléchargement officiel automatisé. Voir [le bilan Firebase](./FIREBASE_ANDROID_2026-10-18.md). La réception push sur téléphone reste distincte.
+
 # Liaison panel / application — 18 octobre 2026
 
 La console gère désormais les actualités et informations du fil mobile, en plus des lieux, avis éditoriaux, carnets, événements et promotions. Une publication peut être préparée en brouillon, programmée (heure UTC/Abidjan), corrigée, retirée et supprimée. Les écritures sont historisées ; une modification concurrente est refusée.

@@ -154,12 +154,21 @@ jobs:
           mkdir -p android-proof
           timeout 20s adb logcat -d -s AndroidRuntime ReactNativeJS libc DEBUG > android-proof/logcat.txt || true
           timeout 20s adb shell dumpsys package com.upgraders.spawt > android-proof/package.txt || true
+          SPAWT_PID=$(adb shell pidof com.upgraders.spawt | tr -d '\r')
+          test -n "$SPAWT_PID"
+          timeout 20s adb logcat -d --pid="$SPAWT_PID" -s FirebaseInitProvider FirebaseApp > android-proof/firebase-logcat.txt
           cp emulator.log android-proof/emulator.log || true
           python3 - <<'PY'
           import pathlib, re
           log=pathlib.Path('android-proof/logcat.txt').read_text()
           if re.search(r'AndroidRuntime: Process: com\.upgraders\.spawt\b|DEBUG\s*:.*(?:Cmdline: com\.upgraders\.spawt\b|>>> com\.upgraders\.spawt <<<)',log):
               raise RuntimeError('Plantage natif SPAWT détecté : consulter android-proof/logcat.txt')
+          config=__import__('json').loads(pathlib.Path('documentation/android-qa.json').read_text())
+          firebase=pathlib.Path('android-proof/firebase-logcat.txt').read_text()
+          initialized='FirebaseApp initialization successful' in firebase
+          pathlib.Path('android-proof/firebase-runtime.json').write_text(__import__('json').dumps({'defaultAppInitialized':initialized}))
+          if config['build']>=35 and not initialized:
+              raise RuntimeError('Initialisation Firebase non confirmée dans le processus natif SPAWT')
           PY
       - name: Vérifier la présence visible de l'animation fournie
         if: always() && steps.apk.outputs.ready == 'true'

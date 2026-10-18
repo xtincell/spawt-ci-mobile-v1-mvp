@@ -10,7 +10,7 @@ on:
       - 'scripts/__tests__/**'
       - '.github/workflows/app-checks.yml'
   push:
-    branches: ['codex/recevoir-app-active', 'codex/audit-admin-commentaires']
+    branches: ['codex/recevoir-app-active', 'codex/audit-admin-commentaires', 'codex/firebase-push-readiness']
 
 permissions:
   contents: read
@@ -35,6 +35,8 @@ jobs:
       - run: npm test -- --ci --runInBand
       - name: Garde de configuration EAS
         run: node --test ../scripts/__tests__/check-eas-env.test.mjs
+      - name: Garde de configuration Firebase Android
+        run: node --test ../scripts/__tests__/check-firebase-config.test.mjs
       - name: Export web (compilation uniquement)
         run: npx expo export --platform web
   admin:

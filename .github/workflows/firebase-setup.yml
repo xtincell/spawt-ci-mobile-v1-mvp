@@ -1,0 +1,36 @@
+name: Configure SPAWT Firebase in Expo
+on:
+  push:
+    tags: ['setup-firebase-*']
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: google-github-actions/auth@v3
+        id: google
+        with:
+          project_id: spawt-ci
+          workload_identity_provider: projects/784936275475/locations/global/workloadIdentityPools/spawt-github-fcm/providers/github
+          create_credentials_file: false
+      - name: Bind the dedicated FCM account
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GOOGLE_BOOTSTRAP_TOKEN: ${{ steps.google.outputs.auth_token }}
+        run: node scripts/configure-firebase-expo.mjs
+      - name: Read the resulting Expo metadata
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: node scripts/audit-firebase-readiness.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firebase-readiness
+          path: firebase-proof/*.json
+          retention-days: 14

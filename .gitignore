@@ -70,3 +70,5 @@ nul
 
 # ━━━ Credentials de soumission stores (jamais versionnés) ━━━
 app/secrets/
+firebase-proof/
+gha-creds-*.json
