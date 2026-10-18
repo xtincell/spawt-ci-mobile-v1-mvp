@@ -25,6 +25,7 @@ import { PromotionsList } from "./pages/promotions";
 import { DefisList } from "./pages/defis";
 import { SuggestionsList } from "./pages/suggestions";
 import { PaiementsList } from "./pages/paiements";
+import { TarifsPage } from "./pages/tarifs";
 import { RunbookPage } from "./pages/runbook";
 import { B2bList } from "./pages/b2b";
 import { PushCampaigns } from "./pages/push";
@@ -120,6 +121,8 @@ export const App = () =>
         // Paiement à validation manuelle (0063) : CinetPay est devenu secondaire,
         // l'essentiel arrive par Wave / Orange Money / MoMo et se valide ici.
         { name: "payment_requests", list: "/paiements", meta: { label: "Paiements" } },
+        // Tarifs (0079) : `plans` est la seule source des prix, administrée ici.
+        { name: "plans", list: "/tarifs", meta: { label: "Tarifs" } },
         // Mode d'emploi de la suite — pas une ressource de données, juste une
         // entrée de menu vers la page runbook.
         { name: "runbook", list: "/runbook", meta: { label: "Mode d'emploi" } },
@@ -153,6 +156,7 @@ export const App = () =>
           <Route path="/defis" element={<DefisList />} />
           <Route path="/suggestions" element={<SuggestionsList />} />
           <Route path="/paiements" element={<PaiementsList />} />
+          <Route path="/tarifs" element={<TarifsPage />} />
           <Route path="/runbook" element={<RunbookPage />} />
           <Route path="/b2b" element={<B2bList />} />
           <Route path="/actualites" element={<ActualitesList />} />

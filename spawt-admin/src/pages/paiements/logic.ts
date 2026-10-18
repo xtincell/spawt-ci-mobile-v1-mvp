@@ -57,24 +57,36 @@ export const STATUS_LABELS: Record<PaymentStatus, string> = {
   cancelled: "Annulé par le payeur",
 };
 
-/** Prix HT du catalogue — doit rester aligné sur la table `plans` ET sur
- *  `_shared/payment/types.ts`. Sert UNIQUEMENT à afficher l'écart à l'équipe ;
- *  la facture, elle, est calculée côté serveur depuis `plans`. */
-export const PLAN_PRICE_HT: Record<PaymentPlan, number> = {
-  gold_monthly: 2500,
-  gold_annual: 25000,
-  pro: 15000,
-  b2b_gold: 65000,
-};
-
-export const TVA_RATE = 0.18;
-
-/** TTC attendu pour un plan, en XOF entiers (pas de centimes en francs). */
-export function expectedTtc(plan: PaymentPlan): number {
-  return Math.round(PLAN_PRICE_HT[plan] * (1 + TVA_RATE));
+/**
+ * Tarif d'un plan tel que lu dans la table `plans` — la seule source des prix
+ * (migration 0079), administrée depuis la page Tarifs. `price_ttc` est le prix
+ * payé : c'est lui que `approve_payment_request` facture.
+ */
+export interface PlanTarif {
+  code: PaymentPlan;
+  price_ttc: number;
+  is_active: boolean;
 }
 
-export type AmountVerdict = "exact" | "trop_peu" | "trop" | "inconnu";
+export type TarifsParPlan = Partial<Record<PaymentPlan, PlanTarif>>;
+
+const PAYMENT_PLANS: readonly PaymentPlan[] = ["gold_monthly", "gold_annual", "pro", "b2b_gold"];
+
+/** Indexe les lignes `plans` par code ; ignore les codes qu'aucune demande ne porte. */
+export function indexerTarifs(
+  rows: ReadonlyArray<{ code: string; price_ttc: number; is_active: boolean }>,
+): TarifsParPlan {
+  const tarifs: TarifsParPlan = {};
+  for (const row of rows) {
+    if ((PAYMENT_PLANS as readonly string[]).includes(row.code)) {
+      const code = row.code as PaymentPlan;
+      tarifs[code] = { code, price_ttc: row.price_ttc, is_active: row.is_active };
+    }
+  }
+  return tarifs;
+}
+
+export type AmountVerdict = "exact" | "trop_peu" | "trop" | "inconnu" | "tarif_inconnu";
 
 /**
  * Le montant déclaré correspond-il au tarif ?
@@ -84,27 +96,36 @@ export type AmountVerdict = "exact" | "trop_peu" | "trop" | "inconnu";
  * avec un mois de Gold. Le serveur facture toujours le tarif du catalogue, donc
  * un sous-paiement validé n'est pas une perte comptable — c'est un cadeau. Le
  * signaler en rouge évite de le faire par inadvertance.
+ *
+ * Le tarif attendu est le prix payé COURANT du plan (`plans.price_ttc`) :
+ * c'est exactement ce que la validation facturera.
  */
-export function verdictMontant(row: {
-  plan: PaymentPlan;
-  amount_declare: number;
-}): AmountVerdict {
-  const attendu = expectedTtc(row.plan);
+export function verdictMontant(
+  row: { plan: PaymentPlan; amount_declare: number },
+  tarif: PlanTarif | undefined,
+): AmountVerdict {
   if (!Number.isFinite(row.amount_declare) || row.amount_declare <= 0) return "inconnu";
+  if (!tarif) return "tarif_inconnu";
+  const attendu = tarif.price_ttc;
   if (row.amount_declare === attendu) return "exact";
   return row.amount_declare < attendu ? "trop_peu" : "trop";
 }
 
 /** Message court affiché à côté du montant. */
-export function libelleVerdict(row: { plan: PaymentPlan; amount_declare: number }): string {
-  const attendu = expectedTtc(row.plan);
-  switch (verdictMontant(row)) {
+export function libelleVerdict(
+  row: { plan: PaymentPlan; amount_declare: number },
+  tarif: PlanTarif | undefined,
+): string {
+  const attendu = tarif?.price_ttc ?? 0;
+  switch (verdictMontant(row, tarif)) {
     case "exact":
       return "montant conforme";
     case "trop_peu":
       return `⚠️ ${attendu - row.amount_declare} F de moins que le tarif (${attendu} F)`;
     case "trop":
       return `+${row.amount_declare - attendu} F de plus que le tarif (${attendu} F)`;
+    case "tarif_inconnu":
+      return "tarif introuvable dans Tarifs";
     default:
       return "montant illisible";
   }
@@ -117,11 +138,24 @@ export function libelleVerdict(row: { plan: PaymentPlan; amount_declare: number 
  * le payeur conteste, ou si le rapprochement bancaire ne tombe pas juste, il
  * n'y a rien à chercher. On n'interdit pas la validation (l'espèce en main
  * propre existe), on exige que l'admin le fasse en connaissance de cause.
+ *
+ * Un plan absent ou désactivé dans Tarifs est signalé d'emblée : la
+ * validation serait refusée par le serveur (plan absent du catalogue actif).
  */
-export function alertesAvantValidation(row: PaymentRequestRow): string[] {
+export function alertesAvantValidation(
+  row: PaymentRequestRow,
+  tarif: PlanTarif | undefined,
+): string[] {
   const alertes: string[] = [];
-  const v = verdictMontant(row);
-  if (v === "trop_peu") alertes.push(libelleVerdict(row));
+  if (!tarif) {
+    alertes.push("Plan absent de la page Tarifs : la validation sera refusée.");
+  } else if (!tarif.is_active) {
+    alertes.push(
+      "Plan désactivé dans Tarifs : la validation sera refusée tant qu'il n'est pas réactivé.",
+    );
+  }
+  const v = verdictMontant(row, tarif);
+  if (v === "trop_peu") alertes.push(libelleVerdict(row, tarif));
   if (!row.reference?.trim() && !row.payer_phone?.trim() && row.method !== "especes") {
     alertes.push("Aucune référence ni numéro émetteur : le versement sera introuvable.");
   }

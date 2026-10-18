@@ -62,6 +62,10 @@ export const Layout = () => {
           <NavLink to="/paiements" className={({ isActive }) => (isActive ? "active" : "")}>
             Paiements
           </NavLink>
+          {/* Les prix que la validation de Paiements facture : à côté. */}
+          <NavLink to="/tarifs" className={({ isActive }) => (isActive ? "active" : "")}>
+            Tarifs
+          </NavLink>
           <NavLink to="/b2b" className={({ isActive }) => (isActive ? "active" : "")}>
             Comptes B2B
           </NavLink>

@@ -197,10 +197,42 @@ export const RUNBOOK: RunbookSection[] = [
       {
         type: "alerte",
         texte:
-          "Le tarif existe à deux endroits : la table plans (validation manuelle) et " +
-          "_shared/payment/types.ts (checkout CinetPay). Ils DOIVENT concorder — sinon le " +
-          "même abonnement est facturé à deux prix selon le canal. Ils ont divergé une " +
-          "fois de 3 000 F sur l'annuel.",
+          "Le tarif n'existe qu'à un endroit : la table plans (migration 0079). Le checkout " +
+          "CinetPay, la validation manuelle et cette console la lisent ; aucun montant " +
+          "n'est écrit dans le code. Avant 0079, le prix vivait aussi dans " +
+          "_shared/payment/types.ts et les deux copies avaient divergé de 3 000 F sur " +
+          "l'annuel — d'où la source unique.",
+      },
+    ],
+  },
+  {
+    id: "tarifs",
+    titre: "Changer un prix",
+    resume: "Page Tarifs, admin seulement. On saisit le prix payé ; HT et TVA suivent.",
+    blocs: [
+      {
+        type: "liste",
+        lignes: [
+          "Ouvrir Tarifs (admin) et saisir le prix PAYÉ par le client : TTC, en F CFA entiers.",
+          "La base dérive HT = round(TTC / 1,18) et TVA = TTC − HT ; la TVA reste fixe à 18 %.",
+          "Enregistrer : la confirmation montre l'avant/après, un motif est obligatoire.",
+          "Le changement et son motif sont journalisés (admin_audit_log, plan_update).",
+          "Désactiver un plan arrête sa vente : plus de checkout ni de validation manuelle.",
+        ],
+      },
+      {
+        type: "p",
+        texte:
+          "Un nouveau prix vaut pour les nouveaux paiements. Les factures émises gardent " +
+          "leur montant, et un paiement déjà lancé est facturé au prix figé sur son " +
+          "abonnement au moment du checkout : montant facturé = montant encaissé.",
+      },
+      {
+        type: "alerte",
+        texte:
+          "Ne jamais modifier plans par SQL pour changer un prix : le changement ne serait " +
+          "pas journalisé. Et saisir le TTC, pas le HT : certains prix payés n'ont aucun " +
+          "HT entier (50 847 HT donnent 59 999 F, 50 848 donnent 60 001 — jamais 60 000).",
       },
     ],
   },
