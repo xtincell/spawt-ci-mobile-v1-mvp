@@ -462,3 +462,7 @@ COMMENT ON FUNCTION public.approve_payment_request(UUID, TEXT) IS
 
 REVOKE ALL ON FUNCTION public.approve_payment_request(UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.approve_payment_request(UUID, TEXT) TO authenticated;
+
+-- PostgREST doit voir tout de suite price_ttc et admin_update_plan : sans
+-- rechargement, le checkout échouerait fermé et la page Tarifs resterait vide.
+NOTIFY pgrst, 'reload schema';
