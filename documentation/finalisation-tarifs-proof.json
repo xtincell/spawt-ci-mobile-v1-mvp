@@ -90,7 +90,8 @@
       "/downloads/spawt-1.1.1-build35.apk"
     ],
     "status": "passed",
-    "temporary_session_closed": true
+    "temporary_session_closed": true,
+    "phase": "Server deployment before Android 36 publication"
   },
   "edge": {
     "files": [
@@ -204,5 +205,112 @@
       "subscriptions": 0,
       "invoices": 0
     }
-  ]
+  ],
+  "android36": {
+    "build": {
+      "version": "1.1.1",
+      "build": 36,
+      "buildDate": "2026-10-19",
+      "sourceCommit": "76fb9bec3250803924ccecdc143b0f74ce1b25e0",
+      "sourceCiRun": 39175282461,
+      "recipeSha256": "8bb78fafc40a113c6e4ecf0f914075cb67ece48c55c7c97a5fd112885ae63b37",
+      "sha256": "9cbe231ff9eb646586b00980fb6918a78f020d3aae48de5caef50951713e307c",
+      "bytes": 162454415,
+      "signatureMatchesBuild25": true,
+      "zipCrcPassed": true,
+      "nativePackageVerified": true,
+      "compiledBackendConfigVerified": true,
+      "backendUrl": "https://api.spawt.online",
+      "backendKeySha256": "7adfc35afaf81a6a954ef35a3941a9af8ef5cdc068df494643cadfe52e52076c",
+      "runId": 39175490281,
+      "compiledFirebaseConfigVerified": true,
+      "firebaseProjectId": "spawt-ci",
+      "firebaseAndroidAppId": "1:784936275475:android:3592fb2dc6cc9ffc0a39e6"
+    },
+    "qaRun": 39177562951,
+    "assertions": [
+      {
+        "check": "cold animated launch keeps SPAWT in foreground",
+        "passed": true
+      },
+      {
+        "check": "anonymous phone controls available",
+        "passed": true
+      },
+      {
+        "check": "first native process running",
+        "passed": true
+      },
+      {
+        "check": "new native process after force-stop",
+        "passed": true
+      },
+      {
+        "check": "anonymous phone controls after process restart",
+        "passed": true
+      }
+    ],
+    "firebase": {
+      "defaultAppInitialized": true
+    },
+    "opening": {
+      "passed": true,
+      "sampleFps": 30,
+      "sampledFrames": 560,
+      "captureWidth": 392,
+      "captureHeight": 800,
+      "visibleFrames": 41,
+      "longestVisibleSeconds": 1.367,
+      "minimumVisibleSeconds": 0.333,
+      "earlyGoldTravelPixels": 120.0,
+      "minimumGoldTravelPixels": 20,
+      "winkPassed": true,
+      "closedEyeFrames": 13,
+      "reopenedEyeFrames": 5,
+      "blackSurfaceFrames": 0,
+      "blackSurfaceSeconds": []
+    },
+    "screenshotsExamined": true,
+    "publicationRun": 39177846463,
+    "automaticButtons": {
+      "mode": "automatic",
+      "checks": [
+        "Both buttons serve build36 without a website redeploy"
+      ],
+      "page_errors": [],
+      "buttons": [
+        "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-36/spawt-1.1.1-build36.apk",
+        "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-36/spawt-1.1.1-build36.apk"
+      ],
+      "status": "passed"
+    },
+    "artifactSha256": "2481a2060f510e2fd59240115be21c89a39b6e16e8f46305fa33e740258ed21c",
+    "localDownload": {
+      "mode": "fallback",
+      "checks": [
+        "Both buttons serve build36 with the publication channel blocked",
+        "Entire public APK matches the compiled and native-tested artifact"
+      ],
+      "page_errors": [],
+      "buttons": [
+        "/downloads/spawt-1.1.1-build36.apk",
+        "/downloads/spawt-1.1.1-build36.apk"
+      ],
+      "content_type": "application/vnd.android.package-archive",
+      "apk": {
+        "url": "https://spawt.online/downloads/spawt-1.1.1-build36.apk",
+        "bytes": 162454415,
+        "sha256": "9cbe231ff9eb646586b00980fb6918a78f020d3aae48de5caef50951713e307c"
+      },
+      "status": "passed"
+    }
+  },
+  "portalDeployment": {
+    "deployment_uuid": "bhysqvvdmdmokfwde3vpjqfz",
+    "status": "finished",
+    "commit": "cb05e967d9dfe8396e634996b70ff11ca151c047",
+    "created_at": "2026-10-18T23:47:16.000000Z",
+    "updated_at": "2026-10-18T23:48:49.000000Z"
+  },
+  "serverFinalHealth": "running:healthy"
 }

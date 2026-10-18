@@ -10,7 +10,7 @@
 - Migration 0081 : confirmation prestataire réservée au serveur, montant/devise exacts, abonnement + rôle lieu + facture atomiques, répétitions sans double facture.
 - Tests Deno typés (92), schéma PostgreSQL isolé complet, essais de permissions et retour arrière 0079–0081 ; workflow GitHub dédié.
 - Build 36 : retrait d'un prix Gold écrit en dur dans l'app ; compilation et publication suivies dans la documentation de livraison.
-- La mise en production et les preuves de recette sont consignées séparément : ne pas déduire un déploiement de ce commit seul.
+- Migrations 0079–0081 et console déployées après sauvegarde ; recette réelle Xtincell reçue. Build 36 publié après recette native, canal et boutons Android actualisés. Incident de redémarrage résolu et garde du script corrigée ; bilan dans `documentation/FINALISATION_TARIFS_2026-10-19.md`.
 
 ## 2026-10-18 — Tarifs administrables, Gold lieu à 60 000 F (0079, non appliquée)
 

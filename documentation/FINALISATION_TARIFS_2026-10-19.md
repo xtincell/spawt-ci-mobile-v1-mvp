@@ -28,7 +28,7 @@
 
 Au contrôle initial : aucun abonnement, facture ni paiement manuel ; identifiants CinetPay absents. Les tests ne prouvent pas un encaissement réel. Aucune campagne, notification ou transaction réelle n'est envoyée pour la recette.
 
-Le build 36 (`76fb9be`, compilation `39175490281`) est en cours. Les résultats de sauvegarde, déploiement, recette navigateur et publication seront ajoutés après contrôle ; cette section ne vaut pas attestation de déploiement.
+Le build 36 (`76fb9be`) est compilé, reçu sur émulateur et publié. Les résultats de sauvegarde, déploiement, recette navigateur et publication figurent ci-dessous.
 
 ## Mise en production et reprise du serveur
 
@@ -39,8 +39,16 @@ Le build 36 (`76fb9be`, compilation `39175490281`) est en cours. Les résultats 
 - Sept fichiers de paiement rechargés ; Auth répond 200, méthodes GET des fonctions 405 attendus, prévol checkout 204 avec `x-client-info`.
 - Incident d'exploitation : le redémarrage global via Coolify 4.1.2 a arrêté le stack sans le relancer, avec une interruption d'environ dix minutes (23:23–23:33 UTC le 18 octobre). Les conteneurs existants et leurs volumes ont été relancés directement via un outil de maintenance temporaire sans domaine public. Les 155 fiches et l'absence de paiements ont été recontrôlées. Le repli vers un redémarrage global a été retiré de `deploy-edge-functions.mjs` ; seul le conteneur Edge doit être rechargé. Coolify retire également le saut de ligne final des fichiers : la comparaison en tient compte.
 
-La compilation Android 36 et sa recette restent suivies ci-dessous ; elles sont distinctes de la mise à jour du serveur.
+La livraison Android ci-dessous est distincte de la mise à jour du serveur.
 
 L'outil de maintenance temporaire a été supprimé, ses montages retirés et sa suppression confirmée par l'API. Les empreintes des sept fichiers ont été contrôlées **dans le conteneur Edge en cours d'exécution**. Le stack est revenu à `running:healthy`.
 
 La CI SQL attend désormais le serveur TCP PostgreSQL définitif : le serveur temporaire d'initialisation pouvait donner un faux signal de disponibilité. Le workflow paiement `39177223856` est vert après ce correctif. Preuves sans identifiants dans `finalisation-tarifs-proof.json`.
+
+## Android 36 publié
+
+- Compilation `39175490281` : identité, backend et Firebase compilés, continuité de signature et intégrité vérifiés ; 162 454 415 octets, SHA-256 `9cbe231ff9eb646586b00980fb6918a78f020d3aae48de5caef50951713e307c`.
+- Recette `39177562951` sur Android 35 : cinq assertions réussies, animation visible et réouverture, initialisation Firebase confirmée ; captures examinées. Aucun compte, OTP ni paiement utilisé.
+- Publication `39177846463` réussie : [release](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-19-36), manifeste `android-releases/latest.json` avancé.
+- Les deux boutons de spawt.online ont suivi le build 36 **avant** le redéploiement du site : recette navigateur réelle, aucun changement de lien manuel.
+- Vitrine PR 14 déployée sur `cb05e967d9dfe8396e634996b70ff11ca151c047` (Coolify `bhysqvvdmdmokfwde3vpjqfz`). Avec le manifeste GitHub bloqué, les deux boutons servent bien le fichier local build 36. Les **162 454 415 octets** téléchargés depuis spawt.online ont exactement la même empreinte que l’APK compilé et reçu. Backend final : `running:healthy`.
