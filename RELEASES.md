@@ -1,3 +1,11 @@
+## Build 33 — 2026-10-18 — compilation en cours
+
+- Version 1.1.1 ; source contrôlée `8f7b53f74760fa8721394d4455533d989b82ede2` ; recette `documentation/android-build33.json`.
+- Actualités du panel, actualisation des contenus publiés, remontée d’activité et diagnostic push.
+- Build 32 préservé dans la lignée ; signature EAS existante. Aucun nouveau module natif.
+- La réception de notifications Android reste conditionnée à la configuration Firebase/FCM absente de cette livraison.
+- La preuve de compilation et le lien du binaire seront ajoutés après vérification de l’artefact.
+
 # SPAWT — Releases (vue testeur)
 
 Journal des **APK alpha**, publiés ou explicitement en réception, destiné aux testeurs. Pour citer un
