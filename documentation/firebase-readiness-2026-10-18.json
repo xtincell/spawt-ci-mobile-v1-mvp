@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-10-18T14:41:42.825Z",
+  "appId": "15ac2301-e901-4caa-a8c8-864c6621bcd0",
+  "packageName": "com.upgraders.spawt",
+  "readOnly": true,
+  "credentialRecords": [
+    {
+      "packageName": "com.upgraders.spawt",
+      "isLegacy": false,
+      "legacyFcmConfigured": false,
+      "fcmV1Configured": false,
+      "firebaseProjectId": null
+    }
+  ],
+  "environmentMetadata": {
+    "status": "read",
+    "project": [],
+    "account": []
+  },
+  "githubRun": 39137130706,
+  "localAndroidConfig": {
+    "packageName": "com.upgraders.spawt",
+    "googleServicesFileConfigured": false,
+    "googleServicesJsonPresent": false
+  },
+  "managedEnvironment": {
+    "observationsCurrent": true,
+    "googleCloudIdentityConfigured": false,
+    "configuredSecrets": 0
+  },
+  "remaining": [
+    "Connect a Google Cloud identity authorized for the SPAWT Firebase project and service accounts",
+    "Create or select the Firebase Android app for com.upgraders.spawt",
+    "Add its client configuration and bind an FCM v1 service account in Expo",
+    "Build and verify a new Android APK, then validate reception on an available device"
+  ]
+}
