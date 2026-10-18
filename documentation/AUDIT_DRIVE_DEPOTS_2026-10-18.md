@@ -1,5 +1,7 @@
 # Complément d'audit — Drive, collectes et dépôts SPAWT
 
+**État après intervention** : migration, import et panel désormais déployés ; voir `MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`. Ce complément conserve les constats d'avant mise en service et les limites de l'inventaire local.
+
 Vérification du 18 octobre 2026, complément de `AUDIT_ADMIN_COMMENTAIRES_2026-10-18.md`. Lecture des sources, comparaison d'archives et de code ; aucun import ni déploiement en production.
 
 ## Sources retrouvées et lues

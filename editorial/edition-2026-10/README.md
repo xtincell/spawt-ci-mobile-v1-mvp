@@ -2,7 +2,7 @@
 
 3 carnets, 7 entrées éditoriales, 6 lieux existants distincts. Deux carnets généraux et un carnet En duo. Couvertures dessinées avec titres, générées pour SPAWT. Images thématiques, jamais présentées comme photos réelles des lieux.
 
-**Publication en production : non effectuée, accès serveur absent.** Les couvertures sont disponibles sur le dépôt public à une URL figée. Le JSON et la transaction SQL sont prêts ; ce dossier n'est pas une migration automatique.
+**Publication en production effectuée le 18 octobre 2026** : trois carnets, sept entrées, contrôlés par API et dans la console sous session Xtincell. Les couvertures sont disponibles sur le dépôt public à une URL figée. Ce dossier n'est pas une migration automatique. Voir `documentation/MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`.
 
 Exécuter `publish.sql` après la migration 0075 avec un accès administrateur. Vérifier les lieux référencés, la visibilité avec une session mobile authentifiée et l'ouverture des fiches. Aucun nouveau build n'est requis pour modifier ces contenus une fois le build 32 et le backend installés. Le SQL s'arrête si un carnet existant a été modifié ; il ne supprime pas le travail d'un rédacteur.
 

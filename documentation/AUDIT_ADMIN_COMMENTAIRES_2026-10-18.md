@@ -1,5 +1,7 @@
 # Panel admin, champs et commentaires — 18 octobre 2026
 
+**Mise en service effectuée ensuite le même jour** : voir `MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`. Les constats ci-dessous décrivent l'état initial avant migration, import et déploiement.
+
 Complément après consultation du Drive et des quatre dépôts : voir `AUDIT_DRIVE_DEPOTS_2026-10-18.md` pour les 31 363 références, les 129 fiches enrichies, les circuits de collecte distincts et la comparaison exacte du ZIP d'intégration avec GitHub.
 
 Audit de `xtincell/spawt-ci-mobile-v1-mvp`, de ses branches récentes et des surfaces publiques de `https://api.spawt.online` et `https://admin.spawt.online`. Les lectures publiques ne remplacent pas une session staff, les journaux serveur ou le contenu local d'un téléphone.

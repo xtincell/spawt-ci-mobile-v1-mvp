@@ -1,3 +1,10 @@
+## 2026-10-18 — Mise en service de la rédaction et du corpus
+
+- Migration 0075 appliquée après sauvegarde PostgreSQL vérifiée. Import effectif de 31 492 références (31 sources), dont 129 enrichissements ; dix profils brouillons créés.
+- Dix avis éditoriaux publiés sous le compte staff Xtincell, trois carnets et sept entrées publiés. Trente avis fondateurs conservés ; l'inventaire public reste à dix lieux.
+- Admin déployé au commit c8ede0e : contexte racine partagé, Docker Node 22/nginx, mode statique Coolify désactivé. Cinq parcours navigateur authentifiés passent sans erreur API/JavaScript ; bundle public identique au build vérifié.
+- Commentaires mobiles : insertion, trois notes, lecture et modification testées sous droits propriétaire en transaction annulée. Aucun texte dans les trois spawts mobiles et les neuf contributions quiz existants ; recette de l'app installée encore distincte. Voir `documentation/MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`.
+
 ## 2026-10-18 — Audit admin et accès aux textes
 
 - Complément Drive : base SQLite de 31 363 références, 129 enrichissements et rapports Missions 1/2 lus ; 44 fichiers du ZIP d'intégration identiques à la PR15. Circuits formulaire local/quiz/mobile/vitrine documentés ; quatre dépôts vérifiés et aucune branche locale non poussée dans les clones accessibles. Le Mac n'est pas monté. Voir `documentation/AUDIT_DRIVE_DEPOTS_2026-10-18.md`.

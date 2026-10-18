@@ -1,5 +1,5 @@
 {
-  "status": "prepared_not_published",
+  "status": "published",
   "prepared_on": "2026-10-18",
   "required_staff_email": "xtincell@gmail.com",
   "source": "supabase/seed/founder_reviews_mission1.sql; matching public_reviews verified 2026-10-18",
@@ -114,5 +114,7 @@
       "note_service": null,
       "source_review_id": "8d86dba4-b0c4-4b5b-a801-30b175f73fb4"
     }
-  ]
+  ],
+  "published_on": "2026-10-18",
+  "published_staff_id": "3960c617-fc75-4c7b-be3c-3440f573e390"
 }

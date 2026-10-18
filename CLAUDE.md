@@ -36,7 +36,15 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
-## État déployé (2026-07-28 — mesuré, pas déclaré)
+## Mise en service confirmée le 2026-10-18
+
+- Migration 0075 appliquée après sauvegarde PostgreSQL ; 31 492 références de recherche privées (31 sources), dont 129 enrichissements, et dix profils brouillons.
+- Dix avis éditoriaux publiés sous le compte staff Xtincell (affiché Alexandre), trois carnets/sept entrées publiés ; trente textes fondateurs conservés. Dix lieux publics, aucune publication automatique des références.
+- Console `https://admin.spawt.online` : branche `codex/audit-admin-commentaires`, commit applicatif épinglé `c8ede0ecf288c829f738f2ca09514fb4450803e3`. Dockerfile `/spawt-admin/Dockerfile`, contexte `/`, `is_static=false`, port80 ; Node22 compile les imports de `shared/`, nginx sert la SPA.
+- Recette navigateur réelle Xtincell : lieux, modération, rédaction, recherche, carnets ; zéro erreur API/JS. Test transactionnel des commentaires mobiles sous droits propriétaire réussi puis annulé ; le téléphone installé reste à diagnostiquer séparément.
+- Preuves et reprise : `documentation/MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`.
+
+## Repères d'exploitation antérieurs (2026-07-28)
 
 ⚠️ **Le projet Supabase cloud `ucymjsxmnzdxvvupgaof` est SUPPRIMÉ** (NXDOMAIN). Toute
 doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qui vit
