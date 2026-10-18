@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-10-18T16:15:07.063Z",
+  "firebaseProjectId": "spawt-ci",
+  "firebaseProjectNumber": "784936275475",
+  "firebaseAndroidAppId": "1:784936275475:android:3592fb2dc6cc9ffc0a39e6",
+  "packageName": "com.upgraders.spawt",
+  "expoAppId": "15ac2301-e901-4caa-a8c8-864c6621bcd0",
+  "serviceAccount": "spawt-expo-fcm@spawt-ci.iam.gserviceaccount.com",
+  "serviceAccountRoles": [
+    "roles/firebasecloudmessaging.admin"
+  ],
+  "fcmApiEnabled": true,
+  "fcmV1ConfiguredInExpo": true,
+  "googleValidateOnlyPassed": true,
+  "actualMessagesSent": 0,
+  "configurationRun": 39143630770,
+  "bootstrapProviderDisabled": true,
+  "bootstrapBindingsRemaining": 0,
+  "unusedKeysRemoved": 2,
+  "localServiceAccountKeyRemoved": true,
+  "physicalDeviceDeliveryVerified": false,
+  "androidBuild": 35,
+  "androidBuildRun": 39143492062,
+  "androidSourceCommit": "f265ae2a14ca01ee3b919a52aee6aac8c960ab9b",
+  "androidBuildStatus": "in_progress"
+}

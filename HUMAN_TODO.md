@@ -120,12 +120,10 @@ dépend entièrement de ce qui tourne sur Coolify :
 - [ ] **Formulaire Data Safety + classification du contenu** : recopier
   `documentation/DATA_SAFETY_PRIVACY.md` (runbook §3.3). Nécessite l'URL publique de
   demande de suppression de compte (page web à créer — voir doc).
-> **Vérification du 18/10/2026** : accès Expo confirmé par la CI [39137130706](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39137130706). Pour `com.upgraders.spawt`, aucune clé FCM v1 ni legacy n’est associée ; aucune variable Firebase/Google Services n’est configurée au niveau du projet ou du compte. Aucun accès Google Cloud n’est connecté à l’environnement de travail. La présence d’un projet Firebase externe reste inconnue. Le code Android n’intègre pas encore `google-services.json` ; une nouvelle compilation sera nécessaire après configuration. Preuve sans secrets : `documentation/firebase-readiness-2026-10-18.json`.
+> **Mise à jour du 18/10/2026, 16:15 UTC** : connexion officielle Firebase effectuée. Application Android créée dans le projet existant `spawt-ci`, signature enregistrée et compte FCM dédié lié à Expo. Test Google `validate_only` réussi, sans notification envoyée. CI de configuration [39143630770](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39143630770). Accès temporaire GitHub/Google désactivé et clés inutilisées supprimées. Preuve : `documentation/firebase-configuration-2026-10-18.json`. Le fichier `firebase-readiness-2026-10-18.json` conserve le diagnostic initial de 14:41 UTC.
 
-- [ ] **FCM (push Android)** : projet Firebase → `google-services.json` à commiter dans
-  `app/` + clé `"googleServicesFile": "./google-services.json"` dans `app.json` (diff
-  runbook §4) + **clé de service FCM V1 uploadée dans EAS** (`eas credentials`).
-  Sans ça : aucune notif du Guet sur Android (l'app dégrade proprement).
+- [x] **Configuration FCM Android** : `app/google-services.json` et `googleServicesFile` intégrés ; compte `spawt-expo-fcm` avec le seul rôle `roles/firebasecloudmessaging.admin`, clé privée conservée dans Expo.
+- [ ] **Réception sur téléphone** : installer le nouvel APK Firebase, autoriser les notifications et vérifier une réception ciblée. La validation Google ne constitue pas une preuve de livraison sur appareil.
 
 ## Bloquant pour un OTP réel (inscription par SMS)
 
