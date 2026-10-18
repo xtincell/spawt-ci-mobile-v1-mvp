@@ -1,9 +1,10 @@
-## 2026-10-18 — configuration Firebase Android, build 35 en préparation
+## 2026-10-18 — Firebase Android et publication automatique, build 35
 
 - Application Android `com.upgraders.spawt` enregistrée dans le projet existant `spawt-ci`, avec la signature de distribution actuelle.
 - Configuration client Firebase ajoutée au binaire ; contrôles du projet, du package et des ressources effectivement compilées.
 - Compte technique FCM dédié ; workflow de liaison Expo par identité Google temporaire. La clé privée reste hors dépôt et hors APK.
-- La compilation et la réception sur téléphone restent à vérifier avant d’annoncer le push opérationnel.
+- Build 35 compilé, signé et publié après recette native : cinq contrôles de démarrage/réouverture, animation et initialisation Firebase réussis. Validation Google sans envoi réel ; réception sur téléphone encore à vérifier.
+- Publication Android : contrôle de l’empreinte de l’asset puis mise à jour automatique du manifeste public, sans régression de numéro. Les boutons de la vitrine suivent ce manifeste avec repli local.
 
 ## 2026-10-18 — liaison panel / app, build 34
 

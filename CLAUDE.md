@@ -36,12 +36,19 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
+## Firebase et publication Android — 2026-10-18
+
+- Connexion officielle Firebase établie ; compte FCM dédié limité à `roles/firebasecloudmessaging.admin`, clé privée dans Expo uniquement. Identité de configuration temporaire désactivée, autorisations retirées et clés inutilisées supprimées.
+- Build 35 : source `f265ae2`, compilation `39143492062`, recette native `39146032702`, publication `39146376114`. Les avis, carnets, actualités et remontées d’activité du build 34 sont conservés.
+- La publication vérifiée avance `android-releases/latest.json`. La vitrine `5dc7357` déployée sur spawt.online suit automatiquement ce manifeste ; deux boutons et fichier public vérifiés. Une compilation seule ne change pas le bouton. Préserver ce circuit pour les futures versions.
+- Réception push sur téléphone restant à confirmer. Voir `documentation/FIREBASE_ANDROID_2026-10-18.md` et la preuve JSON associée.
+
 ## Liaison panel / app — 2026-10-18
 
 - Migrations 0077/0078 en production, sauvegarde complète conservée. Console épinglée sur `47cc174d2558ae0155f1847aac566a111e8ababd` : actualités programmables, activité des comptes à partir du build 34, estimation et historique push.
 - Invalidation commune des contenus publics au premier plan ; liens directs Explore attendent le chargement des fonctionnalités. Le suivi d’activité n’existe pas dans les anciennes versions.
-- Le nombre `sent` indique une acceptation Expo, jamais une réception. Aucun téléphone enregistré lors de l’intervention ; Firebase Android absent du dépôt. Ne pas annoncer les notifications opérationnelles sur appareil.
-- Le build 33 a été annulé avant livraison ; build 34 publié après contrôle de signature et ouverture Android 35, disponible sur spawt.online (portail `8f48c24`). Preuves et limites : `documentation/LIAISON_PANEL_APP_2026-10-18.md` et `documentation/liaison-panel-app-verification.json`.
+- Le nombre `sent` indique une acceptation Expo, jamais une réception. Firebase/FCM configuré dans `spawt-ci` et Expo, intégré au build 35 et initialisé sur émulateur. Aucun téléphone enregistré lors du contrôle ; ne pas annoncer une réception physique sans essai réel.
+- Le build 33 a été annulé avant livraison ; build 34 publié après contrôle de signature et ouverture Android 35, puis remplacé par le build 35 avec Firebase. Preuves et limites : `documentation/LIAISON_PANEL_APP_2026-10-18.md` et `documentation/liaison-panel-app-verification.json`.
 
 ## Fiches documentaires créées le 2026-10-18
 
