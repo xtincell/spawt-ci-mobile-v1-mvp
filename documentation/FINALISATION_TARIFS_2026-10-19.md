@@ -40,3 +40,7 @@ Le build 36 (`76fb9be`, compilation `39175490281`) est en cours. Les résultats 
 - Incident d'exploitation : le redémarrage global via Coolify 4.1.2 a arrêté le stack sans le relancer, avec une interruption d'environ dix minutes (23:23–23:33 UTC le 18 octobre). Les conteneurs existants et leurs volumes ont été relancés directement via un outil de maintenance temporaire sans domaine public. Les 155 fiches et l'absence de paiements ont été recontrôlées. Le repli vers un redémarrage global a été retiré de `deploy-edge-functions.mjs` ; seul le conteneur Edge doit être rechargé. Coolify retire également le saut de ligne final des fichiers : la comparaison en tient compte.
 
 La compilation Android 36 et sa recette restent suivies ci-dessous ; elles sont distinctes de la mise à jour du serveur.
+
+L'outil de maintenance temporaire a été supprimé, ses montages retirés et sa suppression confirmée par l'API. Les empreintes des sept fichiers ont été contrôlées **dans le conteneur Edge en cours d'exécution**. Le stack est revenu à `running:healthy`.
+
+La CI SQL attend désormais le serveur TCP PostgreSQL définitif : le serveur temporaire d'initialisation pouvait donner un faux signal de disponibilité. Le workflow paiement `39177223856` est vert après ce correctif. Preuves sans identifiants dans `finalisation-tarifs-proof.json`.

@@ -1,0 +1,208 @@
+{
+  "backup": {
+    "path": "/var/lib/postgresql/data/spawt-backups/before-tarifs-20261019.dump",
+    "stat": {
+      "size": 4189612,
+      "modification": "2026-10-18 23:19:52+00"
+    },
+    "archive_listing_valid": true
+  },
+  "schema": {
+    "migrations": [
+      {
+        "version": "0081_confirm_provider_payment_atomic"
+      },
+      {
+        "version": "0080_restore_admin_audit_actions"
+      },
+      {
+        "version": "0079_gold_lieu_prix_final"
+      }
+    ],
+    "plans": [
+      {
+        "code": "b2b_gold",
+        "price_ttc": 60000,
+        "price_ht": "50847.00",
+        "tva_amount": 9153,
+        "is_active": true
+      },
+      {
+        "code": "gold_annual",
+        "price_ttc": 29500,
+        "price_ht": "25000.00",
+        "tva_amount": 4500,
+        "is_active": true
+      },
+      {
+        "code": "gold_monthly",
+        "price_ttc": 2950,
+        "price_ht": "2500.00",
+        "tva_amount": 450,
+        "is_active": true
+      },
+      {
+        "code": "pro",
+        "price_ttc": 17700,
+        "price_ht": "15000.00",
+        "tva_amount": 2700,
+        "is_active": true
+      }
+    ],
+    "payment_counts": [
+      {
+        "subscriptions": 0,
+        "invoices": 0,
+        "manual_requests": 0
+      }
+    ]
+  },
+  "sql": {
+    "suites": [
+      "gold_lieu_prix_final",
+      "manual_payments",
+      "admin_audit_actions",
+      "provider_payment_atomic"
+    ],
+    "all_rolled_back": true,
+    "counts_unchanged": [
+      {
+        "subscriptions": 0,
+        "invoices": 0,
+        "manual_requests": 0
+      }
+    ]
+  },
+  "browser": {
+    "checks": [
+      "Xtincell admin reads four live plans; Gold lieu 60000 TTC = 50847 HT + 9153 TVA",
+      "Price preview and mandatory reason verified; cancelled without changing production price",
+      "Admin page loads: paiements",
+      "Admin page loads: actualites",
+      "Admin page loads: activite",
+      "Live legal page updated without broken routes: cgu",
+      "Live legal page updated without broken routes: cgv"
+    ],
+    "page_errors": [],
+    "api_errors": [],
+    "android_buttons": [
+      "/downloads/spawt-1.1.1-build35.apk",
+      "/downloads/spawt-1.1.1-build35.apk"
+    ],
+    "status": "passed",
+    "temporary_session_closed": true
+  },
+  "edge": {
+    "files": [
+      {
+        "path": "payment-checkout/index.ts",
+        "sha256": "4d4207aad621bab33fe4cbbc065a6f45621446e899b6769ac8e280949d2dc93d",
+        "stored_sha256": "c54d81f26123111f2ce0baaf8095a613014904f0bf6f1804a0de766c8f79f456"
+      },
+      {
+        "path": "payment-webhook/index.ts",
+        "sha256": "12aa4adfdf15c3bddc9f3daf2c2480ae55cb4186d7230379f25a06988bb4cebb",
+        "stored_sha256": "0df309f7ae926a0c23c030ccc9c5a14480a778a00e472f2f250e9fb296a483bb"
+      },
+      {
+        "path": "_shared/payment/cinetpay.ts",
+        "sha256": "a509af7220333ecd6f097fed49d02c3ec9e7dcee01f0fc1ea7232e594392a095",
+        "stored_sha256": "c814b8adbef31fae141ded0e059a3e8671cdb31af10017eb639f90f9e34b17fd"
+      },
+      {
+        "path": "_shared/payment/factory.ts",
+        "sha256": "9c3b9b84d57d2f67f83aa8ee6c1406679b2a507ec0b05496f9320ec1a9616764",
+        "stored_sha256": "878488526b87f92c769493250d9779ea80e499b4f8f49d6ffe935b5e9dca0976"
+      },
+      {
+        "path": "_shared/payment/plans.ts",
+        "sha256": "1711a9fcff6c53a79e7eb0ea1673046b763effdc038cd566043298f0b8bc8ae1",
+        "stored_sha256": "20a7e66aa1ab218a7aa02740316bd83d00f3b0fba8a19ce09df79145089b73e6"
+      },
+      {
+        "path": "_shared/payment/subscription-lifecycle.ts",
+        "sha256": "66b08c888d22d02fc49af5ce96e9d25530170ccefb8c02e869e9e52e43ebdfbc",
+        "stored_sha256": "9cfccabde534afa42e5fa41ca8a77ee38468660d071b086fe711dadbdf77c8d3"
+      },
+      {
+        "path": "_shared/payment/types.ts",
+        "sha256": "cac3e24d4ec5772a5dd9c93335db9a0c091238426f20680916375e34a4a136c6",
+        "stored_sha256": "6188f9eba47e285051578b5e12c17b23c98d98e95d04cb67692c1334177336d5"
+      }
+    ],
+    "readback_matches_except_final_newline": true,
+    "edge_restarted": true,
+    "http_checks": [
+      {
+        "path": "auth/v1/health",
+        "method": "GET",
+        "status": 200,
+        "body": "{\"version\":\"v2.186.0\",\"name\":\"GoTrue\",\"description\":\"GoTrue is a user registration and authentication API\"}",
+        "allowHeaders": null
+      },
+      {
+        "path": "functions/v1/payment-checkout",
+        "method": "GET",
+        "status": 405,
+        "body": "{\"error\":\"method_not_allowed\"}",
+        "allowHeaders": "authorization, apikey, content-type, x-client-info"
+      },
+      {
+        "path": "functions/v1/payment-webhook",
+        "method": "GET",
+        "status": 405,
+        "body": "{\"error\":\"method_not_allowed\"}",
+        "allowHeaders": null
+      },
+      {
+        "path": "functions/v1/payment-checkout",
+        "method": "OPTIONS",
+        "status": 204,
+        "body": "",
+        "allowHeaders": "authorization, apikey, content-type, x-client-info"
+      }
+    ]
+  },
+  "runtime": {
+    "matched_files": 7,
+    "sha256": {
+      "/home/deno/functions/payment-checkout/index.ts": "c54d81f26123111f2ce0baaf8095a613014904f0bf6f1804a0de766c8f79f456",
+      "/home/deno/functions/payment-webhook/index.ts": "0df309f7ae926a0c23c030ccc9c5a14480a778a00e472f2f250e9fb296a483bb",
+      "/home/deno/functions/_shared/payment/cinetpay.ts": "c814b8adbef31fae141ded0e059a3e8671cdb31af10017eb639f90f9e34b17fd",
+      "/home/deno/functions/_shared/payment/factory.ts": "878488526b87f92c769493250d9779ea80e499b4f8f49d6ffe935b5e9dca0976",
+      "/home/deno/functions/_shared/payment/plans.ts": "20a7e66aa1ab218a7aa02740316bd83d00f3b0fba8a19ce09df79145089b73e6",
+      "/home/deno/functions/_shared/payment/subscription-lifecycle.ts": "9cfccabde534afa42e5fa41ca8a77ee38468660d071b086fe711dadbdf77c8d3",
+      "/home/deno/functions/_shared/payment/types.ts": "6188f9eba47e285051578b5e12c17b23c98d98e95d04cb67692c1334177336d5"
+    }
+  },
+  "cleanup": {
+    "application_uuid": "agimi5y3lvue0ie1ef4d8qvg",
+    "bind_metadata_removed": true,
+    "delete_volumes": false,
+    "request": {
+      "message": "Application deletion request queued."
+    },
+    "deleted_confirmed": true
+  },
+  "publicPaymentDenials": [
+    {
+      "path": "rest/v1/rpc/confirm_provider_payment",
+      "http": 401,
+      "error": "42501"
+    },
+    {
+      "path": "functions/v1/payment-checkout",
+      "http": 401,
+      "error": "invalid_token"
+    }
+  ],
+  "finalDataCounts": [
+    {
+      "places": 155,
+      "editorials": 10,
+      "collections": 3,
+      "subscriptions": 0,
+      "invoices": 0
+    }
+  ]
+}
