@@ -10,7 +10,6 @@
 import { haversineKm } from "./matching";
 
 export const FREE_RADIUS_KM = 3;
-export const GOLD_PRICE_LABEL_TTC = "2 950 F/mois TTC";
 
 /** Un lieu est verrouillé si le paywall est actif, le spawter non-Gold,
  *  et le lieu au-delà du rayon gratuit. Position fallback (permission refusée)

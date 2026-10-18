@@ -1,3 +1,8 @@
+## 2026-10-19 — Finalisation des tarifs, préparation Android 36
+
+- Prix Gold codé en dur retiré des cartes verrouillées : l’app décrit l’accès Gold sans annoncer un montant qui peut changer depuis la console.
+- Build 36 préparé sur la lignée du build 35 avec Firebase ; compilation et publication encore à recevoir.
+
 ## 2026-10-18 — Tarifs administrables, Gold lieu à 60 000 F (0079, non appliquée)
 
 - Décision fondateur : Gold lieu (`b2b_gold`) = 60 000 F CFA TTC par mois, prix final payé par le lieu ; SPAWT absorbe TVA et frais (avant : 65 000 HT, 76 700 TTC). Facture : 50 847 HT + 9 153 de TVA = 60 000.
