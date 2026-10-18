@@ -41,6 +41,14 @@ beforeEach(() => {
 });
 
 describe("inventaire paginé", () => {
+  it("permet de consulter les textes même lorsque le compteur communautaire est nul", async () => {
+    mount();
+    const link = await screen.findByRole("link", { name: "Voir les avis de Spot 1" });
+    expect(link).toHaveAttribute("href", "/moderation?place_id=place-1");
+    expect(screen.getByRole("columnheader", { name: "Avis communautaires" })).toBeInTheDocument();
+    expect(screen.getByText(/Les avis fondateurs en sont exclus/)).toBeInTheDocument();
+  });
+
   it("rend accessibles les lieux après la première page puis revient à la page 1 à la recherche", async () => {
     mount();
     await screen.findByText("Spot 1");

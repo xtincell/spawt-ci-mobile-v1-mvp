@@ -5,9 +5,9 @@
 //   M9 — audit logAuditAction throw → try/catch + UI feedback inline
 //   m11/m14 — remplace alert() par toast/banner + disable button on click
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ListFeedback, ListPagination } from "../../components/ListFeedback";
-import { useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useTable, useUpdate, useGetIdentity, useInvalidate } from "@refinedev/core";
 import { ReasonModal, FAUX_PAS_REVIEW } from "../../components/ReasonModal";
 import { logAuditAction, logAuditActionBestEffort, AuditLogError } from "../../lib/audit";
@@ -47,6 +47,8 @@ interface StaffIdentity {
 
 export const ModerationList = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const placeId = searchParams.get("place_id");
   const { data: identity } = useGetIdentity<StaffIdentity>();
   const [filter, setFilter] = useState<"recent" | "flagged">("recent");
   const [activeAction, setActiveAction] = useState<
@@ -70,6 +72,7 @@ export const ModerationList = () => {
         // préserve le filtre et devient bien `not.is.null` chez PostgREST.
         { field: "note_etoiles", operator: "nnull", value: "null" },
         { field: "deleted_at", operator: "null", value: "null" },
+        ...(placeId ? [{ field: "place_id", operator: "eq" as const, value: placeId }] : []),
         ...(filter === "flagged" ? [{ field: "flag_reason", operator: "nnull" as const, value: "null" }] : []),
       ],
     },
@@ -78,6 +81,8 @@ export const ModerationList = () => {
         "*, places!inner(id, name, neighborhood), spawters!inner(id, display_name, stade, is_banned, warning_count), review_author_attributions(spawter_id, spawters(id, display_name, stade))",
     },
   });
+
+  useEffect(() => { setCurrentPage(1); }, [placeId, setCurrentPage]);
 
   const { mutateAsync: updateReview } = useUpdate();
   const invalidate = useInvalidate();
@@ -184,6 +189,7 @@ export const ModerationList = () => {
   return (
     <div>
       <h1>Modération</h1>
+      {placeId ? <p>Avis de ce lieu, y compris les avis fondateurs. <Link to="/moderation">Voir tous les lieux</Link></p> : null}
       <p style={{ background: "var(--bg-warm)", padding: 12, borderRadius: 6 }}>
         ⓘ Modération <strong>proactive</strong> — avis récents et flagged anti-fraude.
         Les signalements envoyés par la Meute (bouton « Signaler » mobile, FR-017 livré)

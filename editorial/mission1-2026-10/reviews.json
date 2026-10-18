@@ -1,0 +1,118 @@
+{
+  "status": "prepared_not_published",
+  "prepared_on": "2026-10-18",
+  "required_staff_email": "xtincell@gmail.com",
+  "source": "supabase/seed/founder_reviews_mission1.sql; matching public_reviews verified 2026-10-18",
+  "reviews": [
+    {
+      "id": "7d855c2a-eb3b-565f-83f5-eba7f8755b99",
+      "place_id": "a1000000-0000-4000-8000-000000000001",
+      "place_name": "Kaiten",
+      "body": "Le doyen du japonais à Abidjan, et ça se sent. Sushi et carpaccio au niveau. Le menu lunch du midi est le meilleur rapport de la ville.",
+      "visited_on": "2026-03-10",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "33843a76-8e86-42d7-b25a-0cc21ced2638"
+    },
+    {
+      "id": "6979eddc-ac28-5474-b581-3a19b9a0d6c7",
+      "place_id": "a1000000-0000-4000-8000-000000000002",
+      "place_name": "Texas Grillz",
+      "body": "Les ribs tiennent leurs promesses et le bartender fait des cocktails sur mesure. Cosy malgré le format chaîne.",
+      "visited_on": "2026-03-10",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "7a54e036-c6a9-4d89-bc1c-9938dd412992"
+    },
+    {
+      "id": "370eb1a1-17ba-5caf-a06c-fd621956083e",
+      "place_id": "a1000000-0000-4000-8000-000000000003",
+      "place_name": "Sam's",
+      "body": "Le Crispy Bomb vaut son prix. Service carré, carte mise à jour régulièrement, propreté irréprochable.",
+      "visited_on": "2026-03-09",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "98a19430-22ca-49b6-8d8b-420a78215539"
+    },
+    {
+      "id": "372014b8-047c-552d-9731-e4b9319a1e05",
+      "place_id": "a1000000-0000-4000-8000-000000000004",
+      "place_name": "La Grande République",
+      "body": "Le meilleur porc goûté de toute la mission, sans hésiter. Les travers à 6 500, c'est cadeau.",
+      "visited_on": "2026-03-11",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "3dd7f81f-8fb5-49b1-b228-02a6fefe4249"
+    },
+    {
+      "id": "38d8dd95-e215-511f-bed3-977483a0d9fa",
+      "place_id": "a1000000-0000-4000-8000-000000000005",
+      "place_name": "Bushman Café",
+      "body": "Piano live le soir, statues et déco galerie sur plusieurs niveaux. On mange dans une exposition.",
+      "visited_on": "2026-03-08",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "c6616b28-119a-4473-bcbf-8647a433fee0"
+    },
+    {
+      "id": "a1345572-57bf-52c1-b925-b56ae1177054",
+      "place_id": "a1000000-0000-4000-8000-000000000006",
+      "place_name": "The Rooph",
+      "body": "Souris d'agneau confite, cuisson parfaite. Le pain perdu fumé glace cajou derrière : rien à jeter.",
+      "visited_on": "2026-03-09",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "d0d73c9d-cb2b-44da-a2de-d6ceea20de64"
+    },
+    {
+      "id": "fe69755b-64bc-5ca0-95c0-7a49ca1522b2",
+      "place_id": "a1000000-0000-4000-8000-000000000007",
+      "place_name": "Madame Antika",
+      "body": "Le meilleur cocktail du séjour — folléré-bissap. À lui seul il justifie le détour.",
+      "visited_on": "2026-03-09",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "275b51a1-7421-4b35-b24c-34e965197383"
+    },
+    {
+      "id": "e9d7606c-9527-5dd4-86c0-79bd1c3ce4c0",
+      "place_id": "a1000000-0000-4000-8000-000000000008",
+      "place_name": "Kajazoma",
+      "body": "Espace ouvert et lumineux mais cosy. Grands fauteuils pour les groupes, tables de deux ou quatre à côté.",
+      "visited_on": "2026-03-09",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "acf4f29b-3ef0-43c3-9fd8-b17e01489987"
+    },
+    {
+      "id": "b71bbe03-19a0-517e-9b23-82393d6301b3",
+      "place_id": "a1000000-0000-4000-8000-000000000009",
+      "place_name": "L'Impasse",
+      "body": "Très beau cadre, ancien bâtiment réaménagé avec goût. Les rhums arrangés maison valent le coup.",
+      "visited_on": "2026-03-10",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "8458c789-985c-47e7-986b-68eaf3d08235"
+    },
+    {
+      "id": "8a38bae5-84e7-52a5-ba0c-c8f14881bbed",
+      "place_id": "a1000000-0000-4000-8000-000000000010",
+      "place_name": "Le Paon",
+      "body": "Les boukarous cloisonnés sont très intimistes. Carte large : poisson, gibier — agouti, hérisson — et volailles.",
+      "visited_on": "2026-03-11",
+      "note_cuisine": null,
+      "note_cadre": null,
+      "note_service": null,
+      "source_review_id": "8d86dba4-b0c4-4b5b-a801-30b175f73fb4"
+    }
+  ]
+}

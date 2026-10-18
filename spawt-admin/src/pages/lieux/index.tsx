@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ListFeedback, ListPagination } from "../../components/ListFeedback";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useTable, useUpdate, useInvalidate } from "@refinedev/core";
 import { logAuditAction } from "../../lib/audit";
 
@@ -88,6 +88,7 @@ export const LieuxList = () => {
         </select>
       </div>
 
+      <p>Le compteur indique les avis communautaires. Les avis fondateurs en sont exclus ; « Voir les avis » permet aussi de lire leurs textes.</p>
       <ListFeedback query={tableQuery} empty={rows.length === 0} />
       <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
@@ -98,7 +99,7 @@ export const LieuxList = () => {
             <th>Cuisine</th>
             <th>Tier</th>
             <th>Note</th>
-            <th>Avis</th>
+            <th>Avis communautaires</th>
             <th>Statut</th>
             <th>Actions</th>
           </tr>
@@ -114,6 +115,7 @@ export const LieuxList = () => {
               <td>{row.place_adn?.total_reviews ?? 0}</td>
               <td>{row.is_published ? "Publié" : "Brouillon"}</td>
               <td style={{ display: "flex", gap: 6 }}>
+                <Link to={`/moderation?place_id=${encodeURIComponent(row.id)}`} aria-label={`Voir les avis de ${row.name}`}>Voir les avis</Link>
                 <button type="button" onClick={() => navigate(`/lieux/edit/${row.id}`)}>Éditer</button>
                 <button type="button" onClick={() => togglePublish(row)}>
                   {row.is_published ? "Dépublier" : "Publier"}

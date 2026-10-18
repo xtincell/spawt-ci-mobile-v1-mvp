@@ -1,3 +1,9 @@
+## 2026-10-18 — Audit admin et accès aux textes
+
+- Vérification publique : 10 lieux, 30 textes fondateurs attribués à Alexandre et 2 avis communautaires sans texte ; objets éditoriaux 0075 absents du backend et du panel déployé.
+- Liste Lieux : compteur communautaire explicite et lien vers les avis du lieu, fondateurs inclus ; filtre correspondant dans Modération.
+- Dix textes éditoriaux sourcés préparés pour Xtincell, sans publication. Accès serveur absent : migration, déploiement et recette authentifiée restent ouverts. Voir `documentation/AUDIT_ADMIN_COMMENTAIRES_2026-10-18.md`.
+
 ## 2026-10-17 — Recherche et espace éditorial (préparation build 32)
 
 Profils identitaires, notes internes éditables et avis de terrain ; corpus privé rapprochable, publication explicite et historique. Horaires/galerie éditables, ADN de référence recalculé atomiquement, carnets duo gérés sur serveur et lecteur mobile de rubriques. Migration 0075 testée localement ; serveur/admin non déployés, compilation Android à recevoir. Voir documentation/ESPACE_EDITORIAL_ET_RECHERCHE_2026-10-17.md.
