@@ -1,6 +1,7 @@
-## 2026-10-18 — liaison panel / app, build 33
+## 2026-10-18 — liaison panel / app, build 34
 
 - Actualités, informations et promotions éditoriales : brouillon, publication, programmation, retrait et suppression depuis le panel ; lecture dans le fil mobile.
+- Liens directs Explore préservés pendant le chargement des fonctionnalités, indépendant du Guet.
 - Actualisation des fiches, avis éditoriaux et communautaires, carnets, événements et offres au retour dans l’app et sur changement serveur (sonde 30 s ; échéances à la minute).
 - Activité authentifiée : dernière présence au premier plan, version/build, état push et écritures du compte en attente, consultables par le staff.
 - Push : estimation serveur paginée, cible individuelle, filtre Gold fermé en cas d’erreur, réservation atomique/idempotente et historique avant envoi ; correction CORS. Acceptation Expo distincte de la réception.

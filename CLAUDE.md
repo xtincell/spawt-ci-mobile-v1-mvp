@@ -36,6 +36,13 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
+## Liaison panel / app — 2026-10-18
+
+- Migrations 0077/0078 en production, sauvegarde complète conservée. Console épinglée sur `47cc174d2558ae0155f1847aac566a111e8ababd` : actualités programmables, activité des comptes à partir du build 34, estimation et historique push.
+- Invalidation commune des contenus publics au premier plan ; liens directs Explore attendent le chargement des fonctionnalités. Le suivi d’activité n’existe pas dans les anciennes versions.
+- Le nombre `sent` indique une acceptation Expo, jamais une réception. Aucun téléphone enregistré lors de l’intervention ; Firebase Android absent du dépôt. Ne pas annoncer les notifications opérationnelles sur appareil.
+- Le build 33 a été annulé avant livraison ; build 34 publié après contrôle de signature et ouverture Android 35, disponible sur spawt.online (portail `8f48c24`). Preuves et limites : `documentation/LIAISON_PANEL_APP_2026-10-18.md` et `documentation/liaison-panel-app-verification.json`.
+
 ## Fiches documentaires créées le 2026-10-18
 
 - Migration 0076 : brouillons avec GPS/prix inconnus ; publication protégée. Panel déployé sur `66bc56ee6f894781bb0f131504622f43733ed083` à 12:54 UTC ; quatre contrôles navigateur réels sans erreur API/JS.

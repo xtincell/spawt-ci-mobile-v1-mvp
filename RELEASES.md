@@ -1,9 +1,16 @@
-## Build 34 — 2026-10-18 — compilation préparée
+## v1.1.1 — build 34 — 2026-10-18
 
-- Version 1.1.1 ; source `47cc174d2558ae0155f1847aac566a111e8ababd` ; recette `documentation/android-build34.json`.
-- Publications du panel et lecture actualisée dans l’app ; suivi d’activité ; liens directs vers les carnets préservés au démarrage.
-- Le build 33 n’a pas été livré. La précédente livraison reste le build 32 ; signature EAS conservée.
-- Firebase/FCM absent : lecture du fil active, réception des notifications système non validée.
+**APK publié** : [télécharger le build 34](https://spawt.online/downloads/spawt-1.1.1-build34.apk) · [Release GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-18-34).
+
+- Source : `47cc174d2558ae0155f1847aac566a111e8ababd` ; [compilation 39133029325](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39133029325).
+- 162 451 883 octets ; SHA-256 `39875c39314c5da714e6179a5c412c80bfcf7f4061ea5a91dabbe4ee7a71628f`.
+- Identité du paquet, version, backend embarqué, CRC et continuité de signature vérifiés. Téléchargement local identique.
+- [Recette Android 35](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39135323263) réussie : cinq contrôles de démarrage/réouverture, animation visible, aucune surface noire ; aucun compte utilisé ni OTP envoyé.
+- Publications du panel et lecture actualisée dans l’app : avis éditoriaux, carnets, événements, offres et nouveau fil d’actualités. Liens directs vers les carnets préservés au démarrage.
+- Activité récente et état des envois remontés au panel. Installer par-dessus l’app actuelle pour préserver les données locales en attente.
+- Le build 33 n’a pas été livré. La réception des notifications système Android reste conditionnée à la configuration Firebase/FCM. Aucun IPA ni OTA publié.
+
+Voir le [bilan et les limites](./documentation/LIAISON_PANEL_APP_2026-10-18.md).
 
 ## Build 33 — 2026-10-18 — compilation annulée, non livré
 

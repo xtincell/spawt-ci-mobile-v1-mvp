@@ -1,6 +1,6 @@
 # Panel admin, champs et commentaires — 18 octobre 2026
 
-**Mise en service effectuée ensuite le même jour** : voir `MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`. Les constats ci-dessous décrivent l'état initial avant migration, import et déploiement.
+> **Audit initial, avant accès serveur.** Les constats de déploiement ci-dessous ont depuis été traités. Voir la [mise en service éditoriale](./MISE_EN_SERVICE_EDITORIALE_2026-10-18.md) puis le [bilan de liaison panel/app](./LIAISON_PANEL_APP_2026-10-18.md) pour l’état livré et les limites restantes.
 
 Complément après consultation du Drive et des quatre dépôts : voir `AUDIT_DRIVE_DEPOTS_2026-10-18.md` pour les 31 363 références, les 129 fiches enrichies, les circuits de collecte distincts et la comparaison exacte du ZIP d'intégration avec GitHub.
 
