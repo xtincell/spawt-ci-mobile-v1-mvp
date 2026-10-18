@@ -1,3 +1,15 @@
+## v1.1.1 — build 35 — 2026-10-18
+
+**APK publié** : [télécharger le build 35](https://spawt.online/downloads/spawt-1.1.1-build35.apk) · [Release GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-18-35).
+
+- Source `f265ae2a14ca01ee3b919a52aee6aac8c960ab9b` ; [compilation 39143492062](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39143492062), [recette native 39146032702](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39146032702), [publication 39146376114](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39146376114).
+- 162 454 527 octets ; SHA-256 `53b7dcb40f0718484b10541a078c24382951536d5ab8c26a846cc4078f8c4086`.
+- Firebase Android intégré et FCM v1 associé à Expo. Ressources natives, continuité de signature, backend embarqué et intégrité vérifiés. Cinq contrôles de démarrage/réouverture, animation et initialisation Firebase réussis sur Android 35.
+- Fonctionnalités panel/app du build 34 conservées. Installer par-dessus l’app actuelle pour préserver les données locales en attente.
+- Manifeste public de téléchargement mis à jour automatiquement après validation de l’APK publié. Aucun téléphone physique ni envoi réel dans cette recette ; réception push encore à confirmer. Aucun IPA ni OTA publié.
+
+Voir [Firebase et téléchargement automatique](./documentation/FIREBASE_ANDROID_2026-10-18.md).
+
 ## v1.1.1 — build 34 — 2026-10-18
 
 **APK publié** : [télécharger le build 34](https://spawt.online/downloads/spawt-1.1.1-build34.apk) · [Release GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-18-34).

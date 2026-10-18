@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "784936275475",
+    "project_id": "spawt-ci",
+    "storage_bucket": "spawt-ci.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:784936275475:android:3592fb2dc6cc9ffc0a39e6",
+        "android_client_info": {
+          "package_name": "com.upgraders.spawt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3cemiK2Pwm3IMxvo_yIqvFmaOCCdrPZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
