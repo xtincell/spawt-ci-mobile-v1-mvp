@@ -14,10 +14,12 @@ date: '2026-05-13'
 source_version: '1.0.0'
 source_author: 'John BMad'
 source_date: '2026-04-09'
-restructure_version: '1.0.3'
+restructure_version: '1.0.4'
 restructure_date: '2026-05-14'
-lastEdited: '2026-05-14'
+lastEdited: '2026-10-18'
 editHistory:
+  - date: '2026-10-18'
+    changes: 'Erratum v1.0.4 tarifaire (décision fondateur du 2026-10-18) — tier B2B Spawt Gold : 60 000 FCFA TTC/mois, prix final payé par le lieu (SPAWT absorbe TVA et frais) au lieu de 65 000 FCFA HT ; DR-TVA-02 et FR-029 réalignés sur le modèle « prix payé d’abord » (prix saisis TTC dans plans, HT et TVA dérivés). Aucune autre exigence modifiée.'
   - date: '2026-05-14'
     changes: 'Erratum v1.0.3 post-bmad-check-implementation-readiness — FR-031 palette/typo réalignées sur le kit canonique documentation/ux/, bloc brand canonique ajouté en Annexe, convention des références § explicitée, drift vocabulaire « VTC » documenté, comptes corrigés (41 NFRs / 24 DRs). Aucune exigence ajoutée, retirée ou re-scopée.'
 language: 'fr'
@@ -150,7 +152,7 @@ Source PRD §4.2.
 - Mode Crew (vote temps réel, websockets, sessions synchrones).
 - Cartes collectibles / Plats (4 niveaux de rareté).
 - Réservation 1-tap.
-- Tier B2B `Spawt Gold` (65 000 FCFA HT/mois) : visibilité contextuelle, analytics avancés, ciblage par archétype, benchmark anonymisé.
+- Tier B2B `Spawt Gold` (60 000 FCFA TTC/mois, prix final — erratum v1.0.4 ; ex-65 000 FCFA HT) : visibilité contextuelle, analytics avancés, ciblage par archétype, benchmark anonymisé.
 - Paws (monnaie d'activité).
 - Multi-villes Dakar, puis Afrique de l'Ouest francophone (Douala, Lagos, Accra). Architecture portable dès V1 (Décision PRD §18.1 tension 5).
 - SPAWT Wrapped (bilan annuel à M18).
@@ -239,7 +241,7 @@ SPAWT collecte de la géolocalisation continue (Le Guet), des PII (numéro de t�
 ### Fiscalité — TVA 18% + facturation séquentielle
 
 - **DR-TVA-01 :** TVA 18% applicable sur tous les services numériques B2C et B2B. Source PRD §14.2, §20.7.
-- **DR-TVA-02 :** Affichage en application B2C : prix TTC (les consommateurs finaux raisonnent en prix final en CI). Affichage B2B : prix HT + ligne TVA explicite. Source PRD §11.2, §20.7.
+- **DR-TVA-02 :** Affichage en application B2C : prix TTC (les consommateurs finaux raisonnent en prix final en CI). Affichage B2B : prix TTC, celui payé par le lieu ; la facture détaille HT et TVA 18 % (erratum v1.0.4 — était : prix HT + ligne TVA explicite). Source PRD §11.2, §20.7.
 - **DR-TVA-03 :** Déclaration TVA mensuelle à la DGI (Direction Générale des Impôts). Source PRD §20.7.
 - **DR-TVA-04 :** Factures B2B numérotées séquentiellement au format `SPAWT-2026-NNNN`. Source PRD §13.8, §20.7.
 
@@ -531,7 +533,7 @@ Anticipation des Guidelines stores pour éviter les rejets de review (coût 2-4 
 *Phase :* Sprint 1 (B2C uniquement, V1.5 pour B2B). *Source :* Cahier §4.2.
 
 **FR-029 — Catalogue de plans tarifaires**
-*Capability :* L'application gère les plans tarifaires via une table dédiée `plans` (champs `code`, `label`, `price_ht`, `currency_id`, `country_code`, `period`, `is_active`). Le champ `subscriptions.plan_id` référence cette table à la place d'un enum.
+*Capability :* L'application gère les plans tarifaires via une table dédiée `plans` (champs `code`, `label`, `price_ht`, `currency_id`, `country_code`, `period`, `is_active`). Le champ `subscriptions.plan_id` référence cette table à la place d'un enum. *Erratum v1.0.4 :* `plans` est la seule source des prix ; l'équipe y saisit le prix payé `price_ttc` (TTC, XOF entiers) depuis le panel admin, `price_ht = round(price_ttc / 1,18)` et `tva_amount = price_ttc − price_ht` en sont dérivés (TVA 18 %).
 *Acceptance :* Sprint 1 seed = `gold_monthly`, `gold_annual` (CI/XOF). V1.5 ajoute `pro` et `b2b_gold`. Un plan Gold peut être facturé différemment selon `country_code` (préparation Lagos/Dakar).
 *Phase :* Sprint 1. *Source :* Cahier §4.3.
 
@@ -818,6 +820,12 @@ Aucun sacrifice majeur. Quelques arbitrages mineurs :
   - **Comptes corrigés** : « 40 NFRs » → « 41 NFRs » et « 23 DRs » → « 24 DRs » (décompte réel des identifiants NFR- / DR- présents).
   - **Hors scope de cet erratum** (autres artefacts) : l'inexactitude « admin → V1.5 » de la spec UX et les 3 corrections de structure des epics — à traiter sur `ux-design-specification.md` / `epics.md`.
 
+- **v1.0.4 (2026-10-18)** — Erratum tarifaire, décision fondateur. **Un prix changé (Gold lieu), deux exigences réalignées (FR-029, DR-TVA-02), aucune exigence ajoutée ni retirée** :
+  - **Spawt Gold (lieux) = 60 000 FCFA TTC/mois, prix final** payé par le lieu (« prix vécu par le client ») : SPAWT absorbe la TVA et les frais. Remplace 65 000 FCFA HT/mois (76 700 FCFA TTC) dans la section Vision. Ventilation de la facture : 50 847 FCFA HT + 9 153 FCFA de TVA = 60 000 FCFA (aucun HT entier ne donne 60 000 par le calcul HT + 18 % : 50 847 → 59 999).
+  - **Modèle « prix payé d'abord »** (FR-029 complété) : les prix ne vivent que dans la table `plans`, administrée depuis le panel admin (page Tarifs). L'équipe saisit le prix payé TTC ; HT et TVA en sont dérivés, TVA fixe à 18 %. Le checkout, la validation manuelle et l'affichage lisent cette table ; un abonnement fige HT et TTC au checkout, et la facture reprend ces montants (facturé = encaissé).
+  - **DR-TVA-02 réaligné** : les prix B2B s'affichent TTC, comme les prix B2C ; la facture garde le détail HT + TVA 18 % (DR-TVA-01/03/04 inchangés).
+  - **Hors scope de cet erratum** : `PRD-source-extracted.md` (source extraite du `.docx`, non modifiée) garde les prix d'origine.
+
 ---
 
-**Document généré le 2026-05-14 — PRD BMAD v1.0.3 (erratum post-`bmad-check-implementation-readiness`, du PRD V1.0.0 John BMad du 2026-04-09).**
+**Document mis à jour le 2026-10-18 — PRD BMAD v1.0.4 (erratum tarifaire du 2026-10-18 ; v1.0.3 : erratum post-`bmad-check-implementation-readiness` du 2026-05-14 ; PRD V1.0.0 John BMad du 2026-04-09).**

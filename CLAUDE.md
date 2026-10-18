@@ -126,13 +126,24 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `scripts/create-staff-account.mjs`.
 - **Paiement à validation manuelle** (0063/0064) : **CinetPay est secondaire**. Le payeur
   déclare son versement (Wave, Orange Money, MoMo, Moov, espèces, virement) depuis
-  `portail/gold/paiement-manuel`, l'équipe valide dans la page **Paiements** de la console.
+  `portail/gold/paiement-manuel` (page absente de la vitrine servie depuis le
+  2026-09-22 : elle n'existe plus que sur la PR #1 du portail), l'équipe valide dans la
+  page **Paiements** de la console.
   `approve_payment_request()` fait tout en UNE transaction : abonnement + facture
   numérotée + rôle B2B + audit. Idempotente (`provider_tx_id = manuel:<id>`, UNIQUE).
-  ⚠️ Le prix vient de la table `plans`, jamais du montant déclaré. `plans` DOIT rester
-  aligné sur `_shared/payment/types.ts` — les deux avaient divergé de 3 000 F sur
-  l'annuel. Coordonnées de versement : table `payment_instructions`, **toutes inactives
-  tant que les numéros ne sont pas renseignés**.
+  ⚠️ **Les prix ne vivent QUE dans `plans`** (migration 0079) — jamais en constante
+  dans le code, jamais le montant déclaré. L'équipe saisit le **prix payé**
+  (`price_ttc`, F CFA entiers) dans la page **Tarifs** de la console (RPC
+  `admin_update_plan` : admin, motif, avant/après audités) ; un trigger dérive
+  `price_ht = round(TTC / 1,18)` et `tva_amount = TTC − HT` (TVA fixe 18 %). Le checkout
+  lit le plan (actif, sinon échec fermé) et fige HT/TTC sur l'abonnement
+  (`subscriptions.price_ttc`) ; webhook et validation manuelle facturent ces montants
+  figés : facturé = encaissé. Décision du 2026-10-18 : **Gold lieu (`b2b_gold`) =
+  60 000 F TTC, prix final** (50 847 HT + 9 153 TVA ; avant : 65 000 HT, 76 700 TTC).
+  ⚠️ **0079 n'est PAS appliquée en production** (branche `claude/gold-lieu-prix-final`) :
+  d'ici là, base et fonctions déployées gardent l'ancien catalogue. Coordonnées de
+  versement : table `payment_instructions`, **toutes inactives tant que les numéros ne
+  sont pas renseignés**.
 - **Feature flags** : 16 en base ; `paywall-geo` désormais actif sur `internal`/`alpha`
   (l'équipe peut le voir), **fermé sur `beta`/`prod`** tant que `payment_instructions`
   n'a pas de numéro actif. Pilotables depuis la page Fonctionnalités de l'admin.

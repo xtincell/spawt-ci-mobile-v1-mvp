@@ -1,3 +1,11 @@
+## 2026-10-18 — Tarifs administrables, Gold lieu à 60 000 F (0079, non appliquée)
+
+- Décision fondateur : Gold lieu (`b2b_gold`) = 60 000 F CFA TTC par mois, prix final payé par le lieu ; SPAWT absorbe TVA et frais (avant : 65 000 HT, 76 700 TTC). Facture : 50 847 HT + 9 153 de TVA = 60 000.
+- `plans` devient la seule source des prix : l'équipe saisit le prix payé, la base dérive HT = round(TTC / 1,18) et TVA = TTC − HT (trigger, TVA fixe 18 %). Plus aucun montant dans les Edge Functions ni dans la console.
+- Console : page Tarifs (lecture staff, écriture admin par la RPC `admin_update_plan`, motif obligatoire, avant/après journalisés) ; la page Paiements lit le tarif attendu dans `plans`.
+- Checkout : plan lu en base, actif seulement, échec fermé ; HT et TTC figés sur l'abonnement. Webhook et validation manuelle facturent ces montants figés (facturé = encaissé).
+- Migration 0079 + down + test SQL autonome, exécutés sur un PostgreSQL 16 local reconstruit depuis 0001 (montée, descente à l'identique, remontée). **Non appliquée en production.**
+
 ## 2026-10-18 — liaison panel / app, build 34
 
 - Actualités, informations et promotions éditoriales : brouillon, publication, programmation, retrait et suppression depuis le panel ; lecture dans le fil mobile.
