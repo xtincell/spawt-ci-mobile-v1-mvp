@@ -138,7 +138,9 @@ export const TarifsPage = () => {
       <p role="note" style={{ maxWidth: "70ch" }}>
         <strong>Un nouveau prix vaut pour les nouveaux paiements.</strong> Les
         factures déjà émises gardent leur montant, et un paiement déjà lancé est
-        facturé au prix figé à son ouverture.
+        facturé au prix figé à son ouverture. Les CGV prévoient une annonce
+        30 jours avant une évolution tarifaire : vérifie ce délai avant de
+        modifier un prix ici.
       </p>
       {isAdmin ? null : (
         <p style={{ color: "var(--ink-mute)" }}>Lecture seule : seul un admin modifie un tarif.</p>

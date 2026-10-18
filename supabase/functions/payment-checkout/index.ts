@@ -39,7 +39,6 @@
 //   ALLOWED_ORIGINS         — CSV origins portail (CORS fail-closed, P-11)
 //   SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY — injectés
 
-// @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import {
@@ -52,7 +51,6 @@ import {
 import { loadSellablePlan } from "../_shared/payment/plans.ts";
 import { createPaymentProvider, PaymentConfigError } from "../_shared/payment/factory.ts";
 
-// @ts-expect-error — Deno global
 declare const Deno: {
   env: { get(name: string): string | undefined };
   serve: (h: (req: Request) => Promise<Response> | Response) => void;
@@ -94,7 +92,7 @@ function corsHeaders(req: Request): Record<string, string> {
   const reflect = origin && allowed.includes(origin) ? origin : "null";
   return {
     "access-control-allow-origin": reflect,
-    "access-control-allow-headers": "authorization, apikey, content-type",
+    "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
     "access-control-allow-methods": "POST, OPTIONS",
     "vary": "origin",
   };

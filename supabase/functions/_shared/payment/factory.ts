@@ -16,7 +16,6 @@
 import type { IPaymentProvider } from "./types.ts";
 import { CinetPayProvider } from "./cinetpay.ts";
 
-// @ts-expect-error — Deno global (runtime Supabase Edge)
 declare const Deno: { env: { get(name: string): string | undefined } };
 
 /** Erreur de configuration (secret manquant) — mappée 500 edge_misconfigured. */

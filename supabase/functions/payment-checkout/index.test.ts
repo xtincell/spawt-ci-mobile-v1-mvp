@@ -41,6 +41,7 @@ Deno.test("payment-checkout: OPTIONS preflight → 204 + CORS headers", async ()
   const resp = await handleRequest(req);
   assertEquals(resp.status, 204);
   assertExists(resp.headers.get("access-control-allow-origin"));
+  assertEquals(resp.headers.get("access-control-allow-headers")?.includes("x-client-info"), true);
 });
 
 Deno.test("payment-checkout: non-POST → 405 avec allow header", async () => {
@@ -175,7 +176,7 @@ function installFakeCheckoutBackend(
   // fuites de Deno reste actif pour tout le reste.
   const realSetInterval = globalThis.setInterval;
   const realSetTimeout = globalThis.setTimeout;
-  const timers: number[] = [];
+  const timers: ReturnType<typeof globalThis.setTimeout>[] = [];
   globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
     const id = realSetInterval(...args);
     timers.push(id);
