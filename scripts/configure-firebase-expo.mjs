@@ -26,7 +26,15 @@ async function validateFcmKey(key) {
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
   const unsigned = encode({ alg: 'RS256', typ: 'JWT' }) + '.' + encode({ iss: key.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 });
   const assertion = unsigned + '.' + crypto.sign('RSA-SHA256', Buffer.from(unsigned), key.private_key).toString('base64url');
-  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }), signal: AbortSignal.timeout(30000) });
+  // Newly created Google keys can take a short time to propagate to OAuth.
+  let tokenResponse;
+  for (let attempt = 0; attempt < 13; attempt++) {
+    tokenResponse = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }), signal: AbortSignal.timeout(30000) });
+    if (tokenResponse.ok || ![400, 503].includes(tokenResponse.status) || attempt === 12) break;
+    await tokenResponse.arrayBuffer();
+    console.log('Waiting for the new Google key to become available');
+    await new Promise(resolve => setTimeout(resolve, 10000));
+  }
   if (!tokenResponse.ok) throw new Error(`FCM service account authentication HTTP ${tokenResponse.status}`);
   const token = await tokenResponse.json();
   const response = await fetch(`https://fcm.googleapis.com/v1/projects/${firebaseIdentity.projectId}/messages:send`, {
