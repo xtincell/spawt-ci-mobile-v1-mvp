@@ -1,7 +1,7 @@
 import { startContentSync } from "../src/lib/content-sync";
 import { startAppActivity } from "../src/lib/app-activity";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { AppState, Platform, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -39,7 +39,7 @@ import { StadeCelebration } from "../src/components/StadeCelebration";
 // badges-v2). Même doctrine d'overlay root que StadeCelebration.
 import { BadgeUnlocked } from "../src/components/progression/BadgeUnlocked";
 import { useProgressionStore } from "../src/store/progression-store";
-import { useFlag } from "../src/store/feature-flags";
+import { useFlag, useFeatureFlagsStore } from "../src/store/feature-flags";
 import {
   bootOfflineQueue,
   shutdownOfflineQueue,
@@ -112,6 +112,16 @@ export default function RootLayout() {
   // Au logout (spawter → null post-hydratation), tout est désarmé.
   const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
   const storeHydrating = useSpawterStore((s) => s.hydrating);
+  // Editorial availability must not depend on geofencing consent or opt-out.
+  useEffect(() => {
+    if (storeHydrating) return;
+    const refresh = () => { void useFeatureFlagsStore.getState().hydrate(spawterId); };
+    refresh();
+    const sub = AppState.addEventListener("change", state => { if (state === "active") refresh(); });
+    const timer = setInterval(() => { if (AppState.currentState === "active") refresh(); }, 60_000);
+    return () => { sub.remove(); clearInterval(timer); };
+  }, [spawterId, storeHydrating]);
+
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     return startContentSync(async () => {

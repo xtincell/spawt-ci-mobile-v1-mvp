@@ -48,9 +48,11 @@ jest.mock("expo-router", () => {
   };
 });
 
+let mockFlagsReady = true;
 let mockFlags: Record<string, boolean> = {};
 jest.mock("../../src/store/feature-flags", () => ({
   useFlag: (code: string) => mockFlags[code] ?? false,
+  useFeatureFlagsStore: (select: (s: unknown) => unknown) => select({ lastSyncAt: mockFlagsReady ? 1 : null, loading: !mockFlagsReady }),
 }));
 
 jest.mock("../../src/lib/analytics", () => ({
@@ -185,9 +187,18 @@ const trackMock = track as jest.Mock;
 
 describe("ExploreCollectionScreen — gate + rendu", () => {
   beforeEach(() => {
+  mockFlagsReady = true;
     jest.clearAllMocks();
     mockFlags = {};
     mockDetail = null;
+  });
+
+  it("keeps a cold-start deep link while remote flags are unresolved", async () => {
+    mockFlagsReady = false;
+    mockFlags = {};
+    const r = await renderScreen();
+    expect(r.root.findAll(n => isHost(n) && n.props.testID === "redirect")).toHaveLength(0);
+    expect(JSON.stringify(r.toJSON())).toContain("common.loading");
   });
 
   it("flag OFF → Redirect feed (deep link direct vers un slug)", async () => {

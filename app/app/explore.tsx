@@ -1,16 +1,19 @@
+import { FeatureLoading } from "../src/components/FeatureLoading";
 import { ScrollView, Pressable, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ExploreCollections } from "../src/components/ExploreCollections";
-import { useFlag } from "../src/store/feature-flags";
+import { useFlag, useFeatureFlagsStore } from "../src/store/feature-flags";
 import { useTheme } from "../src/theme/ThemeProvider";
 
 export default function ExploreScreen() {
   const enabled = useFlag("mode-explore");
+  const flagsReady = useFeatureFlagsStore(s => s.lastSyncAt !== null);
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
+  if (!flagsReady) return <FeatureLoading />;
   if (!enabled) return <Redirect href="/(tabs)" />;
   return (
     <SafeAreaView

@@ -1,3 +1,4 @@
+import { FeatureLoading } from "../../src/components/FeatureLoading";
 import { useContentRevision } from "../../src/lib/content-sync";
 import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { useNavigationAction } from "../../src/lib/use-navigation-action";
@@ -38,7 +39,7 @@ import { rankPlaces } from "../../src/lib/matching";
 import { track } from "../../src/lib/analytics";
 import { useSpawterPosition } from "../../src/lib/use-spawter-position";
 import { useSpawterStore } from "../../src/store/spawter-store";
-import { useFlag } from "../../src/store/feature-flags";
+import { useFlag, useFeatureFlagsStore } from "../../src/store/feature-flags";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 
 export default function ExploreCollectionScreen() {
@@ -52,6 +53,7 @@ export default function ExploreCollectionScreen() {
 
   // Tous les hooks AVANT tout early return (leçon R22 — rules of hooks).
   const enabled = useFlag("mode-explore");
+  const flagsReady = useFeatureFlagsStore(s => s.lastSyncAt !== null);
   const position = useSpawterPosition();
   const palais = useSpawterStore((s) => s.palais ?? EMPTY_PALAIS);
   const spawts = useSpawterStore((s) => s.spawts);
@@ -125,6 +127,7 @@ export default function ExploreCollectionScreen() {
     return map;
   }, [detail, palais, position, spawts, savedPlaceIds]);
 
+  if (!flagsReady) return <FeatureLoading />;
   if (!enabled) {
     return <Redirect href="/(tabs)" />;
   }
