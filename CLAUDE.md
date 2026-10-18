@@ -38,7 +38,7 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 
 ## Fiches documentaires créées le 2026-10-18
 
-- Migration 0076 : brouillons avec GPS/prix inconnus ; publication protégée.
+- Migration 0076 : brouillons avec GPS/prix inconnus ; publication protégée. Panel déployé sur `66bc56ee6f894781bb0f131504622f43733ed083` à 12:54 UTC ; quatre contrôles navigateur réels sans erreur API/JS.
 - 145 nouveaux brouillons sans note ni visite, 147 références rattachées : inventaire total 155 dont dix publics. Provenance, limites et vérifications dans `editorial/documentation-2026-10-18/`.
 
 ## Mise en service confirmée le 2026-10-18

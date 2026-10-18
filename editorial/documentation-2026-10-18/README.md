@@ -31,3 +31,5 @@ Migration 0076 : GPS et gamme tarifaire peuvent être nuls pour les brouillons. 
 Import transactionnel sous les droits du compte staff Xtincell : lieu, agrégat vide, profil privé, note de provenance et rapprochement des sources via les RPC existantes. Essai complet annulé avant application. 147 références rattachées. Les dix fiches publiques, les commentaires et les visites préexistants restent inchangés. Les identifiants préexistants font échouer une réexécution plutôt que d'écraser un enrichissement manuel.
 
 Validation : tests PostgreSQL des brouillons, publication et rollback ; tests admin, TypeScript et ESLint ; contrôles mobile requis par le dépôt. La recette du panel en production et les totaux finaux sont consignés dans `verification.json`.
+
+Recette production réussie : quatre contrôles navigateur réels Xtincell, dont sauvegarde d’un brouillon incomplet ; zéro erreur API/JS. Panel épinglé au commit `66bc56ee6f894781bb0f131504622f43733ed083`, déploiement `mf83j367n9gcq0xupwp6tgrp` terminé le 18/10/2026 à 12:54 UTC. Le bundle servi est identique au build vérifié. `inventaire.csv` fournit la liste et les liens vers chaque fiche.

@@ -1,5 +1,7 @@
 # Mise en service éditoriale — 18 octobre 2026
 
+**Complément ultérieur :** 145 fiches documentaires supplémentaires créées comme brouillons sans note, migration 0076, panel mis à jour à 12:54 UTC. Inventaire : 155 lieux, dont dix publics. Voir `../editorial/documentation-2026-10-18/README.md` et ses preuves. Les nombres ci-dessous décrivent la première mise en service de 12:24 UTC.
+
 État confirmé sur le serveur et dans le navigateur avec le compte staff Xtincell. Ce document actualise les audits du même jour, qui décrivaient l'état avant déploiement. Aucun jeton ni clé serveur dans le dépôt.
 
 ## Résultat en production

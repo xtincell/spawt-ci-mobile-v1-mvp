@@ -31,9 +31,38 @@
     "transaction_dry_run": true
   },
   "browser": {
-    "status": "pending"
+    "checks": [
+      "Féféivoire présent dans Lieux : Brouillon, note et gamme absentes",
+      "Enregistrement réel sous Xtincell d’un brouillon sans GPS, prix ou cuisine ; valeurs nulles conservées",
+      "Profil privé et note de provenance Mission 2 consultables",
+      "Succursales Africafé ITC et Plateau distinctes"
+    ],
+    "page_errors": [],
+    "api_errors": [],
+    "saved_draft": {
+      "lat": null,
+      "lng": null,
+      "price_tier": null,
+      "avg_ticket_xof": null,
+      "cuisine": [],
+      "is_published": false
+    },
+    "status": "passed"
   },
   "deployment": {
-    "status": "pending"
+    "status": "finished",
+    "uuid": "mf83j367n9gcq0xupwp6tgrp",
+    "commit": "66bc56ee6f894781bb0f131504622f43733ed083",
+    "updated_at": "2026-10-18T12:54:29.000000Z"
+  },
+  "anonymous_api": {
+    "published_places": 10,
+    "drafts_visible": 0,
+    "published_contract_complete": true
+  },
+  "public_bundle": {
+    "asset": "/assets/index-Bu_IhWoT.js",
+    "sha256": "57425decd5f4789578ba974ec3558e90824d06c59ff3c382a391e73612aa03b6",
+    "matches_local_build": true
   }
 }
