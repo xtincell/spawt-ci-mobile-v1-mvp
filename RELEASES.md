@@ -1,3 +1,10 @@
+## Build 34 — 2026-10-18 — compilation préparée
+
+- Version 1.1.1 ; source `47cc174d2558ae0155f1847aac566a111e8ababd` ; recette `documentation/android-build34.json`.
+- Publications du panel et lecture actualisée dans l’app ; suivi d’activité ; liens directs vers les carnets préservés au démarrage.
+- Le build 33 n’a pas été livré. La précédente livraison reste le build 32 ; signature EAS conservée.
+- Firebase/FCM absent : lecture du fil active, réception des notifications système non validée.
+
 ## Build 33 — 2026-10-18 — compilation annulée, non livré
 
 - Version 1.1.1 ; source contrôlée `8f7b53f74760fa8721394d4455533d989b82ede2` ; recette `documentation/android-build33.json`.
