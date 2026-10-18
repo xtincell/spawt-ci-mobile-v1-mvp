@@ -121,10 +121,11 @@ END$x$;
 
 ROLLBACK;
 
--- ── O. Non-régression : les deux catalogues de prix doivent concorder ──────
--- `plans` sert la validation manuelle, `_shared/payment/types.ts` sert le
--- checkout CinetPay. Un écart facture deux prix différents pour le même
--- abonnement selon le canal. Attendu : gold_monthly 2500, gold_annual 25000,
--- pro 15000, b2b_gold 65000.
-SELECT code, price_ht FROM public.plans
+-- ── O. Le catalogue : une seule source depuis 0079 ─────────────────────────
+-- `plans` sert la validation manuelle ET le checkout CinetPay : il n'existe
+-- plus de catalogue dans le code. Attendu juste après 0079 (prix payé / HT /
+-- TVA) : b2b_gold 60000 / 50847 / 9153, gold_annual 29500 / 25000 / 4500,
+-- gold_monthly 2950 / 2500 / 450, pro 17700 / 15000 / 2700. Ensuite, ce sont
+-- les valeurs de la page Tarifs de la console.
+SELECT code, price_ttc, price_ht, tva_amount FROM public.plans
  WHERE code IN ('gold_monthly','gold_annual','pro','b2b_gold') ORDER BY code;
