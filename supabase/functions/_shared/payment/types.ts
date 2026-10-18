@@ -14,31 +14,16 @@
 //   - `parseWebhook` est async : la vérification HMAC passe par Web Crypto
 //     (crypto.subtle), API asynchrone en Deno.
 
+// ── Les plans : des codes, pas des prix ─────────────────────────────────────
+// Les prix vivent dans la table `plans` (migration 0079), administrée depuis
+// la console (page Tarifs) : l'équipe saisit le prix payé (TTC, F CFA
+// entiers), la base en dérive HT et TVA. Ce fichier ne porte AUCUN montant :
+// il garde les codes vendus, leur période et ce qui ne se règle pas en base
+// (libellé envoyé au provider, rôle B2B ouvert). Lecture d'un plan et
+// montants figés : ./plans.ts.
+
 /** Plans Gold vendus via le portail web (jamais in-app — Apple 3.1.3). */
 export type GoldPlan = "gold_monthly" | "gold_annual";
-
-/**
- * Tarifs Gold — montants HT en XOF entiers (pas de centimes en francs CFA).
- * TVA CI 18 % (SPEC 4 §4.7) : le montant envoyé au provider est le TTC.
- *   gold_monthly : 2 500 HT → 2 950 TTC
- *   gold_annual  : 25 000 HT → 29 500 TTC (2 mois offerts vs 12 × 2 500)
- * NB : le seed plans (0001_seed_currencies_plans.sql) porte 22 000 HT pour
- * l'annuel — écart historique à réconcilier côté produit ; la source de
- * vérité du checkout est CE fichier (arbitrage fondateur 25 000 HT).
- */
-export const TVA_RATE = 18;
-
-export const GOLD_PLAN_PRICING: Record<
-  GoldPlan,
-  { price_ht: number; months: number; description: string }
-> = {
-  gold_monthly: { price_ht: 2500, months: 1, description: "Spawter Gold — 1 mois" },
-  gold_annual: { price_ht: 25000, months: 12, description: "Spawter Gold — 12 mois" },
-};
-
-export function isGoldPlan(value: unknown): value is GoldPlan {
-  return value === "gold_monthly" || value === "gold_annual";
-}
 
 /**
  * Plans B2B (lieux) vendus via le portail /pro — schéma 0032 : plan IN
@@ -54,27 +39,41 @@ export type B2bPlan = "pro" | "b2b_gold";
 /** Tout plan payable en ligne (catalogue complet du checkout). */
 export type PaidPlan = GoldPlan | B2bPlan;
 
-/**
- * Tarifs B2B — montants HT en XOF entiers, mensuels (pas d'annuel B2B en V1).
- * TVA CI 18 % : pro 15 000 HT → 17 700 TTC ; b2b_gold 65 000 HT → 76 700 TTC.
- * Convention PRD : les prix B2B s'AFFICHENT HT + TVA (le TTC part au provider).
- */
-export const B2B_PLAN_PRICING: Record<
-  B2bPlan,
-  { price_ht: number; months: number; description: string }
-> = {
-  pro: { price_ht: 15000, months: 1, description: "Spawt Pro — lieu, 1 mois" },
-  b2b_gold: { price_ht: 65000, months: 1, description: "Spawt Gold — lieu, 1 mois" },
+/** TVA CI (SPEC 4 §4.7), fixe à 18 % : la base en dérive HT et TVA (0079). */
+export const TVA_RATE = 18;
+
+/** Périodes vendues — `plans.period` (0002), hors 'lifetime' jamais vendu. */
+export type PlanPeriod = "monthly" | "annual";
+
+/** Correspondance période → mois (échéance d'un abonnement). */
+export const PERIOD_MONTHS: Record<PlanPeriod, number> = {
+  monthly: 1,
+  annual: 12,
 };
 
-/** Catalogue unique — source de vérité prix/durée du checkout ET du webhook. */
-export const PLAN_PRICING: Record<
-  PaidPlan,
-  { price_ht: number; months: number; description: string }
-> = {
-  ...GOLD_PLAN_PRICING,
-  ...B2B_PLAN_PRICING,
+/**
+ * Période de chaque code vendu — miroir de `plans.period`. Le checkout refuse
+ * un plan dont la base dirait autre chose : l'échéance calculée au webhook
+ * repose sur cette table.
+ */
+export const PLAN_PERIOD: Record<PaidPlan, PlanPeriod> = {
+  gold_monthly: "monthly",
+  gold_annual: "annual",
+  pro: "monthly",
+  b2b_gold: "monthly",
 };
+
+/** Libellé de la transaction affiché par le provider (page de paiement, reçu). */
+export const PLAN_DESCRIPTION: Record<PaidPlan, string> = {
+  gold_monthly: "Spawter Gold — 1 mois",
+  gold_annual: "Spawter Gold — 12 mois",
+  pro: "Spawt Pro — lieu, 1 mois",
+  b2b_gold: "Spawt Gold — lieu, 1 mois",
+};
+
+export function isGoldPlan(value: unknown): value is GoldPlan {
+  return value === "gold_monthly" || value === "gold_annual";
+}
 
 export function isB2bPlan(value: unknown): value is B2bPlan {
   return value === "pro" || value === "b2b_gold";
@@ -84,12 +83,20 @@ export function isPaidPlan(value: unknown): value is PaidPlan {
   return isGoldPlan(value) || isB2bPlan(value);
 }
 
+export function isPlanPeriod(value: unknown): value is PlanPeriod {
+  return value === "monthly" || value === "annual";
+}
+
 /** Rôle b2b_accounts (0043) qu'ouvre un plan B2B payé. */
 export function b2bRoleForPlan(plan: B2bPlan): "pro" | "gold" {
   return plan === "pro" ? "pro" : "gold";
 }
 
-/** TTC = HT + TVA arrondie au franc (round half-up, aligné trigger invoices 0032). */
+/**
+ * TTC = HT + TVA arrondie au franc (round half-up, aligné trigger invoices
+ * 0032). C'est le calcul du checkout d'avant 0079 : il ne sert plus qu'à
+ * facturer un abonnement ouvert avant 0079, qui n'a pas de TTC figé.
+ */
 export function computeTtc(priceHt: number, tvaRate: number = TVA_RATE): number {
   return priceHt + Math.round((priceHt * tvaRate) / 100);
 }

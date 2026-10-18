@@ -18,7 +18,7 @@ import {
   mapCinetPayStatus,
   timingSafeEqualHex,
 } from "./cinetpay.ts";
-import { computeTtc, GOLD_PLAN_PRICING, PaymentProviderError } from "./types.ts";
+import { computeTtc, PaymentProviderError } from "./types.ts";
 
 const CONFIG = {
   apiKey: "apikey-test",
@@ -49,12 +49,14 @@ function makeFetchStub(
 
 // ── Montants TTC (TVA CI 18 %) ──────────────────────────────────────────────
 
-Deno.test("pricing: gold_monthly 2500 HT → 2950 TTC", () => {
-  assertEquals(computeTtc(GOLD_PLAN_PRICING.gold_monthly.price_ht), 2950);
+// Les prix vivent dans `plans` (0079) : ces montants sont des fixtures du
+// calcul historique HT + TVA, pas un catalogue.
+Deno.test("pricing: 2500 HT → 2950 TTC", () => {
+  assertEquals(computeTtc(2500), 2950);
 });
 
-Deno.test("pricing: gold_annual 25000 HT → 29500 TTC", () => {
-  assertEquals(computeTtc(GOLD_PLAN_PRICING.gold_annual.price_ht), 29500);
+Deno.test("pricing: 25000 HT → 29500 TTC", () => {
+  assertEquals(computeTtc(25000), 29500);
 });
 
 Deno.test("pricing: arrondi TVA au franc (round half-up)", () => {

@@ -30,6 +30,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { b2bRoleForPlan, isB2bPlan, isPaidPlan } from "../_shared/payment/types.ts";
+import { invoiceAmountsForSubscription } from "../_shared/payment/plans.ts";
 import { createPaymentProvider, PaymentConfigError } from "../_shared/payment/factory.ts";
 import { computeExpiresAt } from "../_shared/payment/subscription-lifecycle.ts";
 
@@ -142,7 +143,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   // ── 2. Résolution de la subscription (provider_tx_id = idempotence 0032) ──
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, customer_id, customer_type, plan, price_ht, tva_rate, currency, status")
+    .select("id, customer_id, customer_type, plan, price_ht, price_ttc, tva_rate, currency, status")
     .eq("provider_tx_id", txId)
     .maybeSingle();
   if (subErr) {
@@ -205,7 +206,7 @@ export async function handleRequest(req: Request): Promise<Response> {
       logTransition({ transaction_id: txId, decision: "ignored_unknown_plan", plan: sub.plan });
       return json({ received: true, ignored: "unknown_plan" });
     }
-    // B2C comme B2B : mensuels +1 mois, gold_annual +12 (PLAN_PRICING).
+    // B2C comme B2B : mensuels +1 mois, gold_annual +12 (PLAN_PERIOD).
     const expiresAt = computeExpiresAt(sub.plan, startedAt);
 
     // Activation — garde atomique `.in('status', ['pending','cancelled'])` :
@@ -292,13 +293,24 @@ export async function handleRequest(req: Request): Promise<Response> {
       }
     }
 
-    // Facture payée — mécanique 0032 : le trigger BEFORE INSERT pose
-    // invoice_number (next_invoice_number, SPAWT-YYYY-NNNN), tva_amount et
-    // price_ttc quand on ne les fournit pas. Garde anti-doublon : une facture
+    // Facture payée — le trigger BEFORE INSERT de 0032 pose invoice_number
+    // (next_invoice_number, SPAWT-YYYY-NNNN). Garde anti-doublon : une facture
     // existe déjà pour ce provider_tx_id → skip (webhook rejoué).
-    // B2B comme B2C : on pose price_ht + tva_rate (18 %), le trigger complète
-    // tva_amount/price_ttc — la facture porte donc bien HT + TVA + TTC, et le
-    // portail B2B affiche HT + TVA (convention PRD prix professionnels).
+    // Montants : ceux FIGÉS sur l'abonnement au checkout (0079), jamais le
+    // prix courant de `plans`, qui a pu changer depuis — montant facturé =
+    // montant encaissé. HT, TVA et TTC sont tous explicites : le calcul du
+    // trigger, round(HT × 18 %), donnerait 59 999 pour 60 000 encaissés.
+    const amounts = invoiceAmountsForSubscription(sub);
+    if (confirmation.amount > 0 && confirmation.amount !== amounts.price_ttc) {
+      // CinetPay confirme un autre montant que celui demandé : la facture suit
+      // le montant figé, mais l'écart doit sauter aux yeux au rapprochement.
+      logTransition({
+        transaction_id: txId,
+        decision: "warn_amount_mismatch",
+        invoiced_ttc: amounts.price_ttc,
+        confirmed_amount: confirmation.amount,
+      });
+    }
     const { data: existingInvoice, error: invCheckErr } = await admin
       .from("invoices")
       .select("id")
@@ -312,8 +324,10 @@ export async function handleRequest(req: Request): Promise<Response> {
         subscription_id: sub.id,
         customer_id: sub.customer_id,
         customer_type: sub.customer_type,
-        price_ht: sub.price_ht,
+        price_ht: amounts.price_ht,
         tva_rate: sub.tva_rate,
+        tva_amount: amounts.tva_amount,
+        price_ttc: amounts.price_ttc,
         currency: sub.currency,
         status: "paid",
         provider_tx_id: txId,

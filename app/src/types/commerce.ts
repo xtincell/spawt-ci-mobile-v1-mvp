@@ -27,8 +27,12 @@ export interface Plan {
   id: string;
   code: string;
   label: string;
-  /** Prix hors taxe dans la devise du plan. */
+  /** Prix payé par le client, TTC — la saisie de l'équipe (migration 0079). */
+  price_ttc: number;
+  /** HT dérivé par la base : round(price_ttc / 1,18). */
   price_ht: number;
+  /** TVA dérivée : price_ttc − price_ht (TVA 18 %). */
+  tva_amount: number;
   currency_code: string;
   country_code: CountryCode;
   period: PlanPeriod;

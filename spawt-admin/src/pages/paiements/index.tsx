@@ -10,7 +10,7 @@
 // d'alerte sur les demandes à risque (sous-paiement, versement sans référence)
 // et la confirmation explicite quand il y en a une.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useTable, useInvalidate, useGetIdentity } from "@refinedev/core";
 import { supabaseClient } from "../../utility/supabaseClient";
@@ -20,11 +20,12 @@ import {
   PLAN_LABELS,
   STATUS_LABELS,
   alertesAvantValidation,
-  expectedTtc,
   formatXof,
+  indexerTarifs,
   libelleVerdict,
   verdictMontant,
   type PaymentRequestRow,
+  type TarifsParPlan,
 } from "./logic";
 
 const SELECT_WITH_JOINS = "*, spawters(display_name, phone_e164)";
@@ -46,6 +47,35 @@ export const PaiementsList = () => {
   // modération. La RPC refuse de toute façon — autant ne pas afficher un bouton
   // qui ne peut qu'échouer.
   const isAdmin = identity?.role === "admin";
+
+  // Le tarif attendu vient de `plans` (0079), la seule source des prix — le
+  // même que celui que la validation facturera. Tant qu'il n'est pas lu, on
+  // ne valide pas : l'écart déclaré/attendu est LE contrôle de cet écran.
+  const [tarifs, setTarifs] = useState<TarifsParPlan | null>(null);
+  const [tarifsError, setTarifsError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .from("plans")
+          .select("code, price_ttc, is_active");
+        if (cancelled) return;
+        if (error) {
+          setTarifsError(error.message);
+          return;
+        }
+        setTarifs(
+          indexerTarifs((data ?? []) as { code: string; price_ttc: number; is_active: boolean }[]),
+        );
+      } catch (err) {
+        if (!cancelled) setTarifsError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<PaymentRequestRow>({
     resource: "payment_requests",
@@ -101,7 +131,8 @@ export const PaiementsList = () => {
   }
 
   function onValiderClick(row: PaymentRequestRow) {
-    const alertes = alertesAvantValidation(row);
+    if (!tarifs) return;
+    const alertes = alertesAvantValidation(row, tarifs[row.plan]);
     if (alertes.length > 0) setConfirming(row);
     else void valider(row);
   }
@@ -136,6 +167,13 @@ export const PaiementsList = () => {
         immédiatement.
       </p>
 
+      {tarifsError ? (
+        <p role="alert" style={{ color: "var(--danger)" }}>
+          Tarifs illisibles ({tarifsError}) : impossible de comparer les montants
+          déclarés, la validation est suspendue.
+        </p>
+      ) : null}
+
       {toast ? (
         <p
           role="status"
@@ -164,8 +202,9 @@ export const PaiementsList = () => {
 
       <div style={{ display: "grid", gap: 12 }}>
         {rows.map((row) => {
-          const alertes = alertesAvantValidation(row);
-          const verdict = verdictMontant(row);
+          const tarif = tarifs?.[row.plan];
+          const alertes = tarifs ? alertesAvantValidation(row, tarif) : [];
+          const verdict = verdictMontant(row, tarif);
           return (
             <article
               key={row.id}
@@ -192,11 +231,11 @@ export const PaiementsList = () => {
                     color: verdict === "trop_peu" ? "var(--danger)" : "var(--ink-mute)",
                   }}
                 >
-                  ({libelleVerdict(row)})
+                  ({tarifs ? libelleVerdict(row, tarif) : "tarif en cours de lecture"})
                 </span>
               </p>
               <p style={{ margin: "4px 0", color: "var(--ink-mute)" }}>
-                Tarif : {formatXof(expectedTtc(row.plan))} TTC · Référence :{" "}
+                Tarif : {tarif ? `${formatXof(tarif.price_ttc)} TTC` : "—"} · Référence :{" "}
                 {row.reference?.trim() || "—"} · Émetteur : {row.payer_phone ?? "—"}
               </p>
               {row.note ? <p style={{ fontStyle: "italic" }}>« {row.note} »</p> : null}
@@ -219,7 +258,7 @@ export const PaiementsList = () => {
                 <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                   <button
                     type="button"
-                    disabled={!isAdmin || busyId === row.id}
+                    disabled={!isAdmin || busyId === row.id || !tarifs}
                     onClick={() => onValiderClick(row)}
                   >
                     Valider le paiement

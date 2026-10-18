@@ -7,7 +7,11 @@ import { PaiementsList } from "./paiements";
 
 vi.mock("../lib/audit", () => ({ logAuditActionBestEffort: vi.fn() }));
 vi.mock("../components/PlaceForm", () => ({ ABIDJAN_NEIGHBORHOODS: [] }));
-vi.mock("../utility/supabaseClient", () => ({ supabaseClient: {} }));
+// Paiements lit ses tarifs dans `plans` (0079) au montage.
+vi.mock("../utility/supabaseClient", async () => {
+  const { createFromMock } = await import("../test/supabaseMock");
+  return { supabaseClient: { from: createFromMock(() => ({ data: [], error: null })) } };
+});
 afterEach(cleanup);
 
 describe("onglets traités", () => {

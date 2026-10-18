@@ -1,6 +1,6 @@
 // Story 6.4 — Modal partagé pour les actions critiques avec motif obligatoire.
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 interface ReasonModalProps {
   isOpen: boolean;
@@ -8,6 +8,8 @@ interface ReasonModalProps {
   confirmLabel: string;
   destructive?: boolean;
   fauxPasOptions?: string[];
+  /** Ce qui va changer, montré avant le motif (ex. l'avant/après d'un tarif). */
+  children?: ReactNode;
   onConfirm: (reason: string) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -18,6 +20,7 @@ export const ReasonModal = ({
   confirmLabel,
   destructive,
   fauxPasOptions,
+  children,
   onConfirm,
   onCancel,
 }: ReasonModalProps) => {
@@ -37,6 +40,7 @@ export const ReasonModal = ({
     <div className="modal-overlay">
       <div className="modal">
         <h2>{title}</h2>
+        {children}
         {fauxPasOptions ? (
           <div className="faux-pas-presets" style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
             {fauxPasOptions.map((option) => (
