@@ -9,7 +9,9 @@ docker run --detach --name "$container" --network none \
   -e POSTGRES_HOST_AUTH_METHOD=trust -v "$PWD:/repo:ro" \
   postgres:15-alpine >/dev/null
 for attempt in {1..60}; do
-  if docker exec "$container" pg_isready -U postgres >/dev/null 2>&1; then break; fi
+  # The image starts a temporary Unix-socket server during initdb. Wait for
+  # TCP, enabled only by the final server, to avoid racing its shutdown.
+  if docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then break; fi
   sleep 1
 done
 sql() { docker exec "$container" psql -X -U postgres -v ON_ERROR_STOP=1 "$@"; }
