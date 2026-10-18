@@ -61,13 +61,17 @@ jobs:
           if(apk.length!==c.bytes || crypto.createHash('sha256').update(apk).digest('hex')!==c.sha256) throw new Error('APK bytes differ');
           fs.writeFileSync(path+'.sha256',c.sha256+'  '+name+'\n');
           const gh=args=>execFileSync('gh',args.concat(['--repo',process.env.GITHUB_REPOSITORY]),{encoding:'utf8'});
+          const existing=await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/releases/tags/${c.tag}`,{headers:{accept:'application/vnd.github+json',authorization:'Bearer '+process.env.GH_TOKEN},signal:AbortSignal.timeout(30000)});
+          if(existing.status===404) {
+            gh(['release','create',c.tag,'--draft','--prerelease','--verify-tag','--title',`SPAWT Android ${c.version} — build ${c.build}`,'--notes-file',`documentation/android-build${c.build}-release-notes.md`]);
+          }else if(!existing.ok) throw new Error('Release lookup HTTP '+existing.status);
           const release=JSON.parse(gh(['release','view',c.tag,'--json','isDraft,assets']));
           if(release.isDraft) {
             if(release.assets.length) throw new Error('Draft release has partial assets; inspect before retrying');
             gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256']);
             gh(['release','edit',c.tag,'--draft=false','--prerelease','--latest=false','--title',`SPAWT Android ${c.version} — build ${c.build}`,'--notes-file',`documentation/android-build${c.build}-release-notes.md`]);
           }
-          console.log('Published verified build '+c.build);
+          console.log('Release assets ready for final verification: build '+c.build);
           JS
       - name: Advance the official website download channel
         env:
