@@ -1,5 +1,7 @@
 ## 2026-10-18 — Audit admin et accès aux textes
 
+- Complément Drive : base SQLite de 31 363 références, 129 enrichissements et rapports Missions 1/2 lus ; 44 fichiers du ZIP d'intégration identiques à la PR15. Circuits formulaire local/quiz/mobile/vitrine documentés ; quatre dépôts vérifiés et aucune branche locale non poussée dans les clones accessibles. Le Mac n'est pas monté. Voir `documentation/AUDIT_DRIVE_DEPOTS_2026-10-18.md`.
+
 - Vérification publique : 10 lieux, 30 textes fondateurs attribués à Alexandre et 2 avis communautaires sans texte ; objets éditoriaux 0075 absents du backend et du panel déployé.
 - Liste Lieux : compteur communautaire explicite et lien vers les avis du lieu, fondateurs inclus ; filtre correspondant dans Modération.
 - Dix textes éditoriaux sourcés préparés pour Xtincell, sans publication. Accès serveur absent : migration, déploiement et recette authentifiée restent ouverts. Voir `documentation/AUDIT_ADMIN_COMMENTAIRES_2026-10-18.md`.

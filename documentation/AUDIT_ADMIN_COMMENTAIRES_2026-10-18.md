@@ -1,5 +1,7 @@
 # Panel admin, champs et commentaires — 18 octobre 2026
 
+Complément après consultation du Drive et des quatre dépôts : voir `AUDIT_DRIVE_DEPOTS_2026-10-18.md` pour les 31 363 références, les 129 fiches enrichies, les circuits de collecte distincts et la comparaison exacte du ZIP d'intégration avec GitHub.
+
 Audit de `xtincell/spawt-ci-mobile-v1-mvp`, de ses branches récentes et des surfaces publiques de `https://api.spawt.online` et `https://admin.spawt.online`. Les lectures publiques ne remplacent pas une session staff, les journaux serveur ou le contenu local d'un téléphone.
 
 ## État mesuré en ligne
