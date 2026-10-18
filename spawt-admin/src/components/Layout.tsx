@@ -65,6 +65,8 @@ export const Layout = () => {
           <NavLink to="/b2b" className={({ isActive }) => (isActive ? "active" : "")}>
             Comptes B2B
           </NavLink>
+          <NavLink to="/actualites" className={({ isActive }) => isActive ? "active" : ""}>Actualités</NavLink>
+          <NavLink to="/activite" className={({ isActive }) => isActive ? "active" : ""}>Activité dans l’app</NavLink>
           <NavLink to="/push" className={({ isActive }) => (isActive ? "active" : "")}>
             Push
           </NavLink>

@@ -105,8 +105,10 @@ function jsonResponse(body: unknown, status = 200): Response {
 function defaultRoute(tokens: string[]) {
   return (url: string, method: string, body: string | null): Response => {
     if (url.includes("/rest/v1/push_tokens") && method === "GET") {
-      return jsonResponse(tokens.map((t) => ({ token: t })));
+      const offset = Number(new URL(url).searchParams.get("offset") ?? 0);
+      return jsonResponse(tokens.slice(offset,offset+200).map((t) => ({ token: t })));
     }
+    if (url.includes("/rest/v1/spawters")) return jsonResponse([{ id: "s1" }, { id: "s2" }]);
     if (url.includes("/rest/v1/push_tokens") && method === "DELETE") {
       return jsonResponse([]);
     }
@@ -314,4 +316,26 @@ Deno.test("push-send: cibles résolues mais zéro token → {0,0,0} sans appel E
   } finally {
     mock.restore();
   }
+});
+
+Deno.test("push-send: dry-run estimates without Expo or reservation", async () => {
+  setEnv(); const mock=installFetchMock(defaultRoute(["ExponentPushToken[a]"]));
+  try {
+    const response=await handleRequest(makeRequest({ all_spawters:true,title:"Fixture",body:"Fixture",dry_run:true }));
+    assertEquals(await response.json(),{ targets:2,tokens:1,dry_run:true });
+    assertEquals(mock.calls.filter(c=>c.url.startsWith("https://exp.host/") || c.url.includes("reserve_push_campaign")).length,0);
+  } finally { mock.restore(); }
+});
+Deno.test("push-send: failed Gold filter never broadcasts", async () => {
+  setEnv(); const route=defaultRoute(["ExponentPushToken[a]"]);
+  const mock=installFetchMock((url,method,body)=>url.includes("active_entitlements")?jsonResponse({message:"unavailable"},500):route(url,method,body));
+  try {
+    const response=await handleRequest(makeRequest({ gold_only:true,title:"Fixture",body:"Fixture" }));
+    assertEquals(response.status,500);
+    assertEquals(mock.calls.filter(c=>c.url.startsWith("https://exp.host/")).length,0);
+  } finally { mock.restore(); }
+});
+Deno.test("push-send: Supabase browser preflight includes x-client-info", async () => {
+  const response=await handleRequest(new Request("http://localhost/push-send",{method:"OPTIONS"}));
+  assert(response.headers.get("access-control-allow-headers")?.includes("x-client-info"));
 });

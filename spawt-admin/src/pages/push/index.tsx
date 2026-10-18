@@ -1,22 +1,20 @@
+import { useLocation } from "react-router";
 // Console admin 07/2026 — Campagnes push (Edge `push-send`, tokens 0034).
 // Composer (titre, corps, deep link), ciblage (tous / stade / archétype /
 // gold), estimation des devices ciblés, envoi authentifié staff, résultat
 // {sent, failed, purged} et historique depuis admin_audit_log
 // (action push_campaign — l'audit est écrit côté Edge). Limite 3/jour UTC.
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState, useRef } from "react";
 import { supabaseClient } from "../../utility/supabaseClient";
 import {
   EMPTY_PUSH_FORM,
   MAX_CAMPAIGNS_PER_DAY,
-  MAX_SPAWTER_IDS,
   PUSH_ARCHETYPES,
   PUSH_BODY_MAX,
   PUSH_STADES,
   PUSH_TITLE_MAX,
   buildPushBody,
-  campaignsToday,
-  estimateTargets,
   pushErrorMessage,
   validatePushForm,
   type PushEstimate,
@@ -24,20 +22,9 @@ import {
   type PushSendResult,
 } from "./logic";
 
-/** Chunk des clauses .in() PostgREST (miroir DB_IN_CHUNK_SIZE de l'Edge). */
-const DB_IN_CHUNK_SIZE = 200;
-
 interface CampaignHistoryRow {
-  id: string;
-  created_at: string;
-  payload_after: {
-    title?: string;
-    targets?: number;
-    tokens?: number;
-    sent?: number;
-    failed?: number;
-    purged?: number;
-  } | null;
+  id: string; created_at: string; payload: { title?: string }; status: string;
+  targets: number; tokens: number; sent: number; failed: number; purged: number;
 }
 
 interface Toast {
@@ -45,41 +32,11 @@ interface Toast {
   message: string;
 }
 
-/** Résolution des spawter_ids côté client (lecture staff). */
-async function fetchSpawterIdsForTarget(v: PushFormValues): Promise<string[]> {
-  if (v.target === "gold") {
-    const { data, error } = await supabaseClient
-      .from("active_entitlements")
-      .select("spawter_id")
-      .eq("is_active", true);
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((r: { spawter_id: string }) => r.spawter_id).filter(Boolean);
-  }
-  let query = supabaseClient.from("spawters").select("id").limit(MAX_SPAWTER_IDS);
-  if (v.target === "stade") query = query.eq("stade", v.stade);
-  if (v.target === "archetype") query = query.eq("quiz_archetype", v.archetype);
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((r: { id: string }) => r.id);
-}
-
-/** Comptage des tokens ciblés (push_tokens, lecture staff 0034). */
-async function countTokensFor(spawterIds: string[]): Promise<number> {
-  let total = 0;
-  for (let i = 0; i < spawterIds.length; i += DB_IN_CHUNK_SIZE) {
-    const chunk = spawterIds.slice(i, i + DB_IN_CHUNK_SIZE);
-    const { count, error } = await supabaseClient
-      .from("push_tokens")
-      .select("id", { count: "exact", head: true })
-      .in("spawter_id", chunk);
-    if (error) throw new Error(error.message);
-    total += count ?? 0;
-  }
-  return total;
-}
-
 export const PushCampaigns = () => {
-  const [form, setForm] = useState<PushFormValues>(EMPTY_PUSH_FORM);
+  const { state } = useLocation();
+  const [form, setForm] = useState<PushFormValues>(() => ({ ...EMPTY_PUSH_FORM, ...(state ?? {}), ...(state?.spawter_id ? { target: "account" } : {}) }));
+  const reservation = useRef<{ content: string; id: string } | null>(null);
+  const [dailyCount, setDailyCount] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [estimate, setEstimate] = useState<PushEstimate | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -91,9 +48,8 @@ export const PushCampaigns = () => {
 
   const loadHistory = useCallback(async () => {
     const { data, error } = await supabaseClient
-      .from("admin_audit_log")
-      .select("id, created_at, payload_after")
-      .eq("action", "push_campaign")
+      .from("push_campaigns")
+      .select("id,created_at,payload,status,targets,tokens,sent,failed,purged")
       .order("created_at", { ascending: false })
       .limit(30);
     if (error) {
@@ -102,6 +58,9 @@ export const PushCampaigns = () => {
     }
     setHistoryError(null);
     setHistory((data ?? []) as CampaignHistoryRow[]);
+    const day = new Date(); day.setUTCHours(0,0,0,0);
+    const daily = await supabaseClient.from("push_campaigns").select("id", { count: "exact", head: true }).gte("created_at",day.toISOString());
+    setDailyCount(daily.error ? null : daily.count);
   }, []);
 
   useEffect(() => {
@@ -122,11 +81,9 @@ export const PushCampaigns = () => {
     setFormErrors([]);
     setEstimating(true);
     try {
-      const est = await estimateTargets(form, {
-        fetchSpawterIds: fetchSpawterIdsForTarget,
-        countTokens: countTokensFor,
-      });
-      setEstimate(est);
+      const { data, error } = await supabaseClient.functions.invoke("push-send", { body: { ...buildPushBody(form,null), dry_run: true } });
+      if (error || !data?.dry_run) throw new Error(error?.message ?? "Estimation indisponible");
+      setEstimate({ spawters: data.targets, tokens: data.tokens });
     } catch (err) {
       showToast({
         kind: "error",
@@ -157,9 +114,10 @@ export const PushCampaigns = () => {
     setSending(true);
     setResult(null);
     try {
-      // « Tous » = spawter_ids explicites (l'Edge exige une cible).
-      const allIds = form.target === "all" ? await fetchSpawterIdsForTarget(form) : null;
-      const body = buildPushBody(form, allIds);
+      const content = buildPushBody(form, null);
+      const encoded = JSON.stringify(content);
+      if (reservation.current?.content !== encoded) reservation.current = { content: encoded, id: crypto.randomUUID() };
+      const body = { ...content, request_id: reservation.current.id };
       const { data, error } = await supabaseClient.functions.invoke("push-send", { body });
       if (error) {
         // Non-2xx : le body JSON de l'Edge porte le code ({ error: ... }).
@@ -181,7 +139,7 @@ export const PushCampaigns = () => {
       setResult({ sent: payload.sent, failed: payload.failed, purged: payload.purged });
       showToast({
         kind: "success",
-        message: `Campagne envoyée : ${payload.sent} ok, ${payload.failed} échecs, ${payload.purged} tokens purgés.`,
+        message: `Traitement terminé : ${payload.sent} acceptées par Expo, ${payload.failed} échecs. La réception sur le téléphone n’est pas confirmée.`,
       });
       setForm(EMPTY_PUSH_FORM);
       setEstimate(null);
@@ -196,13 +154,13 @@ export const PushCampaigns = () => {
     }
   }
 
-  const usedToday = history ? campaignsToday(history) : null;
+  const usedToday = dailyCount;
 
   return (
     <div>
       <h1>Campagnes push</h1>
       <p style={{ color: "var(--ink-mute)", fontSize: 12, maxWidth: 720 }}>
-        Notification envoyée aux devices de la Meute via l&apos;API Expo (Edge push-send).
+        Prépare une information, une actualité ou une promotion pour les appareils ayant autorisé les notifications. Un envoi accepté ne confirme pas son affichage sur le téléphone.
         Limite anti-abus : <strong>{MAX_CAMPAIGNS_PER_DAY} campagnes par jour</strong> (UTC).
         {usedToday !== null ? ` Utilisées aujourd'hui : ${usedToday}/${MAX_CAMPAIGNS_PER_DAY}.` : ""}
       </p>
@@ -222,7 +180,7 @@ export const PushCampaigns = () => {
       ) : null}
 
       {/* ── Composer ── */}
-      <form onSubmit={onSend} style={{ display: "grid", gap: 8, maxWidth: 560, margin: "16px 0", background: "var(--bg-card)", padding: 16, borderRadius: 8, border: "1px solid var(--line)" }}>
+      <form onChange={() => { setEstimate(null); setResult(null); }} onSubmit={onSend} style={{ display: "grid", gap: 8, maxWidth: 560, margin: "16px 0", background: "var(--bg-card)", padding: 16, borderRadius: 8, border: "1px solid var(--line)" }}>
         <h2 style={{ margin: 0, fontSize: 16 }}>Composer</h2>
         {formErrors.length > 0 ? (
           <div style={{ background: "var(--bg-warm)", padding: 8, borderRadius: 6 }}>
@@ -237,7 +195,7 @@ export const PushCampaigns = () => {
         <label>Corps ({form.body.length}/{PUSH_BODY_MAX})
           <textarea rows={3} value={form.body} maxLength={PUSH_BODY_MAX} onChange={(e) => setForm({ ...form, body: e.target.value })} style={{ width: "100%" }} />
         </label>
-        <label>Deep link (optionnel, ex. /lieu/1234 ou spawt://…)
+        <label>Destination dans l’app (ex. /place/identifiant ou /actualites/identifiant)
           <input value={form.deep_link} onChange={(e) => setForm({ ...form, deep_link: e.target.value })} style={{ width: "100%" }} />
         </label>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "end" }}>
@@ -252,9 +210,10 @@ export const PushCampaigns = () => {
               <option value="all">Toute la Meute</option>
               <option value="stade">Par stade</option>
               <option value="archetype">Par archétype</option>
-              <option value="gold">Abonnés Gold</option>
+              <option value="gold">Abonnés Gold</option><option value="account">Un compte précis</option>
             </select>
           </label>
+          {form.target === "account" ? <label>Identifiant du compte<input value={form.spawter_id ?? ""} onChange={e => setForm({ ...form, spawter_id: e.target.value })} /></label> : null}
           {form.target === "stade" ? (
             <label>Stade
               <select value={form.stade} onChange={(e) => { setForm({ ...form, stade: e.target.value as PushFormValues["stade"] }); setEstimate(null); }}>
@@ -276,23 +235,24 @@ export const PushCampaigns = () => {
           </button>
           {estimate ? (
             <span style={{ fontSize: 13 }}>
-              ≈ <strong>{estimate.spawters}</strong> spawters ciblés, <strong>{estimate.tokens}</strong> devices avec notifs.
+              ≈ <strong>{estimate.spawters}</strong> spawters ciblés, <strong>{estimate.tokens}</strong> appareils avec notifications.
             </span>
           ) : null}
         </div>
         <div>
-          <button type="submit" className="btn-primary" disabled={sending}>
+          <button type="submit" className="btn-primary" disabled={sending || !estimate || estimate.tokens === 0}>
             {sending ? "Envoi…" : "Envoyer la campagne"}
           </button>
         </div>
         {result ? (
           <p style={{ fontSize: 13, margin: 0 }}>
-            Résultat : <strong>{result.sent}</strong> envoyés, <strong>{result.failed}</strong> échecs,{" "}
+            Résultat : <strong>{result.sent}</strong> acceptées par Expo, <strong>{result.failed}</strong> échecs,{" "}
             <strong>{result.purged}</strong> tokens morts purgés.
           </p>
         ) : null}
       </form>
 
+      {estimate?.tokens === 0 ? <p role="status">Aucun appareil joignable pour ce ciblage. Consulte l’activité des comptes pour vérifier les permissions et la version installée.</p> : null}
       {/* ── Historique (audit push_campaign, écrit côté Edge) ── */}
       <h2>Historique des campagnes</h2>
       {historyError ? (
@@ -307,7 +267,7 @@ export const PushCampaigns = () => {
               <th>Titre</th>
               <th>Cibles</th>
               <th>Devices</th>
-              <th>Envoyés</th>
+              <th>Acceptées par Expo</th><th>État</th>
               <th>Échecs</th>
               <th>Purgés</th>
             </tr>
@@ -316,17 +276,17 @@ export const PushCampaigns = () => {
             {history.map((row) => (
               <tr key={row.id}>
                 <td>{new Date(row.created_at).toLocaleString("fr-FR")}</td>
-                <td>{row.payload_after?.title ?? "—"}</td>
-                <td>{row.payload_after?.targets ?? "—"}</td>
-                <td>{row.payload_after?.tokens ?? "—"}</td>
-                <td>{row.payload_after?.sent ?? "—"}</td>
-                <td>{row.payload_after?.failed ?? "—"}</td>
-                <td>{row.payload_after?.purged ?? "—"}</td>
+                <td>{row.payload?.title ?? "—"}</td>
+                <td>{row.targets ?? "—"}</td>
+                <td>{row.tokens ?? "—"}</td>
+                <td>{row.sent ?? "—"}</td><td>{row.status === "sending" ? "Envoi en cours ou à vérifier" : "Traitement terminé"}</td>
+                <td>{row.failed ?? "—"}</td>
+                <td>{row.purged ?? "—"}</td>
               </tr>
             ))}
             {history.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ color: "var(--ink-mute)" }}>Aucune campagne pour l&apos;instant.</td>
+                <td colSpan={8} style={{ color: "var(--ink-mute)" }}>Aucune campagne pour l&apos;instant.</td>
               </tr>
             ) : null}
           </tbody>

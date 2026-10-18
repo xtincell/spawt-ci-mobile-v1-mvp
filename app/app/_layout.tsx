@@ -1,3 +1,5 @@
+import { startContentSync } from "../src/lib/content-sync";
+import { startAppActivity } from "../src/lib/app-activity";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -110,6 +112,25 @@ export default function RootLayout() {
   // Au logout (spawter → null post-hydratation), tout est désarmé.
   const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
   const storeHydrating = useSpawterStore((s) => s.hydrating);
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    return startContentSync(async () => {
+      const { supabase } = await import("../src/lib/supabase");
+      const { data, error } = await supabase.rpc("public_content_status").abortSignal(AbortSignal.timeout(10_000));
+      if (error || typeof data !== "string") throw error ?? new Error("content_status_failed");
+      return data;
+    });
+  }, []);
+  useEffect(() => {
+    if (!isSupabaseConfigured || storeHydrating || !spawterId) return;
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    void startAppActivity(spawterId).then(cleanup => {
+      if (cancelled) cleanup(); else stop = cleanup;
+    }).catch(() => {});
+    return () => { cancelled = true; stop?.(); };
+  }, [spawterId, storeHydrating]);
+
   useEffect(() => {
     if (storeHydrating) return;
     if (spawterId) {

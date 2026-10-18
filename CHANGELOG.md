@@ -1,3 +1,11 @@
+## 2026-10-18 — liaison panel / app, build 33
+
+- Actualités, informations et promotions éditoriales : brouillon, publication, programmation, retrait et suppression depuis le panel ; lecture dans le fil mobile.
+- Actualisation des fiches, avis éditoriaux et communautaires, carnets, événements et offres au retour dans l’app et sur changement serveur (sonde 30 s ; échéances à la minute).
+- Activité authentifiée : dernière présence au premier plan, version/build, état push et écritures du compte en attente, consultables par le staff.
+- Push : estimation serveur paginée, cible individuelle, filtre Gold fermé en cas d’erreur, réservation atomique/idempotente et historique avant envoi ; correction CORS. Acceptation Expo distincte de la réception.
+- Migrations 0077/0078 appliquées après sauvegarde. FCM Android non configuré dans les accès disponibles : aucune réception push mobile revendiquée.
+
 ## 18 octobre 2026 — Fiches documentaires sans note
 
 - 145 nouveaux brouillons issus des missions, préparatifs, brunchs et recherches Drive, avec provenance et 147 rapprochements.

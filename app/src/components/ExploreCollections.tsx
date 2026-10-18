@@ -1,3 +1,4 @@
+import { useContentRevision } from "../lib/content-sync";
 import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -23,6 +24,7 @@ export function ExploreCollections({
   active?: boolean;
   audience?: "general" | "duo";
 }) {
+  const contentRevision = useContentRevision();
   const theme = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
@@ -59,7 +61,7 @@ export function ExploreCollections({
     return () => {
       cancelled = true;
     };
-  }, [enabled, active, refreshKey, retry, audience]);
+  }, [enabled, active, refreshKey, retry, audience, contentRevision]);
   if (!enabled)
     return <PanelNotice message={t("home.collections_unavailable")} />;
   return (
@@ -130,8 +132,8 @@ export function PanelNotice({
   );
 }
 
-export function DuoEditorial() {
-  return <ExploreCollections audience="duo" />;
+export function DuoEditorial({ refreshKey = 0 }: { refreshKey?: number }) {
+  return <ExploreCollections audience="duo" refreshKey={refreshKey} />;
 }
 
 function CollectionCard({

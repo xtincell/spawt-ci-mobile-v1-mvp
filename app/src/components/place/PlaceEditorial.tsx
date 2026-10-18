@@ -1,3 +1,4 @@
+import { useContentRevision } from "../../lib/content-sync";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -8,6 +9,7 @@ import { DataLoadNotice } from "../DataLoadNotice";
 
 /** Only the public server projection is rendered. Private notes never reach this reader. */
 export function PlaceEditorial({ place }: { place: Pick<Place, "id" | "editorial_profile"> }) {
+  const contentRevision = useContentRevision();
   const theme = useTheme();
   const { t } = useTranslation();
   const [reviews, setReviews] = useState<EditorialReview[]>([]);
@@ -20,7 +22,7 @@ export function PlaceEditorial({ place }: { place: Pick<Place, "id" | "editorial
       if (!cancelled) setReviews(rows);
     }).catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
-  }, [place.id, retry]);
+  }, [place.id, retry, contentRevision]);
   const doc = place.editorial_profile;
   if (!doc && !reviews.length && !failed) return null;
   const textStyle = { ...theme.typography.preset.body, color: theme.colors.text.primary };

@@ -1,3 +1,4 @@
+import { useContentRevision } from "../../../src/lib/content-sync";
 import { PlaceEditorial } from "../../../src/components/place/PlaceEditorial";
 // Story 3.4 — Fiche lieu canonique (UX spec §1127).
 // Story 3.6 — toggle favori (heart top-right) + signal matching +0.05.
@@ -103,6 +104,7 @@ const VALID_REFS: ReadonlyArray<Referrer> = [
 type PlaceTabKey = "media" | "menu" | "avis";
 
 export default function PlaceDetailScreen() {
+  const contentRevision = useContentRevision();
   const params = useLocalSearchParams<{ id: string; ref?: string }>();
   const id = params.id;
   const ref = (VALID_REFS as ReadonlyArray<string>).includes(params.ref ?? "")
@@ -117,6 +119,7 @@ export default function PlaceDetailScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
+  const loadedId = useRef<string | null>(null);
   const [place, setPlace] = useState<PlaceWithAdn | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -140,14 +143,15 @@ export default function PlaceDetailScreen() {
   useEffect(() => {
     if (!id) { setPlace(null); setLoading(false); return; }
     let cancelled = false;
-    setLoading(true);
+    setLoading(loadedId.current !== id);
     setFailed(false);
-    setPlace(null);
+    if (loadedId.current !== id) setPlace(null);
     setCoverFailed(false);
     placeViewedEmittedRef.current = false;
     adnUnderConstructionEmittedRef.current = false;
     void getPlace(id).then((p) => {
       if (cancelled) return;
+      loadedId.current = id;
       setPlace(p);
     }).catch(() => {
       if (!cancelled) setFailed(true);
@@ -155,7 +159,7 @@ export default function PlaceDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, attempt]);
+  }, [id, attempt, contentRevision]);
 
   useEffect(() => subscribeReviewChanges(placeId => {
     if (placeId === id) setAttempt(n => n + 1);

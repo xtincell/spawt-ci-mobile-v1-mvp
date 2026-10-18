@@ -3,13 +3,13 @@ on:
   push:
     tags: ['local-build-android-*']
     branches: ['codex/editorial-research-admin']
-    paths: ['documentation/android-build32.json']
+    paths: ['documentation/android-build33.json']
   workflow_dispatch:
     inputs:
       recipe:
         description: Recette de compilation déjà contrôlée
         type: string
-        default: documentation/android-build32.json
+        default: documentation/android-build33.json
         required: true
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
-      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build32.json' }}
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build33.json' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           const headers={accept:'application/vnd.github+json','user-agent':'SPAWT-native-release',...(process.env.GH_TOKEN?{authorization:'Bearer '+process.env.GH_TOKEN}:{})};
           const read=async suffix=>{const response=await fetch(api+suffix,{headers});if(!response.ok) throw new Error('Lecture CI HTTP '+response.status);return response.json();};
           const previous=await read('/actions/runs/'+recipe.previousBuildRun);
-          if(previous.status!=='completed' || previous.conclusion!=='success' || previous.head_sha!==recipe.previousSourceCommit || previous.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation précédente non reçue');
+          if(previous.status!=='completed' || previous.conclusion!=='success' || previous.head_sha!==(recipe.previousBuildRunHead || recipe.previousSourceCommit) || previous.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation précédente non reçue');
           const runs=await read('/actions/runs?head_sha='+recipe.sourceCommit+'&per_page=100');
           const run=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/app-checks.yml').sort((a,b)=>b.id-a.id)[0];
           if(!run || run.status!=='completed' || run.conclusion!=='success') throw new Error('La dernière CI source doit être terminée et verte avant compilation');

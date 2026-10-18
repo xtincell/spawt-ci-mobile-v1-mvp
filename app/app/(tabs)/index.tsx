@@ -1,3 +1,5 @@
+import { Announcements } from "../../src/components/Announcements";
+import { useContentRevision } from "../../src/lib/content-sync";
 // Story 3.3c — HomeD canonique (UX spec §1119-1156).
 // Editorial selection and personalized feed are independent.
 // Consomme rankPlaces (Story 3.3b) + listPlaces durci Zod (Story 3.3a) + saved_place_ids (Story 3.6).
@@ -55,6 +57,7 @@ import { GoldUpsellSheet } from "../../src/components/GoldUpsellSheet";
 const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 
 export default function HomeD() {
+  const contentRevision = useContentRevision();
   const theme = useTheme();
   const router = useRouter();
   const navigate = useNavigationAction();
@@ -182,7 +185,7 @@ export default function HomeD() {
     return () => {
       cancelled = true;
     };
-  }, [activityEnabled, places]);
+  }, [activityEnabled, places, contentRevision]);
 
   // Phase 2 F14 — paywall géographique (nudge, flag OFF par défaut) :
   // un lieu hors zone gratuite ouvre l'upsell Gold au lieu de la fiche.
@@ -316,6 +319,7 @@ export default function HomeD() {
                       : theme.colors.surface.subtle,
                 }}
               >
+                {mode === "suggestions" ? <Announcements compact /> : null}
                 {mode !== "rapide" ? (
                   <View
                     style={{

@@ -65,7 +65,7 @@ export function HomeEditorial({
 
   if (mode === "selections")
     return <ExploreCollections refreshKey={refreshKey} />;
-  if (mode === "duo") return <DuoEditorial />;
+  if (mode === "duo") return <DuoEditorial refreshKey={refreshKey} />;
   const cards = places.map((item) => ({
     id: item.place.id,
     title: item.place.name,

@@ -1393,5 +1393,14 @@
     "visit": "{{name}} · visite du {{date}}",
     "duo_empty": "Les carnets pour deux sont en préparation. Ils apparaîtront ici dès leur publication.",
     "collections_empty": "Les carnets sont en préparation. Ils apparaîtront ici dès leur publication."
+  },
+  "announcements": {
+    "title": "Le fil du Chat",
+    "empty": "Pas de nouvelle publication pour le moment.",
+    "info": "Info SPAWT",
+    "news": "Actualité",
+    "promo": "Promotion",
+    "open": "Découvrir",
+    "all": "Toutes les publications"
   }
 }

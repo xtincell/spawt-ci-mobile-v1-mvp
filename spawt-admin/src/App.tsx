@@ -1,3 +1,5 @@
+import { ActualitesList } from "./pages/actualites";
+import { ActiviteList } from "./pages/activite";
 import { Authenticated, Refine } from "@refinedev/core";
 import { dataProvider, liveProvider } from "@refinedev/supabase";
 import routerProvider from "@refinedev/react-router";
@@ -153,6 +155,8 @@ export const App = () =>
           <Route path="/paiements" element={<PaiementsList />} />
           <Route path="/runbook" element={<RunbookPage />} />
           <Route path="/b2b" element={<B2bList />} />
+          <Route path="/actualites" element={<ActualitesList />} />
+          <Route path="/activite" element={<ActiviteList />} />
           <Route path="/push" element={<PushCampaigns />} />
           <Route path="/explore" element={<ExploreCuration />} />
         </Route>

@@ -1,3 +1,4 @@
+import { useContentRevision } from "../../src/lib/content-sync";
 import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { useNavigationAction } from "../../src/lib/use-navigation-action";
 // Mode Explore — détail d'un carnet éditorial (feature post-MVP #3).
@@ -41,6 +42,7 @@ import { useFlag } from "../../src/store/feature-flags";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 
 export default function ExploreCollectionScreen() {
+  const contentRevision = useContentRevision();
   const theme = useTheme();
   const router = useRouter();
   const navigate = useNavigationAction();
@@ -89,7 +91,7 @@ export default function ExploreCollectionScreen() {
     return () => {
       cancelled = true;
     };
-  }, [enabled, slug, attempt]);
+  }, [enabled, slug, attempt, contentRevision]);
 
   // Scores de matching du moteur canonique, indexés par place_id — l'ordre
   // affiché reste celui du carnet (sort_order), seuls les chiffres viennent

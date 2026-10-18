@@ -1,3 +1,4 @@
+import { useContentRevision } from "../../lib/content-sync";
 // Événements & promotions (0049 + 0050) — section « En ce moment » de la
 // fiche lieu. Flag `evenements-promos` : OFF → null, la fiche rend EXACTEMENT
 // comme avant (non-régression). ON → bandeau(x) promo ÉTIQUETÉ(S) « PROMO »
@@ -40,6 +41,7 @@ type FetchState =
   | { kind: "loaded"; events: PlaceEvent[]; promos: PlacePromotion[] };
 
 export function PlaceActivitySection({ placeId, eventsFetcher, promosFetcher }: Props) {
+  const contentRevision = useContentRevision();
   const { t } = useTranslation();
   const theme = useTheme();
   // Le hook flag est appelé INCONDITIONNELLEMENT (rules of hooks — leçon R22) ;
@@ -68,7 +70,7 @@ export function PlaceActivitySection({ placeId, eventsFetcher, promosFetcher }: 
     return () => {
       cancelled = true;
     };
-  }, [enabled, placeId, eventsFetcher, promosFetcher]);
+  }, [enabled, placeId, eventsFetcher, promosFetcher, contentRevision]);
 
   // Impressions de section — 1× par mount, seulement si la section montre
   // quelque chose (pas d'event fantôme sur section vide).

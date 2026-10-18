@@ -10,7 +10,7 @@ on:
       - 'scripts/__tests__/**'
       - '.github/workflows/app-checks.yml'
   push:
-    branches: ['codex/recevoir-app-active']
+    branches: ['codex/recevoir-app-active', 'codex/audit-admin-commentaires']
 
 permissions:
   contents: read

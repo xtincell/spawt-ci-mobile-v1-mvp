@@ -34,3 +34,12 @@ it("ignores stale reviews after opening another place", async () => {
   await act(async () => resolve([{ id: "old", body: "Stale review", visited_on: "2026-10-16", display_name: "Old" }]));
   expect(JSON.stringify(tree.toJSON())).not.toContain("Stale review");
 });
+it("remote publication refresh removes an unpublished editorial review", async () => {
+  const { invalidatePublishedContent } = require("../../src/lib/content-sync");
+  mockList.mockResolvedValue([{ id: "r", display_name: "Rédaction", body: "Publication initiale", visited_on: "2026-10-16" }]);
+  await act(async () => { tree = TestRenderer.create(render()); });
+  expect(JSON.stringify(tree.toJSON())).toContain("Publication initiale");
+  mockList.mockResolvedValue([]);
+  await act(async () => { invalidatePublishedContent(); });
+  expect(JSON.stringify(tree.toJSON())).not.toContain("Publication initiale");
+});
