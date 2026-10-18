@@ -1,3 +1,16 @@
+## v1.1.1 — build 36 — 2026-10-19
+
+**APK publié** : [télécharger le build 36](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-36/spawt-1.1.1-build36.apk) · [site officiel](https://spawt.online).
+
+- Source `76fb9bec3250803924ccecdc143b0f74ce1b25e0` ; [compilation 39175490281](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39175490281), [recette native 39177562951](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39177562951), [publication 39177846463](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39177846463).
+- 162 454 415 octets ; SHA-256 `9cbe231ff9eb646586b00980fb6918a78f020d3aae48de5caef50951713e307c`.
+- Prix Gold hors zone retiré du texte de l'app ; catalogue administrable en base, Gold lieu 60 000 F TTC et facturation atomique déployés côté serveur.
+- Continuité de signature, configuration backend/Firebase, cinq assertions natives, animation et initialisation Firebase vérifiées. Captures examinées ; aucun compte ni OTP utilisé pour la recette native.
+- Les deux boutons du site sont passés automatiquement au build 36 après publication, avant tout redéploiement de la vitrine.
+- Avis, carnets, actualités et synchronisation conservés. Installer par-dessus l'app actuelle. CinetPay reste à connecter ; réception push sur téléphone à confirmer. Aucun IPA ni OTA.
+
+[Bilan détaillé](./documentation/FINALISATION_TARIFS_2026-10-19.md).
+
 ## v1.1.1 — build 35 — 2026-10-18
 
 **APK publié** : [télécharger le build 35](https://spawt.online/downloads/spawt-1.1.1-build35.apk) · [Release GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-18-35).

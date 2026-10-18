@@ -36,6 +36,14 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
+## Tarifs et livraison — 2026-10-19
+
+- PR 17/18 reprises ; migrations 0079–0081 appliquées après sauvegarde. Gold lieu **60 000 F TTC** (50 847 HT + 9 153 TVA), autres tarifs conservés. Page Tarifs opérationnelle pour Xtincell, journal admin restauré, confirmation prestataire et facture atomiques.
+- Console reçue sur `231b7d1`. Sept fichiers paiement vérifiés dans le runtime. `deploy-edge-functions.mjs` ne redémarre plus le stack entier si le redémarrage Edge ciblé est indisponible : Coolify 4.1.2 ne propose pas cet endpoint.
+- Build **36** : source `76fb9be`, compilation `39175490281`, recette `39177562951`, publication `39177846463`. Le manifeste Android public et les deux boutons suivent cette version. Aucun prix écrit en dur dans le texte Gold hors zone.
+- 155 lieux, 10 avis éditoriaux et 3 carnets publiés conservés. CinetPay non configuré ; aucun paiement ou push réel envoyé. Réception physique toujours à confirmer.
+- Voir `documentation/FINALISATION_TARIFS_2026-10-19.md` et `finalisation-tarifs-proof.json` pour les preuves, l'incident de redémarrage résolu et les limites.
+
 ## Firebase et publication Android — 2026-10-18
 
 - Connexion officielle Firebase établie ; compte FCM dédié limité à `roles/firebasecloudmessaging.admin`, clé privée dans Expo uniquement. Identité de configuration temporaire désactivée, autorisations retirées et clés inutilisées supprimées.

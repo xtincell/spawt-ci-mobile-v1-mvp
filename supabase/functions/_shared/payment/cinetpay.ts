@@ -221,7 +221,7 @@ export class CinetPayProvider implements IPaymentProvider {
         body.code,
       ),
       amount: typeof data.amount === "number" ? data.amount : Number(data.amount ?? 0) || 0,
-      currency: typeof data.currency === "string" ? data.currency : "XOF",
+      currency: typeof data.currency === "string" ? data.currency : "",
       paidAt: typeof data.payment_date === "string" ? data.payment_date : null,
       paymentMethod:
         typeof data.payment_method === "string" && data.payment_method.length > 0

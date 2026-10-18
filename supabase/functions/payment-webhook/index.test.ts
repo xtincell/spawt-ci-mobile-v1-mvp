@@ -156,7 +156,8 @@ const WH_CUSTOMER = "00000000-0000-4000-8000-0000000000b1";
 const WH_CALLER = "00000000-0000-4000-8000-0000000000c1";
 
 interface WebhookCapture {
-  invoice: Record<string, unknown> | null;
+  confirmation: Record<string, unknown> | null;
+  writes: string[];
   plansRead: boolean;
   logs: string[];
 }
@@ -164,15 +165,16 @@ interface WebhookCapture {
 function installFakeWebhookBackend(
   sub: Record<string, unknown>,
   confirmedAmount: number,
+  options: { currency?: string | null; rpcError?: boolean } = {},
 ): { capture: WebhookCapture; restore: () => void } {
-  const capture: WebhookCapture = { invoice: null, plansRead: false, logs: [] };
+  const capture: WebhookCapture = { confirmation: null, writes: [], plansRead: false, logs: [] };
   const realFetch = globalThis.fetch;
   const realLog = console.log;
   // Minuteries d'auto-rafraîchissement de session de supabase-js : tracées et
   // arrêtées en fin de test (contrôle de fuites de Deno actif pour le reste).
   const realSetInterval = globalThis.setInterval;
   const realSetTimeout = globalThis.setTimeout;
-  const timers: number[] = [];
+  const timers: ReturnType<typeof globalThis.setTimeout>[] = [];
   globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
     const id = realSetInterval(...args);
     timers.push(id);
@@ -200,7 +202,7 @@ function installFakeWebhookBackend(
         data: {
           status: "ACCEPTED",
           amount: String(confirmedAmount),
-          currency: "XOF",
+          currency: options.currency === undefined ? "XOF" : options.currency,
           payment_date: "2026-10-18 10:00:00",
           payment_method: "WAVECI",
         },
@@ -212,18 +214,12 @@ function installFakeWebhookBackend(
       return reply({ message: "le webhook ne lit pas plans" }, 500);
     }
     if (table === "subscriptions" && method === "GET") return reply([sub]);
-    if (table === "subscriptions" && method === "PATCH") {
-      // Activation (avec select) → la ligne ; clôture de grâce (sans) → 204.
-      return url.searchParams.has("select") ? reply([{ id: WH_SUB }]) : new Response(null, { status: 204 });
-    }
-    if (table === "customers" && method === "GET") return reply([{ spawter_id: WH_CALLER }]);
-    if (table === "b2b_accounts" && method === "PATCH") {
-      return reply([{ id: "00000000-0000-4000-8000-0000000000e1" }]);
-    }
-    if (table === "invoices" && method === "GET") return reply([]);
-    if (table === "invoices" && method === "POST") {
-      capture.invoice = body;
-      return new Response(null, { status: 201 });
+    if (method !== "GET") capture.writes.push(table);
+    if (table === "rpc/confirm_provider_payment" && method === "POST") {
+      capture.confirmation = body;
+      return options.rpcError
+        ? reply({ message: "invoice write failed", code: "23514" }, 400)
+        : reply({ received: true, status: "active", invoice_id: "verified-in-sql-test" });
     }
     return reply({ message: `route non simulée : ${method} ${url.pathname}` }, 500);
   }) as typeof fetch;
@@ -242,6 +238,7 @@ function installFakeWebhookBackend(
 async function notifyAccepted(
   sub: Record<string, unknown>,
   confirmedAmount: number,
+  options: { currency?: string | null; rpcError?: boolean } = {},
 ): Promise<{ status: number; body: Record<string, unknown>; capture: WebhookCapture }> {
   resetEnv();
   setBaseEnv();
@@ -255,7 +252,7 @@ async function notifyAccepted(
     cpm_error_message: "SUCCES",
   };
   const token = await hmacSha256Hex("secret-test-spawt", buildWebhookHmacData(fields));
-  const backend = installFakeWebhookBackend(sub, confirmedAmount);
+  const backend = installFakeWebhookBackend(sub, confirmedAmount, options);
   try {
     const resp = await handleRequest(formRequest(fields, { "x-token": token }));
     return { status: resp.status, body: await resp.json(), capture: backend.capture };
@@ -281,42 +278,57 @@ function pendingSub(patch: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-Deno.test("payment-webhook: Gold lieu figé à 60 000 → facture 50 847 + 9 153 = 60 000, sans lire plans", async () => {
+Deno.test("payment-webhook: Gold lieu confirmé à 60 000 → une seule confirmation atomique, sans lire plans", async () => {
   const { status, body, capture } = await notifyAccepted(pendingSub({}), 60000);
   assertEquals(status, 200);
   assertEquals(body.status, "active");
   assertEquals(capture.plansRead, false);
-  assertEquals(capture.invoice?.price_ht, 50847);
-  assertEquals(capture.invoice?.tva_amount, 9153);
-  assertEquals(capture.invoice?.price_ttc, 60000);
-  assertEquals(capture.invoice?.tva_rate, 18);
-  assertEquals(capture.invoice?.provider_tx_id, WH_TX);
-  assertEquals(capture.logs.some((l) => l.includes("warn_amount_mismatch")), false);
+  assertEquals(capture.writes, ["rpc/confirm_provider_payment"]);
+  assertEquals(capture.confirmation, {
+    p_transaction_id: WH_TX, p_provider: "cinetpay", p_amount: 60000,
+    p_currency: "XOF", p_paid_at: "2026-10-18 10:00:00",
+  });
 });
 
-Deno.test("payment-webhook: abonnement figé à un autre prix → facture ce prix-là, pas le tarif courant", async () => {
-  // 55 050 ne se retrouve pas par HT + TVA arrondie (46 653 → 55 051) : seul
-  // le montant figé donne le bon total.
-  const { capture } = await notifyAccepted(
-    pendingSub({ price_ht: 46653, price_ttc: 55050 }),
-    55050,
-  );
+Deno.test("payment-webhook: tarif changé depuis le checkout → confirme le prix figé", async () => {
+  const { body, capture } = await notifyAccepted(pendingSub({ price_ht: 46653, price_ttc: 55050 }), 55050);
+  assertEquals(body.status, "active");
   assertEquals(capture.plansRead, false);
-  assertEquals(capture.invoice?.price_ht, 46653);
-  assertEquals(capture.invoice?.tva_amount, 8397);
-  assertEquals(capture.invoice?.price_ttc, 55050);
+  assertEquals(capture.confirmation?.p_amount, 55050);
 });
 
-Deno.test("payment-webhook: abonnement d'avant 0079 (sans TTC figé) → HT + TVA arrondie, explicites", async () => {
-  const { capture } = await notifyAccepted(pendingSub({ price_ht: 65000, price_ttc: null }), 76700);
-  assertEquals(capture.invoice?.price_ht, 65000);
-  assertEquals(capture.invoice?.tva_amount, 11700);
-  assertEquals(capture.invoice?.price_ttc, 76700);
+Deno.test("payment-webhook: abonnement antérieur à 0079 → confirme le montant historique", async () => {
+  const { body, capture } = await notifyAccepted(pendingSub({ price_ht: 65000, price_ttc: null }), 76700);
+  assertEquals(body.status, "active");
+  assertEquals(capture.confirmation?.p_amount, 76700);
 });
 
-Deno.test("payment-webhook: montant confirmé ≠ montant figé → facture figée + trace warn_amount_mismatch", async () => {
-  const { status, capture } = await notifyAccepted(pendingSub({}), 59999);
-  assertEquals(status, 200);
-  assertEquals(capture.invoice?.price_ttc, 60000);
-  assertEquals(capture.logs.some((l) => l.includes("warn_amount_mismatch")), true);
+for (const amount of [59999, 60001, 0, -1, 60000.5]) {
+  Deno.test(`payment-webhook: montant confirmé ${amount} incohérent → aucune activation`, async () => {
+    const { status, body, capture } = await notifyAccepted(pendingSub({}), amount);
+    assertEquals(status, 200);
+    assertEquals(body.ignored, "payment_mismatch");
+    assertEquals(capture.writes, []);
+    assertEquals(capture.logs.some(l => l.includes("rejected_payment_mismatch")), true);
+  });
+}
+for (const currency of ["USD", null]) {
+  Deno.test(`payment-webhook: devise ${currency} incohérente ou absente → aucune activation`, async () => {
+    const { body, capture } = await notifyAccepted(pendingSub({}), 60000, { currency });
+    assertEquals(body.ignored, "payment_mismatch");
+    assertEquals(capture.writes, []);
+  });
+}
+Deno.test("payment-webhook: erreur de transaction → 500 pour retenter, jamais de faux succès", async () => {
+  const { status, body, capture } = await notifyAccepted(pendingSub({}), 60000, { rpcError: true });
+  assertEquals(status, 500);
+  assertEquals(body.error, "db_error");
+  assertEquals(capture.writes, ["rpc/confirm_provider_payment"]);
 });
+for (const state of ["active", "expired", "grace"]) {
+  Deno.test(`payment-webhook: répétition après état ${state} → aucune nouvelle écriture`, async () => {
+    const { body, capture } = await notifyAccepted(pendingSub({ status: state }), 60000);
+    assertEquals(body.idempotent, true);
+    assertEquals(capture.writes, []);
+  });
+}

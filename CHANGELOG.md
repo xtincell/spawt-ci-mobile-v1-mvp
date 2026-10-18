@@ -1,3 +1,17 @@
+## 2026-10-19 — Finalisation des tarifs, préparation Android 36
+
+- Prix Gold codé en dur retiré des cartes verrouillées : l’app décrit l’accès Gold sans annoncer un montant qui peut changer depuis la console.
+- Build 36 préparé sur la lignée du build 35 avec Firebase ; compilation et publication encore à recevoir.
+
+## 2026-10-19 — Finalisation des tarifs et du paiement
+
+- Reprise des PR 17/18 et de la PR 12 de la vitrine ; le prix Gold lieu est bien **60 000 F TTC**, administrable et figé à l'ouverture du paiement.
+- Migration 0080 : rétablit 23 actions de journalisation du panel retirées par d'anciens CHECK SQL, sans effacer l'historique.
+- Migration 0081 : confirmation prestataire réservée au serveur, montant/devise exacts, abonnement + rôle lieu + facture atomiques, répétitions sans double facture.
+- Tests Deno typés (92), schéma PostgreSQL isolé complet, essais de permissions et retour arrière 0079–0081 ; workflow GitHub dédié.
+- Build 36 : retrait d'un prix Gold écrit en dur dans l'app ; compilation et publication suivies dans la documentation de livraison.
+- Migrations 0079–0081 et console déployées après sauvegarde ; recette réelle Xtincell reçue. Build 36 publié après recette native, canal et boutons Android actualisés. Incident de redémarrage résolu et garde du script corrigée ; bilan dans `documentation/FINALISATION_TARIFS_2026-10-19.md`.
+
 ## 2026-10-18 — Tarifs administrables, Gold lieu à 60 000 F (0079, non appliquée)
 
 - Décision fondateur : Gold lieu (`b2b_gold`) = 60 000 F CFA TTC par mois, prix final payé par le lieu ; SPAWT absorbe TVA et frais (avant : 65 000 HT, 76 700 TTC). Facture : 50 847 HT + 9 153 de TVA = 60 000.
