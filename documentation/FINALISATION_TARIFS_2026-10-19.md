@@ -29,3 +29,14 @@
 Au contrôle initial : aucun abonnement, facture ni paiement manuel ; identifiants CinetPay absents. Les tests ne prouvent pas un encaissement réel. Aucune campagne, notification ou transaction réelle n'est envoyée pour la recette.
 
 Le build 36 (`76fb9be`, compilation `39175490281`) est en cours. Les résultats de sauvegarde, déploiement, recette navigateur et publication seront ajoutés après contrôle ; cette section ne vaut pas attestation de déploiement.
+
+## Mise en production et reprise du serveur
+
+- Sauvegarde PostgreSQL CUSTOM du 19 octobre (heure Lagos) : 4 189 612 octets ; liste d'archive contrôlée, tables métier et Auth présentes.
+- Migrations 0079–0081 appliquées ensemble ; Gold lieu 60 000 TTC, autres prix inchangés. Quatre suites SQL exécutées sur le serveur puis annulées : aucun abonnement, facture ou paiement de test conservé.
+- L'ancienne recette `manual_payments.sql` ignorait les erreurs et contenait un identifiant admin à remplacer. Elle est désormais autonome, avec assertions bloquantes, et a été rejouée localement et sur la base réelle.
+- Console `231b7d1` et vitrine `5201785` déployées. Recette Xtincell : catalogue, aperçu avant/après et motif obligatoire, annulation sans modification, paiements, actualités et activité. CGU/CGV publiques vérifiées. Aucune erreur API/JavaScript ; session temporaire clôturée.
+- Sept fichiers de paiement rechargés ; Auth répond 200, méthodes GET des fonctions 405 attendus, prévol checkout 204 avec `x-client-info`.
+- Incident d'exploitation : le redémarrage global via Coolify 4.1.2 a arrêté le stack sans le relancer, avec une interruption d'environ dix minutes (23:23–23:33 UTC le 18 octobre). Les conteneurs existants et leurs volumes ont été relancés directement via un outil de maintenance temporaire sans domaine public. Les 155 fiches et l'absence de paiements ont été recontrôlées. Le repli vers un redémarrage global a été retiré de `deploy-edge-functions.mjs` ; seul le conteneur Edge doit être rechargé. Coolify retire également le saut de ligne final des fichiers : la comparaison en tient compte.
+
+La compilation Android 36 et sa recette restent suivies ci-dessous ; elles sont distinctes de la mise à jour du serveur.
