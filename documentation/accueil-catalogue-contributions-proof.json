@@ -1,0 +1,44 @@
+{
+  "catalogue": {
+    "published": 155,
+    "mapped": 111,
+    "unknownLocation": 44,
+    "editorials": 10,
+    "collections": 3
+  },
+  "contributions": {
+    "schemaMigration": "0085_moderated_place_contributions",
+    "browserChecks": [
+      "app menu upload -> private staff image -> reasoned rejection -> app history; public place unchanged",
+      "GPS evidence -> staff atomic approval -> 5 Paws receipt in app; same public coordinates and zero personal spawts"
+    ],
+    "browserErrors": [],
+    "publicPlaceUnchanged": true,
+    "singleRewardEntry": true,
+    "positionSimulatedForTechnicalTest": true
+  },
+  "nativeIntermediate": {
+    "build": 38,
+    "run": 39339443365,
+    "proof": {
+      "build": 38,
+      "apiOrigin": "https://api.spawt.online",
+      "checkedAt": "2026-10-19T23:13:45Z",
+      "nativeAuthenticated": true,
+      "announcementsRead": true,
+      "editorialTextMatched": true,
+      "collectionRead": true,
+      "fiveContentChecksPassed": true,
+      "offlineFailureAndRecovery": true,
+      "feedbackReceiptReceived": true,
+      "feedbackReplyRead": true,
+      "publicPlaceCount": 155,
+      "mappedPlaceCount": 111,
+      "personalExplorationChecked": true,
+      "unratedDocumentaryRead": true,
+      "feedbackMarker": "Recette native SPAWT 1.1.1 39339443365"
+    }
+  },
+  "finalBuild": 39,
+  "finalStatus": "compiling"
+}

@@ -264,7 +264,7 @@ def live_content_cases():
     while time.monotonic()<end:
         deep('settings'); deep('support'); scroll_tap('support-refresh'); time.sleep(2)
         try:
-            scroll_find('support-team-reply',attempts=2); break
+            scroll_find('Réponse équipe '+RUN,attempts=5); break
         except AssertionError: time.sleep(3)
     else: raise AssertionError('Private team reply was not received from the admin panel')
     snap('live-feedback-team-reply'); check('native feedback reads admin team reply',True)
@@ -287,7 +287,7 @@ def live_content_cases():
         end=time.monotonic()+180
         while time.monotonic()<end:
             scroll_tap('contribution-refresh'); time.sleep(2)
-            try: scroll_find('contribution-reward',attempts=2); break
+            try: scroll_find('Validation native '+RUN,attempts=5); break
             except AssertionError: time.sleep(3)
         else: raise AssertionError('Native contribution approval and reward not received from panel')
         snap('live-contribution-reward'); find('5 Paws attribués'); find('contribution-team-reply')

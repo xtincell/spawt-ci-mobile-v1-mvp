@@ -48,6 +48,8 @@ Une actualité réelle a été publiée puis modifiée depuis le panel : « Les 
 
 Source Android finale : `4eb95788c05a8eece313d0258c4868f2994293d3`. Recette : `android-build39.json`. Le build 37 a été arrêté avant publication ; le build 38 a compilé les corrections de lecture et le catalogue. Le build 39 ajoute les contributions demandées ensuite. La lignée de signature reste celle du build 36. Compilation 39 : `39339756785`, réception native et publication encore en cours.
 
+Recette intermédiaire 38 **réussie** : compilation `39335327191`, recette native `39339443365`. L’APK signé a lu les données réelles, affiché 155 fiches / 111 positions, laissé vide l’exploration personnelle, reçu les avis éditoriaux et carnets, puis testé panne réseau, brouillon après redémarrage, accusé serveur et réponse du panel. Les captures 393 dp et fiche documentaire ont été examinées. Firebase a été initialisé dans le processus Android. Cette recette intermédiaire ne remplace pas la réception du build39 final.
+
 Les détails de compilation, recette native, empreinte APK et publication seront consignés dans `RELEASES.md` et le fichier JSON de preuve à la réception finale.
 
 Les coordonnées renseignées ne constituent pas toutes une vérification GPS sur place ; les inconnues restent explicites. Installer la nouvelle APK par-dessus l’ancienne conserve les données locales en attente. Une recette sur émulateur ne prouve ni la récupération d’un commentaire resté sur un téléphone personnel, ni la réception d’un push sur ce téléphone. Aucun envoi de campagne à des personnes réelles dans cette recette. Aucun IPA ni OTA publié.
