@@ -270,7 +270,32 @@ def live_content_cases():
     snap('live-feedback-team-reply'); check('native feedback reads admin team reply',True)
     deep('settings'); deep('support'); tap('support-check'); find('support-check-sync',timeout=30)
     tree=snap('live-content-recovered'); check('native content reads recover after network outage',not any('ndisponible' in label(n) for n in tree.iter('node')))
-    (OUT/'live-data.json').write_text(json.dumps({'build':json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build'],'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER},ensure_ascii=False,indent=2))
+    build=json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']
+    enrichment={}
+    if build>=39:
+        # Technical observation uses exactly the published position. The external
+        # staff recipe preserves it; no invented field observation or visit is added.
+        place=next(p for p in inventory if p['id']==PLACE)
+        adb('emu','geo','fix',place['lng'],place['lat'])
+        deep('place/'+PLACE); scroll_tap('place-contribute'); tap('contribution-kind-location'); tap('contribution-locate')
+        try: tap('permission_allow_foreground_only_button',timeout=6)
+        except AssertionError: pass
+        find('contribution-position',timeout=35)
+        scroll_tap('contribution-comment'); adb('shell','input','text',('Recette enrichissement natif '+RUN+' - GPS simule identique a la fiche, aucun releve terrain nouveau.').replace(' ','%s')); back()
+        scroll_tap('contribution-send'); find('contribution-receipt',timeout=30); snap('live-contribution-received')
+        check('native location contribution receives a server receipt',True)
+        end=time.monotonic()+180
+        while time.monotonic()<end:
+            scroll_tap('contribution-refresh'); time.sleep(2)
+            try: scroll_find('contribution-reward',attempts=2); break
+            except AssertionError: time.sleep(3)
+        else: raise AssertionError('Native contribution approval and reward not received from panel')
+        snap('live-contribution-reward'); find('5 Paws attribués'); find('contribution-team-reply')
+        check('native contribution reads the staff decision and single Paws reward',True)
+        deep('carte'); tap('carte-filter-mine'); find('0 lieux · 0 sur la carte')
+        check('approved enrichment does not fabricate a personal spawt',True)
+        enrichment={'contributionReceiptReceived':True,'contributionModerationRead':True,'contributionRewardRead':True,'contributionDidNotCreateVisit':True,'contributionMarker':'Recette enrichissement natif '+RUN,'positionSimulatedForTechnicalTest':True}
+    (OUT/'live-data.json').write_text(json.dumps({'build':build,'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER,**enrichment},ensure_ascii=False,indent=2))
 
 try:
     # Garder le même format en dp, avec une surface 1x pour la vidéo : encoder

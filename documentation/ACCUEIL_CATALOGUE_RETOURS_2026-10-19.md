@@ -8,6 +8,18 @@ L’exploration est propre au compte : **Tous les lieux**, **À explorer**, **Me
 
 L’accueil utilise « Choisir vite ». Les titres sont en Gotham Bold et les sous-textes en Gotham Book, rapprochés. La rangée peut défiler sur les petits écrans ou avec une grande taille de texte afin de conserver les libellés complets.
 
+## Contributions de la communauté
+
+Chaque fiche propose **Compléter ce lieu** : photographier/importer 1 à 3 pages du menu avec un budget facultatif, ou relever ponctuellement sa position sur place. Le relevé doit dater de moins de dix minutes et annoncer une précision de 100 mètres maximum. Il ne vaut pas preuve inviolable de présence ; l’équipe examine la proposition. Ce geste n’active pas Le Guet ni la localisation permanente.
+
+Les preuves restent privées jusqu’à modération. L’app conserve un brouillon par compte et par lieu ; l’identifiant stable rend les reprises sans doublon. Les images déposées sont immuables. Les contributions en attente sont limitées à cinq par compte, avec vingt dépôts par jour.
+
+Le panel **Contributions aux lieux** affiche les preuves, les valeurs actuelles et les valeurs retenues. Accepter met à jour la fiche et crédite les Paws dans la même transaction. Une modification concurrente de la fiche impose une nouvelle comparaison. Un refus exige un motif et ne crédite rien. L’auteur lit le statut, le motif et les Paws dans l’app. Aucune contribution ne crée un spawt ou une note.
+
+Le barème initial reprend la reconnaissance existante d’un avis publié : **5 Paws** par contribution validée, pour le menu/prix comme pour la position. Un admin peut changer ce barème (0 à 100), avec motif et historique. La récompense est figée au dépôt, jamais modifiée rétroactivement.
+
+La migration 0085 a été appliquée après sauvegarde complète. Tests SQL des droits, photos privées/publiques, deux auteurs, reprises, quotas, conflit de fiche, récompense unique, refus, compte banni, suppression de compte et retour arrière reçus. Le navigateur a parcouru l’envoi réel d’une photo de test, sa lecture et son refus dans le panel Xtincell, puis un relevé GPS simulé identique aux coordonnées existantes, sa validation et la réception de 5 Paws. Les champs publics du lieu sont restés identiques ; le compte de recette n’a aucun spawt. Aucun faux menu n’a été publié.
+
 ## Cause de l’erreur du Fil du Chat
 
 Trois appels récents utilisaient `AbortSignal.timeout`, absent du polyfill `abort-controller` réellement chargé par React Native 0.83. L’appel échouait avant la requête réseau ; il affectait les actualités, la révision des contenus et les remontées d’activité. Le serveur public répondait correctement.
@@ -34,7 +46,7 @@ Une actualité réelle a été publiée puis modifiée depuis le panel : « Les 
 
 ## Livraison et limites
 
-Source Android : `915d99dddafe7183ca8c590fd229d2ab397a9260`. Recette : `android-build38.json`. Le build 37 a été arrêté avant publication afin d’intégrer le catalogue documentaire demandé ensuite. La lignée de signature reste celle du build 36.
+Source Android finale : `4eb95788c05a8eece313d0258c4868f2994293d3`. Recette : `android-build39.json`. Le build 37 a été arrêté avant publication ; le build 38 a compilé les corrections de lecture et le catalogue. Le build 39 ajoute les contributions demandées ensuite. La lignée de signature reste celle du build 36. Compilation 39 : `39339756785`, réception native et publication encore en cours.
 
 Les détails de compilation, recette native, empreinte APK et publication seront consignés dans `RELEASES.md` et le fichier JSON de preuve à la réception finale.
 
