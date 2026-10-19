@@ -273,6 +273,8 @@ def live_content_cases():
     build=json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']
     enrichment={}
     if build>=39:
+        deep('progression'); scroll_find('paws-balance',attempts=22)
+        balance_before=int(find('paws-balance').get('text'))
         # An explicit technical image exercises native file bytes and private
         # moderation without ever publishing a fake menu on a real place.
         adb('shell','mkdir','-p','/sdcard/Pictures')
@@ -313,9 +315,14 @@ def live_content_cases():
         else: raise AssertionError('Native contribution approval and reward not received from panel')
         snap('live-contribution-reward'); find('5 Paws attribués'); find('contribution-team-reply')
         check('native contribution reads the staff decision and single Paws reward',True)
+        deep('progression'); scroll_find('paws-balance',attempts=22)
+        end=time.monotonic()+25
+        while time.monotonic()<end and find('paws-balance').get('text')!=str(balance_before+5): time.sleep(1)
+        check('native Paws balance increases exactly by the approved reward',find('paws-balance').get('text')==str(balance_before+5))
+        scroll_find('Contribution validée'); snap('live-contribution-paws-ledger')
         deep('carte'); tap('carte-filter-mine'); find('0 lieux · 0 sur la carte')
         check('approved enrichment does not fabricate a personal spawt',True)
-        enrichment={'nativeMenuPhotoReceivedAndModerated':True,'contributionReceiptReceived':True,'contributionModerationRead':True,'contributionRewardRead':True,'contributionDidNotCreateVisit':True,'contributionMarker':'Recette enrichissement natif '+RUN,'positionSimulatedForTechnicalTest':True}
+        enrichment={'nativeMenuPhotoReceivedAndModerated':True,'contributionReceiptReceived':True,'contributionModerationRead':True,'contributionRewardRead':True,'contributionDidNotCreateVisit':True,'pawsBalanceDelta':5,'contributionMarker':'Recette enrichissement natif '+RUN,'positionSimulatedForTechnicalTest':True}
     (OUT/'live-data.json').write_text(json.dumps({'build':build,'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER,**enrichment},ensure_ascii=False,indent=2))
 
 try:
