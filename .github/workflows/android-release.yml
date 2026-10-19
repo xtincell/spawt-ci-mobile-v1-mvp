@@ -56,6 +56,13 @@ jobs:
           if(m.sourceCommit!==c.sourceCommit || m.version!==c.version || m.build!==c.build || m.runId!==c.buildRun || m.sha256!==c.sha256 || m.bytes!==c.bytes || q.sha256!==m.sha256 || assertions.length<5 || !assertions.every(a=>a.passed===true) || opening.passed!==true) throw new Error('Release proof mismatch');
           if(!['signatureMatchesBuild25','zipCrcPassed','nativePackageVerified','compiledBackendConfigVerified','compiledFirebaseConfigVerified'].every(k=>m[k]===true)) throw new Error('APK checks incomplete');
           if(firebase.defaultAppInitialized!==true) throw new Error('Firebase native initialization was not verified');
+          if(c.build>=37) {
+            const live=JSON.parse(fs.readFileSync('native-proof/live-data.json'));
+            if(live.build!==c.build || live.apiOrigin!=='https://api.spawt.online' || !['nativeAuthenticated','announcementsRead','editorialTextMatched','collectionRead','fiveContentChecksPassed','offlineFailureAndRecovery','feedbackReceiptReceived','feedbackReplyRead'].every(key=>live[key]===true)) throw new Error('Live native database and feedback proof missing');
+            fs.copyFileSync('native-proof/live-data.json','release-apk/live-data-proof.json');
+            fs.copyFileSync('native-proof/live-home-393-1.png','release-apk/home-native.png');
+            fs.copyFileSync('native-proof/live-content-checks.png','release-apk/content-checks-native.png');
+          }
           const name=`spawt-${c.version}-build${c.build}.apk`,path='release-apk/'+name;
           const apk=fs.readFileSync(path);
           if(apk.length!==c.bytes || crypto.createHash('sha256').update(apk).digest('hex')!==c.sha256) throw new Error('APK bytes differ');
@@ -68,7 +75,7 @@ jobs:
           const release=JSON.parse(gh(['release','view',c.tag,'--json','isDraft,assets']));
           if(release.isDraft) {
             if(release.assets.length) throw new Error('Draft release has partial assets; inspect before retrying');
-            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256']);
+            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256',...(c.build>=37 ? ['release-apk/live-data-proof.json','release-apk/home-native.png','release-apk/content-checks-native.png'] : [])]);
             gh(['release','edit',c.tag,'--draft=false','--prerelease','--latest=false','--title',`SPAWT Android ${c.version} — build ${c.build}`,'--notes-file',`documentation/android-build${c.build}-release-notes.md`]);
           }
           console.log('Release assets ready for final verification: build '+c.build);
