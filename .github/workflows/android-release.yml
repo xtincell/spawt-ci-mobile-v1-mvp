@@ -63,6 +63,11 @@ jobs:
             fs.copyFileSync('native-proof/live-data.json','release-apk/live-data-proof.json');
             fs.copyFileSync('native-proof/live-home-393-1.png','release-apk/home-native.png');
             fs.copyFileSync('native-proof/live-content-checks.png','release-apk/content-checks-native.png');
+            if(c.build>=39) {
+              fs.copyFileSync('native-proof/live-menu-contribution-rejected.png','release-apk/menu-moderation-native.png');
+              fs.copyFileSync('native-proof/live-contribution-reward.png','release-apk/contribution-reward-native.png');
+              fs.copyFileSync('native-proof/live-contribution-paws-ledger.png','release-apk/paws-ledger-native.png');
+            }
           }
           const name=`spawt-${c.version}-build${c.build}.apk`,path='release-apk/'+name;
           const apk=fs.readFileSync(path);
@@ -76,7 +81,7 @@ jobs:
           const release=JSON.parse(gh(['release','view',c.tag,'--json','isDraft,assets']));
           if(release.isDraft) {
             if(release.assets.length) throw new Error('Draft release has partial assets; inspect before retrying');
-            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256',...(c.build>=37 ? ['release-apk/live-data-proof.json','release-apk/home-native.png','release-apk/content-checks-native.png'] : [])]);
+            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256',...(c.build>=37 ? ['release-apk/live-data-proof.json','release-apk/home-native.png','release-apk/content-checks-native.png'] : []),...(c.build>=39 ? ['release-apk/menu-moderation-native.png','release-apk/contribution-reward-native.png','release-apk/paws-ledger-native.png'] : [])]);
             gh(['release','edit',c.tag,'--draft=false','--prerelease','--latest=false','--title',`SPAWT Android ${c.version} — build ${c.build}`,'--notes-file',`documentation/android-build${c.build}-release-notes.md`]);
           }
           console.log('Release assets ready for final verification: build '+c.build);
