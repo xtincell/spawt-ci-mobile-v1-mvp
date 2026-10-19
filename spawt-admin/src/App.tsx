@@ -1,5 +1,6 @@
 import { ActualitesList } from "./pages/actualites";
 import { RetoursList } from "./pages/retours";
+import { ContributionsList } from "./pages/contributions";
 import { ActiviteList } from "./pages/activite";
 import { Authenticated, Refine } from "@refinedev/core";
 import { dataProvider, liveProvider } from "@refinedev/supabase";
@@ -149,6 +150,7 @@ export const App = () =>
           <Route path="/moderation" element={<ModerationList />} />
           <Route path="/signalements" element={<SignalementsList />} />
           <Route path="/retours" element={<RetoursList />} />
+          <Route path="/contributions" element={<ContributionsList />} />
           <Route path="/comptes" element={<ComptesList />} />
           <Route path="/comptes/show/:id" element={<CompteShow />} />
           <Route path="/metriques" element={<MetriquesDashboard />} />

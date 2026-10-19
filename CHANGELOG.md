@@ -1,3 +1,11 @@
+## 2026-10-19 — Contributions modérées aux lieux (build 39)
+
+- Menu photographié et budget proposé, relevé GPS ponctuel : preuves privées, brouillon conservé et accusé serveur.
+- Panel Contributions : comparaison, validation ou refus motivé, récompense Paws unique et barème administrable avec historique.
+- Mise à jour publique et récompense atomiques ; modification concurrente détectée, aucun spawt ni avis fabriqué.
+- Menus validés lisibles dans l’app via des liens temporaires ; migration 0085 et tests des permissions, doublons, quotas et suppression de compte.
+- Build 38 compilé comme étape intermédiaire ; livraison finale portée au build 39 pour intégrer ce circuit.
+
 ## 2026-10-19 — Catalogue public et exploration personnelle (build 38)
 
 - Carnets publiés lisibles aussi sans connexion ; les brouillons restent réservés au staff (migration 0084).

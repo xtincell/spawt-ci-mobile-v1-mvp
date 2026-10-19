@@ -800,6 +800,11 @@ export default function PlaceDetailScreen() {
           ) : null}
 
           {/* Signaux */}
+          <Pressable testID="place-contribute" accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/contribute/[id]", params: { id: place.id, name: place.name } } as never)}
+            style={{ minHeight: 48, justifyContent: "center", marginBottom: theme.spacing.base }}>
+            <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("contribution.title")}</Text>
+          </Pressable>
           {place.signals.length > 0 && (
             <View
               style={{
