@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as Crypto from "expo-crypto";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useOwnedDraft } from "../../src/lib/use-owned-draft";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { useProgressionStore } from "../../src/store/progression-store";
@@ -14,33 +14,34 @@ import { contributionRewards, listContributions, persistContributionPhoto, preci
 
 interface Draft { id: string; kind: ContributionKind; photos: string[]; price: string; tier: string; location: LocationProof | null; comment: string }
 const newDraft = (): Draft => ({ id: Crypto.randomUUID(), kind: "menu", photos: [], price: "", tier: "", location: null, comment: "" });
+const validDraft = (value: unknown): value is Draft => {
+  if (!value || typeof value !== "object") return false;
+  const d = value as Partial<Draft>;
+  return typeof d.id === "string" && (d.kind === "menu" || d.kind === "location") && Array.isArray(d.photos)
+    && d.photos.length <= 3 && d.photos.every(p => typeof p === "string") && typeof d.price === "string" && typeof d.tier === "string"
+    && typeof d.comment === "string" && (d.location === null || preciseRecentLocation(d.location ?? null, Date.parse(d.location?.observed_at ?? "")));
+};
 export default function ContributeScreen() {
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
   const owner = useSpawterStore(s => s.spawter?.id); const router = useRouter(); const theme = useTheme(); const { t } = useTranslation();
-  const [draft, setDraft] = useState<Draft>(newDraft); const [ready, setReady] = useState(false);
+  const key = `spawt:contribution-draft:${owner ?? "anonymous"}:${id}`;
+  const currentKey = useRef(key); currentKey.current = key;
+  const { draft, setDraft, ready } = useOwnedDraft(key, newDraft, validDraft);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [receipt, setReceipt] = useState("");
   const [rows, setRows] = useState<PlaceContribution[]>([]); const [historyError, setHistoryError] = useState(false);
   const [rewards, setRewards] = useState<Record<ContributionKind, number> | null>(null);
-  const key = `spawt:contribution-draft:${owner ?? "anonymous"}:${id}`;
   useEffect(() => {
-    let active = true; setReady(false); setDraft(newDraft()); setRows([]); setReceipt("");
-    void AsyncStorage.getItem(key).then(raw => {
-      if (!active || !raw) return;
-      const value = JSON.parse(raw);
-      if (typeof value.id === "string" && ["menu", "location"].includes(value.kind) && Array.isArray(value.photos)
-        && value.photos.every((p: unknown) => typeof p === "string") && typeof value.price === "string" && typeof value.tier === "string" && typeof value.comment === "string") setDraft(value);
-    }).catch(() => {}).finally(() => { if (active) setReady(true); });
-    return () => { active = false; };
+    setRows([]); setReceipt(""); setError(""); setBusy(false); setRewards(null);
   }, [key]);
-  useEffect(() => { if (ready) void AsyncStorage.setItem(key, JSON.stringify(draft)).catch(() => {}); }, [key, ready, draft]);
   const refresh = useCallback(async () => {
     if (!owner || !id) return;
     try {
       const [history, rules] = await Promise.all([listContributions(owner, id), contributionRewards()]);
+      if (currentKey.current !== key) return;
       setRows(history); setRewards(rules); setHistoryError(false);
       void useProgressionStore.getState().hydrate(owner);
-    } catch { setHistoryError(true); }
-  }, [owner, id]);
+    } catch { if (currentKey.current === key) setHistoryError(true); }
+  }, [owner, id, key]);
   useFocusEffect(useCallback(() => { void refresh(); const timer = setInterval(() => void refresh(), 30_000); return () => clearInterval(timer); }, [refresh]));
   const change = (patch: Partial<Draft>) => { setReceipt(""); setError(""); setDraft(d => ({ ...d, ...patch, id: Crypto.randomUUID() })); };
   const photo = async (camera: boolean) => {
@@ -53,6 +54,7 @@ export default function ContributeScreen() {
       const result = camera ? await picker.launchCameraAsync({ mediaTypes: ["images"], quality: 1 }) : await picker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
       if (!result.canceled && result.assets[0]) {
         const uri = await persistContributionPhoto(await compressPhoto(result.assets[0].uri), Crypto.randomUUID());
+        if (currentKey.current !== key) return;
         change({ photos: [...draft.photos, uri] });
       }
     } catch { setError("photo_failed"); } finally { setBusy(false); }
@@ -63,6 +65,7 @@ export default function ContributeScreen() {
       const location = await import("expo-location");
       if (!(await location.requestForegroundPermissionsAsync()).granted) { setError("gps_permission"); return; }
       const point = await location.getCurrentPositionAsync({ accuracy: location.Accuracy.High });
+      if (currentKey.current !== key) return;
       const proof = { lat: point.coords.latitude, lng: point.coords.longitude, accuracy_meters: point.coords.accuracy ?? Infinity, observed_at: new Date(point.timestamp).toISOString() };
       if (!preciseRecentLocation(proof)) { setError("gps_precise"); return; }
       change({ location: proof });
@@ -80,7 +83,9 @@ export default function ContributeScreen() {
         for (let index = 0; index < draft.photos.length; index++) paths.push(await uploadContributionPhoto(draft.photos[index]!, owner, draft.id, index));
         proposal = { photo_paths: paths, ...(draft.price ? { avg_ticket_xof: Number(draft.price) } : {}), ...(draft.tier ? { price_tier: Number(draft.tier) } : {}) };
       } else proposal = draft.location!;
+      if (currentKey.current !== key) return;
       const received = await submitContribution(draft.id, id, draft.kind, proposal, draft.comment);
+      if (currentKey.current !== key) return;
       setReceipt(received.slice(0, 8)); setDraft(newDraft()); await refresh();
     } catch (e) {
       const message = e && typeof e === "object" && "message" in e ? String(e.message) : "";
@@ -90,6 +95,7 @@ export default function ContributeScreen() {
   const body = { ...theme.typography.preset.body, color: theme.colors.text.primary };
   const button = (label: string, action: () => void, testID: string, disabled = false) => <Pressable testID={testID} accessibilityRole="button" onPress={action} disabled={disabled} style={{ minHeight: 44, justifyContent: "center", opacity: disabled ? 0.45 : 1 }}><Text style={{ ...body, color: theme.colors.brand.accent }}>{label}</Text></Pressable>;
   const inputStyle = { ...body, borderWidth: 1, borderColor: theme.colors.text.tertiary, borderRadius: theme.radius.md, padding: theme.spacing.base };
+  if (!ready) return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}><ActivityIndicator accessibilityLabel={t("common.loading")} /></SafeAreaView>;
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.sm }}>
     {button(t("common.back"), () => router.back(), "contribution-back")}
     <Text accessibilityRole="header" style={{ ...theme.typography.preset.h1, color: theme.colors.text.primary }}>{t("contribution.title")}</Text>

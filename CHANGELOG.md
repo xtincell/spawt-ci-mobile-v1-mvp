@@ -1,3 +1,8 @@
+## 2026-10-19 — Isolation des brouillons (build 40)
+
+- Brouillons de retours et de contributions isolés dès le changement de compte, avant l’exécution des effets React. Les lectures tardives et mises à jour de l’ancien compte sont ignorées.
+- Régression contrôlée : changement de compte pendant la lecture, persistance et callback tardif. Build 39 annulé avant publication pour intégrer cette correction.
+
 ## 2026-10-19 — Contributions modérées aux lieux (build 39)
 
 - Menu photographié et budget proposé, relevé GPS ponctuel : preuves privées, brouillon conservé et accusé serveur.

@@ -27,7 +27,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.upgraders.spawt",
-      "buildNumber": "39",
+      "buildNumber": "40",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -41,7 +41,7 @@
     "android": {
       "package": "com.upgraders.spawt",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 39,
+      "versionCode": 40,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"

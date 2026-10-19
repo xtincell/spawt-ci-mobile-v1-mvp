@@ -1,3 +1,4 @@
+# 2026-10-19 : build39 annulé avant livraison ; revue finale des brouillons -> isolation immédiate par compte et refus des callbacks tardifs, tests de régression. Build40 reprend le périmètre et la recette native des contributions.
 # 2026-10-19 : build39 préparé — contributions menu/prix et GPS sur les fiches existantes ; modération, Paws atomiques, barème audité (0085). Tests de confidentialité, reprise et quotas. Build38 compilé, recette native en cours ; publication39 encore à recevoir.
 # 2026-10-19 : 0084 appliquée après sauvegarde ; lecture anonyme des seuls carnets publiés, isolation des brouillons testée.
 # codex_2026_10_19_catalogue: build38 en préparation après arrêt du37 non livré. Publication des lieux indépendante des notes/visites, contrat nullable, filtres individuels. Recette native enrichie avant publication.

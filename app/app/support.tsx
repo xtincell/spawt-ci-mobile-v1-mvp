@@ -1,13 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as Crypto from "expo-crypto";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useOwnedDraft } from "../src/lib/use-owned-draft";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { useSpawterStore } from "../src/store/spawter-store";
 import { appDiagnostic, checkAppContent, listAppFeedback, sendAppFeedback, type AppDiagnostic, type AppFeedback, type FeedbackKind } from "../src/lib/app-support";
+
+interface FeedbackDraft { id: string; kind: FeedbackKind; message: string }
+const newFeedbackDraft = (): FeedbackDraft => ({ id: Crypto.randomUUID(), kind: "bug", message: "" });
+const validFeedbackDraft = (value: unknown): value is FeedbackDraft => {
+  if (!value || typeof value !== "object") return false;
+  const d = value as Partial<FeedbackDraft>;
+  return typeof d.id === "string" && typeof d.message === "string" && ["bug", "idea", "content"].includes(d.kind ?? "");
+};
 
 export default function SupportScreen() {
   const theme = useTheme(); const { t } = useTranslation(); const router = useRouter();
@@ -16,26 +24,20 @@ export default function SupportScreen() {
   const [diagnostic, setDiagnostic] = useState<AppDiagnostic>(appDiagnostic);
   const [checking, setChecking] = useState(false); const [checkFailed, setCheckFailed] = useState(false);
   const [includeChecks, setIncludeChecks] = useState(true);
-  const [draft, setDraft] = useState({ id: Crypto.randomUUID(), kind: "bug" as FeedbackKind, message: "" });
-  const [ready, setReady] = useState(false); const [sending, setSending] = useState(false);
+  const draftKey = `spawt:feedback-draft:${spawterId ?? "anonymous"}`;
+  const currentKey = useRef(draftKey); currentKey.current = draftKey;
+  const { draft, setDraft, ready } = useOwnedDraft(draftKey, newFeedbackDraft, validFeedbackDraft);
+  const [sending, setSending] = useState(false);
   const [sendFailed, setSendFailed] = useState(false); const [receipt, setReceipt] = useState("");
   const [rows, setRows] = useState<AppFeedback[]>([]); const [historyFailed, setHistoryFailed] = useState(false);
-  const draftKey = `spawt:feedback-draft:${spawterId ?? "anonymous"}`;
   useEffect(() => {
-    let cancelled = false; setReady(false);
-    void AsyncStorage.getItem(draftKey).then(value => {
-      if (!value || cancelled) return;
-      const saved = JSON.parse(value);
-      if (typeof saved.id === "string" && typeof saved.message === "string" && ["bug", "idea", "content"].includes(saved.kind)) setDraft(saved);
-    }).catch(() => {}).finally(() => { if (!cancelled) setReady(true); });
-    return () => { cancelled = true; };
+    setRows([]); setReceipt(""); setSending(false); setSendFailed(false);
   }, [draftKey]);
-  useEffect(() => { if (ready) void AsyncStorage.setItem(draftKey, JSON.stringify(draft)).catch(() => {}); }, [draft, draftKey, ready]);
   const history = useCallback(async () => {
     if (!spawterId) return;
-    try { setRows(await listAppFeedback(spawterId)); setHistoryFailed(false); }
-    catch { setHistoryFailed(true); }
-  }, [spawterId]);
+    try { const data = await listAppFeedback(spawterId); if (currentKey.current === draftKey) { setRows(data); setHistoryFailed(false); } }
+    catch { if (currentKey.current === draftKey) setHistoryFailed(true); }
+  }, [spawterId, draftKey]);
   useFocusEffect(useCallback(() => { void history(); }, [history]));
   const check = async () => {
     setChecking(true); setCheckFailed(false);
@@ -47,12 +49,14 @@ export default function SupportScreen() {
     setSending(true); setSendFailed(false); setReceipt("");
     try {
       const id = await sendAppFeedback(draft.id, draft.kind, draft.message, context === "data_load" ? "data_load" : "app", includeChecks ? diagnostic : appDiagnostic());
+      if (currentKey.current !== draftKey) return;
       setReceipt(id.slice(0, 8)); setDraft({ id: Crypto.randomUUID(), kind: "bug", message: "" });
       await history();
     } catch { setSendFailed(true); } finally { setSending(false); }
   };
   const body = { ...theme.typography.preset.body, color: theme.colors.text.primary };
   const button = (label: string, onPress: () => void, id: string, disabled = false) => <Pressable testID={id} accessibilityRole="button" disabled={disabled} onPress={onPress} style={{ minHeight: 44, justifyContent: "center", opacity: disabled ? 0.5 : 1 }}><Text style={{ ...body, color: theme.colors.brand.accent }}>{label}</Text></Pressable>;
+  if (!ready) return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}><ActivityIndicator accessibilityLabel={t("common.loading")} /></SafeAreaView>;
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.sm }}>
       {button(t("common.back"), () => router.back(), "support-back")}
