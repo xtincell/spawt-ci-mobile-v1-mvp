@@ -234,7 +234,7 @@ export default function PlaceDetailScreen() {
         properties: {
           place_id: place.id,
           match_score: matchScore ?? 0,
-          distance_km: distanceKm,
+          distance_km: Number.isFinite(distanceKm) ? distanceKm : null,
           time_since_onboarding_seconds: timeSinceOnboardingSeconds,
         },
       });
@@ -341,7 +341,7 @@ export default function PlaceDetailScreen() {
   const avgTicket = avgPriceEnabled ? formatXofAmount(place.price.avg_ticket_xof) : null;
   const priceLabel = avgTicket
     ? t("place.price_avg", { amount: avgTicket })
-    : PRICE_TIER_LABELS[place.price.tier];
+    : (place.price.tier === null ? t("place.price_unknown") : PRICE_TIER_LABELS[place.price.tier]);
 
   const onCallPress = () => {
     if (!place.phone) return;
@@ -478,6 +478,7 @@ export default function PlaceDetailScreen() {
   // gère pas toujours → fallback Apple Maps après test canOpenURL.
   const onOpenMap = async () => {
     const { lat, lng } = place.location;
+    if (lat === null || lng === null) return;
     const geo = geoUrl(lat, lng, place.name);
     try {
       const canGeo = await Linking.canOpenURL(geo);
@@ -760,7 +761,7 @@ export default function PlaceDetailScreen() {
                   color: theme.colors.text.tertiary,
                 }}
               >
-                {distanceKm.toFixed(1)} km
+                {Number.isFinite(distanceKm) ? `${distanceKm.toFixed(1)} km` : t("place.location_pending")}
               </Text>
             </View>
           </View>
@@ -915,7 +916,7 @@ export default function PlaceDetailScreen() {
           <View style={{ marginTop: theme.spacing.lg }}>
             <InfoLine
               label={t("place.info_address")}
-              value={place.location.descriptive_address}
+              value={place.location.descriptive_address || t("place.location_pending")}
               theme={theme}
             />
             {/* Story 4.12 — carte statique tappable sous l'adresse. Fallback :

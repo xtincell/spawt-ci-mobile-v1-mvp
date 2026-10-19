@@ -222,7 +222,18 @@ def live_content_cases():
         geometry(width,scale); home(); find('Choisir vite'); time.sleep(2)
         tree=snap(f'live-home-{width}-{scale}')
         check(f'{width}-{scale}: home feed has no read error', not any('pas pu charger' in label(n) for n in tree.iter('node')))
-    geometry(393,1); deep('actualites')
+    geometry(393,1)
+    inventory=read('places?select=id,name,lat,lng,price_tier&is_published=eq.true&limit=1000')
+    mapped=sum(1 for place in inventory if place['lat'] is not None and place['lng'] is not None)
+    deep('carte'); find(f'{len(inventory)} lieux · {mapped} sur la carte',timeout=30)
+    snap('live-catalogue-map'); check('native map counts match all public records and known coordinates',True)
+    tap('carte-filter-mine'); find('0 lieux · 0 sur la carte'); check('team catalogue does not populate personal spawts',True)
+    tap('carte-filter-unexplored'); find(f'{len(inventory)} lieux · {mapped} sur la carte')
+    tap('carte-view-toggle'); snap('live-catalogue-list'); check('unexplored public records are accessible in native list',True)
+    documentary=next(place for place in inventory if place['lat'] is None and place['price_tier'] is None)
+    deep('place/'+documentary['id']); find(documentary['name']); scroll_find('Pas encore noté'); scroll_find('Prix à préciser')
+    snap('live-unrated-documentary'); check('native documentary place keeps unknown price and no rating',True)
+    deep('actualites')
     find(announcements[0]['title'] if announcements else 'Pas de nouvelle publication pour le moment.')
     snap('live-announcements'); check('native announcements match public database',True)
     deep('place/'+editorial['place_id']); scroll_find(editorial['body'][:70],attempts=22)
@@ -258,7 +269,7 @@ def live_content_cases():
     snap('live-feedback-team-reply'); check('native feedback reads admin team reply',True)
     deep('support'); tap('support-check'); find('support-check-sync',timeout=30)
     tree=snap('live-content-recovered'); check('native content reads recover after network outage',not any('ndisponible' in label(n) for n in tree.iter('node')))
-    (OUT/'live-data.json').write_text(json.dumps({'build':json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build'],'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'feedbackMarker':MARKER},ensure_ascii=False,indent=2))
+    (OUT/'live-data.json').write_text(json.dumps({'build':json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build'],'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER},ensure_ascii=False,indent=2))
 
 try:
     # Garder le même format en dp, avec une surface 1x pour la vidéo : encoder

@@ -25,11 +25,14 @@ for migration in supabase/migrations/*.sql; do
   fi
 done
 checks() {
-  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback; do
+  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback public_unrated_places; do
     sql -f "/repo/supabase/tests/$test.sql"
   done
 }
 checks
+sql -f /repo/supabase/migrations/0083_public_unrated_places.down.sql
+sql -f /repo/supabase/migrations/0083_public_unrated_places.sql
+sql -f /repo/supabase/tests/public_unrated_places.sql
 sql -f /repo/supabase/migrations/0082_app_feedback.down.sql
 sql -f /repo/supabase/migrations/0082_app_feedback.sql
 sql -f /repo/supabase/tests/app_feedback.sql

@@ -43,8 +43,8 @@ export interface StaticMapOptions {
  * Injection `provider`/`token`/`key` pour les tests (sinon lit l'env au build).
  */
 export function buildStaticMapUrl(
-  lat: number,
-  lng: number,
+  lat: number | null,
+  lng: number | null,
   opts: StaticMapOptions = {},
   overrides?: {
     provider?: StaticMapProvider;
@@ -52,7 +52,7 @@ export function buildStaticMapUrl(
     googleKey?: string;
   },
 ): string | null {
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat === null || lng === null || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (lat === 0 && lng === 0) return null; // coord nulle = lieu sans géoloc
 
   const width = opts.width ?? 600;

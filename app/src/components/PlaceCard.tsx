@@ -145,7 +145,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
                 {safeDistance}
               </Text>
             </View>
-            <Chip label={PRICE_TIER_LABELS[place.price.tier]} variant="default" />
+            <Chip label={(place.price.tier === null ? t("place.price_unknown") : PRICE_TIER_LABELS[place.price.tier])} variant="default" />
           </View>
         </View>
       </View>

@@ -366,7 +366,7 @@ function NearbyCard({ item, onSpawt, disabled }: NearbyCardProps) {
   const cuisineLabel = firstCuisine
     ? t(`cuisine.${firstCuisine}`, { defaultValue: firstCuisine })
     : null;
-  const priceLabel = PRICE_LABELS[place.price.tier];
+  const priceLabel = (place.price.tier === null ? t("place.price_unknown") : PRICE_LABELS[place.price.tier]);
 
   return (
     <View

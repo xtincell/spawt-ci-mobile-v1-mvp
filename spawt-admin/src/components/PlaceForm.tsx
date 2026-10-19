@@ -326,7 +326,7 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
   return (
     <form onSubmit={onSubmit} style={{ display: "grid", gap: 16, maxWidth: 720 }}>
       <h1>{mode === "create" ? "Nouveau lieu" : "Édition lieu"}</h1>
-      <p>Un brouillon peut rester incomplet. Laisse les données inconnues vides ; complète la fiche avant de la publier.</p>
+      <p>Une fiche publique rend le lieu accessible à l’exploration, sans créer de visite ni de note. Le nom et la ville sont requis ; laisse le prix et les coordonnées inconnus vides. Sans coordonnées, le lieu apparaît en liste.</p>
       {suggestionId ? (
         <p style={{ background: "var(--bg-warm)", padding: 10, borderRadius: 6, fontSize: 13 }}>
           ⓘ Approbation d&apos;une suggestion de la Meute : le formulaire est pré-rempli.

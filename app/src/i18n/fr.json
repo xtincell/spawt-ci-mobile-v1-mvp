@@ -964,7 +964,9 @@
     "review_photo_alt": "Photo jointe à cet avis",
     "photo_pending": "Photo à venir",
     "photo_illustration": "Illustration",
-    "info_hours_unknown": "À confirmer"
+    "info_hours_unknown": "À confirmer",
+    "price_unknown": "Prix à préciser",
+    "location_pending": "Localisation à préciser"
   },
   "place_activity": {
     "section_title": "En ce moment",
@@ -1015,7 +1017,18 @@
     "loading": "Chargement de la carte…",
     "unavailable_title": "La carte est indisponible ici",
     "available_places": "Les spots à consulter",
-    "open_place": "Voir la fiche"
+    "open_place": "Voir la fiche",
+    "filters": {
+      "all": "Tous les lieux",
+      "unexplored": "À explorer",
+      "mine": "Mes spawts"
+    },
+    "inventory_count": "{{total}} lieux · {{mapped}} sur la carte",
+    "location_pending_hint": "Les lieux sans point précis restent accessibles dans la liste.",
+    "show_map": "Voir la carte",
+    "show_list": "Voir tous les lieux en liste",
+    "explored": "Déjà spawté par toi",
+    "to_explore": "À explorer"
   },
   "cdc": {
     "button": "❤️ Mon Coup de Cœur",

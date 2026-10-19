@@ -23,6 +23,8 @@ import { Ico } from "./primitives/Ico";
 import type { PlaceWithAdn } from "../lib/data-source";
 import { useSpawterPosition } from "../lib/use-spawter-position";
 import { track } from "../lib/analytics";
+import { hasPlaceCoordinates, exploredPlaceIds } from "../lib/place-discovery";
+import { useSpawterStore } from "../store/spawter-store";
 
 // Style sombre sans clé API — OpenFreeMap (tuiles OSM, usage libre).
 const DARK_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
@@ -41,6 +43,13 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
   const [maplibre, setMaplibre] = useState<MapLibreModule | null>(null);
   const [moduleFailed, setModuleFailed] = useState(false);
   const { places, loading, failed, reload } = usePlaces();
+  const spawts = useSpawterStore(s => s.spawts);
+  const spawterId = useSpawterStore(s => s.spawter?.id);
+  const explored = useMemo(() => exploredPlaceIds(spawts, spawterId), [spawts, spawterId]);
+  const [filter, setFilter] = useState<"all" | "unexplored" | "mine">("all");
+  const [listMode, setListMode] = useState(false);
+  const visiblePlaces = places.filter(place => place.is_published && (filter === "all" || (filter === "mine" ? explored.has(place.id) : !explored.has(place.id))));
+  const locatedPlaces = visiblePlaces.filter(hasPlaceCoordinates);
   const trackedOpen = useRef(false);
 
   // Chargement dynamique du module natif — fallback si absent (Expo Go / web).
@@ -84,7 +93,16 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
     [position.lat, position.lng],
   );
 
-  if (moduleFailed) {
+  const controls = <View style={{ padding: theme.spacing.base, gap: theme.spacing.sm }}>
+    <View accessibilityRole="radiogroup" style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.base }}>
+      {(["all", "unexplored", "mine"] as const).map(value => <Pressable key={value} testID={`carte-filter-${value}`} accessibilityRole="radio" accessibilityState={{ checked: filter === value }} onPress={() => setFilter(value)} style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ ...theme.typography.preset.small, fontFamily: filter === value ? theme.typography.preset.overline.fontFamily : theme.typography.family.body, color: theme.colors.text.primary }}>{t(`carte.filters.${value}`)}</Text></Pressable>)}
+    </View>
+    <Text testID="carte-inventory-count" style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("carte.inventory_count", { total: visiblePlaces.length, mapped: locatedPlaces.length })}</Text>
+    {visiblePlaces.length > locatedPlaces.length ? <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("carte.location_pending_hint")}</Text> : null}
+    {!moduleFailed ? <Pressable testID="carte-view-toggle" accessibilityRole="button" onPress={() => setListMode(value => !value)} style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t(listMode ? "carte.show_map" : "carte.show_list")}</Text></Pressable> : null}
+  </View>;
+
+  if (moduleFailed || listMode) {
     const Content = embedded ? View : ScrollView;
     return (
       <Container
@@ -92,11 +110,12 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
         style={{ flex: 1, backgroundColor: theme.colors.surface.subtle }}
       >
         {!embedded ? <DataSourceBanner /> : null}
+        {controls}
         <Content>
-          <PanelNotice
+          {moduleFailed ? <PanelNotice
             title={t("carte.unavailable_title")}
             message={t("carte.module_unavailable")}
-          />
+          /> : null}
           <DataLoadNotice
             loading={loading}
             failed={failed}
@@ -119,12 +138,12 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
                 {t("carte.available_places")}
               </Text>
             ) : null}
-            {places
-              .filter((place) => place.is_published)
+            {visiblePlaces
               .map((place) => (
                 <PlaceLink
                   key={place.id}
                   place={place}
+                  explored={explored.has(place.id)}
                   onPress={() => openPlace(place.id)}
                 />
               ))}
@@ -166,6 +185,7 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
       }}
     >
       {!embedded ? <DataSourceBanner /> : null}
+      {controls}
       <DataLoadNotice
         loading={loading}
         failed={failed}
@@ -183,7 +203,7 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
         testID="carte-mapview"
       >
         <Camera initialViewState={{ center, zoom: DEFAULT_ZOOM }} />
-        {places.map((p) => (
+        {locatedPlaces.map((p) => (
           <Marker
             key={p.id}
             lngLat={[p.location.lng, p.location.lat]}
@@ -206,7 +226,7 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
                     width: 18,
                     height: 18,
                     borderRadius: 9,
-                    backgroundColor: theme.colors.brand.primary,
+                    backgroundColor: explored.has(p.id) ? theme.colors.brand.accent : theme.colors.brand.primary,
                     borderWidth: 2,
                     borderColor: theme.colors.surface.base,
                   }}
@@ -237,9 +257,11 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
 function PlaceLink({
   place,
   onPress,
+  explored = false,
 }: {
   place: PlaceWithAdn;
   onPress: () => void;
+  explored?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -290,6 +312,7 @@ function PlaceLink({
         >
           {place.name}
         </Text>
+        <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t(explored ? "carte.explored" : "carte.to_explore")}{!hasPlaceCoordinates(place) ? ` · ${t("place.location_pending")}` : ""}</Text>
         {place.location.neighborhood ? (
           <Text
             style={{
