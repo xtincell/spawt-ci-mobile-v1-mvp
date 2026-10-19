@@ -58,7 +58,7 @@ function ContributionCard({ row, saved }: { row: PlaceContribution; saved: () =>
   };
   return <section aria-label={`Contribution ${row.id.slice(0, 8)}`} style={{ border: "1px solid var(--border)", padding: 20, marginBlock: 20 }}>
     <h2>{kinds[row.kind]} · {place?.name ?? row.place_id}</h2><p>{statuses[row.status]} · {row.id.slice(0, 8)} · {new Date(row.created_at).toLocaleString("fr-FR")}</p>
-    <p><Link to={`/comptes/show/${row.spawter_id}`}>Voir le spawter</Link> · <Link to={`/places/edit/${row.place_id}`}>Ouvrir la fiche</Link> · {row.offered_reward_paws} Paws annoncés</p>
+    <p><Link to={`/comptes/show/${row.spawter_id}`}>Voir le spawter</Link> · <Link to={`/lieux/edit/${row.place_id}`}>Ouvrir la fiche</Link> · {row.offered_reward_paws} Paws annoncés</p>
     <p style={{ whiteSpace: "pre-wrap" }}>{row.comment}</p>
     {row.kind === "location" ? <p>Relevé proposé : {row.proposal.lat}, {row.proposal.lng} · précision ±{row.proposal.accuracy_meters} m · {new Date(row.proposal.observed_at ?? "").toLocaleString("fr-FR")}. Position actuelle : {place?.lat ?? "inconnue"}, {place?.lng ?? "inconnue"}. Vérifiez que le relevé correspond bien au lieu.</p> : <><p>Budget actuel : {place?.avg_ticket_xof ?? "inconnu"} F CFA · gamme {place?.price_tier ?? "inconnue"}. {place?.menu_urls.length ?? 0} page(s) de menu actuellement publiées. Vérifiez la date, la lisibilité et l’absence de données personnelles.</p><div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>{photos.map(url => <a key={url} href={url} target="_blank" rel="noreferrer"><img src={url} alt="Photo du menu proposée" style={{ width: 240, height: 320, objectFit: "contain" }} /></a>)}</div></>}
     {row.status === "pending" ? <fieldset disabled={busy}><legend>Décision de l’équipe</legend>
