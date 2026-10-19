@@ -241,19 +241,20 @@ def live_content_cases():
     deep('explore'); find(collections[0]['title_key']); snap('live-collections')
     deep('explore/'+collections[0]['slug']); find(collections[0]['title_key']); snap('live-collection-detail')
     check('native collection index and detail match public database',True)
-    deep('support'); tap('support-check')
+    deep('settings'); scroll_tap('Aide et retours'); tap('support-check')
     find('support-check-sync',timeout=30)
     tree=snap('live-content-checks')
     check_nodes=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
     check('all five native content checks reached production',len(check_nodes)==5 and all('ndisponible' not in label(n) for n in check_nodes))
     # The same published binary must report a real outage and recover.
-    adb('shell','cmd','connectivity','airplane-mode','enable'); tap('support-check'); time.sleep(18)
+    adb('shell','cmd','connectivity','airplane-mode','enable'); adb('shell','svc','wifi','disable'); adb('shell','svc','data','disable')
+    tap('support-check'); time.sleep(18)
     tree=snap('live-offline-checks'); failed=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
     check('offline checks do not pretend data is empty',len(failed)==5 and all('ndisponible' in label(n) for n in failed))
     scroll_tap('support-message'); adb('shell','input','text',MARKER.replace(' ','%s')); back()
     scroll_tap('support-send'); find('support-send-error',timeout=25); snap('live-feedback-offline')
     check('offline feedback remains unconfirmed',True)
-    adb('shell','cmd','connectivity','airplane-mode','disable'); time.sleep(2)
+    adb('shell','cmd','connectivity','airplane-mode','disable'); adb('shell','svc','wifi','enable'); adb('shell','svc','data','enable'); time.sleep(4)
     restart(); deep('support'); scroll_find('support-message')
     check('private feedback draft survives process restart',MARKER in label(find('support-message')))
     scroll_tap('support-send'); find('support-receipt',timeout=30); snap('live-feedback-received')
