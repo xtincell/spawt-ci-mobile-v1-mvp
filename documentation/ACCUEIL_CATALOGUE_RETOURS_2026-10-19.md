@@ -46,10 +46,12 @@ Une actualité réelle a été publiée puis modifiée depuis le panel : « Les 
 
 ## Livraison et limites
 
-Le build40 final reprend le catalogue, les contributions et une correction supplémentaire de l’isolation des brouillons par compte. Le build 37 a été arrêté avant publication ; le build 38 a compilé les corrections de lecture et le catalogue. Le build39 ajoutait les contributions demandées ensuite ; il a été annulé avant livraison lors de la revue des brouillons. La lignée de signature reste celle du build 36. Compilation39 `39339756785` annulée. Source, compilation et réception finales du build40 à renseigner.
+Le build40 final reprend le catalogue, les contributions et une correction supplémentaire de l’isolation des brouillons par compte. Le build 37 a été arrêté avant publication ; le build 38 a compilé les corrections de lecture et le catalogue. Le build39 ajoutait les contributions demandées ensuite ; il a été annulé avant livraison lors de la revue des brouillons. La lignée de signature reste celle du build 36. Compilation39 `39339756785` annulée. Source40 `e0725071615e4724eca179c11f7bcd4b5ce4d35c`, CI `39341526784`, compilation `39341782221`. La recette native finale reste à recevoir.
 
 Recette intermédiaire 38 **réussie** : compilation `39335327191`, recette native `39339443365`. L’APK signé a lu les données réelles, affiché 155 fiches / 111 positions, laissé vide l’exploration personnelle, reçu les avis éditoriaux et carnets, puis testé panne réseau, brouillon après redémarrage, accusé serveur et réponse du panel. Les captures 393 dp et fiche documentaire ont été examinées. Firebase a été initialisé dans le processus Android. Cette recette intermédiaire ne remplace pas la réception du build40 final.
 
 Les détails de compilation, recette native, empreinte APK et publication seront consignés dans `RELEASES.md` et le fichier JSON de preuve à la réception finale.
 
 Les coordonnées renseignées ne constituent pas toutes une vérification GPS sur place ; les inconnues restent explicites. Installer la nouvelle APK par-dessus l’ancienne conserve les données locales en attente. Une recette sur émulateur ne prouve ni la récupération d’un commentaire resté sur un téléphone personnel, ni la réception d’un push sur ce téléphone. Aucun envoi de campagne à des personnes réelles dans cette recette. Aucun IPA ni OTA publié.
+
+Les tests d’isolation vérifient le changement de compte avant les effets React, la lecture tardive de l’ancien brouillon et un callback tardif. La restauration normale des deux formulaires et les cinq lectures web ont aussi été reçues sur la source40.

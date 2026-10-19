@@ -39,6 +39,14 @@
       "feedbackMarker": "Recette native SPAWT 1.1.1 39339443365"
     }
   },
-  "finalBuild": 39,
-  "finalStatus": "compiling"
+  "finalBuild": 40,
+  "finalStatus": "compiling",
+  "sourceCommit": "e0725071615e4724eca179c11f7bcd4b5ce4d35c",
+  "sourceCiRun": 39341526784,
+  "buildRun": 39341782221,
+  "draftIsolation": {
+    "regressionTestsPassed": true,
+    "lateReadAndCallbackIgnored": true,
+    "browserRestorePassed": true
+  }
 }
