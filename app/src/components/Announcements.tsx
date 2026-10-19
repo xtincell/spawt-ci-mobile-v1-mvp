@@ -18,6 +18,7 @@ export function Announcements({ compact = false, id }: { compact?: boolean; id?:
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     setFailed(false);
     void listAnnouncements(id).then(data => { if (!cancelled) setRows(data); })
       .catch(() => { if (!cancelled) setFailed(true); })
@@ -28,7 +29,7 @@ export function Announcements({ compact = false, id }: { compact?: boolean; id?:
   return <View testID="announcements" style={{ padding: theme.spacing.lg, gap: theme.spacing.base }}>
     <Text accessibilityRole="header" style={{ ...theme.typography.preset.h2, color: theme.colors.text.primary }}>{t("announcements.title")}</Text>
     <DataLoadNotice loading={loading} failed={failed} onRetry={() => setRetry(n => n + 1)} />
-    {!loading && !failed && rows.length === 0 ? <Text style={bodyStyle}>{t("announcements.empty")}</Text> : null}
+    {!loading && !failed && rows.length === 0 ? <Text testID="announcements-empty" style={bodyStyle}>{t("announcements.empty")}</Text> : null}
     {(compact ? rows.slice(0, 3) : rows).map(row => <View key={row.id} style={{ padding: theme.spacing.base, gap: theme.spacing.sm, backgroundColor: theme.colors.surface.raised, borderRadius: theme.radius.card }}>
       <Text style={{ ...theme.typography.preset.overline, color: theme.colors.text.secondary }}>{t(`announcements.${row.kind}`)}</Text>
       <Pressable accessibilityRole="button" onPress={() => router.push(`/actualites/${row.id}` as Href)}>

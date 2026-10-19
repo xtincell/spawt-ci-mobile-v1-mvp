@@ -126,7 +126,8 @@ export default function RootLayout() {
     if (!isSupabaseConfigured) return;
     return startContentSync(async () => {
       const { supabase } = await import("../src/lib/supabase");
-      const { data, error } = await supabase.rpc("public_content_status").abortSignal(AbortSignal.timeout(10_000));
+      const { withReadTimeout } = await import("../src/lib/data-read-error");
+      const { data, error } = await withReadTimeout("content_status", signal => supabase.rpc("public_content_status").abortSignal(signal));
       if (error || typeof data !== "string") throw error ?? new Error("content_status_failed");
       return data;
     });

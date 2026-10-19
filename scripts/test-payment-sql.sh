@@ -25,11 +25,14 @@ for migration in supabase/migrations/*.sql; do
   fi
 done
 checks() {
-  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic; do
+  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback; do
     sql -f "/repo/supabase/tests/$test.sql"
   done
 }
 checks
+sql -f /repo/supabase/migrations/0082_app_feedback.down.sql
+sql -f /repo/supabase/migrations/0082_app_feedback.sql
+sql -f /repo/supabase/tests/app_feedback.sql
 # Exercise rollback in reverse dependency order, then upgrade again.
 for version in 0081 0080 0079; do
   for migration in supabase/migrations/"$version"_*.down.sql; do sql -f "/repo/$migration"; done

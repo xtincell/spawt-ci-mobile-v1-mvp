@@ -209,6 +209,57 @@ def photo_and_network_cases():
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
 
+def live_content_cases():
+    """Read actual public records, exercise native network failure, receive private feedback."""
+    cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
+    def read(path):
+        req=urllib.request.Request(cfg['EXPO_PUBLIC_SUPABASE_URL']+'/rest/v1/'+path,headers={'apikey':cfg['EXPO_PUBLIC_SUPABASE_ANON_KEY']})
+        with urllib.request.urlopen(req,timeout=25) as r: return json.load(r)
+    editorial=read('public_editorial_reviews?select=place_id,body&limit=1')[0]
+    collections=read('explore_collections?select=slug,title_key&is_published=eq.true&audience=eq.general&order=sort_order&limit=1')
+    announcements=read('public_announcements?select=title&order=starts_at.desc&limit=1')
+    for width,scale in [(360,1),(393,1),(320,1.3)]:
+        geometry(width,scale); home(); find('Choisir vite'); time.sleep(2)
+        tree=snap(f'live-home-{width}-{scale}')
+        check(f'{width}-{scale}: home feed has no read error', not any('pas pu charger' in label(n) for n in tree.iter('node')))
+    geometry(393,1); deep('actualites')
+    find(announcements[0]['title'] if announcements else 'Pas de nouvelle publication pour le moment.')
+    snap('live-announcements'); check('native announcements match public database',True)
+    deep('place/'+editorial['place_id']); scroll_find(editorial['body'][:70],attempts=22)
+    snap('live-editorial'); check('native editorial matches exact public database text',True)
+    deep('explore'); find(collections[0]['title_key']); snap('live-collections')
+    deep('explore/'+collections[0]['slug']); find(collections[0]['title_key']); snap('live-collection-detail')
+    check('native collection index and detail match public database',True)
+    deep('support'); tap('support-check')
+    find('support-check-sync',timeout=30)
+    tree=snap('live-content-checks')
+    check_nodes=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
+    check('all five native content checks reached production',len(check_nodes)==5 and all('ndisponible' not in label(n) for n in check_nodes))
+    # The same published binary must report a real outage and recover.
+    adb('shell','cmd','connectivity','airplane-mode','enable'); tap('support-check'); time.sleep(18)
+    tree=snap('live-offline-checks'); failed=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
+    check('offline checks do not pretend data is empty',len(failed)==5 and all('ndisponible' in label(n) for n in failed))
+    scroll_tap('support-message'); adb('shell','input','text',MARKER.replace(' ','%s')); back()
+    scroll_tap('support-send'); find('support-send-error',timeout=25); snap('live-feedback-offline')
+    check('offline feedback remains unconfirmed',True)
+    adb('shell','cmd','connectivity','airplane-mode','disable'); time.sleep(2)
+    restart(); deep('support'); scroll_find('support-message')
+    check('private feedback draft survives process restart',MARKER in label(find('support-message')))
+    scroll_tap('support-send'); find('support-receipt',timeout=30); snap('live-feedback-received')
+    check('native feedback receives server receipt',True)
+    # The external console recipe responds using staff rights, never inside this APK.
+    end=time.monotonic()+180
+    while time.monotonic()<end:
+        deep('settings'); deep('support'); scroll_tap('support-refresh'); time.sleep(2)
+        try:
+            scroll_find('support-team-reply',attempts=2); break
+        except AssertionError: time.sleep(3)
+    else: raise AssertionError('Private team reply was not received from the admin panel')
+    snap('live-feedback-team-reply'); check('native feedback reads admin team reply',True)
+    deep('support'); tap('support-check'); find('support-check-sync',timeout=30)
+    tree=snap('live-content-recovered'); check('native content reads recover after network outage',not any('ndisponible' in label(n) for n in tree.iter('node')))
+    (OUT/'live-data.json').write_text(json.dumps({'build':json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build'],'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'feedbackMarker':MARKER},ensure_ascii=False,indent=2))
+
 try:
     # Garder le même format en dp, avec une surface 1x pour la vidéo : encoder
     # 2,8 millions de pixels concurrençait le lecteur sur l'émulateur logiciel.
@@ -256,6 +307,9 @@ try:
         raise SystemExit(0)  # finally conserve les assertions et l'état final.
     login(PHONE)
     snap('signed-in')
+    if MODE=='live':
+        live_content_cases()
+        raise SystemExit(0)
     if MODE=='community':
         # Existing alpha account; this path never publishes, saves or changes backend data.
         for width in [320,360,393,430]:

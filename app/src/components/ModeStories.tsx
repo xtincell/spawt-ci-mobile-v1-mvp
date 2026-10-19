@@ -30,7 +30,7 @@ export function ModeStories({
   const theme = useTheme();
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
-  const itemWidth = Math.max(68 * Math.max(1, fontScale), (width - 40) / 5);
+  const itemWidth = Math.max(84 * Math.max(1, fontScale), (width - 40) / 5);
   const row = useRef<ScrollView>(null);
   useEffect(() => {
     const index = HOME_MODES.indexOf(selectedMode);
@@ -93,15 +93,13 @@ export function ModeStories({
               >
                 <HomeModeIcon mode={mode} active={active} />
               </View>
+              <View style={{ alignItems: "center", gap: 1 }}>
               <Text
                 style={{
                   ...theme.typography.preset.caption,
                   textTransform: "none",
                   letterSpacing: 0,
-                  minHeight: theme.typography.preset.caption.lineHeight * 2,
-                  fontFamily: active
-                    ? theme.typography.preset.overline.fontFamily
-                    : theme.typography.family.body,
+                  fontFamily: theme.typography.preset.overline.fontFamily,
                   textDecorationLine: active ? "underline" : "none",
                   color: theme.colors.text.primary,
                   textAlign: "center",
@@ -122,6 +120,7 @@ export function ModeStories({
               >
                 {subtitle}
               </Text>
+              </View>
             </Pressable>
           );
         })}

@@ -279,6 +279,8 @@ export default function SettingsScreen() {
           />
         ) : null}
 
+        <LinkRow theme={theme} label={t("support.title")} onPress={() => router.push("/support")} />
+
         {/* Compte */}
         <SectionTitle theme={theme} label={t("settings.section_account")} />
         {spawter ? (

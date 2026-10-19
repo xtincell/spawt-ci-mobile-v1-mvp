@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isSupabaseConfigured } from "./data-source";
 import { getActiveCity } from "./city";
+import { withReadTimeout } from "./data-read-error";
 
 const schema = z.object({
   id: z.string().uuid(), title: z.string(), body: z.string(),
@@ -17,7 +18,7 @@ export async function listAnnouncements(id?: string): Promise<Announcement[]> {
     .or(`city_code.is.null,city_code.eq.${getActiveCity().code}`)
     .order("starts_at", { ascending: false }).limit(100);
   if (id) query = query.eq("id", id);
-  const { data, error } = await query.abortSignal(AbortSignal.timeout(10_000));
+  const { data, error } = await withReadTimeout("announcements", signal => query.abortSignal(signal));
   if (error) throw error;
   return z.array(schema).parse(data ?? []);
 }

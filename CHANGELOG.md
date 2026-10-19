@@ -1,3 +1,11 @@
+## 2026-10-19 — Accueil, lectures Android et retours privés (build 37 en préparation)
+
+- « Choisir vite », titres gras et sous-textes légers rapprochés, largeur adaptée au texte.
+- Trois usages incompatibles de `AbortSignal.timeout` remplacés : actualités, révision des contenus et activité de l’app.
+- Aide et retours : cinq lectures vérifiables, partage du contrôle, brouillon conservé, accusé serveur et réponses privées de l’équipe.
+- Migration 0082 : retours privés avec droits par auteur, tri du staff, idempotence et limite de débit.
+- La livraison exigera une recette native connectée aux données réelles, en plus de l’ouverture.
+
 ## 2026-10-19 — Finalisation des tarifs, préparation Android 36
 
 - Prix Gold codé en dur retiré des cartes verrouillées : l’app décrit l’accès Gold sans annoncer un montant qui peut changer depuis la console.

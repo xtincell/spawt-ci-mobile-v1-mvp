@@ -272,7 +272,7 @@
       },
       "rapide": {
         "title": "Rapide",
-        "subtitle": "Décider vite"
+        "subtitle": "Choisir vite"
       },
       "selections": {
         "title": "Les sélections",
@@ -1402,5 +1402,50 @@
     "promo": "Promotion",
     "open": "Découvrir",
     "all": "Toutes les publications"
+  },
+  "support": {
+    "title": "Aide et retours",
+    "version": "Version {{version}} · build {{build}}",
+    "check_intro": "Vérifie que les contenus arrivent bien jusqu’à ton app. Une liste vide peut simplement ne pas encore avoir de publication.",
+    "check": "Vérifier les contenus",
+    "check_failed": "La vérification n’a pas abouti. Réessaie dans un instant.",
+    "checks": {
+      "places": "Lieux publiés",
+      "editorials": "Avis éditoriaux",
+      "collections": "Carnets",
+      "announcements": "Fil du Chat",
+      "sync": "Actualisation"
+    },
+    "ok": "Accessible",
+    "read_count_one": "{{count}} élément accessible",
+    "read_count_other": "{{count}} éléments accessibles",
+    "unavailable": "Indisponible — à réessayer",
+    "checked_at": "Vérifié le {{date}}",
+    "share": "Partager ce contrôle",
+    "send_title": "Un souci ou une idée ?",
+    "private": "Ton retour reste privé. L’équipe le retrouve dans son panel et peut te répondre ici.",
+    "kinds": {
+      "bug": "Un souci",
+      "content": "Un contenu",
+      "idea": "Une idée"
+    },
+    "message": "Décris ton retour en 10 caractères minimum…",
+    "attach": "Joindre le résultat de mes contrôles",
+    "privacy": "La version et le type d’appareil accompagnent ton retour. Les contrôles ajoutent seulement leur date et les résultats de lecture, sans localisation ni clé de connexion.",
+    "signin": "Connecte-toi pour envoyer un retour et retrouver la réponse.",
+    "sending": "Envoi en cours…",
+    "send": "Envoyer à l’équipe",
+    "send_failed": "Envoi non confirmé. Ton texte est conservé : réessaie avec une connexion.",
+    "receipt": "Reçu par l’équipe · référence {{id}}",
+    "history": "Mes retours",
+    "refresh": "Actualiser mes retours",
+    "history_failed": "Tes retours n’ont pas pu être chargés. Réessaie.",
+    "status": {
+      "received": "Reçu",
+      "reviewing": "En cours",
+      "resolved": "Résolu"
+    },
+    "reply": "L’équipe : {{reply}}",
+    "error_link": "Vérifier ou signaler ce souci"
   }
 }
