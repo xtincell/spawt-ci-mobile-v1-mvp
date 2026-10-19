@@ -6,7 +6,7 @@ import os, re, json, time, pathlib, subprocess, xml.etree.ElementTree as ET, url
 OUT=pathlib.Path('android-proof'); OUT.mkdir(exist_ok=True)
 PACKAGE='com.upgraders.spawt'; PLACE='a1000000-0000-4000-8000-000000000004'
 PHONE=os.environ['SPAWT_QA_PHONE']; MODE=os.environ.get('SPAWT_QA_MODE','observe')
-OWNER={'+2250000000101':'fc8bc9b3-0bbb-447f-85a3-fe4bc0d4ed05','+2250000000193':'6445b010-5e4d-4322-9d4d-ea5a31fd922e','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
+OWNER={'+2250000000101':'fc8bc9b3-0bbb-447f-85a3-fe4bc0d4ed05','+2250000000193':'d7ea30bc-fb7f-440d-bac6-4bbd306f1e42','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
 RESULTS=[]
 RUN=os.environ.get('GITHUB_RUN_ID',str(int(time.time())))
 MARKER='Recette native SPAWT 1.1.1 '+RUN
@@ -267,7 +267,7 @@ def live_content_cases():
         except AssertionError: time.sleep(3)
     else: raise AssertionError('Private team reply was not received from the admin panel')
     snap('live-feedback-team-reply'); check('native feedback reads admin team reply',True)
-    deep('support'); tap('support-check'); find('support-check-sync',timeout=30)
+    deep('settings'); deep('support'); tap('support-check'); find('support-check-sync',timeout=30)
     tree=snap('live-content-recovered'); check('native content reads recover after network outage',not any('ndisponible' in label(n) for n in tree.iter('node')))
     (OUT/'live-data.json').write_text(json.dumps({'build':json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build'],'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER},ensure_ascii=False,indent=2))
 

@@ -1,11 +1,12 @@
 ## 2026-10-19 — Catalogue public et exploration personnelle (build 38)
 
+- Carnets publiés lisibles aussi sans connexion ; les brouillons restent réservés au staff (migration 0084).
 - Publication indépendante d’une visite ou d’une note : GPS et prix inconnus acceptés, affichés comme à préciser ; aucun point fictif sur la carte.
 - Carte et liste : Tous les lieux / À explorer / Mes spawts selon les seuls spawts confirmés du compte.
 - 145 fiches documentaires rendues publiques après sauvegarde et vérifications ; 155 fiches au total, 111 localisées, 44 en liste. Aucun avis ni note ajouté.
 - Build 37 intermédiaire arrêté avant livraison pour intégrer cette demande. La recette finale exige aussi le catalogue complet, une fiche non notée et l’exploration personnelle.
 
-## 2026-10-19 — Accueil, lectures Android et retours privés (build 37 en préparation)
+## 2026-10-19 — Accueil, lectures Android et retours privés (intégrés au build 38)
 
 - « Choisir vite », titres gras et sous-textes légers rapprochés, largeur adaptée au texte.
 - Trois usages incompatibles de `AbortSignal.timeout` remplacés : actualités, révision des contenus et activité de l’app.
