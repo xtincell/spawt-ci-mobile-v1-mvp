@@ -273,6 +273,26 @@ def live_content_cases():
     build=json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']
     enrichment={}
     if build>=39:
+        # An explicit technical image exercises native file bytes and private
+        # moderation without ever publishing a fake menu on a real place.
+        adb('shell','mkdir','-p','/sdcard/Pictures')
+        adb('push','app/assets/icon.png','/sdcard/Pictures/spawt-qa.png')
+        adb('shell','am','broadcast','-a','android.intent.action.MEDIA_SCANNER_SCAN_FILE','-d','file:///sdcard/Pictures/spawt-qa.png')
+        deep('place/'+PLACE); scroll_tap('place-contribute'); tap('contribution-gallery')
+        try: tap('permission_allow_all_button',timeout=5)
+        except AssertionError:
+            try: tap('permission_allow_button',timeout=3)
+            except AssertionError: pass
+        pick_test_photo('contribution-menu'); find('contribution-remove-0',timeout=25)
+        scroll_tap('contribution-comment'); adb('shell','input','text',('Recette menu natif '+RUN+' - image technique, pas un menu reel, ne pas publier.').replace(' ','%s')); back()
+        scroll_tap('contribution-send'); find('contribution-receipt',timeout=35); snap('live-menu-contribution-received')
+        end=time.monotonic()+180
+        while time.monotonic()<end:
+            deep('settings'); deep('contribute/'+PLACE); scroll_tap('contribution-refresh'); time.sleep(2)
+            try: scroll_find('Menu technique '+RUN,attempts=5); break
+            except AssertionError: time.sleep(3)
+        else: raise AssertionError('Native private menu moderation was not received from panel')
+        snap('live-menu-contribution-rejected'); check('native menu photo reached private staff review and reasoned rejection',True)
         # Technical observation uses exactly the published position. The external
         # staff recipe preserves it; no invented field observation or visit is added.
         place=next(p for p in inventory if p['id']==PLACE)
@@ -286,6 +306,7 @@ def live_content_cases():
         check('native location contribution receives a server receipt',True)
         end=time.monotonic()+180
         while time.monotonic()<end:
+            deep('settings'); deep('contribute/'+PLACE)
             scroll_tap('contribution-refresh'); time.sleep(2)
             try: scroll_find('Validation native '+RUN,attempts=5); break
             except AssertionError: time.sleep(3)
@@ -294,7 +315,7 @@ def live_content_cases():
         check('native contribution reads the staff decision and single Paws reward',True)
         deep('carte'); tap('carte-filter-mine'); find('0 lieux · 0 sur la carte')
         check('approved enrichment does not fabricate a personal spawt',True)
-        enrichment={'contributionReceiptReceived':True,'contributionModerationRead':True,'contributionRewardRead':True,'contributionDidNotCreateVisit':True,'contributionMarker':'Recette enrichissement natif '+RUN,'positionSimulatedForTechnicalTest':True}
+        enrichment={'nativeMenuPhotoReceivedAndModerated':True,'contributionReceiptReceived':True,'contributionModerationRead':True,'contributionRewardRead':True,'contributionDidNotCreateVisit':True,'contributionMarker':'Recette enrichissement natif '+RUN,'positionSimulatedForTechnicalTest':True}
     (OUT/'live-data.json').write_text(json.dumps({'build':build,'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER,**enrichment},ensure_ascii=False,indent=2))
 
 try:
