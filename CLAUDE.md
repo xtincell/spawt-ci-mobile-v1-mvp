@@ -39,10 +39,10 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 ## Contributions et catalogue — 2026-10-19
 
 - 0082–0084 déployées : retours privés, 155 fiches publiées (111 coordonnées / 44 inconnues), carnets publics. Aucun avis ni visite ajouté.
-- Build40 en préparation : 0085 contributions menu/prix et GPS privées, validation staff avec Paws atomiques et barème audité ; interface app et panel `/contributions`.
+- Build **40 publié** : 0085 déployée, contributions menu/prix et GPS privées, validation staff avec Paws atomiques et barème audité ; interface app et panel `/contributions`.
 - Les menus validés utilisent `storage://place-contributions/...` dans `menu_urls`, résolu en URL signée par l’app. Les preuves ne sont jamais remplaçables après envoi.
 - Build39 annulé avant publication : brouillons et réponses asynchrones désormais isolés immédiatement par compte ; tests des lectures et callbacks tardifs.
-- Publication finale et réception native à renseigner dans `documentation/ACCUEIL_CATALOGUE_RETOURS_2026-10-19.md`.
+- Source `e072507`, compilation `39341782221`, 24 assertions natives sur la base réelle `39344928365`, publication `39346327204`. Réception menu/modération/GPS/+5 Paws et captures : `documentation/ACCUEIL_CATALOGUE_RETOURS_2026-10-19.md`.
 
 ## Tarifs et livraison — 2026-10-19
 
