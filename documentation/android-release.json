@@ -1,13 +1,13 @@
 {
   "version": "1.1.1",
-  "build": 36,
+  "build": 40,
   "buildDate": "2026-10-19",
-  "sourceCommit": "76fb9bec3250803924ccecdc143b0f74ce1b25e0",
-  "sha256": "9cbe231ff9eb646586b00980fb6918a78f020d3aae48de5caef50951713e307c",
-  "bytes": 162454415,
-  "tag": "local-build-android-2026-10-19-36",
-  "buildRun": 39175490281,
-  "buildWorkflowCommit": "4acdcc9627767cb821028e4be00bdadae7e9cdd8",
-  "qaRun": 39177562951,
-  "qaWorkflowCommit": "79e6294d73d0477de51f2f9ef827905a7a421901"
+  "sourceCommit": "e0725071615e4724eca179c11f7bcd4b5ce4d35c",
+  "sha256": "f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648",
+  "bytes": 162494335,
+  "tag": "local-build-android-2026-10-19-40",
+  "buildRun": 39341782221,
+  "buildWorkflowCommit": "b762cbe93789919d7578080a17d29f7e180c9879",
+  "qaRun": 39344928365,
+  "qaWorkflowCommit": "7ff16dfe62219c08ebb879c8de4fa33d0bbabff4"
 }

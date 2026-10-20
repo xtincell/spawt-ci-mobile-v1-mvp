@@ -40,7 +40,7 @@
     }
   },
   "finalBuild": 40,
-  "finalStatus": "compiling",
+  "finalStatus": "native_qa_running",
   "sourceCommit": "e0725071615e4724eca179c11f7bcd4b5ce4d35c",
   "sourceCiRun": 39341526784,
   "buildRun": 39341782221,
@@ -48,5 +48,16 @@
     "regressionTestsPassed": true,
     "lateReadAndCallbackIgnored": true,
     "browserRestorePassed": true
-  }
+  },
+  "qaRun": 39344928365,
+  "apk": {
+    "build": 40,
+    "sourceCommit": "e0725071615e4724eca179c11f7bcd4b5ce4d35c",
+    "sha256": "f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648",
+    "bytes": 162494335,
+    "signatureMatchesBuild25": true,
+    "compiledBackendConfigVerified": true,
+    "compiledFirebaseConfigVerified": true
+  },
+  "localArtifactHashAndSizeVerified": true
 }
