@@ -128,7 +128,7 @@ type PlaceFirstView = {
   properties: {
     place_id: string;
     match_score: number;
-    distance_km: number;
+    distance_km: number | null;
     time_since_onboarding_seconds: number;
   };
 };

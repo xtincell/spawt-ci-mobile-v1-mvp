@@ -100,6 +100,7 @@ export interface OwnedCard extends CollectibleCard {
 export type PawsReason =
   | "spawt_verifie"
   | "avis_publie"
+  | "contribution_validee"
   | "badge_obtenu"
   | "defi_collectif"
   | "ajustement_admin";

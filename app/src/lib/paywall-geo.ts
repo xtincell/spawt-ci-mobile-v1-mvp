@@ -20,9 +20,10 @@ export function isPlaceLocked(options: {
   positionSource: "gps" | "fallback";
   spawterLat: number;
   spawterLng: number;
-  placeLat: number;
-  placeLng: number;
+  placeLat: number | null;
+  placeLng: number | null;
 }): boolean {
+  if (options.placeLat === null || options.placeLng === null) return false;
   if (!options.paywallEnabled || options.isGold) return false;
   if (options.positionSource === "fallback") return false;
   return (

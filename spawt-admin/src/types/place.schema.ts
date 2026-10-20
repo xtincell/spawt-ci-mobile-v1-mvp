@@ -59,15 +59,10 @@ export const PlaceFormSchema = z.object({
     .default([]),
   is_published: z.boolean().default(false),
 }).superRefine((value, ctx) => {
+  if ((value.location.lat === null) !== (value.location.lng === null)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["location", "lat"], message: "Renseigner les deux coordonnées ou laisser les deux inconnues." });
   if (!value.is_published) return;
   const required: [boolean, (string | number)[], string][] = [
-    [value.cuisine.length > 0, ["cuisine"], "Au moins une cuisine"],
-    [value.location.lat !== null, ["location", "lat"], "Latitude requise"],
-    [value.location.lng !== null, ["location", "lng"], "Longitude requise"],
-    [!!value.location.descriptive_address.trim(), ["location", "descriptive_address"], "Adresse requise"],
-    [!!value.location.neighborhood.trim(), ["location", "neighborhood"], "Quartier requis"],
     [!!value.location.city.trim(), ["location", "city"], "Ville requise"],
-    [value.price.tier !== null, ["price", "tier"], "Gamme de prix requise"],
   ];
   for (const [valid, path, message] of required) {
     if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, path, message: `${message} pour publier ; le brouillon peut rester incomplet.` });

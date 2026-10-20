@@ -71,6 +71,8 @@ export const Layout = () => {
           </NavLink>
           <NavLink to="/actualites" className={({ isActive }) => isActive ? "active" : ""}>Actualités</NavLink>
           <NavLink to="/activite" className={({ isActive }) => isActive ? "active" : ""}>Activité dans l’app</NavLink>
+          <NavLink to="/retours" className={({ isActive }) => isActive ? "active" : ""}>Retours de l’app</NavLink>
+          <NavLink to="/contributions" className={({ isActive }) => isActive ? "active" : ""}>Contributions aux lieux</NavLink>
           <NavLink to="/push" className={({ isActive }) => (isActive ? "active" : "")}>
             Push
           </NavLink>

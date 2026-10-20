@@ -1,0 +1,10 @@
+{
+  "version": "1.1.1",
+  "build": 38,
+  "buildDate": "2026-10-19",
+  "sourceCommit": "915d99dddafe7183ca8c590fd229d2ab397a9260",
+  "previousBuild": 36,
+  "previousSourceCommit": "76fb9bec3250803924ccecdc143b0f74ce1b25e0",
+  "previousBuildRunHead": "4acdcc9627767cb821028e4be00bdadae7e9cdd8",
+  "previousBuildRun": 39175490281
+}

@@ -5,6 +5,7 @@ import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { inspect } from "./offline-queue";
 import { getPushRegistrationStatus, registerPushToken } from "./push-token";
+import { withReadTimeout } from "./data-read-error";
 
 const INSTALLATION_KEY = "spawt:installation-id";
 export async function startAppActivity(spawterId: string): Promise<() => void> {
@@ -22,14 +23,15 @@ export async function startAppActivity(spawterId: string): Promise<() => void> {
     try {
       const queue = await inspect();
       const ownPending = queue.filter(entry => entry.kind === "spawter_upsert" ? entry.row.id === spawterId : entry.kind === "spawt_insert" ? entry.row.spawter_id === spawterId : entry.patch.spawter_id === spawterId).length;
-      await supabase.rpc("report_app_activity", {
+      const { error } = await withReadTimeout("app_activity", signal => supabase.rpc("report_app_activity", {
         p_spawter_id: spawterId, p_installation_id: installationId,
         p_active: active, p_platform: Platform.OS,
         p_version: Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null,
         p_build: Application.nativeBuildVersion ?? null,
         p_push_status: getPushRegistrationStatus(),
         p_pending_writes: ownPending,
-      }).abortSignal(AbortSignal.timeout(10_000));
+      }).abortSignal(signal));
+      if (error) throw error;
     } catch { /* Reporting never blocks reading, reviews or logout. */ }
     finally { busy = false; }
   };

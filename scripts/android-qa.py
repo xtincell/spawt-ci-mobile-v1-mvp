@@ -6,7 +6,7 @@ import os, re, json, time, pathlib, subprocess, xml.etree.ElementTree as ET, url
 OUT=pathlib.Path('android-proof'); OUT.mkdir(exist_ok=True)
 PACKAGE='com.upgraders.spawt'; PLACE='a1000000-0000-4000-8000-000000000004'
 PHONE=os.environ['SPAWT_QA_PHONE']; MODE=os.environ.get('SPAWT_QA_MODE','observe')
-OWNER={'+2250000000101':'fc8bc9b3-0bbb-447f-85a3-fe4bc0d4ed05','+2250000000193':'6445b010-5e4d-4322-9d4d-ea5a31fd922e','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
+OWNER={'+2250000000101':'fc8bc9b3-0bbb-447f-85a3-fe4bc0d4ed05','+2250000000193':'d7ea30bc-fb7f-440d-bac6-4bbd306f1e42','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
 RESULTS=[]
 RUN=os.environ.get('GITHUB_RUN_ID',str(int(time.time())))
 MARKER='Recette native SPAWT 1.1.1 '+RUN
@@ -209,6 +209,124 @@ def photo_and_network_cases():
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
 
+def live_content_cases():
+    """Read actual public records, exercise native network failure, receive private feedback."""
+    cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
+    def read(path):
+        req=urllib.request.Request(cfg['EXPO_PUBLIC_SUPABASE_URL']+'/rest/v1/'+path,headers={'apikey':cfg['EXPO_PUBLIC_SUPABASE_ANON_KEY']})
+        with urllib.request.urlopen(req,timeout=25) as r: return json.load(r)
+    editorial=read('public_editorial_reviews?select=place_id,body&limit=1')[0]
+    collections=read('explore_collections?select=slug,title_key&is_published=eq.true&audience=eq.general&order=sort_order&limit=1')
+    announcements=read('public_announcements?select=title&order=starts_at.desc&limit=1')
+    for width,scale in [(360,1),(393,1),(320,1.3)]:
+        geometry(width,scale); home(); find('Choisir vite'); time.sleep(2)
+        tree=snap(f'live-home-{width}-{scale}')
+        check(f'{width}-{scale}: home feed has no read error', not any('pas pu charger' in label(n) for n in tree.iter('node')))
+    geometry(393,1)
+    inventory=read('places?select=id,name,lat,lng,price_tier&is_published=eq.true&limit=1000')
+    mapped=sum(1 for place in inventory if place['lat'] is not None and place['lng'] is not None)
+    deep('carte'); find(f'{len(inventory)} lieux · {mapped} sur la carte',timeout=30)
+    snap('live-catalogue-map'); check('native map counts match all public records and known coordinates',True)
+    tap('carte-filter-mine'); find('0 lieux · 0 sur la carte'); check('team catalogue does not populate personal spawts',True)
+    tap('carte-filter-unexplored'); find(f'{len(inventory)} lieux · {mapped} sur la carte')
+    tap('carte-view-toggle'); snap('live-catalogue-list'); check('unexplored public records are accessible in native list',True)
+    documentary=next(place for place in inventory if place['lat'] is None and place['price_tier'] is None)
+    deep('place/'+documentary['id']); find(documentary['name']); scroll_find('Pas encore noté'); scroll_find('Prix à préciser')
+    snap('live-unrated-documentary'); check('native documentary place keeps unknown price and no rating',True)
+    deep('actualites')
+    find(announcements[0]['title'] if announcements else 'Pas de nouvelle publication pour le moment.')
+    snap('live-announcements'); check('native announcements match public database',True)
+    deep('place/'+editorial['place_id']); scroll_find(editorial['body'][:70],attempts=22)
+    snap('live-editorial'); check('native editorial matches exact public database text',True)
+    deep('explore'); find(collections[0]['title_key']); snap('live-collections')
+    deep('explore/'+collections[0]['slug']); find(collections[0]['title_key']); snap('live-collection-detail')
+    check('native collection index and detail match public database',True)
+    deep('settings'); scroll_tap('Aide et retours'); tap('support-check')
+    find('support-check-sync',timeout=30)
+    tree=snap('live-content-checks')
+    check_nodes=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
+    check('all five native content checks reached production',len(check_nodes)==5 and all('ndisponible' not in label(n) for n in check_nodes))
+    # The same published binary must report a real outage and recover.
+    adb('shell','cmd','connectivity','airplane-mode','enable'); adb('shell','svc','wifi','disable'); adb('shell','svc','data','disable')
+    tap('support-check'); time.sleep(18)
+    tree=snap('live-offline-checks'); failed=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
+    check('offline checks do not pretend data is empty',len(failed)==5 and all('ndisponible' in label(n) for n in failed))
+    scroll_tap('support-message'); adb('shell','input','text',MARKER.replace(' ','%s')); back()
+    scroll_tap('support-send'); find('support-send-error',timeout=25); snap('live-feedback-offline')
+    check('offline feedback remains unconfirmed',True)
+    adb('shell','cmd','connectivity','airplane-mode','disable'); adb('shell','svc','wifi','enable'); adb('shell','svc','data','enable'); time.sleep(4)
+    restart(); deep('support'); scroll_find('support-message')
+    check('private feedback draft survives process restart',MARKER in label(find('support-message')))
+    scroll_tap('support-send'); find('support-receipt',timeout=30); snap('live-feedback-received')
+    check('native feedback receives server receipt',True)
+    # The external console recipe responds using staff rights, never inside this APK.
+    end=time.monotonic()+180
+    while time.monotonic()<end:
+        deep('settings'); deep('support'); scroll_tap('support-refresh'); time.sleep(2)
+        try:
+            scroll_find('Réponse équipe '+RUN,attempts=5); break
+        except AssertionError: time.sleep(3)
+    else: raise AssertionError('Private team reply was not received from the admin panel')
+    snap('live-feedback-team-reply'); check('native feedback reads admin team reply',True)
+    deep('settings'); deep('support'); tap('support-check'); find('support-check-sync',timeout=30)
+    tree=snap('live-content-recovered'); check('native content reads recover after network outage',not any('ndisponible' in label(n) for n in tree.iter('node')))
+    build=json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']
+    enrichment={}
+    if build>=39:
+        deep('progression'); scroll_find('paws-balance',attempts=22)
+        balance_before=int(find('paws-balance').get('text'))
+        # An explicit technical image exercises native file bytes and private
+        # moderation without ever publishing a fake menu on a real place.
+        adb('shell','mkdir','-p','/sdcard/Pictures')
+        adb('push','app/assets/icon.png','/sdcard/Pictures/spawt-qa.png')
+        adb('shell','am','broadcast','-a','android.intent.action.MEDIA_SCANNER_SCAN_FILE','-d','file:///sdcard/Pictures/spawt-qa.png')
+        deep('place/'+PLACE); scroll_tap('place-contribute'); tap('contribution-gallery')
+        try: tap('permission_allow_all_button',timeout=5)
+        except AssertionError:
+            try: tap('permission_allow_button',timeout=3)
+            except AssertionError: pass
+        pick_test_photo('contribution-menu'); find('contribution-remove-0',timeout=25)
+        scroll_tap('contribution-comment'); adb('shell','input','text',('Recette menu natif '+RUN+' - image technique, pas un menu reel, ne pas publier.').replace(' ','%s')); back()
+        restart(); deep('contribute/'+PLACE); scroll_find('contribution-remove-0')
+        scroll_find('contribution-comment'); check('native menu draft survives process restart',('Recette menu natif '+RUN) in label(find('contribution-comment')))
+        scroll_tap('contribution-send'); scroll_find('contribution-receipt',attempts=12); snap('live-menu-contribution-received')
+        end=time.monotonic()+180
+        while time.monotonic()<end:
+            deep('settings'); deep('contribute/'+PLACE); scroll_tap('contribution-refresh'); time.sleep(2)
+            try: scroll_find('Menu technique '+RUN,attempts=5); break
+            except AssertionError: time.sleep(3)
+        else: raise AssertionError('Native private menu moderation was not received from panel')
+        snap('live-menu-contribution-rejected'); check('native menu photo reached private staff review and reasoned rejection',True)
+        # Technical observation uses exactly the published position. The external
+        # staff recipe preserves it; no invented field observation or visit is added.
+        place=next(p for p in inventory if p['id']==PLACE)
+        adb('emu','geo','fix',place['lng'],place['lat'])
+        deep('place/'+PLACE); scroll_tap('place-contribute'); tap('contribution-kind-location'); tap('contribution-locate')
+        try: tap('permission_allow_foreground_only_button',timeout=6)
+        except AssertionError: pass
+        find('contribution-position',timeout=35)
+        scroll_tap('contribution-comment'); adb('shell','input','text',('Recette enrichissement natif '+RUN+' - GPS simule identique a la fiche, aucun releve terrain nouveau.').replace(' ','%s')); back()
+        scroll_tap('contribution-send'); scroll_find('contribution-receipt',attempts=12); snap('live-contribution-received')
+        check('native location contribution receives a server receipt',True)
+        end=time.monotonic()+180
+        while time.monotonic()<end:
+            deep('settings'); deep('contribute/'+PLACE)
+            scroll_tap('contribution-refresh'); time.sleep(2)
+            try: scroll_find('Validation native '+RUN,attempts=5); break
+            except AssertionError: time.sleep(3)
+        else: raise AssertionError('Native contribution approval and reward not received from panel')
+        snap('live-contribution-reward'); find('5 Paws attribués'); find('contribution-team-reply')
+        check('native contribution reads the staff decision and single Paws reward',True)
+        deep('progression'); scroll_find('paws-balance',attempts=22)
+        end=time.monotonic()+25
+        while time.monotonic()<end and find('paws-balance').get('text')!=str(balance_before+5): time.sleep(1)
+        check('native Paws balance increases exactly by the approved reward',find('paws-balance').get('text')==str(balance_before+5))
+        scroll_find('Contribution validée'); snap('live-contribution-paws-ledger')
+        deep('carte'); tap('carte-filter-mine'); find('0 lieux · 0 sur la carte')
+        check('approved enrichment does not fabricate a personal spawt',True)
+        enrichment={'nativeMenuPhotoReceivedAndModerated':True,'contributionReceiptReceived':True,'contributionModerationRead':True,'contributionRewardRead':True,'contributionDidNotCreateVisit':True,'pawsBalanceDelta':5,'contributionMarker':'Recette enrichissement natif '+RUN,'positionSimulatedForTechnicalTest':True}
+    (OUT/'live-data.json').write_text(json.dumps({'build':build,'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER,**enrichment},ensure_ascii=False,indent=2))
+
 try:
     # Garder le même format en dp, avec une surface 1x pour la vidéo : encoder
     # 2,8 millions de pixels concurrençait le lecteur sur l'émulateur logiciel.
@@ -256,6 +374,9 @@ try:
         raise SystemExit(0)  # finally conserve les assertions et l'état final.
     login(PHONE)
     snap('signed-in')
+    if MODE=='live':
+        live_content_cases()
+        raise SystemExit(0)
     if MODE=='community':
         # Existing alpha account; this path never publishes, saves or changes backend data.
         for width in [320,360,393,430]:

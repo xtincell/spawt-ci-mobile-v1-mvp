@@ -272,7 +272,7 @@
       },
       "rapide": {
         "title": "Rapide",
-        "subtitle": "Décider vite"
+        "subtitle": "Choisir vite"
       },
       "selections": {
         "title": "Les sélections",
@@ -964,7 +964,9 @@
     "review_photo_alt": "Photo jointe à cet avis",
     "photo_pending": "Photo à venir",
     "photo_illustration": "Illustration",
-    "info_hours_unknown": "À confirmer"
+    "info_hours_unknown": "À confirmer",
+    "price_unknown": "Prix à préciser",
+    "location_pending": "Localisation à préciser"
   },
   "place_activity": {
     "section_title": "En ce moment",
@@ -1015,7 +1017,18 @@
     "loading": "Chargement de la carte…",
     "unavailable_title": "La carte est indisponible ici",
     "available_places": "Les spots à consulter",
-    "open_place": "Voir la fiche"
+    "open_place": "Voir la fiche",
+    "filters": {
+      "all": "Tous les lieux",
+      "unexplored": "À explorer",
+      "mine": "Mes spawts"
+    },
+    "inventory_count": "{{total}} lieux · {{mapped}} sur la carte",
+    "location_pending_hint": "Les lieux sans point précis restent accessibles dans la liste.",
+    "show_map": "Voir la carte",
+    "show_list": "Voir tous les lieux en liste",
+    "explored": "Déjà spawté par toi",
+    "to_explore": "À explorer"
   },
   "cdc": {
     "button": "❤️ Mon Coup de Cœur",
@@ -1300,7 +1313,8 @@
       "avis_publie": "Avis publié",
       "badge_obtenu": "Badge obtenu",
       "defi_collectif": "Défi collectif bouclé",
-      "ajustement_admin": "Geste du Chat"
+      "ajustement_admin": "Geste du Chat",
+      "contribution_validee": "Contribution validée"
     },
     "profile_teaser_title": "Progression",
     "profile_teaser_badges_one": "{{count}} badge débloqué",
@@ -1402,5 +1416,99 @@
     "promo": "Promotion",
     "open": "Découvrir",
     "all": "Toutes les publications"
+  },
+  "support": {
+    "title": "Aide et retours",
+    "version": "Version {{version}} · build {{build}}",
+    "check_intro": "Vérifie que les contenus arrivent bien jusqu’à ton app. Une liste vide peut simplement ne pas encore avoir de publication.",
+    "check": "Vérifier les contenus",
+    "check_failed": "La vérification n’a pas abouti. Réessaie dans un instant.",
+    "checks": {
+      "places": "Lieux publiés",
+      "editorials": "Avis éditoriaux",
+      "collections": "Carnets",
+      "announcements": "Fil du Chat",
+      "sync": "Actualisation"
+    },
+    "ok": "Accessible",
+    "read_count_one": "{{count}} élément accessible",
+    "read_count_other": "{{count}} éléments accessibles",
+    "unavailable": "Indisponible — à réessayer",
+    "checked_at": "Vérifié le {{date}}",
+    "share": "Partager ce contrôle",
+    "send_title": "Un souci ou une idée ?",
+    "private": "Ton retour reste privé. L’équipe le retrouve dans son panel et peut te répondre ici.",
+    "kinds": {
+      "bug": "Un souci",
+      "content": "Un contenu",
+      "idea": "Une idée"
+    },
+    "message": "Décris ton retour en 10 caractères minimum…",
+    "attach": "Joindre le résultat de mes contrôles",
+    "privacy": "La version et le type d’appareil accompagnent ton retour. Les contrôles ajoutent seulement leur date et les résultats de lecture, sans localisation ni clé de connexion.",
+    "signin": "Connecte-toi pour envoyer un retour et retrouver la réponse.",
+    "sending": "Envoi en cours…",
+    "send": "Envoyer à l’équipe",
+    "send_failed": "Envoi non confirmé. Ton texte est conservé : réessaie avec une connexion.",
+    "receipt": "Reçu par l’équipe · référence {{id}}",
+    "history": "Mes retours",
+    "refresh": "Actualiser mes retours",
+    "history_failed": "Tes retours n’ont pas pu être chargés. Réessaie.",
+    "status": {
+      "received": "Reçu",
+      "reviewing": "En cours",
+      "resolved": "Résolu"
+    },
+    "reply": "L’équipe : {{reply}}",
+    "error_link": "Vérifier ou signaler ce souci"
+  },
+  "contribution": {
+    "title": "Compléter ce lieu",
+    "intro": "Partage ce que tu as vu sur place. L’équipe vérifie ta contribution avant de mettre la fiche à jour. Ta visite et ta note SPAWT restent personnelles.",
+    "kind": {
+      "menu": "Menu et prix",
+      "location": "Position du lieu"
+    },
+    "reward": "Après validation : {{count}} Paws. Le barème annoncé au dépôt sera conservé.",
+    "menu_help": "Ajoute de 1 à 3 photos lisibles du menu actuel, prises par toi. Évite les visages et les informations personnelles.",
+    "camera": "Photographier le menu",
+    "gallery": "Choisir une photo du menu",
+    "remove_photo": "Retirer la photo {{number}}",
+    "price": "Budget par personne en F CFA (facultatif)",
+    "price_help": "Plat et accompagnement, hors boissons. L’équipe vérifiera le montant sur le menu.",
+    "tier": {
+      "unknown": "Gamme à préciser",
+      "1": "Petit budget",
+      "2": "Budget moyen",
+      "3": "Budget élevé"
+    },
+    "gps_help": "Tu es devant ce lieu ? Relève sa position maintenant. Ce relevé ponctuel n’active pas le suivi en arrière-plan.",
+    "locate": "Je suis sur place : relever ma position",
+    "position": "{{lat}}, {{lng}} · précision ±{{accuracy}} m",
+    "comment": "Précisions pour l’équipe (facultatif)",
+    "privacy": "Tes preuves restent privées pendant l’examen. Les menus, prix et coordonnées retenus seront visibles sur la fiche publique.",
+    "send": "Envoyer à l’équipe",
+    "receipt": "Contribution reçue · {{id}}. Elle attend la vérification de l’équipe.",
+    "history": "Mes contributions à ce lieu",
+    "status": {
+      "pending": "À vérifier",
+      "approved": "Validée",
+      "rejected": "Non retenue"
+    },
+    "earned": "{{count}} Paws attribués",
+    "errors": {
+      "photo_permission": "Autorise l’accès à l’appareil photo ou aux photos pour joindre le menu.",
+      "photo_failed": "La photo n’a pas pu être préparée. Choisis-la à nouveau.",
+      "gps_permission": "Autorise la localisation pendant l’utilisation pour relever la position du lieu.",
+      "gps_precise": "Relève à nouveau ta position sur place : elle doit dater de moins de dix minutes, avec une précision de 100 m maximum.",
+      "gps_failed": "La position n’a pas pu être relevée. Réessaie à l’extérieur, devant le lieu.",
+      "menu_required": "Ajoute une photo du menu. Si tu précises un budget, utilise un montant entier entre 1 et 1 000 000 F CFA.",
+      "limit": "Tu as déjà plusieurs contributions en attente. Attends leur examen avant d’en envoyer d’autres.",
+      "send_failed": "L’envoi n’a pas été confirmé. Ton brouillon est conservé : réessaie avec une connexion. Si une photo a disparu, ajoute-la de nouveau."
+    },
+    "menu_open": "Agrandir le menu",
+    "menu_close": "Fermer le menu",
+    "menu_loading": "Chargement du menu…",
+    "menu_failed": "Le menu n’a pas pu être chargé. Réessaie."
   }
 }

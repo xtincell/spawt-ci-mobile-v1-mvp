@@ -36,6 +36,14 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
+## Contributions et catalogue — 2026-10-19
+
+- 0082–0084 déployées : retours privés, 155 fiches publiées (111 coordonnées / 44 inconnues), carnets publics. Aucun avis ni visite ajouté.
+- Build **40 publié** : 0085 déployée, contributions menu/prix et GPS privées, validation staff avec Paws atomiques et barème audité ; interface app et panel `/contributions`.
+- Les menus validés utilisent `storage://place-contributions/...` dans `menu_urls`, résolu en URL signée par l’app. Les preuves ne sont jamais remplaçables après envoi.
+- Build39 annulé avant publication : brouillons et réponses asynchrones désormais isolés immédiatement par compte ; tests des lectures et callbacks tardifs.
+- Source `e072507`, compilation `39341782221`, 24 assertions natives sur la base réelle `39344928365`, publication `39346327204`. Réception menu/modération/GPS/+5 Paws et captures : `documentation/ACCUEIL_CATALOGUE_RETOURS_2026-10-19.md`.
+
 ## Tarifs et livraison — 2026-10-19
 
 - PR 17/18 reprises ; migrations 0079–0081 appliquées après sauvegarde. Gold lieu **60 000 F TTC** (50 847 HT + 9 153 TVA), autres tarifs conservés. Page Tarifs opérationnelle pour Xtincell, journal admin restauré, confirmation prestataire et facture atomiques.

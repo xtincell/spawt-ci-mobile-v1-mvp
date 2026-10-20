@@ -43,14 +43,14 @@ describe("PlaceFormSchema — Story 6.2", () => {
     expect(PlaceFormSchema.safeParse({ ...base, location: { ...base.location, [key]: null } }).success).toBe(false);
   });
 
-  it("refuse de publier sans gamme de prix ou adresse", () => {
-    expect(PlaceFormSchema.safeParse({ ...base, price: { tier: null } }).success).toBe(false);
-    expect(PlaceFormSchema.safeParse({ ...base, location: { ...base.location, descriptive_address: "   " } }).success).toBe(false);
+  it("publie sans inventer une gamme de prix ou une adresse", () => {
+    expect(PlaceFormSchema.safeParse({ ...base, price: { tier: null } }).success).toBe(true);
+    expect(PlaceFormSchema.safeParse({ ...base, location: { ...base.location, descriptive_address: "   " } }).success).toBe(true);
   });
 
-  it("rejette cuisine vide", () => {
+  it("accepte une cuisine encore inconnue", () => {
     const r = PlaceFormSchema.safeParse({ ...base, cuisine: [] });
-    expect(r.success).toBe(false);
+    expect(r.success).toBe(true);
   });
 
   it("rejette lat hors range", () => {

@@ -1,3 +1,18 @@
+## v1.1.1 — build 40 — publié le 2026-10-20
+
+**APK publié** : [télécharger le build 40](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-40/spawt-1.1.1-build40.apk) · [preuves et captures](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-19-40).
+
+- Source `e0725071615e4724eca179c11f7bcd4b5ce4d35c` ; compilation `39341782221`, recette native `39344928365`, publication `39346327204`. Date du build : 2026-10-19 ; publication après minuit UTC.
+- 162 494 335 octets ; SHA-256 `f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648`. Signature conservée, backend et Firebase embarqués vérifiés.
+- Fil du Chat rétabli ; « Choisir vite », titres gras et sous-textes légers rapprochés. 155 lieux publiés sans notes inventées, 111 positions / 44 à préciser ; exploration individuelle distincte du catalogue de l’équipe.
+- Photos de menu, prix et GPS proposés depuis une fiche ; preuves privées, modération, valeurs publiées et Paws atomiques. Barème initial 5 Paws, administrable avec historique. Avis éditoriaux et carnets accessibles.
+- Aide et retours : cinq lectures, diagnostic partageable, brouillon conservé et réponse privée du panel. Activité récente du compte visible par l’équipe.
+- 24 assertions natives sur la base réelle, dont panne/reprise, message aller-retour, photo après redémarrage, modération et hausse exacte de 5 Paws. Captures examinées ; aucun faux menu ni spawt créé.
+- [Contrôles publics](https://spawt.online/statut) · [carte publique](https://spawt.online/carte). Le canal Android officiel avance automatiquement après publication vérifiée. Installer par-dessus l’app actuelle, sans désinstallation.
+- Réception push sur téléphone et éventuel ancien brouillon personnel non confirmés par cette recette sur émulateur. Aucun IPA ni OTA publié. Builds 37/39 annulés, 38 intermédiaire non publié.
+
+[Bilan détaillé](./documentation/ACCUEIL_CATALOGUE_RETOURS_2026-10-19.md).
+
 ## v1.1.1 — build 36 — 2026-10-19
 
 **APK publié** : [télécharger le build 36](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-36/spawt-1.1.1-build36.apk) · [site officiel](https://spawt.online).
