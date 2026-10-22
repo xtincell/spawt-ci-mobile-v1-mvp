@@ -47,8 +47,16 @@ def run_outing_cases(g):
     snap('outing-named-list');check('native named occasion list and dish received by server',True)
     deep('saved?addPlace='+place);tap(title,exact=True);until(lambda:any(i['list_id']==lid and i['place_id']==place for i in state()['items']))
     scroll_tap('Choisir ce lieu');find('Cette envie est choisie');tap('OK',exact=True);until(lambda:any(c['place_id']==place for c in state()['choices']));check('native explicit choice receives server receipt without visit',True)
-    deep('saved');tap(title,exact=True);tap('Partager',exact=True);time.sleep(2);back()
+    # Reopen at the top after choosing below the fold. An existing route may
+    # retain its scroll offset and expose a clipped accessibility target.
+    restart();deep('saved');tap(title,exact=True)
+    share=find('Partager',exact=True,enabled=True)
+    check('share action is fully visible and enabled',share.get('clickable')=='true' and g['bounds'](share)[1]>=72)
+    snap('outing-before-share');g['tap_node'](share)
+    # Wait for the real server receipt before dismissing the Android chooser.
+    # On failure, keep the current native error/sheet visible for diagnosis.
     entry=until(lambda:next((l for l in state()['lists'] if l['id']==lid and l['share_token']),None));url='https://spawt.online/liste/'+entry['share_token']
+    snap('outing-share-result');back()
     from playwright.sync_api import sync_playwright,expect
     with sync_playwright() as pw:
         b=pw.chromium.launch(executable_path='/usr/bin/google-chrome',headless=True,args=['--no-sandbox']);p=b.new_page(viewport={'width':393,'height':852})
