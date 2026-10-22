@@ -71,7 +71,19 @@ export async function enqueueOuting(owner: string, action: OutingAction, payload
 }
 const flights = new Map<string, Promise<void>>();
 export async function syncOutings(owner: string, isCurrent: () => boolean): Promise<void> {
-  const flight = flights.get(owner); if (flight) return flight;
+  const flight = flights.get(owner);
+  if (flight) {
+    await flight;
+    if (!isCurrent()) return;
+    // A save/list action can arrive after this flight drained its queue,
+    // while its final snapshot is still loading. Joining that read alone
+    // leaves the new action pending until another screen happens to refresh.
+    const doc = await locked(() => read(owner));
+    if (isCurrent() && doc.pending.some(p => !p.failed)) {
+      await syncOutings(owner, isCurrent);
+    }
+    return;
+  }
   const work = (async () => {
     if (dataSourceMode !== "supabase") return;
     while (isCurrent()) {

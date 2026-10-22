@@ -49,3 +49,44 @@ test("classifying then removing a place offline retains the latest local choice"
  expect(local.pendingPlaces.p).toBe(false); expect(local.snapshot.items).toHaveLength(0);
  expect(local.pending).toBe(2);
 });
+
+test("actions queued during the final snapshot read are sent without another screen refresh", async () => {
+ let releaseRead!: (value: unknown) => void;
+ let notifyRead!: () => void;
+ const reading = new Promise<void>(resolve => { notifyRead = resolve; });
+ const staleRead = new Promise(resolve => { releaseRead = resolve; });
+ let reads = 0;
+ const received: string[] = [];
+ mockRpc.mockImplementation((name, args) => {
+  if (name === "mutate_outing") { received.push(args.p_action); return Promise.resolve({ error: null }); }
+  if (reads++ === 0) { notifyRead(); return staleRead; }
+  return Promise.resolve({ data: { ...emptyOutings(), lists: [{ id: "l", title: "Brunch", share_token: "public-link" }] }, error: null });
+ });
+ const refresh = syncOutings("a", current);
+ await reading;
+ await enqueueOuting("a", "list_create", { list_id: "l", title: "Brunch" }, current);
+ const create = syncOutings("a", current);
+ await enqueueOuting("a", "list_share", { list_id: "l", enabled: true }, current);
+ const share = syncOutings("a", current);
+ releaseRead({ data: emptyOutings(), error: null });
+ await Promise.all([refresh, create, share]);
+ expect(received).toEqual(["list_create", "list_share"]);
+ expect(await localOutings("a")).toMatchObject({ pending: 0, rejected: 0, snapshot: { lists: [{ id: "l", share_token: "public-link" }] } });
+});
+
+test("a waiting sync cannot resume its queued writes after the account changes", async () => {
+ let releaseRead!: (value: unknown) => void;
+ let notifyRead!: () => void;
+ const reading = new Promise<void>(resolve => { notifyRead = resolve; });
+ mockRpc.mockImplementation(() => { notifyRead(); return new Promise(resolve => { releaseRead = resolve; }); });
+ const refresh = syncOutings("a", current);
+ await reading;
+ await enqueueOuting("a", "choose", { place_id: "p" }, current);
+ const waiting = syncOutings("a", current);
+ mockOwner = "b";
+ releaseRead({ data: emptyOutings(), error: null });
+ await Promise.all([refresh, waiting]);
+ expect(mockRpc.mock.calls.map(c => c[0])).toEqual(["my_outings"]);
+ expect((await localOutings("a")).pending).toBe(1);
+ expect((await localOutings("b")).pending).toBe(0);
+});

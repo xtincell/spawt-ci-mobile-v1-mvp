@@ -46,13 +46,14 @@ def run_outing_cases(g):
     until(lambda:any(i['list_id']==lid and i['menu_item_id']==dish['id'] for i in state()['items']))
     snap('outing-named-list');check('native named occasion list and dish received by server',True)
     deep('saved?addPlace='+place);tap(title,exact=True);until(lambda:any(i['list_id']==lid and i['place_id']==place for i in state()['items']))
-    scroll_tap('Choisir ce lieu');find('Cette envie est choisie');tap('OK',exact=True);until(lambda:any(c['place_id']==place for c in state()['choices']));check('native explicit choice receives server receipt without visit',True)
+    previous_choice=next((c['chosen_at'] for c in state()['choices'] if c['place_id']==place),None)
+    scroll_tap('Choisir ce lieu');find('Cette envie est choisie');tap('OK',exact=True);until(lambda:any(c['place_id']==place and c['chosen_at']!=previous_choice for c in state()['choices']));check('native explicit choice receives a new server receipt without visit',True)
     # Reopen at the top after choosing below the fold. An existing route may
     # retain its scroll offset and expose a clipped accessibility target.
     restart();deep('saved');tap(title,exact=True)
     share=find('Partager',exact=True,enabled=True)
     check('share action is fully visible and enabled',share.get('clickable')=='true' and g['bounds'](share)[1]>=72)
-    snap('outing-before-share');g['tap_node'](share)
+    snap('outing-before-share');g['tap_node'](find('Partager',exact=True,enabled=True))
     # Wait for the real server receipt before dismissing the Android chooser.
     # On failure, keep the current native error/sheet visible for diagnosis.
     entry=until(lambda:next((l for l in state()['lists'] if l['id']==lid and l['share_token']),None));url='https://spawt.online/liste/'+entry['share_token']

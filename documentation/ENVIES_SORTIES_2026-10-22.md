@@ -22,7 +22,7 @@ et la north star priment sur l’ancienne mesure du Canvas.
 - **Base en production** : migrations additives 0086–0089 appliquées après sauvegarde PostgreSQL vérifiée. Propriété/RLS, identifiants de mutation stables, partage révocable, validation GPS et indicateurs serveur. Les favoris du build 40 restent compatibles.
 - **Panel en production** : commit `23e4eef249fecafedc76f81dad69889d8164e576`, pages `/menus`, `/envies`, `/guet`. Publication/édition des plats, source et date, concurrence détectée ; validation GPS auditée et refus d’une validation si les coordonnées ont changé entre-temps.
 - **Site en production** : fiches `/lieu/:id`, listes `/liste/:token`, rendu anonyme et aperçus sociaux, absence de cache des partages, 404 après révocation. Sept lecteurs sur `/statut`, certificat Android App Links reçu. Vérification TLS conservée avec une profondeur de chaîne adaptée au certificat croisé Let’s Encrypt.
-- **Android 41 compilé** : source `e4106b0cfa638ed44884532847f0c79917dd384a`, 162 536 319 octets, SHA-256 `c53620b70905741e909de5e61d4adc1604b074179a21379aa3739845d28b2019`. Recette native finale en cours ; canal public encore au build 40 jusqu’à son succès.
+- **Android 41 compilé** : source `e4106b0cfa638ed44884532847f0c79917dd384a`, 162 536 319 octets, SHA-256 `c53620b70905741e909de5e61d4adc1604b074179a21379aa3739845d28b2019`. Candidat refusé après découverte d’une course de synchronisation ; une source corrigée doit être recompilée et reçue. Canal public toujours au build 40.
 - **Guet désactivé** : interrupteur `guet-proximity-v2` fermé pour tous les publics. Aucune campagne Firebase envoyée par cette livraison.
 
 ## Comportements livrés
@@ -87,3 +87,13 @@ Les migrations `.down.sql` servent à tester la réversibilité ; ne pas les app
 sur des envies réelles sans sauvegarde et plan de restauration. En cas d’incident,
 fermer les fonctions concernées et conserver les données ; ne pas redémarrer tout
 le stack Supabase pour déployer une fonction Edge.
+
+## Correction issue de la réception native
+
+La recette 39710670306 a confirmé une action optimiste encore en attente après
+45 secondes : une mutation ajoutée pendant la lecture finale d’une synchronisation
+rejoignait cette lecture sans être envoyée. `syncOutings` attend désormais la lecture
+en cours, contrôle le propriétaire puis vide les nouvelles mutations. Le test de
+régression échoue avant correction et réussit après, y compris la protection lors
+d’un changement de compte. Les preuves du candidat initial ne valident pas le
+nouveau binaire : compilation et réception native complètes sont requises.
