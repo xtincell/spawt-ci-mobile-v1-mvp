@@ -212,6 +212,8 @@ def photo_and_network_cases():
 def live_content_cases():
     """Read actual public records, exercise native network failure, receive private feedback."""
     cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
+    build=json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']
+    expected_checks=7 if build>=41 else 5
     def read(path):
         req=urllib.request.Request(cfg['EXPO_PUBLIC_SUPABASE_URL']+'/rest/v1/'+path,headers={'apikey':cfg['EXPO_PUBLIC_SUPABASE_ANON_KEY']})
         with urllib.request.urlopen(req,timeout=25) as r: return json.load(r)
@@ -245,12 +247,12 @@ def live_content_cases():
     find('support-check-sync',timeout=30)
     tree=snap('live-content-checks')
     check_nodes=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
-    check('all five native content checks reached production',len(check_nodes)==5 and all('ndisponible' not in label(n) for n in check_nodes))
+    check('all native content checks reached production',len(check_nodes)==expected_checks and all('ndisponible' not in label(n) for n in check_nodes))
     # The same published binary must report a real outage and recover.
     adb('shell','cmd','connectivity','airplane-mode','enable'); adb('shell','svc','wifi','disable'); adb('shell','svc','data','disable')
     tap('support-check'); time.sleep(18)
     tree=snap('live-offline-checks'); failed=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
-    check('offline checks do not pretend data is empty',len(failed)==5 and all('ndisponible' in label(n) for n in failed))
+    check('offline checks do not pretend data is empty',len(failed)==expected_checks and all('ndisponible' in label(n) for n in failed))
     scroll_tap('support-message'); adb('shell','input','text',MARKER.replace(' ','%s')); back()
     scroll_tap('support-send'); find('support-send-error',timeout=25); snap('live-feedback-offline')
     check('offline feedback remains unconfirmed',True)
@@ -376,6 +378,9 @@ try:
     snap('signed-in')
     if MODE=='live':
         live_content_cases()
+        if json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']>=41:
+            from android_outing_qa import run_outing_cases
+            run_outing_cases(globals())
         raise SystemExit(0)
     if MODE=='community':
         # Existing alpha account; this path never publishes, saves or changes backend data.
