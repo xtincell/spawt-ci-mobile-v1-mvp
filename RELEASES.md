@@ -1,8 +1,74 @@
+## v1.1.1 — candidat build 41 — préparation du 22 octobre 2026
+
+**Non publié.** Envies, listes, plats, partage web, suivi des intentions et correction du Guet. Migrations 0086–0089 et déploiements coordonnés requis. Aucun bouton de téléchargement ne change pendant cette préparation. Voir [réception prévue](documentation/ENVIES_SORTIES_2026-10-22.md).
+
+## v1.1.1 — build 40 — publié le 2026-10-20
+
+**APK publié** : [télécharger le build 40](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-40/spawt-1.1.1-build40.apk) · [preuves et captures](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-19-40).
+
+- Source `e0725071615e4724eca179c11f7bcd4b5ce4d35c` ; compilation `39341782221`, recette native `39344928365`, publication `39346327204`. Date du build : 2026-10-19 ; publication après minuit UTC.
+- 162 494 335 octets ; SHA-256 `f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648`. Signature conservée, backend et Firebase embarqués vérifiés.
+- Fil du Chat rétabli ; « Choisir vite », titres gras et sous-textes légers rapprochés. 155 lieux publiés sans notes inventées, 111 positions / 44 à préciser ; exploration individuelle distincte du catalogue de l’équipe.
+- Photos de menu, prix et GPS proposés depuis une fiche ; preuves privées, modération, valeurs publiées et Paws atomiques. Barème initial 5 Paws, administrable avec historique. Avis éditoriaux et carnets accessibles.
+- Aide et retours : cinq lectures, diagnostic partageable, brouillon conservé et réponse privée du panel. Activité récente du compte visible par l’équipe.
+- 24 assertions natives sur la base réelle, dont panne/reprise, message aller-retour, photo après redémarrage, modération et hausse exacte de 5 Paws. Captures examinées ; aucun faux menu ni spawt créé.
+- [Contrôles publics](https://spawt.online/statut) · [carte publique](https://spawt.online/carte). Le canal Android officiel avance automatiquement après publication vérifiée. Installer par-dessus l’app actuelle, sans désinstallation.
+- Réception push sur téléphone et éventuel ancien brouillon personnel non confirmés par cette recette sur émulateur. Aucun IPA ni OTA publié. Builds 37/39 annulés, 38 intermédiaire non publié.
+
+[Bilan détaillé](./documentation/ACCUEIL_CATALOGUE_RETOURS_2026-10-19.md).
+
+## v1.1.1 — build 36 — 2026-10-19
+
+**APK publié** : [télécharger le build 36](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-36/spawt-1.1.1-build36.apk) · [site officiel](https://spawt.online).
+
+- Source `76fb9bec3250803924ccecdc143b0f74ce1b25e0` ; [compilation 39175490281](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39175490281), [recette native 39177562951](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39177562951), [publication 39177846463](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39177846463).
+- 162 454 415 octets ; SHA-256 `9cbe231ff9eb646586b00980fb6918a78f020d3aae48de5caef50951713e307c`.
+- Prix Gold hors zone retiré du texte de l'app ; catalogue administrable en base, Gold lieu 60 000 F TTC et facturation atomique déployés côté serveur.
+- Continuité de signature, configuration backend/Firebase, cinq assertions natives, animation et initialisation Firebase vérifiées. Captures examinées ; aucun compte ni OTP utilisé pour la recette native.
+- Les deux boutons du site sont passés automatiquement au build 36 après publication, avant tout redéploiement de la vitrine.
+- Avis, carnets, actualités et synchronisation conservés. Installer par-dessus l'app actuelle. CinetPay reste à connecter ; réception push sur téléphone à confirmer. Aucun IPA ni OTA.
+
+[Bilan détaillé](./documentation/FINALISATION_TARIFS_2026-10-19.md).
+
+## v1.1.1 — build 35 — 2026-10-18
+
+**APK publié** : [télécharger le build 35](https://spawt.online/downloads/spawt-1.1.1-build35.apk) · [Release GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-18-35).
+
+- Source `f265ae2a14ca01ee3b919a52aee6aac8c960ab9b` ; [compilation 39143492062](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39143492062), [recette native 39146032702](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39146032702), [publication 39146376114](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39146376114).
+- 162 454 527 octets ; SHA-256 `53b7dcb40f0718484b10541a078c24382951536d5ab8c26a846cc4078f8c4086`.
+- Firebase Android intégré et FCM v1 associé à Expo. Ressources natives, continuité de signature, backend embarqué et intégrité vérifiés. Cinq contrôles de démarrage/réouverture, animation et initialisation Firebase réussis sur Android 35.
+- Fonctionnalités panel/app du build 34 conservées. Installer par-dessus l’app actuelle pour préserver les données locales en attente.
+- Manifeste public de téléchargement mis à jour automatiquement après validation de l’APK publié. Aucun téléphone physique ni envoi réel dans cette recette ; réception push encore à confirmer. Aucun IPA ni OTA publié.
+
+Voir [Firebase et téléchargement automatique](./documentation/FIREBASE_ANDROID_2026-10-18.md).
+
+## v1.1.1 — build 34 — 2026-10-18
+
+**APK publié** : [télécharger le build 34](https://spawt.online/downloads/spawt-1.1.1-build34.apk) · [Release GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-18-34).
+
+- Source : `47cc174d2558ae0155f1847aac566a111e8ababd` ; [compilation 39133029325](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39133029325).
+- 162 451 883 octets ; SHA-256 `39875c39314c5da714e6179a5c412c80bfcf7f4061ea5a91dabbe4ee7a71628f`.
+- Identité du paquet, version, backend embarqué, CRC et continuité de signature vérifiés. Téléchargement local identique.
+- [Recette Android 35](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39135323263) réussie : cinq contrôles de démarrage/réouverture, animation visible, aucune surface noire ; aucun compte utilisé ni OTP envoyé.
+- Publications du panel et lecture actualisée dans l’app : avis éditoriaux, carnets, événements, offres et nouveau fil d’actualités. Liens directs vers les carnets préservés au démarrage.
+- Activité récente et état des envois remontés au panel. Installer par-dessus l’app actuelle pour préserver les données locales en attente.
+- Le build 33 n’a pas été livré. La réception des notifications système Android reste conditionnée à la configuration Firebase/FCM. Aucun IPA ni OTA publié.
+
+Voir le [bilan et les limites](./documentation/LIAISON_PANEL_APP_2026-10-18.md).
+
+## Build 33 — 2026-10-18 — compilation annulée, non livré
+
+- Version 1.1.1 ; source contrôlée `8f7b53f74760fa8721394d4455533d989b82ede2` ; recette `documentation/android-build33.json`.
+- Actualités du panel, actualisation des contenus publiés, remontée d’activité et diagnostic push.
+- Build 32 préservé dans la lignée ; signature EAS existante. Aucun nouveau module natif.
+- La réception de notifications Android reste conditionnée à la configuration Firebase/FCM absente de cette livraison.
+- Le contrôle navigateur a découvert une redirection prématurée des liens Explore au démarrage. Compilation 39131766236 annulée ; correction intégrée dans le build 34.
+
 # SPAWT — Releases (vue testeur)
 
-Journal des **APK publiés** pour l'alpha, destiné aux testeurs. Pour citer un
+Journal des **APK alpha**, publiés ou explicitement en réception, destiné aux testeurs. Pour citer un
 build dans un bug report, recopie la ligne affichée dans l'app (écran Profil →
-« À propos ») : **`v1.0.0 — build N (YYYY-MM-DD)`**.
+« À propos ») : **`vVERSION — build N (YYYY-MM-DD)`**.
 
 > Ce fichier est **distinct de [`CHANGELOG.md`](./CHANGELOG.md)** :
 > - `CHANGELOG.md` = vue **dev** par sprint/epic (`vMAJEURE.SPRINT.ITERATION`).
@@ -10,9 +76,9 @@ build dans un bug report, recopie la ligne affichée dans l'app (écran Profil �
 
 ## Schéma de versioning (Story 7.1)
 
-- **Version app** : `1.0.0`, figée jusqu'à la beta publique.
+- **Version app** : celle de `app/app.json`, actuellement `1.1.1`.
 - **`android.versionCode` / `ios.buildNumber`** : entier **N**, incrémenté à chaque APK publié.
-- **Format d'affichage canonique** : `v1.0.0 — build N (YYYY-MM-DD)`.
+- **Format d'affichage canonique** : `vVERSION — build N (YYYY-MM-DD)`.
 - **Tag CI Android** : `build-android-YYYY-MM-DD-N` (N = `versionCode`). Pousser ce tag
   déclenche le build EAS (`.github/workflows/eas-build.yml`), qui injecte
   `versionCode = N` et `extra.buildDate = YYYY-MM-DD` avant le build.
@@ -26,12 +92,204 @@ build dans un bug report, recopie la ligne affichée dans l'app (écran Profil �
 Format d'une entrée :
 
 ```
-## v1.0.0 — build N — YYYY-MM-DD
+## vVERSION — build N — YYYY-MM-DD
 **APK** : <url eas> · **Tag CI** : build-android-YYYY-MM-DD-N · **Commit** : <sha>
 ### Nouveau / ### Corrigé / ### À tester en priorité / ### Limitations connues
 ```
 
 ---
+
+## v1.1.1 — build 31 — 2026-10-16 — en réception
+
+**Compilation et signature reçues en CI ; ouverture anonyme reçue sur Android 35.**
+
+- **Source applicative** : `699d67d62793553e07766f4953b6d2c915299b9f`.
+- **Compilation** : [run 38899084321](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38899084321),
+  tag `local-build-android-2026-10-16-31`, recette `dd170da`.
+- **APK produit** : 162 440 283 octets ; SHA-256
+  `113cbe92f52153a992974417f9b02471f8904cd53d229d23f470b4747e772158`.
+- Version, paquet, backend embarqué, CRC et continuité de signature avec le build 25 vérifiés en CI.
+- **Recette native** : [run 38902277011](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38902277011),
+  cinq assertions : ouverture, écran téléphone et nouveau processus après arrêt.
+  Vidéo contrôlée : surgissement, clin d’œil puis réouverture, aucune surface noire.
+  Captures d’accueil anonyme et téléphone examinées. Aucun OTP envoyé ni compte utilisé.
+- Les interfaces et assets du build 30 sont conservés ; le raccord de session partagé est ajouté.
+  1 075 tests mobile (quatre ignorés), conformité et CI mobile/console verts.
+- **Fichier reçu localement** : taille et empreinte identiques à la CI, CRC intact.
+  `aapt` lit le paquet `com.upgraders.spawt`, la version 1.1.1 et le numéro 31 ;
+  `apksigner` valide la signature, identique à celle de l’APK 29 publié.
+- **Restent à recevoir** : session authentifiée/AsyncStorage après invalidation,
+  clients historiques et appareil physique.
+  Aucun APK31 publié comme release, aucune OTA ni soumission store par cette recette.
+
+La préparation 29 du 16 octobre a été annulée avant artefact : ce numéro était déjà publié.
+
+## v1.1.1 — build 30 — 2026-10-13
+
+**APK preview compilé et signé** — [run 38458128552](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38458128552),
+source `3cc5e92112576cd21b2fb8a427bdbbdb8842043c`. Publication et recette native de ce build non reçues ici.
+
+- Cinq usages dans le cadre Accueil : Suggestions, Rapide, Les sélections, En duo, Les spots.
+- Moteurs swipe/carnets/carte existants réutilisés ; classement Suggestions conservé.
+- Aperçus éditoriaux illustrés explicitement non publiés si la curation manque ; aucun lieu associé arbitrairement.
+- Carte native partagée avec l’onglet Carte ; fiches réelles dans le remplacement web.
+- 1 055 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis.
+- Captures prévalidées pour passage à la compilation ; recette native de ce binaire restante.
+- Aucune fusion, OTA, publication store ou écriture de production.
+
+Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
+## v1.1.1 — build 29 — 2026-10-13
+
+**APK preview publié** — [télécharger le build 29](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-13-29/spawt-1.1.1-build29.apk).
+SHA-256 : `4dbdc7cb94ecabf2691399dabe06d66093c503ea186988ebd5f36a363b62738a` ;
+162 425 603 octets. Version et signature vérifiées localement le 16 octobre.
+
+- Accueil : sélecteur discret, carrousel éditorial indépendant des préférences du fil.
+- Tuiles avec photos officielles ou illustration de secours explicitement indiquée.
+- La Bande : activité publique, avatars Moka, notes détaillées, filtres, pagination,
+  partage et rafraîchissement au retour. Correction des coups de cœur invisibles.
+- Tanière privée et abonnements entre membres préparés dans le backlog V2.
+- Recette native de ce nouveau binaire à distinguer des captures Expo web.
+
+Voir [le rapport build 29](./documentation/ANDROID_1_1_1_BUILD29_BANDE.md).
+
+## v1.1.1 — build 28 — 2026-10-12
+
+**APK interne compilé et signé** : [artefact GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38262258947/artifacts/11754938097) (jusqu’au 26 octobre).
+**Compilation** : [run 38262258947](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38262258947).
+**Source APK** : `adb12e452861dde5e4215551f82864da8f72ff67`.
+Aucun tag ni release GitHub créé ; aucune OTA ni publication store.
+
+- Accueil et la bande : 46 textes harmonisés, libellés accessibles et secours
+  de navigation inclus. Ton Crew reste un groupe distinct sur invitation.
+- Routes, API, clés i18n, schéma, droits et quiz séparé conservés.
+- 1 023 tests mobile (4 ignorés), 191 tests admin, TypeScript, vocabulaire,
+  i18n, tests de configuration EAS, export web et build admin réussis.
+- APK `spawt-1.1.1-build28.apk` : **162 284 355 octets**.
+- SHA-256 : `2d7fa6bef35354b0284eacbfb8f6ebb84e0da93dd06c052583451dedabb82838`.
+- Après téléchargement : manifeste 1.1.1/28, empreinte, CRC et libellés compilés
+  contrôlés. Signature vérifiée par le runner, identique au build 25.
+- Recette native sur appareil et TalkBack non exécutées pour ce build.
+
+Voir [le rapport build 28](./documentation/ANDROID_1_1_1_BUILD28_VOCABULAIRE.md).
+
+## v1.1.1 — build 27 — 2026-10-10
+
+**APK** : [téléchargement direct](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-10-27/spawt-1.1.1-build27.apk)
+· **Tag CI** : `local-build-android-2026-10-10-27`
+· **Source APK** : `6ba39d2b8b54c2bd7e5867b1dad6334a914df5f8`
+
+APK preview compilée, signée et validée sur Android 35, utilisant le backend alpha `https://api.spawt.online`.
+Elle reprend les corrections du build 9 et ajoute les corrections d’affichage,
+de profil et de publication des avis demandées après cette livraison.
+
+### Corrigé et nouveau
+
+- Splash natif blanc et ouverture du pack **SPAWT fenêtre V2** fourni :
+  repère vectoriel entier, surgissement, rebond, étoiles et clin d’œil de Moka.
+- Noms des lieux sur deux lignes dans les cartes et complets dans les fiches/formulaires ;
+  profil, en-têtes et boutons adaptés au texte agrandi. Le bouton de publication
+  reste au-dessus du clavier Android.
+- « Spawt le ! » et Spawter ouvrent le même formulaire après enregistrement de
+  la visite ; reprise du brouillon et protection contre les doubles appuis.
+- Trois notes obligatoires : **cuisine, cadre, service**. Leur moyenne est affichée
+  à une décimale : **5/4/4 → 4,3**. Les anciens avis gardent leur note simple.
+- Publication confirmée ou « en attente d’envoi » explicitement affichée ; reprise
+  automatique au retour réseau. Les erreurs gardent le brouillon et ses photos.
+- Vraies miniatures et uploads Android corrigés ; lecture des photos communautaires
+  par URLs signées dans un bucket privé.
+- **Moka par défaut** pour les profils sans photo ou une image défaillante ;
+  remplacement par une photo personnelle accessible.
+- Les **30 avis fondateurs** affichent Alexandre et son avatar, avec leur badge.
+  Leur propriétaire technique et leurs règles de comptage sont conservés.
+
+### Côté serveur et console
+
+Migrations compatibles 0071–0074 déployées après sauvegarde et tests aller-retour.
+Les anciennes APK peuvent encore lire et modifier une note simple.
+La [console publique](https://admin.spawt.online) est actualisée : auteur attribué,
+trois notes et suppression auditée des comptes démo après confirmation du nom.
+Les deux démos fournies précédemment restent disponibles.
+
+Les images officielles sont déjà renseignées côté base : **24 images, 10 couvertures**.
+Ces images sont également accessibles à l’ancienne APK.
+
+### Vérifié avant livraison
+
+- **1 017 tests mobile et 191 tests admin réussis** ; quatre tests mobile ignorés.
+  TypeScript, vocabulaire, i18n, lint/build admin et tests SQL réussis.
+- [Compilation signée du build 27 sur GitHub](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38019749515). Le quota cloud EAS gratuit est épuisé ; compilation locale avec la signature existante, sans souscription.
+- [Matrice native d’affichage du build 17](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/37987169753) :
+  **165 contrôles réussis**, neuf planches inspectées, 320/360/393/430 dp avec
+  texte à 100/130/150 %. Bouton au-dessus du clavier dans les douze cas,
+  marge minimale de **56 dp**. Le build 27 conserve ces écrans et leur formulaire.
+- [Recette native finale du build 27](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/38022121379) : **31 assertions réussies**, captures inspectées, deux comptes connectés, photos, réseau, avatar personnel et restauration. Ouverture fournie validée avec clin d’œil et réouverture ; aucune surface noire.
+- Signature identique à la release 9, empreinte et CRC vérifiés. Les comptes et fichiers de recette ont été nettoyés ; les deux démos fournies et les 30 fondateurs sont conservés.
+
+Voir le [rapport de recette et déploiement](./documentation/ANDROID_1_1_1_RECETTE.md).
+
+### Limitations connues
+
+Validation sur émulateur Android 35 avec de vraies sessions alpha et SMS simulé.
+Fluidité sur téléphone physique, SMS réel, GPS réel, notifications et liens
+externes reçus à froid restent à tester. Aucun IPA ni OTA publié.
+Followers, membre actif et nouvelles fonctions historiques restent pour une
+livraison distincte.
+
+## v1.1.0 — build 9 — 2026-10-09
+
+**APK** : [téléchargement direct](https://expo.dev/artifacts/eas/JZ8JHyqTGGVGy48rEzUpxs3hCejhQ9yqe8flXGRK4JY.apk)
+· [page d'installation Expo](https://expo.dev/accounts/xtincell/projects/spawt-mobile-ci/builds/4c849fbd-0067-40bd-b9a2-c1382e6f1eff)
+· **Tag CI** : `build-android-2026-10-09-9` · **Commit** : `2e28acbbc39823cc9bd853f2cf5ca87219a6a202`
+
+Le build 9 reprend les évolutions GitHub depuis le build 8 du 23 septembre
+(`618e70f`), puis les corrections de l'audit du 9 octobre. Il utilise le backend
+alpha `https://api.spawt.online`. Compilation native et signature réussies.
+
+### Corrigé
+
+- Ouverture : animation stabilisée, splash coordonné avec la restauration du compte,
+  réduction des mouvements et reprise en cas d'échec.
+- Accueil : plantage du carrousel après connexion corrigé.
+- Compte et Palais : profil existant conservé, historique et collection restaurés,
+  caches isolés par session ; héritage des cinq axes du quiz Meute.
+- Données : erreurs réseau visibles avec relance, délais bornés, réponses périmées
+  ignorées, favoris persistants et file hors ligne conservée jusqu'à confirmation.
+- Navigation : fiches et retour sans historique, liens légaux actifs, partage vers
+  les routes de l'app installée.
+- Dépendances Expo SDK 55 alignées et validation du backend avant compilation.
+
+### Nouveau côté alpha et console
+
+Deux comptes démo identifiés sont disponibles, sans droits staff ni faux avis.
+La console locale permet de les filtrer et de les supprimer avec confirmation du
+nom exact ; le serveur refuse la suppression des comptes réels et staff.
+Les accès sont fournis en privé. La console corrigée n'est pas encore déployée
+sur son adresse publique ; ses changements sont distincts de l'APK.
+
+### Vérifié avant livraison
+
+988 tests mobile et 190 tests admin réussis ; quatre tests mobile ignorés.
+Connexion OTP alpha et lectures sur la base réelle ; parcours navigateur accueil,
+recherche, fiche, favori persistant, profil/Palais et console admin.
+Voir le [rapport détaillé](./documentation/AUDIT_AVANT_COMPILATION_2026-10-09.md).
+
+### À tester en priorité sur Android
+
+1. Installation puis ouverture à froid : splash, animation et arrivée sur l'accueil.
+2. Connexion avec un compte existant : retrouver son profil et ses goûts.
+3. Favori, fermeture/réouverture puis perte/reprise réseau.
+4. Permissions GPS, Le Guet, notifications et liens reçus depuis une autre app.
+
+### Limitations connues
+
+- Aucun téléphone connecté à la session : fluidité native et parcours GPS/notifications
+  restent à recevoir. Aucun IPA ni OTA publié.
+- SMS simulé sur l'alpha ; SMS réel non validé.
+- Les dix lieux chargent, mais leurs photos de couverture ne sont pas renseignées.
+- Audit npm résiduel : 67 alertes, dont 51 hautes et aucune critique ; portée runtime
+  encore à qualifier.
 
 ## v1.0.0 — build 7 — 2026-07-08
 

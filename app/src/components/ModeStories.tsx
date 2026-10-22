@@ -1,164 +1,126 @@
-// Story 3.3c — ModeStories : radiogroup horizontal de chips circulaires
-// « Je sors pour… » (UX spec §1294).
-// R6 (MAJ consolidée 07/2026) — 4 modes affichés, libellés définitifs :
-// Manger · Découvrir · En groupe · En duo (icônes fork/compass/users/heart).
-// `vite` reste dans ModeKey (filtre conservé) mais n'est plus proposé en chip.
-//
-// Sprint 2 — hub des modes plein écran : la prop additive `entries` expose
-// les entrées de navigation (Rapide, Explore — le Crew, chantier parallèle,
-// s'ajoutera par le même canal) AVANT les chips d'humeur. `entries` vide ou
-// absent → rendu strictement identique à l'existant (critère de
-// non-régression : flags off = rien ne change visuellement).
-
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
-import { Ico, type IconName } from "./primitives/Ico";
+import { HomeModeIcon } from "./HomeModeIcon";
 
-export type ModeKey = "traine" | "decouvre" | "tribu" | "chic" | "vite";
-
-interface ModeSpec {
-  key: ModeKey;
-  icon: IconName;
-}
-
-const MODES: readonly ModeSpec[] = [
-  { key: "traine", icon: "fork" },
-  { key: "decouvre", icon: "compass" },
-  { key: "tribu", icon: "users" },
-  { key: "chic", icon: "heart" },
+export type ModeKey = "suggestions" | "rapide" | "selections" | "duo" | "spots";
+export const HOME_MODES: readonly ModeKey[] = [
+  "suggestions",
+  "rapide",
+  "selections",
+  "duo",
+  "spots",
 ];
 
-/** Entrée de navigation vers un mode plein écran (Rapide, Explore, Crew…). */
-export interface ModeEntry {
-  key: string;
-  icon: IconName;
-  /** Clé i18n du label (ex. `modes.entry_rapide.label`). */
-  labelKey: string;
-  onPress: () => void;
-}
-
-interface Props {
-  selectedMode: ModeKey | null;
-  onModePress: (mode: ModeKey | null) => void;
-  /** Entrées de modes plein écran, gated par flags côté caller. Défaut : aucune. */
-  entries?: readonly ModeEntry[];
-}
-
-export function ModeStories({ selectedMode, onModePress, entries = [] }: Props) {
+/** One discreet row; enlarged text can scroll horizontally instead of being clipped. */
+export function ModeStories({
+  selectedMode,
+  onModePress,
+}: {
+  selectedMode: ModeKey;
+  onModePress: (mode: ModeKey) => void;
+}) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { width, fontScale } = useWindowDimensions();
+  const itemWidth = Math.max(84 * Math.max(1, fontScale), (width - 40) / 5);
+  const row = useRef<ScrollView>(null);
+  useEffect(() => {
+    const index = HOME_MODES.indexOf(selectedMode);
+    row.current?.scrollTo({
+      x: Math.max(0, index * (itemWidth + 4) - (width - itemWidth) / 2),
+      animated: false,
+    });
+  }, [selectedMode, itemWidth, width]);
   return (
-    <View accessibilityRole="radiogroup">
-      <Text
-        style={{
-          ...theme.typography.preset.overline,
-          color: theme.colors.text.tertiary,
-          paddingHorizontal: theme.spacing.lg,
-          marginBottom: theme.spacing.sm,
-        }}
-      >
-        {t("home.modes_title")}
-      </Text>
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={t("home.selector_label")}
+    >
       <ScrollView
+        ref={row}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.lg,
-          gap: theme.spacing.base,
-        }}
+        contentContainerStyle={{ paddingHorizontal: 12, gap: 4 }}
       >
-        {entries.map((entry) => {
-          const label = t(entry.labelKey);
+        {HOME_MODES.map((mode) => {
+          const active = selectedMode === mode;
+          const title = t(`home.selector.${mode}.title`);
+          const subtitle = t(`home.selector.${mode}.subtitle`);
           return (
             <Pressable
-              key={entry.key}
-              onPress={entry.onPress}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              style={{ alignItems: "center", minWidth: 60 }}
-            >
-              {/* Cercle liseré Or : distingue une NAVIGATION (mode plein
-                  écran) d'un FILTRE d'humeur (chips ci-dessous). */}
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  backgroundColor: theme.colors.surface.subtle,
-                  borderWidth: 1.5,
-                  borderColor: theme.colors.brand.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ico name={entry.icon} size={22} color={theme.colors.brand.primary} />
-              </View>
-              <Text
-                style={{
-                  ...theme.typography.preset.overline,
-                  color: theme.colors.text.tertiary,
-                  marginTop: 4,
-                  textAlign: "center",
-                  maxWidth: 96,
-                }}
-                numberOfLines={2}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-        {MODES.map((m) => {
-          const isSelected = selectedMode === m.key;
-          const label = t(`modes.${m.key}.label`);
-          return (
-            <Pressable
-              key={m.key}
-              onPress={() => onModePress(isSelected ? null : m.key)}
+              key={mode}
+              testID={`home-mode-${mode}`}
               accessibilityRole="radio"
-              accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={label}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              style={{ alignItems: "center", minWidth: 60 }}
+              aria-checked={active}
+              accessibilityState={{ selected: active, checked: active }}
+              accessibilityLabel={`${title}, ${subtitle}`}
+              onPress={() => {
+                if (!active) onModePress(mode);
+              }}
+              style={({ pressed }) => ({
+                width: itemWidth,
+                paddingHorizontal: 2,
+                minHeight: 44,
+                alignItems: "center",
+                gap: 5,
+                opacity: pressed ? 0.8 : 1,
+              })}
             >
               <View
+                testID={`home-mode-disc-${mode}`}
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  backgroundColor: theme.colors.surface.subtle,
-                  borderWidth: isSelected ? 2.5 : 0,
-                  borderColor: theme.colors.surface.inverse,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
                   alignItems: "center",
                   justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: active
+                    ? theme.colors.brand.primary
+                    : theme.colors.surface.subtle,
+                  backgroundColor: active
+                    ? theme.colors.surface.inverse
+                    : theme.colors.surface.subtle,
                 }}
               >
-                <Ico
-                  name={m.icon}
-                  size={22}
-                  color={
-                    isSelected
-                      ? theme.colors.text.primary
-                      : theme.colors.text.secondary
-                  }
-                />
+                <HomeModeIcon mode={mode} active={active} />
               </View>
+              <View style={{ alignItems: "center", gap: 1 }}>
               <Text
                 style={{
-                  ...theme.typography.preset.overline,
-                  color: isSelected
-                    ? theme.colors.text.primary
-                    : theme.colors.text.tertiary,
-                  marginTop: 4,
+                  ...theme.typography.preset.caption,
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  fontFamily: theme.typography.preset.overline.fontFamily,
+                  textDecorationLine: active ? "underline" : "none",
+                  color: theme.colors.text.primary,
                   textAlign: "center",
-                  maxWidth: 96,
                 }}
-                numberOfLines={2}
               >
-                {label}
+                {title}
               </Text>
+              <Text
+                style={{
+                  ...theme.typography.preset.caption,
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  fontFamily: theme.typography.family.body,
+                  color: theme.colors.text.secondary,
+                  textAlign: "center",
+                  maxWidth: itemWidth,
+                }}
+              >
+                {subtitle}
+              </Text>
+              </View>
             </Pressable>
           );
         })}

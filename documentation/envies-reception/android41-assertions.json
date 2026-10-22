@@ -1,0 +1,150 @@
+[
+  {
+    "check": "cold animated launch keeps SPAWT in foreground",
+    "passed": true
+  },
+  {
+    "check": "published real dish has source date and observed price",
+    "passed": true
+  },
+  {
+    "check": "native place reads published structured menu",
+    "passed": true
+  },
+  {
+    "check": "native alias search reaches published dish",
+    "passed": true
+  },
+  {
+    "check": "offline dish save persists and reaches owning server account",
+    "passed": true
+  },
+  {
+    "check": "native named occasion list and dish received by server",
+    "passed": true
+  },
+  {
+    "check": "native explicit choice receives a new server receipt without visit",
+    "passed": true
+  },
+  {
+    "check": "share action is settled, visible and enabled",
+    "passed": true
+  },
+  {
+    "check": "native shared list is readable in anonymous real browser",
+    "passed": true
+  },
+  {
+    "check": "Android verifies official website App Link",
+    "passed": true
+  },
+  {
+    "check": "public HTTPS list opens the installed native package",
+    "passed": true
+  },
+  {
+    "check": "native revoke immediately removes public browser access",
+    "passed": true
+  },
+  {
+    "check": "other account does not receive private list",
+    "passed": true
+  },
+  {
+    "check": "cross-owner snapshot rejected",
+    "passed": true
+  },
+  {
+    "check": "360-1: home feed has no read error",
+    "passed": true
+  },
+  {
+    "check": "393-1: home feed has no read error",
+    "passed": true
+  },
+  {
+    "check": "320-1.3: home feed has no read error",
+    "passed": true
+  },
+  {
+    "check": "native map counts match all public records and known coordinates",
+    "passed": true
+  },
+  {
+    "check": "team catalogue does not populate personal spawts",
+    "passed": true
+  },
+  {
+    "check": "unexplored public records are accessible in native list",
+    "passed": true
+  },
+  {
+    "check": "native documentary place keeps unknown price and no rating",
+    "passed": true
+  },
+  {
+    "check": "native announcements match public database",
+    "passed": true
+  },
+  {
+    "check": "native editorial matches exact public database text",
+    "passed": true
+  },
+  {
+    "check": "native collection index and detail match public database",
+    "passed": true
+  },
+  {
+    "check": "all native content checks reached production",
+    "passed": true
+  },
+  {
+    "check": "offline checks do not pretend data is empty",
+    "passed": true
+  },
+  {
+    "check": "offline feedback remains unconfirmed",
+    "passed": true
+  },
+  {
+    "check": "private feedback draft survives process restart",
+    "passed": true
+  },
+  {
+    "check": "native feedback receives server receipt",
+    "passed": true
+  },
+  {
+    "check": "native feedback reads admin team reply",
+    "passed": true
+  },
+  {
+    "check": "native content reads recover after network outage",
+    "passed": true
+  },
+  {
+    "check": "native menu draft survives process restart",
+    "passed": true
+  },
+  {
+    "check": "native menu photo reached private staff review and reasoned rejection",
+    "passed": true
+  },
+  {
+    "check": "native location contribution receives a server receipt",
+    "passed": true
+  },
+  {
+    "check": "native contribution reads the staff decision and single Paws reward",
+    "passed": true
+  },
+  {
+    "check": "native Paws balance increases exactly by the approved reward",
+    "passed": true
+  },
+  {
+    "check": "approved enrichment does not fabricate a personal spawt",
+    "passed": true
+  }
+]

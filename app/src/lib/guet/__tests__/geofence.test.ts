@@ -34,7 +34,7 @@ jest.mock("../../data-source", () => ({
 
 jest.mock("../../../store/feature-flags", () => ({
   useFeatureFlagsStore: {
-    getState: () => ({ flags: { "guet-geofence": true } }),
+    getState: () => ({ flags: { "guet-proximity-v2": true } }),
   },
 }));
 
@@ -87,7 +87,7 @@ describe("selectClosestPlaces", () => {
 describe("armGuet", () => {
   it("no-op silencieux si mode démo (fallback)", async () => {
     mockDataSource.dataSourceMode = "fallback";
-    await armGuet([{ id: "p1", lat: 1, lng: 1 }], { hasGeolocConsent: true });
+    await armGuet([{ id: "p1", lat: 1, lng: 1 }], { hasGeolocConsent: true, spawter: { lat: 5.35, lng: -3.97 } });
     expect(startMock).not.toHaveBeenCalled();
   });
 
@@ -97,15 +97,15 @@ describe("armGuet", () => {
   });
 
   it("no-op si places vide", async () => {
-    await armGuet([], { hasGeolocConsent: true });
+    await armGuet([], { hasGeolocConsent: true, spawter: { lat: 5.35, lng: -3.97 } });
     expect(startMock).not.toHaveBeenCalled();
   });
 
-  it("appelle startGeofencingAsync avec radius 10m", async () => {
-    await armGuet([{ id: "p1", lat: 5.35, lng: -3.97 }], { hasGeolocConsent: true });
+  it("appelle startGeofencingAsync avec radius 150m", async () => {
+    await armGuet([{ id: "p1", lat: 5.35, lng: -3.97 }], { hasGeolocConsent: true, spawter: { lat: 5.35, lng: -3.97 } });
     expect(startMock).toHaveBeenCalledTimes(1);
     const [, regions] = startMock.mock.calls[0] as [string, Array<{ radius: number }>];
-    expect(regions[0]?.radius).toBe(10);
+    expect(regions[0]?.radius).toBe(150);
   });
 
   it("cap à MAX_ACTIVE_GEOFENCES (20) en gardant les plus proches", async () => {
@@ -124,14 +124,14 @@ describe("armGuet", () => {
 
   it("ne crashe pas si permission foreground refusée", async () => {
     reqFgMock.mockResolvedValueOnce({ status: "denied" });
-    await armGuet([{ id: "p1", lat: 1, lng: 1 }], { hasGeolocConsent: true });
+    await armGuet([{ id: "p1", lat: 1, lng: 1 }], { hasGeolocConsent: true, spawter: { lat: 5.35, lng: -3.97 } });
     expect(startMock).not.toHaveBeenCalled();
   });
 });
 
 describe("disarmGuet + isGuetArmed", () => {
   it("disarmGuet reset l'état armé", async () => {
-    await armGuet([{ id: "p1", lat: 1, lng: 1 }], { hasGeolocConsent: true });
+    await armGuet([{ id: "p1", lat: 1, lng: 1 }], { hasGeolocConsent: true, spawter: { lat: 5.35, lng: -3.97 } });
     expect(getArmedPlaceIds().size).toBeGreaterThan(0);
     await disarmGuet();
     expect(getArmedPlaceIds().size).toBe(0);

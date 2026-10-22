@@ -3,7 +3,7 @@
 // Purs = testables en Deno sans mock : toute la logique de dates vit ici,
 // les Edge Functions (payment-webhook / payment-cron) ne font que l'appliquer.
 
-import { PLAN_PRICING, type PaidPlan } from "./types.ts";
+import { PERIOD_MONTHS, PLAN_PERIOD, type PaidPlan } from "./types.ts";
 
 /** Fenêtre de grâce post-échéance (SPEC 4 §4.5 étape 3 : J+0 → J+7). */
 export const GRACE_DAYS = 7;
@@ -47,7 +47,7 @@ export function addDays(from: Date, days: number): Date {
  * jamais automatique (acte humain, cf. payment-webhook).
  */
 export function computeExpiresAt(plan: PaidPlan, from: Date): Date {
-  return addMonthsUtc(from, PLAN_PRICING[plan].months);
+  return addMonthsUtc(from, PERIOD_MONTHS[PLAN_PERIOD[plan]]);
 }
 
 /**

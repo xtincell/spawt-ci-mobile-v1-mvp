@@ -26,10 +26,16 @@ export function OfflineQueueInspector({ visible, onClose }: Props) {
   const theme = useTheme();
   const [entries, setEntries] = useState<readonly QueueEntry[]>([]);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const reload = useCallback(async () => {
-    const list = await inspect();
-    setEntries(list);
+    try {
+      const list = await inspect();
+      setEntries(list);
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -41,6 +47,8 @@ export function OfflineQueueInspector({ visible, onClose }: Props) {
     try {
       await flush();
       await reload();
+    } catch {
+      setFailed(true);
     } finally {
       setBusy(false);
     }
@@ -59,8 +67,12 @@ export function OfflineQueueInspector({ visible, onClose }: Props) {
           text: t("offline_queue.purge"),
           style: "destructive",
           onPress: async () => {
-            await purge();
-            await reload();
+            try {
+              await purge();
+              await reload();
+            } catch {
+              setFailed(true);
+            }
           },
         },
       ],
@@ -109,7 +121,14 @@ export function OfflineQueueInspector({ visible, onClose }: Props) {
           </Pressable>
         </View>
 
-        {entries.length === 0 ? (
+        {failed ? (
+          <Text accessibilityRole="alert" style={{ ...theme.typography.preset.body,
+            color: theme.colors.state.danger, padding: theme.spacing.lg }}>
+            {t("offline_queue.error")}
+          </Text>
+        ) : null}
+
+        {entries.length === 0 && !failed ? (
           <View
             style={{
               flex: 1,
@@ -184,12 +203,14 @@ export function OfflineQueueInspector({ visible, onClose }: Props) {
             onPress={() => {
               void handleSyncNow();
             }}
-            disabled={busy || entries.length === 0}
+            accessibilityRole="button"
+            accessibilityLabel={t("offline_queue.sync_now")}
+            disabled={busy || (entries.length === 0 && !failed)}
             style={({ pressed }) => ({
               backgroundColor: theme.colors.brand.accent,
               paddingVertical: theme.spacing.base,
               borderRadius: theme.radius.lg,
-              opacity: busy || entries.length === 0 ? 0.4 : pressed ? 0.85 : 1,
+              opacity: busy || (entries.length === 0 && !failed) ? 0.4 : pressed ? 0.85 : 1,
               alignItems: "center",
             })}
           >

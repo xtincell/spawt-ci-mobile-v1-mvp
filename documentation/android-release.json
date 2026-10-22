@@ -1,0 +1,13 @@
+{
+  "version": "1.1.1",
+  "build": 41,
+  "buildDate": "2026-10-22",
+  "sourceCommit": "e38c8f3ee5c6287e179ef70927ca4ea618ed1878",
+  "sha256": "62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9",
+  "bytes": 162536491,
+  "tag": "local-build-android-2026-10-22-41",
+  "buildRun": 39711862127,
+  "buildWorkflowCommit": "2d7f58c28e805ad5a82817b45109c05f7ecf0d9c",
+  "qaRun": 39718577857,
+  "qaWorkflowCommit": "93691f47af50a6ced5909bb61a8004c1127b6ac1"
+}

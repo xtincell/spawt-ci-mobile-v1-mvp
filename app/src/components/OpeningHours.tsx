@@ -58,7 +58,7 @@ export function OpeningHours({ hours, today }: Props) {
     <View>
       {DISPLAY_ORDER.map((day) => {
         const isToday = day === current;
-        const slots = hours[day] ?? [];
+        const slots = hours[day];
         return (
           <View
             key={day}
@@ -91,7 +91,7 @@ export function OpeningHours({ hours, today }: Props) {
                 marginLeft: 12,
               }}
             >
-              {formatSlots(slots, closedLabel)}
+              {slots === undefined ? t("place.info_hours_unknown") : formatSlots(slots, closedLabel)}
             </Text>
           </View>
         );

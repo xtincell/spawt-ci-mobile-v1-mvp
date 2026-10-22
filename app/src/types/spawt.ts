@@ -40,6 +40,10 @@ export interface SpawtCheckin {
   flag_reason: AntifraudFlag | null;
   /** Avis attaché — null si check-in passif sans note (poids 0.5x) */
   note_etoiles: 1 | 2 | 3 | 4 | 5 | null;
+  /** Absentes dans les anciens caches ; nulles pour les avis à note unique. */
+  note_cuisine?: 1 | 2 | 3 | 4 | 5 | null;
+  note_cadre?: 1 | 2 | 3 | 4 | 5 | null;
+  note_service?: 1 | 2 | 3 | 4 | 5 | null;
   texte_avis: string | null;
   tags: ReviewTag[];
   photos: string[];

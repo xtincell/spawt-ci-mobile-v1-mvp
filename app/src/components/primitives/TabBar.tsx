@@ -1,6 +1,6 @@
-// TabBar 5 onglets — Feed · Carte · [FAB +] · Meute · Palais.
+// TabBar 5 onglets — Accueil · Carte · [FAB +] · La bande · Palais.
 // Cf. midfi-kit.jsx ligne 120 + ux-design-spec § "Navigation patterns".
-// Hauteur 78pt + safe-area home indicator (paddingBottom: insets.bottom).
+// Hauteur minimale 78pt, extensible avec le texte + safe-area home indicator.
 // FAB central 48px débord -22, bg noir, Ico plus or, elevation md.
 
 import { Pressable, Text, View } from "react-native";
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Ico, type IconName } from "./Ico";
 import { useTheme } from "../../theme/ThemeProvider";
+import fr from "../../i18n/fr.json";
 
 type TabId = "home" | "map" | "fab" | "tribu" | "profile";
 type ActiveId = Exclude<TabId, "fab">;
@@ -28,11 +29,11 @@ interface TabSpecWithFallback extends TabSpec {
 }
 
 const TABS: readonly TabSpecWithFallback[] = [
-  { id: "home", labelKey: "feed", icon: "home", fallback: "Feed" },
-  { id: "map", labelKey: "map", icon: "map", fallback: "Carte" },
-  { id: "fab", labelKey: "fab", icon: "plus", fallback: "Spawter" },
-  { id: "tribu", labelKey: "meute", icon: "compass", fallback: "Meute" },
-  { id: "profile", labelKey: "palais", icon: "user", fallback: "Palais" },
+  { id: "home", labelKey: "feed", icon: "home", fallback: fr.nav.feed },
+  { id: "map", labelKey: "map", icon: "map", fallback: fr.nav.map },
+  { id: "fab", labelKey: "fab", icon: "plus", fallback: fr.nav.fab },
+  { id: "tribu", labelKey: "meute", icon: "compass", fallback: fr.nav.meute },
+  { id: "profile", labelKey: "palais", icon: "user", fallback: fr.nav.palais },
 ];
 
 export function TabBar({ active, onTabPress }: Props) {
@@ -43,8 +44,9 @@ export function TabBar({ active, onTabPress }: Props) {
   return (
     <View
       style={{
-        height: 78 + insets.bottom,
-        paddingBottom: insets.bottom,
+        minHeight: 78 + insets.bottom,
+        paddingTop: 12,
+        paddingBottom: Math.max(12, insets.bottom),
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.colors.surface.base,
@@ -65,7 +67,7 @@ export function TabBar({ active, onTabPress }: Props) {
               accessibilityRole="button"
               accessibilityLabel={label}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+              style={{ flex: 0.8, minHeight: 48, alignItems: "center", justifyContent: "center" }}
             >
               <View
                 style={{
@@ -94,7 +96,7 @@ export function TabBar({ active, onTabPress }: Props) {
             accessibilityLabel={label}
             hitSlop={{ top: 8, bottom: 8 }}
             style={{
-              flex: 1,
+              flex: tab.id === "home" ? 1.2 : 1,
               alignItems: "center",
               justifyContent: "center",
               gap: 2,
@@ -111,6 +113,9 @@ export function TabBar({ active, onTabPress }: Props) {
               style={{
                 ...theme.typography.preset.overline,
                 color: isActive ? theme.colors.text.primary : theme.colors.text.tertiary,
+                width: "100%",
+                letterSpacing: 0,
+                textAlign: "center",
               }}
             >
               {label}

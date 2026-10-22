@@ -1,0 +1,43 @@
+name: Héritage Meute (PostgreSQL)
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/0069_*'
+      - 'supabase/tests/meute_heritage*'
+      - 'supabase/tests/fixtures/meute_claim_schema.sql'
+      - '.github/workflows/meute-heritage-checks.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contrat, droits et retour arrière sur une base jetable
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -q -v ON_ERROR_STOP=1 -f supabase/tests/fixtures/meute_claim_schema.sql
+          for pass in 1 2; do
+            psql -X -q -v ON_ERROR_STOP=1 -f supabase/migrations/0069_meute_axes_before_profile.sql
+            psql -X -q -v ON_ERROR_STOP=1 -f supabase/tests/meute_heritage_verified_axes.sql
+            psql -X -q -v ON_ERROR_STOP=1 -f supabase/tests/meute_heritage_verified_phone.sql
+            psql -X -q -v ON_ERROR_STOP=1 -f supabase/tests/meute_heritage_claim.sql
+          done
+          psql -X -q -v ON_ERROR_STOP=1 -f supabase/migrations/0069_meute_axes_before_profile.down.sql
+          psql -X -q -v ON_ERROR_STOP=1 -f supabase/migrations/0069_meute_axes_before_profile.sql
+          psql -X -q -v ON_ERROR_STOP=1 -f supabase/tests/meute_heritage_verified_axes.sql

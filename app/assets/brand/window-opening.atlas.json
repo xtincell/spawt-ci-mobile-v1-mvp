@@ -1,0 +1,18 @@
+{
+  "sourceSha256": "ae4bc3d7a519e94438816b72c70da070ac75711501fb45a2eb80a5a07383b45f",
+  "frames": 69,
+  "fps": 60,
+  "columns": 10,
+  "rows": 7,
+  "frameWidth": 350,
+  "frameHeight": 560,
+  "pixelRatio": 1.75,
+  "crop": {
+    "x": 240,
+    "y": 578,
+    "width": 600,
+    "height": 960
+  },
+  "poseDurationMs": 1140,
+  "exitDurationMs": 260
+}

@@ -1,3 +1,4 @@
+import { useContentRevision } from "../lib/content-sync";
 // Événements & promotions (0049) — rangée feed « Ça bouge cette semaine ».
 // Flag `evenements-promos` : OFF → null, AUCUN fetch (non-régression). ON →
 // petite rangée horizontale des événements qui démarrent dans les 7 jours
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function EventsWeekRow({ onPlacePress, fetcher }: Props) {
+  const contentRevision = useContentRevision();
   const theme = useTheme();
   const { t } = useTranslation();
   // Hook appelé inconditionnellement (rules of hooks) — gate au rendu.
@@ -49,7 +51,7 @@ export function EventsWeekRow({ onPlacePress, fetcher }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, fetcher]);
+  }, [enabled, fetcher, contentRevision]);
 
   if (!enabled || events.length === 0) return null;
 

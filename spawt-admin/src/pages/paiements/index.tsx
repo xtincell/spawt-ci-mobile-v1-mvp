@@ -10,7 +10,8 @@
 // d'alerte sur les demandes à risque (sous-paiement, versement sans référence)
 // et la confirmation explicite quand il y en a une.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useTable, useInvalidate, useGetIdentity } from "@refinedev/core";
 import { supabaseClient } from "../../utility/supabaseClient";
 import { ReasonModal } from "../../components/ReasonModal";
@@ -19,11 +20,12 @@ import {
   PLAN_LABELS,
   STATUS_LABELS,
   alertesAvantValidation,
-  expectedTtc,
   formatXof,
+  indexerTarifs,
   libelleVerdict,
   verdictMontant,
   type PaymentRequestRow,
+  type TarifsParPlan,
 } from "./logic";
 
 const SELECT_WITH_JOINS = "*, spawters(display_name, phone_e164)";
@@ -46,20 +48,50 @@ export const PaiementsList = () => {
   // qui ne peut qu'échouer.
   const isAdmin = identity?.role === "admin";
 
-  const { tableQuery } = useTable<PaymentRequestRow>({
+  // Le tarif attendu vient de `plans` (0079), la seule source des prix — le
+  // même que celui que la validation facturera. Tant qu'il n'est pas lu, on
+  // ne valide pas : l'écart déclaré/attendu est LE contrôle de cet écran.
+  const [tarifs, setTarifs] = useState<TarifsParPlan | null>(null);
+  const [tarifsError, setTarifsError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .from("plans")
+          .select("code, price_ttc, is_active");
+        if (cancelled) return;
+        if (error) {
+          setTarifsError(error.message);
+          return;
+        }
+        setTarifs(
+          indexerTarifs((data ?? []) as { code: string; price_ttc: number; is_active: boolean }[]),
+        );
+      } catch (err) {
+        if (!cancelled) setTarifsError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<PaymentRequestRow>({
     resource: "payment_requests",
     pagination: { pageSize: 50 },
     sorters: { initial: [{ field: "created_at", order: "desc" }] },
     filters: {
-      permanent:
-        tab === "pending"
-          ? [{ field: "status", operator: "eq", value: "pending" }]
-          : [{ field: "status", operator: "ne", value: "pending" }],
+      // Garder le même opérateur : Refine fusionne les filtres par
+      // champ + opérateur et conserverait sinon le `eq pending` initial.
+      permanent: [{ field: "status", operator: "in", value:
+        tab === "pending" ? ["pending"] : ["approved", "rejected", "cancelled"]
+      }],
     },
     meta: { select: SELECT_WITH_JOINS },
   });
 
-  const rows = (tableQuery.data?.data ?? []) as PaymentRequestRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as PaymentRequestRow[];
 
   function showToast(t: Toast) {
     setToast(t);
@@ -99,7 +131,8 @@ export const PaiementsList = () => {
   }
 
   function onValiderClick(row: PaymentRequestRow) {
-    const alertes = alertesAvantValidation(row);
+    if (!tarifs) return;
+    const alertes = alertesAvantValidation(row, tarifs[row.plan]);
     if (alertes.length > 0) setConfirming(row);
     else void valider(row);
   }
@@ -129,10 +162,17 @@ export const PaiementsList = () => {
       <h1>Paiements déclarés</h1>
       <p style={{ color: "var(--ink-mute)", maxWidth: "62ch" }}>
         Versements Wave / Orange Money / MoMo / espèces déclarés par les payeurs.
-        Vérifie le montant et la référence sur le relevé de l'opérateur avant de
-        valider : la validation ouvre l'abonnement et émet la facture
+        Vérifie le montant et la référence sur le relevé de l&apos;opérateur avant de
+        valider : la validation ouvre l&apos;abonnement et émet la facture
         immédiatement.
       </p>
+
+      {tarifsError ? (
+        <p role="alert" style={{ color: "var(--danger)" }}>
+          Tarifs illisibles ({tarifsError}) : impossible de comparer les montants
+          déclarés, la validation est suspendue.
+        </p>
+      ) : null}
 
       {toast ? (
         <p
@@ -149,27 +189,22 @@ export const PaiementsList = () => {
       ) : null}
 
       <div style={{ display: "flex", gap: 8, margin: "16px 0" }}>
-        <button type="button" disabled={tab === "pending"} onClick={() => setTab("pending")}>
+        <button type="button" disabled={tab === "pending"} onClick={() => { setTab("pending"); setCurrentPage(1); }}>
           En attente
         </button>
-        <button type="button" disabled={tab === "traitees"} onClick={() => setTab("traitees")}>
+        <button type="button" disabled={tab === "traitees"} onClick={() => { setTab("traitees"); setCurrentPage(1); }}>
           Traitées
         </button>
       </div>
 
-      {tableQuery.isLoading ? <p>Chargement…</p> : null}
-      {!tableQuery.isLoading && rows.length === 0 ? (
-        <p>
-          {tab === "pending"
-            ? "Aucune demande en attente."
-            : "Aucune demande traitée pour l'instant."}
-        </p>
-      ) : null}
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
 
       <div style={{ display: "grid", gap: 12 }}>
         {rows.map((row) => {
-          const alertes = alertesAvantValidation(row);
-          const verdict = verdictMontant(row);
+          const tarif = tarifs?.[row.plan];
+          const alertes = tarifs ? alertesAvantValidation(row, tarif) : [];
+          const verdict = verdictMontant(row, tarif);
           return (
             <article
               key={row.id}
@@ -196,11 +231,11 @@ export const PaiementsList = () => {
                     color: verdict === "trop_peu" ? "var(--danger)" : "var(--ink-mute)",
                   }}
                 >
-                  ({libelleVerdict(row)})
+                  ({tarifs ? libelleVerdict(row, tarif) : "tarif en cours de lecture"})
                 </span>
               </p>
               <p style={{ margin: "4px 0", color: "var(--ink-mute)" }}>
-                Tarif : {formatXof(expectedTtc(row.plan))} TTC · Référence :{" "}
+                Tarif : {tarif ? `${formatXof(tarif.price_ttc)} TTC` : "—"} · Référence :{" "}
                 {row.reference?.trim() || "—"} · Émetteur : {row.payer_phone ?? "—"}
               </p>
               {row.note ? <p style={{ fontStyle: "italic" }}>« {row.note} »</p> : null}
@@ -223,7 +258,7 @@ export const PaiementsList = () => {
                 <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                   <button
                     type="button"
-                    disabled={!isAdmin || busyId === row.id}
+                    disabled={!isAdmin || busyId === row.id || !tarifs}
                     onClick={() => onValiderClick(row)}
                   >
                     Valider le paiement

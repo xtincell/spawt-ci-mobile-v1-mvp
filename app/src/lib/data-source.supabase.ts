@@ -7,13 +7,17 @@
 
 import { supabase } from "./supabase";
 import { getActiveCity } from "./city";
-import type { Spawter } from "../types/spawter";
+import type { Spawter, MeuteHeritage } from "../types/spawter";
+import { parseMeuteHeritage } from "./meute-heritage";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
 import type { FeatureFlag } from "../types/feature-flag";
 import type { PlaceReview, PlaceWithAdn, ProgressionRow } from "./data-source";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import { PlaceWithAdnSchema } from "../types/place.schema";
+import { DataReadError, withReadTimeout } from "./data-read-error";
+import { resolveReviewPhotoUrls } from "./storage-photos";
+import { readReviewRatings, globalReviewRating } from "./review-ratings";
 
 /**
  * Liste les lieux publiés via le SDK Supabase + Zod parse fail-safe.
@@ -26,40 +30,47 @@ import { PlaceWithAdnSchema } from "../types/place.schema";
  * Si une row échoue le parse → dropée + warn __DEV__, la liste continue.
  */
 export async function listPlacesFromSupabase(): Promise<PlaceWithAdn[]> {
-  // Multi-villes (0041) — seuls les lieux de la ville active remontent.
-  let { data: rows, error } = await supabase
-    .from("places")
-    .select("*, place_adn(*)")
-    .eq("is_published", true)
-    .eq("city_code", getActiveCity().code);
-
-  // Défense : DB live pas encore migrée 0041 (colonne absente → 42703) —
-  // retry sans le filtre ville plutôt qu'un feed vide.
-  if (error && error.code === "42703") {
-    ({ data: rows, error } = await supabase
+  return withReadTimeout("places", async (signal) => {
+    // Multi-villes (0041) — seuls les lieux de la ville active remontent.
+    let { data: rows, error } = await supabase
       .from("places")
       .select("*, place_adn(*)")
-      .eq("is_published", true));
-  }
+      .eq("is_published", true)
+      .eq("city_code", getActiveCity().code)
+      .abortSignal(signal);
 
-  if (error) {
-    if (__DEV__) console.warn("[data-source] listPlaces failed", error);
-    return [];
-  }
+    // Défense : DB live pas encore migrée 0041 (colonne absente → 42703) —
+    // retry sans le filtre ville plutôt qu'un feed vide.
+    if (error && error.code === "42703") {
+      ({ data: rows, error } = await supabase
+        .from("places")
+        .select("*, place_adn(*)")
+        .eq("is_published", true)
+        .abortSignal(signal));
+    }
 
-  return parseRows(rows ?? []);
+    if (error) {
+      throw new DataReadError("places");
+    }
+    const places = parseRows(rows ?? []);
+    if (rows?.length && places.length === 0) throw new DataReadError("places", "invalid_data");
+    return places;
+  });
 }
 
 export async function getPlaceFromSupabase(id: string): Promise<PlaceWithAdn | null> {
-  const { data, error } = await supabase
+  const { data, error } = await withReadTimeout("place", (signal) => supabase
     .from("places")
     .select("*, place_adn(*)")
     .eq("id", id)
-    .single();
+    .abortSignal(signal)
+    .maybeSingle());
 
-  if (error || !data) return null;
+  if (error) throw new DataReadError("place");
+  if (!data) return null;
   const parsed = parseRows([data]);
-  return parsed[0] ?? null;
+  if (!parsed[0]) throw new DataReadError("place", "invalid_data");
+  return parsed[0];
 }
 
 /**
@@ -94,6 +105,7 @@ export function parseRowsForTest(rows: readonly unknown[]): PlaceWithAdn[] {
 function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
   const out: PlaceWithAdn[] = [];
   for (const row of rows) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
     const r = row as Record<string, unknown>;
     // La relation `place_adn(*)` peut remonter en objet (FK unique) ou en
     // array selon la version du SDK / le schéma — on normalise les deux, et
@@ -140,6 +152,7 @@ function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
       whatsapp: r.whatsapp ?? null,
       cover_photo_url: r.cover_photo_url ?? null,
       gallery_urls: r.gallery_urls ?? [],
+      editorial_profile: r.editorial_profile,
       // Refonte fiche lieu (R17/R19, migration 0030). `?? []` : une DB live
       // pas encore migrée renvoie undefined — le lieu doit parser quand même.
       menu_urls: r.menu_urls ?? [],
@@ -169,14 +182,15 @@ function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
 // idempotente côté server). Vise à éviter le bruit dans une même session.
 const seenFlaggedRowIds = new Set<string>();
 
-export async function listSpawtsFromSupabase(spawter_id: string): Promise<SpawtCheckin[]> {
-  const { data, error } = await supabase
+export async function listSpawtsFromSupabase(spawter_id: string, signal?: AbortSignal): Promise<SpawtCheckin[]> {
+  const query = supabase
     .from("spawt_checkin")
     .select("*")
     .eq("spawter_id", spawter_id)
     .order("created_at", { ascending: false });
-
-  if (error) return [];
+  if (signal) query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw new DataReadError("spawts");
   const rows = (data ?? []) as SpawtCheckin[];
 
   // Story 4.4 — émission `antifraud_flag_raised` pour chaque row flagged jamais vue.
@@ -210,7 +224,8 @@ export function _resetSeenFlaggedForTest(): void {
 }
 
 export async function saveSpawterToSupabase(spawter: Spawter): Promise<void> {
-  await supabase.from("spawters").upsert(spawter);
+  const { error } = await supabase.from("spawters").upsert(spawter);
+  if (error) throw error;
 }
 
 // ─── Chantier 13 archétypes — colonne `quiz_archetype` (migration 0033) ─────
@@ -292,7 +307,7 @@ export async function fetchSpawterInternalFromSupabase(
 export async function claimMeuteHeritageInSupabase(
   spawter_id: string,
   phone_e164: string,
-): Promise<{ claimed: boolean; archetype: string | null; pionnier_seq: number | null } | null> {
+): Promise<MeuteHeritage | null> {
   const { data, error } = await supabase.rpc("claim_meute_heritage", {
     p_spawter_id: spawter_id,
     p_phone: phone_e164,
@@ -301,16 +316,12 @@ export async function claimMeuteHeritageInSupabase(
     if (__DEV__ && error) console.warn("[data-source] claim_meute_heritage failed", error);
     return null;
   }
-  const row = data as { claimed?: unknown; archetype?: unknown; pionnier_seq?: unknown };
-  return {
-    claimed: row.claimed === true,
-    archetype: typeof row.archetype === "string" ? row.archetype : null,
-    pionnier_seq: typeof row.pionnier_seq === "number" ? row.pionnier_seq : null,
-  };
+  return parseMeuteHeritage(data);
 }
 
 export async function savePalaisToSupabase(palais: UserPalais): Promise<void> {
-  await supabase.from("user_palais").upsert(palais);
+  const { error } = await supabase.from("user_palais").upsert(palais);
+  if (error) throw error;
 }
 
 /**
@@ -343,15 +354,17 @@ export async function updateSpawtInSupabase(
   patch: Partial<SpawtCheckin>,
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("spawt_checkin")
       .update(patch)
-      .eq("id", row_id);
+      .eq("id", row_id)
+      .select("id")
+      .maybeSingle();
     if (error) {
       if (__DEV__) console.warn("[spawt_checkin] update failed", error);
       return false;
     }
-    return true;
+    return Boolean(data?.id);
   } catch (err) {
     if (__DEV__) console.warn("[spawt_checkin] update threw", err);
     return false;
@@ -368,10 +381,10 @@ export async function listFeatureFlagsFromSupabase(
   spawter_id: string | null,
 ): Promise<FeatureFlag[]> {
   void spawter_id; // filtre RLS-side via auth.uid().
-  const { data, error } = await supabase.from("feature_flags").select("*");
+  const { data, error } = await withReadTimeout("feature_flags", (signal) =>
+    supabase.from("feature_flags").select("*").abortSignal(signal));
   if (error) {
-    if (__DEV__) console.warn("[feature_flags] list failed", error);
-    return [];
+    throw new DataReadError("feature_flags");
   }
   return (data ?? []) as FeatureFlag[];
 }
@@ -430,15 +443,17 @@ export async function setDisplayedTitreInSupabase(
 /** Story 5.2 — List titres pour un spawter (RLS auto-filter own only). */
 export async function listTitresFromSupabase(
   spawter_id: string,
+  signal?: AbortSignal,
 ): Promise<CollectionTitreRow[]> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("collection_titres")
     .select("*")
     .eq("spawter_id", spawter_id)
     .order("unlocked_at", { ascending: true });
+  if (signal) query.abortSignal(signal);
+  const { data, error } = await query;
   if (error) {
-    if (__DEV__) console.warn("[data-source] listTitres failed", error);
-    return [];
+    throw new DataReadError("collection_titres");
   }
   return (data ?? []) as CollectionTitreRow[];
 }
@@ -447,9 +462,9 @@ export async function listTitresFromSupabase(
  * Insert un batch de signaux analytics dans la table append-only `user_signals`
  * (Story 1.7 — refactor Decisions D2+D3). Fire-and-forget — pas de await côté
  * caller métier. La column DB `spawter_id` a `DEFAULT auth.uid()` ; la RLS
- * valide aussi en `WITH CHECK`. Sans session auth (pre-OTP), l'insert échoue
- * côté RLS — le wrapper analytics persiste alors le batch dans AsyncStorage
- * et retentera au prochain `SIGNED_IN` (Story 2.3).
+ * valide aussi en `WITH CHECK`. Sans session auth (pre-OTP), aucun insert
+ * n'est tenté : le wrapper analytics persiste le batch dans AsyncStorage et
+ * retentera au prochain `SIGNED_IN` (Story 2.3).
  *
  * @returns `true` si l'insert a réussi, `false` sinon. Le wrapper analytics
  * utilise ce signal pour décider de persister ou non.
@@ -478,17 +493,20 @@ export async function listReviewsForPlaceFromSupabase(
 ): Promise<PlaceReview[]> {
   const { data, error } = await supabase
     .from("public_reviews")
-    .select("id, spawter_id, note_etoiles, texte_avis, photos, created_at, is_seed, display_name, avatar_url")
+    .select("id, spawter_id, note_etoiles, note_globale, note_cuisine, note_cadre, note_service, texte_avis, photos, created_at, is_seed, display_name, avatar_url")
     .eq("place_id", placeId)
-    .order("note_etoiles", { ascending: false })
+    .order("note_globale", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error || !data) {
     if (__DEV__ && error) console.warn("[data-source] listReviewsForPlace failed", error);
+    if (error) throw new DataReadError("reviews");
     return [];
   }
 
+  const allPhotos = data.flatMap(row => Array.isArray(row.photos) ? row.photos.filter((p: unknown): p is string => typeof p === "string") : []);
+  const resolvedPhotos = await resolveReviewPhotoUrls(allPhotos);
   const out: PlaceReview[] = [];
   for (const row of data) {
     const r = row as Record<string, unknown>;
@@ -497,9 +515,12 @@ export async function listReviewsForPlaceFromSupabase(
       continue;
     }
     const rawPhotos = Array.isArray(r.photos) ? r.photos : [];
-    const photos = rawPhotos.filter(
+    const paths = rawPhotos.filter(
       (p): p is string => typeof p === "string" && p.length > 0,
     );
+    const photos = paths.flatMap(p => resolvedPhotos.has(p) ? [resolvedPhotos.get(p)!] : []);
+    const ratings = readReviewRatings(r);
+    const global = Number(r.note_globale ?? (ratings ? globalReviewRating(ratings) : r.note_etoiles));
     out.push({
       id: String(r.id),
       spawter_id: String(r.spawter_id),
@@ -507,6 +528,7 @@ export async function listReviewsForPlaceFromSupabase(
       spawter_avatar_url:
         typeof r.avatar_url === "string" && r.avatar_url.length > 0 ? r.avatar_url : null,
       note_etoiles: Number(r.note_etoiles ?? 0),
+      ...(ratings ? { ...ratings, note_globale: global } : {}),
       texte_avis: typeof r.texte_avis === "string" ? r.texte_avis : null,
       photos,
       created_at: String(r.created_at ?? ""),
@@ -534,7 +556,7 @@ export async function countReviewsForPlaceFromSupabase(
 
   if (error) {
     if (__DEV__) console.warn("[data-source] countReviewsForPlace failed", error);
-    return 0;
+    throw new DataReadError("reviews");
   }
   return count ?? 0;
 }
@@ -570,17 +592,18 @@ export async function listPlacePhotosFromSpawtsFromSupabase(
   }
 
   const out: string[] = [];
-  for (const row of data) {
+  photosLoop: for (const row of data) {
     const raw = (row as { photos?: unknown }).photos;
     if (!Array.isArray(raw)) continue;
     for (const p of raw) {
       if (typeof p === "string" && p.length > 0) {
         out.push(p);
-        if (out.length >= limit) return out;
+        if (out.length >= limit) break photosLoop;
       }
     }
   }
-  return out;
+  const urls = await resolveReviewPhotoUrls(out);
+  return out.flatMap(p => urls.has(p) ? [urls.get(p)!] : []);
 }
 
 export async function insertUserSignals(
@@ -592,7 +615,16 @@ export async function insertUserSignals(
   }[],
 ): Promise<boolean> {
   if (payloads.length === 0) return true;
-  const { error } = await supabase.from("user_signals").insert(payloads as object[]);
+  // Un refus RLS n'est pas un mécanisme de détection de connexion. Garder le
+  // batch local tant que la session est absente/illisible, sans requête REST.
+  const { data, error: sessionError } = await supabase.auth.getSession();
+  const owner = data.session?.user.id;
+  if (sessionError || !owner) return false;
+  // Fixer le compte lu : si le SDK change de session avant l'envoi, la RLS
+  // refuse cette ligne plutôt que de l'attribuer implicitement au nouveau compte.
+  const { error } = await supabase.from("user_signals").insert(
+    payloads.map((payload) => ({ ...payload, spawter_id: owner })),
+  );
   if (error) {
     if (__DEV__) console.warn("[user_signals] batch insert failed", error);
     return false;
@@ -623,7 +655,7 @@ export async function insertSavedPlaceToSupabase(
   const { error } = await supabase
     .from("saved_places")
     .upsert({ spawter_id, place_id }, { onConflict: "spawter_id,place_id" });
-  if (error && __DEV__) console.warn("[data-source] insertSavedPlace failed", error);
+  if (error) throw error;
 }
 
 export async function deleteSavedPlaceFromSupabase(
@@ -635,7 +667,7 @@ export async function deleteSavedPlaceFromSupabase(
     .delete()
     .eq("spawter_id", spawter_id)
     .eq("place_id", place_id);
-  if (error && __DEV__) console.warn("[data-source] deleteSavedPlace failed", error);
+  if (error) throw error;
 }
 
 // ─── Câblage MVP — signalement d'avis (migration 0026) ──────────────────────
@@ -687,6 +719,45 @@ export async function countCoupsDeCoeurFromSupabase(
   return typeof data === "number" ? data : 0;
 }
 
+// ─── Migration 0068 — le Coup de Cœur se retire, et l'app peut lire son état ──
+
+export async function removeCoupDeCoeurFromSupabase(
+  place_id: string,
+): Promise<import("./data-source").CoupDeCoeurResult | null> {
+  const { data, error } = await supabase.rpc("remove_coup_de_coeur", {
+    p_place_id: place_id,
+  });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] removeCoupDeCoeur failed", error);
+    return null;
+  }
+  return data as import("./data-source").CoupDeCoeurResult;
+}
+
+export async function coupDeCoeurStateFromSupabase(
+  place_id: string,
+): Promise<import("./data-source").CoupDeCoeurState | null> {
+  const { data, error } = await supabase.rpc("my_coup_de_coeur_state", {
+    p_place_id: place_id,
+  });
+  if (error) {
+    if (__DEV__) console.warn("[data-source] coupDeCoeurState failed", error);
+    return null;
+  }
+  return data as import("./data-source").CoupDeCoeurState;
+}
+
+export async function listMyCoupsDeCoeurFromSupabase(): Promise<
+  import("./data-source").MonCoupDeCoeur[] | null
+> {
+  const { data, error } = await supabase.rpc("my_coups_de_coeur");
+  if (error) {
+    if (__DEV__) console.warn("[data-source] listMyCoupsDeCoeur failed", error);
+    return null;
+  }
+  return (data ?? []) as import("./data-source").MonCoupDeCoeur[];
+}
+
 // ─── Phase 2 — suppression de compte (migration 0029) ───────────────────────
 
 // ─── Feature 13 — push serveur : tokens Expo (migration 0034) ────────────────
@@ -707,12 +778,12 @@ export async function upsertPushTokenToSupabase(
 ): Promise<void> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user?.id;
-  if (!uid) return; // pas de session — la RPC refuserait l'écriture (42501)
+  if (!uid) throw new Error("session_required");
   const { error } = await supabase.rpc("claim_push_token", {
     p_token: token,
     p_platform: platform,
   });
-  if (error && __DEV__) console.warn("[data-source] claim_push_token failed", error);
+  if (error) throw error;
 }
 
 /** DELETE par token — RLS owner-only (à faire AVANT auth.signOut). */
@@ -735,74 +806,8 @@ export async function requestAccountDeletionFromSupabase(): Promise<boolean> {
 export async function listMeuteActivityFromSupabase(
   limit: number,
 ): Promise<import("./data-source").MeuteActivityItem[]> {
-  const half = Math.ceil(limit / 2);
-
-  const [reviews, coups] = await Promise.all([
-    // Vue `public_reviews` : le fil de la Meute montre l'activité des AUTRES.
-    // L'auteur y est déjà joint, plus besoin d'embarquer `spawters_public`.
-    supabase
-      .from("public_reviews")
-      .select(
-        "id, created_at, note_etoiles, texte_avis, place_id, display_name, avatar_url, places!inner(name, neighborhood)",
-      )
-      .eq("is_seed", false)
-      .order("created_at", { ascending: false })
-      .limit(half),
-    supabase
-      .from("coups_de_coeur")
-      .select(
-        "id, created_at, place_id, places!inner(name, neighborhood), spawters_public:spawters!inner(display_name, avatar_url)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(half),
-  ]);
-
-  const items: import("./data-source").MeuteActivityItem[] = [];
-
-  if (reviews.error) {
-    if (__DEV__) console.warn("[data-source] meute reviews failed", reviews.error);
-  } else {
-    for (const r of (reviews.data ?? []) as unknown as Array<Record<string, unknown>>) {
-      const place = r.places as { name?: string; neighborhood?: string } | null;
-      // `public_reviews` porte l'auteur à plat (la jointure est faite dans la
-      // vue) : plus de relation embarquée à aplatir ici.
-      items.push({
-        kind: "review",
-        id: String(r.id),
-        created_at: String(r.created_at),
-        spawter_display_name: (r.display_name as string | undefined) ?? "Spawter",
-        spawter_avatar_url: (r.avatar_url as string | null | undefined) ?? null,
-        place_id: String(r.place_id),
-        place_name: place?.name ?? "?",
-        place_neighborhood: place?.neighborhood ?? "",
-        note_etoiles: Number(r.note_etoiles),
-        texte_avis: (r.texte_avis as string | null) ?? null,
-      });
-    }
-  }
-
-  if (coups.error) {
-    if (__DEV__) console.warn("[data-source] meute coups failed", coups.error);
-  } else {
-    for (const c of (coups.data ?? []) as unknown as Array<Record<string, unknown>>) {
-      const place = c.places as { name?: string; neighborhood?: string } | null;
-      const sp = c.spawters_public as { display_name?: string; avatar_url?: string | null } | null;
-      items.push({
-        kind: "coup",
-        id: String(c.id),
-        created_at: String(c.created_at),
-        spawter_display_name: sp?.display_name ?? "Spawter",
-        spawter_avatar_url: sp?.avatar_url ?? null,
-        place_id: String(c.place_id),
-        place_name: place?.name ?? "?",
-        place_neighborhood: place?.neighborhood ?? "",
-      });
-    }
-  }
-
-  return items
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-    .slice(0, limit);
+  const { listCommunityPageFromSupabase } = await import("./community.supabase");
+  return (await listCommunityPageFromSupabase({ limit })).items;
 }
 
 // ━━━ Mode Crew (migration 0038) — RPC + INSERT sous RLS ━━━━━━━━━━━━━━━━━━━━
@@ -1097,17 +1102,18 @@ export async function fetchGoldEntitlementFromSupabase(): Promise<
  * est une défense en profondeur (staff actif voit AUSSI les brouillons via sa
  * policy dédiée, on ne veut jamais les rendre dans l'app).
  */
-export async function listExploreCollectionsFromSupabase(): Promise<
+export async function listExploreCollectionsFromSupabase(options?: { throwOnError?: boolean }): Promise<
   import("./data-source").ExploreCollectionSummary[]
 > {
   const { data, error } = await supabase
     .from("explore_collections")
-    .select("id, slug, title_key, subtitle_key, cover_url, sort_order, city_code")
+    .select("*")
     .eq("is_published", true)
     .order("sort_order", { ascending: true });
 
   if (error || !data) {
     if (__DEV__ && error) console.warn("[data-source] listExploreCollections failed", error);
+    if (options?.throwOnError) throw error ?? new Error("Collections unavailable");
     return [];
   }
 
@@ -1121,6 +1127,7 @@ export async function listExploreCollectionsFromSupabase(): Promise<
     out.push({
       id: String(r.id),
       slug: r.slug,
+      audience: r.audience === "duo" ? "duo" : "general",
       title_key: r.title_key,
       subtitle_key: typeof r.subtitle_key === "string" ? r.subtitle_key : null,
       cover_url: typeof r.cover_url === "string" && r.cover_url.length > 0 ? r.cover_url : null,
@@ -1140,6 +1147,7 @@ export async function listExploreCollectionsFromSupabase(): Promise<
  */
 export async function getExploreCollectionFromSupabase(
   slug: string,
+  options?: { throwOnError?: boolean },
 ): Promise<import("./data-source").ExploreCollectionDetail | null> {
   const { data, error } = await supabase
     .from("explore_collections")
@@ -1153,6 +1161,7 @@ export async function getExploreCollectionFromSupabase(
 
   if (error || !data) {
     if (__DEV__ && error) console.warn("[data-source] getExploreCollection failed", error);
+    if (error && options?.throwOnError) throw error;
     return null;
   }
 
@@ -1821,4 +1830,15 @@ export async function listPlaceActivityFromSupabase(
   }
 
   return map;
+}
+
+export async function listEditorialReviewsFromSupabase(placeId: string): Promise<import("./data-source").EditorialReview[]> {
+  const { data, error } = await withReadTimeout("place", signal => supabase
+    .from("public_editorial_reviews").select("id,display_name,body,visited_on")
+    .eq("place_id", placeId).order("visited_on", { ascending: false }).limit(50).abortSignal(signal));
+  // Additive deployment: a client can precede migration 0075.
+  if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+  if (error) throw new DataReadError("place");
+  return (data ?? []).filter(r => typeof r.id === "string" && typeof r.body === "string" && typeof r.visited_on === "string")
+    .map(r => ({ id: r.id, body: r.body, visited_on: r.visited_on, display_name: r.display_name ?? "" }));
 }

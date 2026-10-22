@@ -20,7 +20,6 @@
 // (`MOCK_TERMII`, correctif sécurité C1) : le mode dégradé n'existe que sur
 // OPT-IN EXPLICITE. Sans backend et sans opt-in, on échoue visiblement.
 
-import Constants from "expo-constants";
 
 import type { Place, PlaceAdn } from "../types/place";
 import type { Spawter } from "../types/spawter";
@@ -30,19 +29,17 @@ import type { FeatureFlag } from "../types/feature-flag";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import type { Stade } from "../types/stade";
 
+import { backendAnonKey, backendUrl } from "./backend-identity";
+
 import { SEED_PLACES, type SeedPlace } from "../data/seed/places";
 // Mode Explore — fixtures statiques (même doctrine que SEED_PLACES : le mode
 // démo embarque ses données ; l'import dynamique ne passe pas sous Jest).
 import { SEED_EXPLORE_COLLECTIONS } from "../data/seed/explore";
 
-const SUPABASE_URL =
-  Constants.expoConfig?.extra?.supabaseUrl ??
-  process.env.EXPO_PUBLIC_SUPABASE_URL ??
-  "";
-const SUPABASE_KEY =
-  Constants.expoConfig?.extra?.supabaseAnonKey ??
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-  "";
+// Résolution partagée — voir `backend-identity.ts`. Elle vivait ici en copie,
+// à l'identique de trois autres fichiers.
+const SUPABASE_URL = backendUrl.valeur;
+const SUPABASE_KEY = backendAnonKey.valeur;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
@@ -93,10 +90,10 @@ export async function getPlace(id: string): Promise<PlaceWithAdn | null> {
   return seed ? seedToPlaceWithAdn(seed) : null;
 }
 
-export async function listSpawtsForSpawter(spawter_id: string): Promise<SpawtCheckin[]> {
+export async function listSpawtsForSpawter(spawter_id: string, signal?: AbortSignal): Promise<SpawtCheckin[]> {
   if (isSupabaseConfigured) {
     const { listSpawtsFromSupabase } = await import("./data-source.supabase");
-    return listSpawtsFromSupabase(spawter_id);
+    return listSpawtsFromSupabase(spawter_id, signal);
   }
   return [];
 }
@@ -192,7 +189,7 @@ export async function fetchSpawterInternal(spawter_id: string): Promise<boolean 
 export async function claimMeuteHeritage(
   spawter_id: string,
   phone_e164: string,
-): Promise<{ claimed: boolean; archetype: string | null; pionnier_seq: number | null } | null> {
+): Promise<import("../types/spawter").MeuteHeritage | null> {
   if (!isSupabaseConfigured) return null;
   const { claimMeuteHeritageInSupabase } = await import("./data-source.supabase");
   return claimMeuteHeritageInSupabase(spawter_id, phone_e164);
@@ -238,10 +235,11 @@ export async function setDisplayedTitre(
 
 export async function listTitresForSpawter(
   spawter_id: string,
+  signal?: AbortSignal,
 ): Promise<CollectionTitreRow[]> {
   if (!isSupabaseConfigured) return [];
   const { listTitresFromSupabase } = await import("./data-source.supabase");
-  return listTitresFromSupabase(spawter_id);
+  return listTitresFromSupabase(spawter_id, signal);
 }
 
 // Flags PRODUIT actifs par défaut en mode démo (fallback sans Supabase, ex.
@@ -310,6 +308,10 @@ export interface PlaceReview {
   spawter_avatar_url: string | null;
   /** 1-5, demi-points possibles côté DB mais arrondi par Stars. */
   note_etoiles: number;
+  note_cuisine?: number | null;
+  note_cadre?: number | null;
+  note_service?: number | null;
+  note_globale?: number;
   texte_avis: string | null;
   /** URLs publiques des photos (0..3). Story 4.5 = bucket place-photos, seeds = Unsplash CDN. */
   photos: readonly string[];
@@ -461,6 +463,66 @@ export async function countCoupsDeCoeurThisMonth(
   return countCoupsDeCoeurFromSupabase(place_id);
 }
 
+/**
+ * Migration 0068 — retrait du Coup de Cœur du mois COURANT, avec restitution
+ * de l'unité de quota.
+ *
+ * `code: "not_given"` n'est PAS une erreur : il dit « il n'y avait rien à
+ * retirer ». L'écran doit s'aligner sur cet état plutôt qu'afficher un échec —
+ * c'est le cas d'un bouton resté sur une vue périmée.
+ */
+export async function removeCoupDeCoeur(
+  place_id: string,
+): Promise<CoupDeCoeurResult | null> {
+  if (!isSupabaseConfigured) return null;
+  const { removeCoupDeCoeurFromSupabase } = await import("./data-source.supabase");
+  return removeCoupDeCoeurFromSupabase(place_id);
+}
+
+/**
+ * Mon état sur un lieu — migration 0068.
+ *
+ * Ce que ça répare : le bouton ne gardait son « déjà donné » que dans un
+ * `useState`, perdu au démontage. Après un simple retour en arrière il
+ * reproposait de donner, et le serveur répondait `already_given`. Le produit
+ * savait, l'écran non.
+ */
+export interface CoupDeCoeurState {
+  /** L'appelant a-t-il donné SON Coup de Cœur à ce lieu, ce mois-ci. */
+  given: boolean;
+  /** Compteur public du lieu pour le mois courant. */
+  place_count: number;
+  quota: number;
+  used: number;
+  remaining: number;
+}
+
+export async function getCoupDeCoeurState(
+  place_id: string,
+): Promise<CoupDeCoeurState | null> {
+  if (!isSupabaseConfigured) return null;
+  const { coupDeCoeurStateFromSupabase } = await import("./data-source.supabase");
+  return coupDeCoeurStateFromSupabase(place_id);
+}
+
+/** Une ligne de « mes Coups de Cœur » (profil) — migration 0068. */
+export interface MonCoupDeCoeur {
+  place_id: string;
+  place_name: string;
+  neighborhood: string | null;
+  cover_photo_url: string | null;
+  month_key: string;
+  created_at: string;
+  /** Seuls ceux du mois courant sont retirables (le quota est mensuel). */
+  is_current_month: boolean;
+}
+
+export async function listMyCoupsDeCoeur(): Promise<MonCoupDeCoeur[] | null> {
+  if (!isSupabaseConfigured) return null;
+  const { listMyCoupsDeCoeurFromSupabase } = await import("./data-source.supabase");
+  return listMyCoupsDeCoeurFromSupabase();
+}
+
 // ─── Feature 13 — push serveur : tokens Expo par device (migration 0034) ────
 
 /**
@@ -501,6 +563,13 @@ export interface MeuteActivityItem {
   place_id: string;
   place_name: string;
   place_neighborhood: string;
+  spawter_id?: string;
+  place_cover_photo_url?: string | null;
+  photos?: readonly string[];
+  note_globale?: number;
+  note_cuisine?: number | null;
+  note_cadre?: number | null;
+  note_service?: number | null;
   /** Renseigné pour kind="review". */
   note_etoiles?: number;
   texte_avis?: string | null;
@@ -510,6 +579,13 @@ export async function listMeuteActivity(limit = 30): Promise<MeuteActivityItem[]
   if (!isSupabaseConfigured) return [];
   const { listMeuteActivityFromSupabase } = await import("./data-source.supabase");
   return listMeuteActivityFromSupabase(limit);
+}
+
+/** Public community only. No synthetic activity is inserted in live mode. */
+export async function listCommunityPage(query: import("./community").CommunityQuery = {}): Promise<import("./community").CommunityPage> {
+  if (!isSupabaseConfigured) return { items: [], next: null };
+  const { listCommunityPageFromSupabase } = await import("./community.supabase");
+  return listCommunityPageFromSupabase(query);
 }
 
 // ─── Mode Crew (migration 0038) — vote de groupe temps réel ─────────────────
@@ -675,6 +751,7 @@ function seedToPlaceWithAdn(seed: SeedPlace): PlaceWithAdn {
 // profondeur, même doctrine que PlaceCard).
 
 export interface ExploreCollectionSummary {
+  audience?: "general" | "duo";
   id: string;
   slug: string;
   /** Clé i18n (`explore.<slug>.title`) — résolue côté écran via t(). */
@@ -699,10 +776,10 @@ export interface ExploreCollectionDetail extends ExploreCollectionSummary {
 }
 
 /** Liste les collections publiées, ordonnées par sort_order. */
-export async function listExploreCollections(): Promise<ExploreCollectionSummary[]> {
+export async function listExploreCollections(options?: { throwOnError?: boolean }): Promise<ExploreCollectionSummary[]> {
   if (isSupabaseConfigured) {
     const { listExploreCollectionsFromSupabase } = await import("./data-source.supabase");
-    return listExploreCollectionsFromSupabase();
+    return listExploreCollectionsFromSupabase(options);
   }
   return SEED_EXPLORE_COLLECTIONS.filter((c) => c.is_published)
     .slice()
@@ -717,10 +794,11 @@ export async function listExploreCollections(): Promise<ExploreCollectionSummary
  */
 export async function getExploreCollection(
   slug: string,
+  options?: { throwOnError?: boolean },
 ): Promise<ExploreCollectionDetail | null> {
   if (isSupabaseConfigured) {
     const { getExploreCollectionFromSupabase } = await import("./data-source.supabase");
-    return getExploreCollectionFromSupabase(slug);
+    return getExploreCollectionFromSupabase(slug, options);
   }
   const seed = SEED_EXPLORE_COLLECTIONS.find(
     (c) => c.slug === slug && c.is_published,
@@ -1084,4 +1162,13 @@ export async function listPlaceActivity(
     }
   }
   return map;
+}
+
+export interface EditorialReview {
+  id: string; display_name: string; body: string; visited_on: string;
+}
+export async function listEditorialReviews(placeId: string): Promise<EditorialReview[]> {
+  if (!isSupabaseConfigured) return [];
+  const { listEditorialReviewsFromSupabase } = await import("./data-source.supabase");
+  return listEditorialReviewsFromSupabase(placeId);
 }

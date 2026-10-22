@@ -156,10 +156,10 @@ describe("registerPushToken", () => {
     warnSpy.mockRestore();
   });
 
-  it("échec de l'upsert Supabase → le token est quand même retourné (retry au prochain boot)", async () => {
+  it("échec de l'upsert Supabase → ne prétend pas que le token est enregistré", async () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
     mockUpsertPushToken.mockRejectedValue(new Error("network down"));
-    await expect(registerPushToken()).resolves.toBe("ExponentPushToken[test-1]");
+    await expect(registerPushToken()).resolves.toBeNull();
     warnSpy.mockRestore();
   });
 });

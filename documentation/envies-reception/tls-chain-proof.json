@@ -1,0 +1,15 @@
+{
+  "checkedOn": "2026-10-22",
+  "host": "api.spawt.online",
+  "chain": [
+    "api.spawt.online",
+    "Let’s Encrypt YR1",
+    "ISRG Root YR (cross-signed)",
+    "ISRG Root X1"
+  ],
+  "hostnameChecked": true,
+  "trustStore": "nginx:alpine ca-certificates-bundle 20260909-r0",
+  "verifyDepth1": false,
+  "verifyDepth3": true,
+  "nginxSyntaxCheckPassed": true
+}

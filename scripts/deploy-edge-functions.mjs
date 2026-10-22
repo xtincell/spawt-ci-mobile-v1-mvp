@@ -149,8 +149,8 @@ async function main() {
     return;
   }
 
-  // État courant : Coolify renvoie les montages existants ; on met à jour
-  // (PATCH par uuid) plutôt que de recréer, sinon on empile des doublons.
+  // État courant : recréer seulement les fichiers modifiés. PATCH ne réécrit
+  // pas le fichier sur l'hôte (voir ci-dessous).
   const cur = await api("GET", `/services/${SERVICE_UUID}/storages`);
   if (!cur.ok) fail(`lecture des montages : HTTP ${cur.status} ${cur.text.slice(0, 200)}`);
   const existing = new Map(
@@ -165,30 +165,50 @@ async function main() {
     const mount_path = `${MOUNT_PREFIX}/${f.rel}`;
     const prev = existing.get(mount_path);
 
-    if (prev && prev.content === content) {
+    // Coolify retire le saut de ligne final lors de l'enregistrement.
+    if (prev && prev.content?.replace(/\n+$/, "") === content.replace(/\n+$/, "")) {
       unchanged += 1;
       continue;
     }
 
-    const res = prev
-      ? await api("PATCH", `/services/${SERVICE_UUID}/storages`, {
-          uuid: prev.uuid,
-          type: "file",
-          content,
-        })
-      : await api("POST", `/services/${SERVICE_UUID}/storages`, {
-          type: "file",
-          resource_uuid: EDGE_RESOURCE_UUID,
-          mount_path,
-          content,
-        });
+    // ⚠️ LE PIÈGE QUI A COÛTÉ UNE PANNE D'AUTHENTIFICATION EN PRODUCTION.
+    //
+    // `PATCH /storages` met à jour la ligne dans la base de Coolify — et RIEN
+    // d'autre. Le fichier sur l'hôte n'est PAS réécrit. Coolify ne matérialise
+    // le contenu sur disque qu'à la CRÉATION du montage.
+    //
+    // Conséquence : ce script annonçait « mis à jour » en boucle, l'API relisait
+    // bien le nouveau contenu, et le conteneur continuait de servir la toute
+    // première version — indéfiniment. Un redémarrage n'y change rien, un
+    // redéploiement du service non plus : il n'y a rien de neuf à monter.
+    //
+    // C'est ainsi qu'un correctif de `otp-verify` est resté invisible alors que
+    // tout indiquait qu'il était déployé. Diagnostiqué en posant une sonde dans
+    // la réponse d'erreur : elle n'est jamais apparue.
+    //
+    // On supprime donc avant de recréer. Le contenu vit dans git : la fenêtre
+    // entre les deux appels est le seul risque, et elle se referme au prochain
+    // redémarrage du conteneur, qui est de toute façon nécessaire.
+    if (prev) {
+      const del = await api("DELETE", `/services/${SERVICE_UUID}/storages/${prev.uuid}`);
+      if (!del.ok) {
+        fail(`${f.rel} : suppression avant recréation HTTP ${del.status} ${del.text.slice(0, 200)}`);
+      }
+    }
+
+    const res = await api("POST", `/services/${SERVICE_UUID}/storages`, {
+      type: "file",
+      resource_uuid: EDGE_RESOURCE_UUID,
+      mount_path,
+      content,
+    });
 
     if (!res.ok) {
       fail(`${f.rel} : HTTP ${res.status} ${res.text.slice(0, 300)}`);
     }
     if (prev) {
       updated += 1;
-      log(`  mis à jour : ${f.rel}`);
+      log(`  recréé     : ${f.rel}`);
     } else {
       created += 1;
       log(`  créé       : ${f.rel}`);
@@ -212,11 +232,13 @@ async function main() {
     `/services/${SERVICE_UUID}/applications/${EDGE_RESOURCE_UUID}/restart`,
   );
   if (!r.ok) {
-    // L'endpoint par sous-ressource n'existe pas sur toutes les versions de
-    // Coolify ; on retombe sur le redéploiement du service entier.
-    log(`  redémarrage ciblé indisponible (HTTP ${r.status}) — redéploiement du service.`);
-    const d = await api("POST", `/deploy?uuid=${SERVICE_UUID}&force=true`);
-    if (!d.ok) fail(`redéploiement : HTTP ${d.status} ${d.text.slice(0, 200)}`);
+    // Coolify 4.1.2 n'expose pas ce redémarrage ciblé. Ne jamais arrêter la
+    // base, Auth, Storage et Kong pour recharger des fichiers TypeScript.
+    // Les fichiers sont posés ; seul le conteneur edge doit être redémarré
+    // depuis l'accès d'exploitation du serveur, puis les routes vérifiées.
+    fail(`fichiers posés, redémarrage ciblé indisponible (HTTP ${r.status}). ` +
+      `Redémarrer uniquement supabase-edge-functions-${SERVICE_UUID} depuis le serveur. ` +
+      "Le stack Supabase n'a pas été redémarré par ce script.");
   }
   log("déclenché. Vérifier ensuite que chaque route répond 405 et non 500.");
 }

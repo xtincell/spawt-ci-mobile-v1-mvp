@@ -1,6 +1,6 @@
 // Story 2.5 — AC #4 : OnbCard primitive — selected vs unselected, onToggle, accessibility.
 
-import { type ReactNode } from "react";
+import { type ReactElement } from "react";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — react-test-renderer ships JS only
 import TestRenderer from "react-test-renderer";
@@ -17,7 +17,7 @@ interface TestRendererInstanceLike {
   };
 }
 
-function render(node: ReactNode): TestRendererInstanceLike {
+function render(node: ReactElement): TestRendererInstanceLike {
   let raw: TestRendererInstanceLike | null = null;
   TestRenderer.act(() => {
     raw = TestRenderer.create(node) as unknown as TestRendererInstanceLike;

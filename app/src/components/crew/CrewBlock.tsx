@@ -6,8 +6,14 @@
 // « Reprendre le vote ».
 
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../../theme/ThemeProvider";
@@ -15,10 +21,13 @@ import { Button } from "../primitives/Button";
 import { useCrewStore } from "../../store/crew-store";
 import { useSpawterStore } from "../../store/spawter-store";
 import type { CrewSelf } from "../../lib/crew/crew-types";
+import { normalizeCrewInviteCode } from "../../lib/share-links";
 
 export function CrewBlock() {
   const theme = useTheme();
   const router = useRouter();
+  const { crewCode } = useLocalSearchParams<{ crewCode?: string | string[] }>();
+  const inviteCode = normalizeCrewInviteCode(crewCode);
   const { t } = useTranslation();
 
   const spawter = useSpawterStore((s) => s.spawter);
@@ -28,12 +37,16 @@ export function CrewBlock() {
   const start = useCrewStore((s) => s.start);
   const join = useCrewStore((s) => s.join);
 
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(inviteCode ?? "");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void hydrateFromStorage();
   }, [hydrateFromStorage]);
+
+  useEffect(() => {
+    if (inviteCode) setCode(inviteCode);
+  }, [inviteCode]);
 
   if (!spawter) return null;
 
@@ -66,8 +79,8 @@ export function CrewBlock() {
       result.reason === "session_closed"
         ? t("crew.join_error_closed")
         : result.reason === "session_not_found"
-          ? t("crew.join_error_not_found")
-          : t("crew.join_error_generic"),
+        ? t("crew.join_error_not_found")
+        : t("crew.join_error_generic")
     );
   };
 
@@ -75,7 +88,7 @@ export function CrewBlock() {
     <View
       testID="crew-block"
       style={{
-        marginHorizontal: theme.spacing.lg,
+        marginHorizontal: 0,
         marginTop: theme.spacing.base,
         marginBottom: theme.spacing.sm,
         padding: theme.spacing.base,
@@ -102,6 +115,32 @@ export function CrewBlock() {
       >
         {t("crew.block_pitch")}
       </Text>
+
+      {persistedRef && inviteCode && persistedRef.code !== inviteCode ? (
+        <View
+          testID="crew-pending-invite"
+          style={{ padding: theme.spacing.sm, gap: theme.spacing.xs }}
+        >
+          <Text
+            style={{
+              ...theme.typography.preset.small,
+              color: theme.colors.text.primary,
+            }}
+          >
+            {t("crew.invite_pending_body")}
+          </Text>
+          <Text
+            testID="crew-pending-invite-code"
+            selectable
+            style={{
+              ...theme.typography.preset.data,
+              color: theme.colors.brand.primary,
+            }}
+          >
+            {inviteCode}
+          </Text>
+        </View>
+      ) : null}
 
       {persistedRef ? (
         <Pressable
@@ -139,7 +178,13 @@ export function CrewBlock() {
       ) : (
         <>
           {busy ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: theme.spacing.sm,
+              }}
+            >
               <ActivityIndicator color={theme.colors.brand.primary} />
               <Text
                 style={{
@@ -169,7 +214,7 @@ export function CrewBlock() {
           >
             {t("crew.join_label")}
           </Text>
-          <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+          <View style={{ gap: theme.spacing.sm }}>
             <TextInput
               testID="crew-join-input"
               value={code}
@@ -180,7 +225,9 @@ export function CrewBlock() {
               autoCorrect={false}
               maxLength={5}
               style={{
-                flex: 1,
+                minWidth: 0,
+                minHeight: 48,
+                width: "100%",
                 ...theme.typography.preset.data,
                 fontSize: 16,
                 letterSpacing: 4,

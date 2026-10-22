@@ -1,7 +1,8 @@
 // Story 6.2 — Liste des lieux + filtres + actions ligne.
 
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
+import { Link, useNavigate } from "react-router";
 import { useTable, useUpdate, useInvalidate } from "@refinedev/core";
 import { logAuditAction } from "../../lib/audit";
 
@@ -10,7 +11,7 @@ interface PlaceRow {
   name: string;
   neighborhood: string;
   cuisine: string[];
-  price_tier: 1 | 2 | 3;
+  price_tier: 1 | 2 | 3 | null;
   is_published: boolean;
   updated_at: string;
   place_adn?: { weighted_rating: number; total_reviews: number; confidence_score: number } | null;
@@ -21,7 +22,7 @@ export const LieuxList = () => {
   const [search, setSearch] = useState("");
   const [published, setPublished] = useState<"all" | "yes" | "no">("all");
 
-  const { tableQuery } = useTable<PlaceRow>({
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<PlaceRow>({
     resource: "places",
     pagination: { pageSize: 25 },
     sorters: { initial: [{ field: "updated_at", order: "desc" }] },
@@ -39,7 +40,7 @@ export const LieuxList = () => {
   const { mutate: updatePlace } = useUpdate();
   const invalidate = useInvalidate();
 
-  const rows = (tableQuery.data?.data ?? []) as PlaceRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as PlaceRow[];
 
   async function togglePublish(row: PlaceRow) {
     const next = !row.is_published;
@@ -79,14 +80,17 @@ export const LieuxList = () => {
       </header>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <input placeholder="Rechercher un nom…" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <select value={published} onChange={(e) => setPublished(e.target.value as "all" | "yes" | "no")}>
+        <input placeholder="Rechercher un nom…" value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} />
+        <select value={published} onChange={(e) => { setPublished(e.target.value as "all" | "yes" | "no"); setCurrentPage(1); }}>
           <option value="all">Tous</option>
           <option value="yes">Publiés</option>
           <option value="no">Brouillons</option>
         </select>
       </div>
 
+      <p>Le compteur indique les avis communautaires. Les avis fondateurs en sont exclus ; « Voir les avis » permet aussi de lire leurs textes.</p>
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
         <thead>
           <tr>
@@ -95,7 +99,7 @@ export const LieuxList = () => {
             <th>Cuisine</th>
             <th>Tier</th>
             <th>Note</th>
-            <th>Avis</th>
+            <th>Avis communautaires</th>
             <th>Statut</th>
             <th>Actions</th>
           </tr>
@@ -106,11 +110,12 @@ export const LieuxList = () => {
               <td><strong>{row.name}</strong></td>
               <td>{row.neighborhood}</td>
               <td>{row.cuisine.join(", ")}</td>
-              <td>{row.price_tier}</td>
-              <td>{row.place_adn?.weighted_rating?.toFixed(2) ?? "—"}</td>
+              <td>{row.price_tier ?? "—"}</td>
+              <td>{(row.place_adn?.total_reviews ?? 0) > 0 ? row.place_adn?.weighted_rating?.toFixed(2) ?? "—" : "—"}</td>
               <td>{row.place_adn?.total_reviews ?? 0}</td>
               <td>{row.is_published ? "Publié" : "Brouillon"}</td>
               <td style={{ display: "flex", gap: 6 }}>
+                <Link to={`/moderation?place_id=${encodeURIComponent(row.id)}`} aria-label={`Voir les avis de ${row.name}`}>Voir les avis</Link>
                 <button type="button" onClick={() => navigate(`/lieux/edit/${row.id}`)}>Éditer</button>
                 <button type="button" onClick={() => togglePublish(row)}>
                   {row.is_published ? "Dépublier" : "Publier"}

@@ -142,8 +142,8 @@ function cosineComponent(palais: UserPalais, adn: PlaceAdn): number {
 function distanceComponent(
   lat1: number,
   lng1: number,
-  lat2: number,
-  lng2: number,
+  lat2: number | null,
+  lng2: number | null,
 ): number {
   const km = haversineKm(lat1, lng1, lat2, lng2);
   if (km <= 1) return 1;
@@ -191,9 +191,10 @@ function cosine(a: number[], b: number[]): number {
 export function haversineKm(
   lat1: number,
   lng1: number,
-  lat2: number,
-  lng2: number,
+  lat2: number | null,
+  lng2: number | null,
 ): number {
+  if (lat2 === null || lng2 === null || !Number.isFinite(lat2) || !Number.isFinite(lng2)) return Number.POSITIVE_INFINITY;
   const R = 6371;
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);

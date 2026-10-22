@@ -70,6 +70,9 @@ export interface MeuteHeritage {
   claimed: boolean;
   archetype: string | null;
   pionnier_seq: number | null;
+  /** Vecteur historique du quiz [-2, 2], absent sur les anciens serveurs. */
+  axes?: import("../lib/archetype-engine").QuizAxes | null;
+  code?: string;
 }
 
 /** Données récoltées à l'onboarding (PRD §3.1 Feature 2 + amendements 4.5) */
@@ -102,8 +105,10 @@ export interface OnboardingDraft {
    *  `time_to_complete_seconds` à l'émission `onboarding_completed`. */
   started_at: number | null;
   /** Chantier 13 archétypes — héritage quiz « La Meute » capturé à l'étape
-   *  OTP (réponse otp-verify). Si `claimed`, l'archétype hérité devient
-   *  l'archétype INITIAL au finalize (au lieu du calcul calibration). Null en
+   *  OTP (réponse otp-verify). Quand complet, le vecteur hérité devient
+   *  le Palais INITIAL au finalize (calibration toujours accessible). Null en
    *  mode démo ou si rien à réclamer. */
   meute_heritage: MeuteHeritage | null;
+  /** false après le choix explicite de refaire la calibration. */
+  use_meute_axes?: boolean;
 }

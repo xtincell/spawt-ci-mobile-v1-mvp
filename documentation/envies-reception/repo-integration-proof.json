@@ -1,0 +1,39 @@
+{
+  "productBranchesIncluded": {
+    "codex/accueil-donnees-feedback": true,
+    "codex/finalisation-tarifs": true,
+    "codex/firebase-push-readiness": true,
+    "codex/audit-admin-commentaires": true,
+    "main": true
+  },
+  "portalBranchesIncluded": {
+    "codex/android38-download": true,
+    "codex/controle-public-build37": true,
+    "codex/android-build36-download": true,
+    "codex/finalisation-pages-legales": true,
+    "codex/android-download-channel": true
+  },
+  "separateLegacyCountdownCommit": {
+    "original": "2e275c4",
+    "portedBy": "a07bbf9",
+    "file": "bientot/index.html",
+    "identicalBlob": "9460775c5b924ea8991b47cf3c0a8c54de0903b4"
+  },
+  "otherWorktreesCleanAtCheck": true,
+  "allRemoteBranchesRecheckedAt": "2026-10-22T03:54:42.931421+00:00",
+  "allProductRemoteSourceBranchesIncluded": true,
+  "portalSquashedPatchesAlreadyPresent": {
+    "origin/codex/shinkiro-vitrine-six-questions": "- 4c8b49976a1e488cf25b1e2c4604c190dbeaa53e",
+    "origin/codex/spawt-lancement-live": "- 3d002739a07c0c2394bfdd039a6de121ea73efcd",
+    "origin/codex/spawt-public-brand": "- 443874b1a279e49b23792278f37af2442ecaf97e"
+  },
+  "portalDefaultHasSeparateRoot": true,
+  "portalDefaultSnapshotMatchesOriginalCountdownTree": "04b5400a61e1b737fc9b2c790e9807ea2450348a",
+  "portalDefaultSnapshotBaselineAlreadyAncestor": "d5577dffee4c3a352881ff56a0e25acf6d2b0878",
+  "portalDefaultSynchronization": {
+    "pullRequest": "https://github.com/xtincell/project_spawt_mobile_ci/pull/18",
+    "mergeCommit": "d1f3a9961a9aa70180ec6525ce848f82627d9fdd",
+    "receivedTreePreserved": true,
+    "ciRun": 39720718177
+  }
+}

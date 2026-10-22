@@ -8,7 +8,7 @@
 // « Tous » n'existe pas côté Edge : on le traduit en spawter_ids explicites
 // (lecture staff de spawters, cap 10 000 aligné sur la validation serveur).
 
-export type PushTargetKind = "all" | "stade" | "archetype" | "gold";
+export type PushTargetKind = "all" | "stade" | "archetype" | "gold" | "account";
 
 export const PUSH_STADES = [
   "touriste",
@@ -44,6 +44,7 @@ export const MAX_CAMPAIGNS_PER_DAY = 3;
 export const MAX_SPAWTER_IDS = 10_000;
 
 export interface PushFormValues {
+  spawter_id?: string;
   title: string;
   body: string;
   deep_link: string;
@@ -69,14 +70,16 @@ export function validatePushForm(v: PushFormValues): PushValidation {
   if (v.title.length > PUSH_TITLE_MAX) errors.push(`Titre trop long (max ${PUSH_TITLE_MAX}).`);
   if (v.body.trim().length === 0) errors.push("Le corps est obligatoire.");
   if (v.body.length > PUSH_BODY_MAX) errors.push(`Corps trop long (max ${PUSH_BODY_MAX}).`);
-  if (v.deep_link && !/^(\/|https?:\/\/|spawt:\/\/)/.test(v.deep_link.trim())) {
+  if (v.deep_link && !/^(\/(?!\/)|https:\/\/spawt\.online(?:\/|$)|spawt:\/\/)/.test(v.deep_link.trim())) {
     errors.push("Deep link invalide (chemin /… ou URL).");
   }
+  if (v.target === "account" && !/^[a-f0-9-]{36}$/i.test(v.spawter_id ?? "")) errors.push("Identifiant de compte invalide.");
   return errors.length > 0 ? { ok: false, errors } : { ok: true };
 }
 
 export interface PushSendBody {
   spawter_ids?: string[];
+  all_spawters?: boolean;
   stade?: string;
   archetype?: string;
   gold_only?: boolean;
@@ -100,7 +103,9 @@ export function buildPushBody(
   };
   switch (v.target) {
     case "all":
-      return { ...base, spawter_ids: (allSpawterIds ?? []).slice(0, MAX_SPAWTER_IDS) };
+      return allSpawterIds === null ? { ...base, all_spawters: true } : { ...base, spawter_ids: allSpawterIds.slice(0, MAX_SPAWTER_IDS) };
+    case "account":
+      return { ...base, spawter_ids: [v.spawter_id ?? ""] };
     case "stade":
       return { ...base, stade: v.stade };
     case "archetype":
@@ -157,6 +162,9 @@ export function pushErrorMessage(code: string | null | undefined): string {
   switch (code) {
     case "campaign_limit_reached":
       return `Limite atteinte : ${MAX_CAMPAIGNS_PER_DAY} campagnes staff par jour (UTC). Réessaie demain.`;
+    case "campaign_in_progress":
+    case "campaign_result_unconfirmed":
+      return "Envoi déjà réservé. Vérifie l’historique avant toute nouvelle campagne ; un nouvel essai avec le même formulaire ne renvoie pas les notifications.";
     case "missing_targets":
       return "Aucune cible résolue — choisis un ciblage non vide.";
     case "forbidden":

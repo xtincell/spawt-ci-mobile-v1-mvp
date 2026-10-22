@@ -12,6 +12,9 @@ const path = require("path");
 const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
+// Le raccord de session est partagé avec la console, sans dépendance native.
+config.watchFolders = [...(config.watchFolders ?? []), path.resolve(__dirname, "../shared")];
+config.resolver.nodeModulesPaths = [...(config.resolver.nodeModulesPaths ?? []), path.resolve(__dirname, "node_modules")];
 
 // Mapping explicite zustand sub-exports → fichier CJS. zustand v4 expose ces
 // 4 entry points ; tout ajout futur (`zustand/persist`, etc.) doit être listé

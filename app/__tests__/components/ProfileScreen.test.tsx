@@ -130,6 +130,20 @@ describe("<ProfileScreen /> — Story 2.4", () => {
     mockDraftState = freshDraft();
   });
 
+  it("un héritage complet déjà répondu rejoint la révélation sans ressaisie", () => {
+    mockDraftState = {
+      ...freshDraft({ display_name: "Yann", neighborhood: "Cocody", date_of_birth: "1995-06-15" }),
+      meute_heritage: {
+        claimed: false, archetype: "murmure", pionnier_seq: 42,
+        axes: { R: -1, T: 0, E: 1, F: 2, M: -2 },
+      },
+    };
+    const instance = render();
+    TestRenderer.act(() => { (instance.root.findByProps({ testID: "profile-continue" }).props.onPress as () => void)(); });
+    expect(mockPush).toHaveBeenCalledWith("/(onboarding)/palais-reveal");
+    expect(mockTrack.mock.calls.some(([e]) => e.name === "calibration_answered")).toBe(false);
+  });
+
   it("CTA Continuer disabled au mount (name + neighborhood + date_of_birth manquants)", () => {
     const instance = render();
     const cta = instance.root.findByProps({ testID: "profile-continue" });

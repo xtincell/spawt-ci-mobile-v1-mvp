@@ -27,21 +27,26 @@ description: 'Builds, releases et CI SPAWT : profils EAS, conventions de tags, v
 
 ## Versioning
 
-- `version` figée à `1.0.0` jusqu'à la beta publique (décision `RELEASES.md`).
+- `version` : lire `app/app.json` et `RELEASES.md` ; valeur actuelle `1.1.1`.
 - `versionCode` (Android) / `buildNumber` (iOS) : incrémentés par build, journalisés dans `RELEASES.md` (numéro, date, tag, contenu). **Toujours** logger un build livré dans RELEASES.md.
-- `runtimeVersion.policy: appVersion` → une OTA ne passe que sur builds de même `version`.
+- `runtimeVersion.policy: nativeVersion` dans `app/app.json` : relire ce contrat avant toute OTA ; sa compatibilité reste une réception distincte.
 
 ## Procédure de build Android (éprouvée, 3 APK livrés)
 
 ```bash
-git tag build-android-$(date +%Y-%m-%d)-1 && git push origin --tags
+# Sélectionner d'abord une source et un numéro réconciliés avec les livraisons.
+# Pousser uniquement le tag voulu, jamais tous les tags locaux.
+: "${SPAWT_BUILD_TAG:?Renseigner le tag CI vérifié}"
+: "${SPAWT_SOURCE_COMMIT:?Renseigner le commit vérifié}"
+git tag "$SPAWT_BUILD_TAG" "$SPAWT_SOURCE_COMMIT"
+git push origin "refs/tags/$SPAWT_BUILD_TAG"
 # ou : gh workflow run eas-build.yml  (via MCP GitHub actions_run_trigger)
 ```
 Le suivi se fait sur expo.dev (compte xtincell) — le workflow CI logue l'URL du build.
 
 ## Points de vigilance
 
-- `newArchEnabled: true` (RN 0.83 New Architecture) : risque de modules natifs incompatibles — tester chaque nouveau module natif en build EAS avant de merger.
+- Expo SDK 55 / RN 0.83 impose la New Architecture ; la clé `newArchEnabled` a été retirée du schéma et ne doit plus figurer dans app.json. Tester chaque nouveau module natif en build EAS avant de merger.
 - Plugin `expo-application` RETIRÉ de app.json (commit `9f6b325`) pour débloquer CI — ne pas le réintroduire sans vérifier le build.
 - Expo Go ≠ environnement de test valide pour géofencing background, notifications, Apple Sign-In : utiliser les APK/dev builds.
 - Icônes/splash : `app/assets/` + clés `icon`, `splash`, `android.adaptiveIcon` dans app.json. Source brand : `documentation/ux/uploads/logos/` (SVG dispo).
@@ -60,3 +65,26 @@ Le suivi se fait sur expo.dev (compte xtincell) — le workflow CI logue l'URL d
 ## Ce qui reste côté humain
 
 Voir `HUMAN_TODO.md` à la racine : compte Apple Developer, service account Play Console, secrets Supabase (MOCK_TERMII/ALLOWED_ORIGINS/TERMII_API_KEY), DSN Sentry, juriste, sign-offs, merge vers main.
+
+## Numéro déjà livré hors branche (reçu le 2026-10-16)
+
+- **Symptôme** : `app.json` sur la branche d’audit annonce 28, mais le manifeste
+  de l’APK publié annonce 29 et une compilation réussie annonce 30.
+- **Fausse piste** : incrémenter le numéro de cette seule branche et traiter sa
+  CI verte comme preuve que l’application actuelle est préservée.
+- **Cause racine** : les interfaces du 13 octobre sont dans les trois commits
+  menant au tag/source `3cc5e92`, sans branche à sa tête. Lire les seules branches
+  omet donc une application déjà existante. Le run 38897200580 préparé ainsi a
+  été annulé, sans APK livré.
+- **Fix** : rapprocher `gh release list`, `gh run list --workflow
+  android-local-build.yml`, les tags et le manifeste du dernier APK ; récupérer
+  puis intégrer la lignée compilée avant les gates. Pour ce cas :
+  `git fetch origin 3cc5e92112576cd21b2fb8a427bdbbdb8842043c`, puis intégrer
+  cette source en conservant ses interfaces. La recette suivante sélectionne
+  31 et refuse un numéro occupé par un autre tag ; elle vérifie aussi la
+  compilation précédente et `git merge-base --is-ancestor` sur sa source.
+- **Signature** : une release ou un run réussi plus récent que la tête
+  documentée, avec un `versionCode` supérieur dans son manifeste.
+- **Portée** : général à toute livraison par tags ou branches de travail.
+  Le dossier de preuves n’est pas une branche canonique, mais peut révéler
+  qu’une lignée manque. Ne jamais déduire le prochain numéro d’un seul fichier.

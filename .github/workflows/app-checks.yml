@@ -1,0 +1,59 @@
+name: App checks (sans EAS)
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'spawt-admin/**'
+      - 'shared/**'
+      - 'scripts/check-eas-env.mjs'
+      - 'scripts/__tests__/**'
+      - '.github/workflows/app-checks.yml'
+  push:
+    branches: ['main', 'codex/recevoir-app-active', 'codex/audit-admin-commentaires', 'codex/firebase-push-readiness', 'codex/finalisation-tarifs']
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint:vocab
+      - run: npm run i18n:check
+      - run: npm test -- --ci --runInBand
+      - name: Guet SDK and public sharing contracts
+        run: node ../scripts/test-guet-expo-contract.mjs && node ../scripts/test-public-share.mjs
+      - name: Garde de configuration EAS
+        run: node --test ../scripts/__tests__/check-eas-env.test.mjs
+      - name: Garde de configuration Firebase Android
+        run: node --test ../scripts/__tests__/check-firebase-config.test.mjs
+      - name: Export web (compilation uniquement)
+        run: npx expo export --platform web
+  admin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: spawt-admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: spawt-admin/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

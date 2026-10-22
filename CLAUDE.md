@@ -29,14 +29,57 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 
 ## Règles non négociables
 
-- **Vocabulaire** (enforced par `lint:vocab`) : jamais "restaurant", "check-in", "leaderboard", "user", "gamif*", "VTC/Uber/Bolt" dans le code/UI. Dire : lieu/spot, spawt, Spawter, la Meute, Le Guet, Djidji.
+- **Vocabulaire** (enforced par `lint:vocab`) : jamais "restaurant", "check-in", "leaderboard", "user", "gamif*", "VTC/Uber/Bolt" dans le code/UI. Dire : lieu/spot, spawt, Spawter, la bande, Le Guet, Djidji. Navigation française : Accueil. Conserver les identifiants techniques historiques (`meute`, `feed`) et le Crew privé distinct.
 - **Couleurs/typos** : source unique `app/src/theme/tokens.ts`. **Aucun hex ailleurs.** Palette canonique = brandbook (`documentation/ux/spawt-tokens.css`) : noir `#0A0A0A`, or `#C8A44E`, vert chat `#2D6B4F`, blanc cassé `#FAFAF8`. ⚠️ Les valeurs du PRD §15 (`#D4AF37`, `#50C878`, Instrument Serif/Manrope) sont **périmées** (erratum PRD v1.0.3 du 2026-05-14).
 - **Polices** : Klinsman (display) + Gotham (body). Piège : les `.otf` Klinsman embarquent les noms PostScript `KlinsmanTypefaceLight/Regular/Bold` — toujours référencer ces noms-là, pas les noms de fichiers.
 - **i18n** : toute string UI passe par `app/src/i18n/` (vérifié par `i18n:check`).
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
-## État déployé (2026-07-28 — mesuré, pas déclaré)
+## Contributions et catalogue — 2026-10-19
+
+- 0082–0084 déployées : retours privés, 155 fiches publiées (111 coordonnées / 44 inconnues), carnets publics. Aucun avis ni visite ajouté.
+- Build **40 publié** : 0085 déployée, contributions menu/prix et GPS privées, validation staff avec Paws atomiques et barème audité ; interface app et panel `/contributions`.
+- Les menus validés utilisent `storage://place-contributions/...` dans `menu_urls`, résolu en URL signée par l’app. Les preuves ne sont jamais remplaçables après envoi.
+- Build39 annulé avant publication : brouillons et réponses asynchrones désormais isolés immédiatement par compte ; tests des lectures et callbacks tardifs.
+- Source `e072507`, compilation `39341782221`, 24 assertions natives sur la base réelle `39344928365`, publication `39346327204`. Réception menu/modération/GPS/+5 Paws et captures : `documentation/ACCUEIL_CATALOGUE_RETOURS_2026-10-19.md`.
+
+## Tarifs et livraison — 2026-10-19
+
+- PR 17/18 reprises ; migrations 0079–0081 appliquées après sauvegarde. Gold lieu **60 000 F TTC** (50 847 HT + 9 153 TVA), autres tarifs conservés. Page Tarifs opérationnelle pour Xtincell, journal admin restauré, confirmation prestataire et facture atomiques.
+- Console reçue sur `231b7d1`. Sept fichiers paiement vérifiés dans le runtime. `deploy-edge-functions.mjs` ne redémarre plus le stack entier si le redémarrage Edge ciblé est indisponible : Coolify 4.1.2 ne propose pas cet endpoint.
+- Build **36** : source `76fb9be`, compilation `39175490281`, recette `39177562951`, publication `39177846463`. Le manifeste Android public et les deux boutons suivent cette version. Aucun prix écrit en dur dans le texte Gold hors zone.
+- 155 lieux, 10 avis éditoriaux et 3 carnets publiés conservés. CinetPay non configuré ; aucun paiement ou push réel envoyé. Réception physique toujours à confirmer.
+- Voir `documentation/FINALISATION_TARIFS_2026-10-19.md` et `finalisation-tarifs-proof.json` pour les preuves, l'incident de redémarrage résolu et les limites.
+
+## Firebase et publication Android — 2026-10-18
+
+- Connexion officielle Firebase établie ; compte FCM dédié limité à `roles/firebasecloudmessaging.admin`, clé privée dans Expo uniquement. Identité de configuration temporaire désactivée, autorisations retirées et clés inutilisées supprimées.
+- Build 35 : source `f265ae2`, compilation `39143492062`, recette native `39146032702`, publication `39146376114`. Les avis, carnets, actualités et remontées d’activité du build 34 sont conservés.
+- La publication vérifiée avance `android-releases/latest.json`. La vitrine `5dc7357` déployée sur spawt.online suit automatiquement ce manifeste ; deux boutons et fichier public vérifiés. Une compilation seule ne change pas le bouton. Préserver ce circuit pour les futures versions.
+- Réception push sur téléphone restant à confirmer. Voir `documentation/FIREBASE_ANDROID_2026-10-18.md` et la preuve JSON associée.
+
+## Liaison panel / app — 2026-10-18
+
+- Migrations 0077/0078 en production, sauvegarde complète conservée. Console épinglée sur `47cc174d2558ae0155f1847aac566a111e8ababd` : actualités programmables, activité des comptes à partir du build 34, estimation et historique push.
+- Invalidation commune des contenus publics au premier plan ; liens directs Explore attendent le chargement des fonctionnalités. Le suivi d’activité n’existe pas dans les anciennes versions.
+- Le nombre `sent` indique une acceptation Expo, jamais une réception. Firebase/FCM configuré dans `spawt-ci` et Expo, intégré au build 35 et initialisé sur émulateur. Aucun téléphone enregistré lors du contrôle ; ne pas annoncer une réception physique sans essai réel.
+- Le build 33 a été annulé avant livraison ; build 34 publié après contrôle de signature et ouverture Android 35, puis remplacé par le build 35 avec Firebase. Preuves et limites : `documentation/LIAISON_PANEL_APP_2026-10-18.md` et `documentation/liaison-panel-app-verification.json`.
+
+## Fiches documentaires créées le 2026-10-18
+
+- Migration 0076 : brouillons avec GPS/prix inconnus ; publication protégée. Panel déployé sur `66bc56ee6f894781bb0f131504622f43733ed083` à 12:54 UTC ; quatre contrôles navigateur réels sans erreur API/JS.
+- 145 nouveaux brouillons sans note ni visite, 147 références rattachées : inventaire total 155 dont dix publics. Provenance, limites et vérifications dans `editorial/documentation-2026-10-18/`.
+
+## Mise en service confirmée le 2026-10-18
+
+- Migration 0075 appliquée après sauvegarde PostgreSQL ; 31 492 références de recherche privées (31 sources), dont 129 enrichissements, et dix profils brouillons.
+- Dix avis éditoriaux publiés sous le compte staff Xtincell (affiché Alexandre), trois carnets/sept entrées publiés ; trente textes fondateurs conservés. Dix lieux publics, aucune publication automatique des références.
+- Console `https://admin.spawt.online` : branche `codex/audit-admin-commentaires`, commit applicatif épinglé `c8ede0ecf288c829f738f2ca09514fb4450803e3`. Dockerfile `/spawt-admin/Dockerfile`, contexte `/`, `is_static=false`, port80 ; Node22 compile les imports de `shared/`, nginx sert la SPA.
+- Recette navigateur réelle Xtincell : lieux, modération, rédaction, recherche, carnets ; zéro erreur API/JS. Test transactionnel des commentaires mobiles sous droits propriétaire réussi puis annulé ; le téléphone installé reste à diagnostiquer séparément.
+- Preuves et reprise : `documentation/MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`.
+
+## Repères d'exploitation antérieurs (2026-07-28)
 
 ⚠️ **Le projet Supabase cloud `ucymjsxmnzdxvvupgaof` est SUPPRIMÉ** (NXDOMAIN). Toute
 doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qui vit
@@ -66,16 +109,35 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
 - **Portail** : `https://portail.spawt.online` (app Coolify `spawt-portail-apercu`,
   repo `project_spawt_mobile_ci`, Dockerfile). **Rideau d'avant-lancement** :
   `VITE_PREVIEW_GATE=true` → écran « Bientôt » pour tout le monde, portail réel
-  pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). Au
-  lancement : retirer la variable et **rebuild**. `spawt.online` continue de
-  servir sa page « Bientôt » statique.
-- **Page « Bientôt »** : désormais dans le dépôt (`project_spawt_mobile_ci/bientot/`) et
-  déployée par Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`).
-  ⚠️ **`spawt.online` sert encore l'ANCIENNE version**, posée à la main : aucune
-  ressource Coolify ne porte ce domaine, il est routé par une conf Traefik hors Coolify.
-  La bascule = retirer cette route puis ajouter `spawt.online` aux domaines de
-  `spawt-bientot`. Non faite : deux routeurs Traefik sur le même hôte = comportement
-  indéterminé sur la seule URL publique.
+  pour un `spawt_staff` actif connecté (RPC `current_staff()`, 0062). **Le rideau
+  est LEVÉ** (mesuré le 2026-10-07 : aucune trace de `PREVIEW_GATE` ni de
+  « Bientôt » dans le bundle servi). Le portail est public, et il est servi aussi
+  bien sur `portail.` que sur l'apex et `www`.
+- **Page « Bientôt »** : dans le dépôt (`project_spawt_mobile_ci/bientot/`), déployée par
+  Coolify sur `https://bientot.spawt.online` (app `spawt-bientot`, uuid
+  `o10w9ckby0y44wewkg6p6upl`). Elle porte les **vrais** assets de marque : Klinsman +
+  Gotham en `@font-face` (nécessite `font-src 'self'` dans la CSP — sans quoi le
+  navigateur retombe sur les polices système **en silence**) et le logo `moka.png`.
+- ✅ **L'apex sert le PORTAIL** — la bascule est faite (mesuré le 2026-10-07) :
+  `spawt.online`, `www.spawt.online` et `portail.spawt.online` rendent des octets
+  **identiques** (même sha256 sur `/`), c'est-à-dire le SPA Vite du portail.
+  `bientot.spawt.online` reste un hôte distinct avec sa propre page statique.
+  ⚠️ Les notes d'audit du 2026-07-29 qui disaient « l'apex sert encore l'ANCIENNE
+  page » et « la bascule exige un accès à l'hôte » sont **périmées** : elles
+  décrivaient l'état d'avant la bascule, pas une contrainte permanente.
+  - Le rideau d'avant-lancement **n'est plus dans le bundle livré** : ni
+    `PREVIEW_GATE` ni « Bientôt » n'y apparaissent. Le portail est donc
+    publiquement atteignable, pages légales comprises.
+  - Les routes légales existent bien côté client — `/legal/cgu`, `/legal/cgv`,
+    `/legal/confidentialite`, `/legal/suppression-compte` — et le texte est dans
+    le bundle principal (un seul `index-*.js`, aucun fragment différé).
+  - ⚠️ **Un 200 ne prouve RIEN sur ce domaine** : le serveur renvoie le même
+    squelette SPA pour n'importe quel chemin. Vérifié — `/legal/confidentialite`
+    et `/chemin-qui-nexiste-pas` rendent des octets identiques. Pour savoir si une
+    route existe, chercher dans le bundle, pas dans le code HTTP.
+  - L'ancienne page contient `var ADMIN_WORD = "@ntigoumin225"` en clair. Portée réelle
+    faible (elle ne masque qu'un panneau « coulisses » dont le contenu — liens quiz et
+    console — est déjà dans la source publique), mais à ne pas réutiliser ailleurs.
 - **Comptes internes** (0060) : `spawters.is_internal` déverrouille la section
   « Mode interne » des réglages de l'app — bascule gratuit ↔ Gold simulé,
   aperçu local du paywall géo (rayon gratuit 3 km). Non auto-attribuable
@@ -87,13 +149,24 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `scripts/create-staff-account.mjs`.
 - **Paiement à validation manuelle** (0063/0064) : **CinetPay est secondaire**. Le payeur
   déclare son versement (Wave, Orange Money, MoMo, Moov, espèces, virement) depuis
-  `portail/gold/paiement-manuel`, l'équipe valide dans la page **Paiements** de la console.
+  `portail/gold/paiement-manuel` (page absente de la vitrine servie depuis le
+  2026-09-22 : elle n'existe plus que sur la PR #1 du portail), l'équipe valide dans la
+  page **Paiements** de la console.
   `approve_payment_request()` fait tout en UNE transaction : abonnement + facture
   numérotée + rôle B2B + audit. Idempotente (`provider_tx_id = manuel:<id>`, UNIQUE).
-  ⚠️ Le prix vient de la table `plans`, jamais du montant déclaré. `plans` DOIT rester
-  aligné sur `_shared/payment/types.ts` — les deux avaient divergé de 3 000 F sur
-  l'annuel. Coordonnées de versement : table `payment_instructions`, **toutes inactives
-  tant que les numéros ne sont pas renseignés**.
+  ⚠️ **Les prix ne vivent QUE dans `plans`** (migration 0079) — jamais en constante
+  dans le code, jamais le montant déclaré. L'équipe saisit le **prix payé**
+  (`price_ttc`, F CFA entiers) dans la page **Tarifs** de la console (RPC
+  `admin_update_plan` : admin, motif, avant/après audités) ; un trigger dérive
+  `price_ht = round(TTC / 1,18)` et `tva_amount = TTC − HT` (TVA fixe 18 %). Le checkout
+  lit le plan (actif, sinon échec fermé) et fige HT/TTC sur l'abonnement
+  (`subscriptions.price_ttc`) ; webhook et validation manuelle facturent ces montants
+  figés : facturé = encaissé. Décision du 2026-10-18 : **Gold lieu (`b2b_gold`) =
+  60 000 F TTC, prix final** (50 847 HT + 9 153 TVA ; avant : 65 000 HT, 76 700 TTC).
+  ⚠️ **0079 n'est PAS appliquée en production** (branche `claude/gold-lieu-prix-final`) :
+  d'ici là, base et fonctions déployées gardent l'ancien catalogue. Coordonnées de
+  versement : table `payment_instructions`, **toutes inactives tant que les numéros ne
+  sont pas renseignés**.
 - **Feature flags** : 16 en base ; `paywall-geo` désormais actif sur `internal`/`alpha`
   (l'équipe peut le voir), **fermé sur `beta`/`prod`** tant que `payment_instructions`
   n'a pas de numéro actif. Pilotables depuis la page Fonctionnalités de l'admin.
@@ -120,10 +193,65 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `EXPO_PUBLIC_SUPABASE_URL`+`_ANON_KEY`, démo si `EXPO_PUBLIC_DEMO_MODE=true`, sinon
   écran « Configuration manquante ». Le repli silencieux d'avant a fait passer tous les
   APK livrés pour un produit vide alors que seule la config de build manquait.
-- **Coolify, deux pièges vérifiés** : (1) pour un « file storage » créé par l'API, le
+- **Coolify, trois pièges vérifiés** : (1) pour un « file storage » créé par l'API, le
   `fs_path` fourni est IGNORÉ — il est déduit du `mount_path`, et aucun bind-mount n'est
   ajouté au compose ; (2) un service ne voit les autres ressources du serveur que si
-  *Connect to predefined docker network* est activé.
+  *Connect to predefined docker network* est activé ; (3) **`PATCH /storages` n'écrit
+  RIEN sur le disque** — il ne met à jour que la base de Coolify. Le contenu n'est
+  matérialisé qu'à la **CRÉATION** du montage. Un déploiement par PATCH annonce donc
+  « mis à jour », l'API relit bien le nouveau contenu, et le conteneur sert la toute
+  première version *indéfiniment* — ni un redémarrage ni un redéploiement n'y changent
+  quoi que ce soit. `scripts/deploy-edge-functions.mjs` fait désormais DELETE puis POST.
+  Symptôme typique : un correctif d'Edge Function sans effet alors que tout dit qu'il
+  est déployé. Se diagnostique en posant une sonde dans une réponse et en constatant
+  qu'elle n'apparaît jamais.
+- **EAS a un SECOND jeu de variables, invisible depuis le dépôt.** En plus du bloc
+  `env` d'`eas.json`, EAS stocke des variables **par environnement**
+  (production/preview/development), modifiables au tableau de bord. Trouvé dormant
+  depuis le **2026-05-20** sur `preview` : `EXPO_PUBLIC_SUPABASE_URL` =
+  `https://ucymjsxm….supabase.co` (le projet cloud **supprimé**) et
+  `EXPO_PUBLIC_SUPABASE_ANON_KEY` = sa clé de 208 caractères — c'est-à-dire
+  exactement l'empreinte que le téléphone affichait.
+  ⚠️ **Ne pas se fier au message du log de build.** Il annonce « The values from
+  the build profile configuration will be used » — et l'APK partait quand même
+  avec la clé du serveur. Seule différence observée entre les deux variables : la
+  **visibilité**. L'URL était `PUBLIC` et a bien suivi `eas.json` ; la clé était
+  `SENSITIVE` et ne l'a pas suivi. Corrélation constante sur les builds observés,
+  pas isolée expérimentalement — d'où la règle : ces variables sont écrites en
+  **`plaintext`** (elles partent dans chaque requête de l'app de toute façon ; les
+  marquer sensibles ne protège rien et empêche de les relire pour vérifier).
+  Trois défenses, à ne pas confondre : `scripts/check-eas-env.mjs` (refuse une clé
+  que la passerelle rejette), `scripts/pin-backend-in-manifest.mjs` (recopie
+  `eas.json` dans le manifeste, que `backend-identity` lit EN PRIORITÉ — le binaire
+  devient insensible à ce qu'EAS injecte), `scripts/sync-eas-env.mjs` (aligne le
+  serveur sur le dépôt). `scripts/audit-eas-env.mjs` affiche les couches à chaque
+  build. Aucun secret EAS legacy sur ce projet (liste vide).
+- **Kong ne protège PAS `/functions/v1/*` — mesuré.** Aucun plugin `key-auth` sur
+  cette route : `otp-send` répond **200 avec une clé bidon**, et même avec la chaîne
+  `demo-anon-key-placeholder`. `/auth/v1/*` et `/rest/v1/*`, eux, sont derrière
+  `key-auth`. Conséquence : un binaire dont `EXPO_PUBLIC_SUPABASE_ANON_KEY` est fausse
+  **passe tout le tunnel OTP** (numéro, envoi, vérification du code) puis meurt à
+  l'ouverture de session — et toutes les lectures de données meurent avec, sans que
+  rien ne nomme la cause. Signature exacte et **unique** d'une clé inconnue de la
+  passerelle : `401 {"message":"Unauthorized","request_id":…}`. À ne pas confondre
+  avec `{"message":"No API key found in request"}` (clé absente/vide) ni avec les
+  réponses GoTrue `{"code":…,"error_code":…,"msg":…}` (clé acceptée, jeton en cause).
+  `scripts/check-eas-env.mjs` interroge désormais la vraie passerelle avant chaque
+  build distribuable — vérifier la *présence* de la clé ne prouvait rien.
+- **La résolution adresse/clé a une seule source** : `app/src/lib/backend-identity.ts`.
+  Elle était recopiée dans 4 fichiers, donc invisible depuis l'app : impossible de
+  répondre à « qu'envoie le binaire installé ? ». Le module expose aussi la
+  **provenance** (manifeste `extra` > variable de build) et une **empreinte**
+  publiable, affichée dans le diagnostic OTP.
+- **`auth.users` : jamais de NULL dans les colonnes de jetons.** GoTrue les lit dans des
+  `string` Go non-nullables ; un seul NULL fait échouer `GET /admin/users` pour la table
+  entière, donc le repli de `otp-verify`, donc **la reconnexion de TOUS les comptes**
+  (première connexion OK, toutes les suivantes en `user_provisioning_failed`). Une ligne
+  d'amorçage insérée en SQL direct suffisait. Réparé + `DEFAULT ''` posé en 0067. Tout
+  INSERT direct dans `auth.users` doit poser les 8 colonnes explicitement.
+- **GoTrue normalise le téléphone** en retirant le `+` : on écrit `+2250700000101`, il
+  stocke et rend `2250700000101`. Ne jamais comparer un `u.phone` à une forme E.164 —
+  comparer les chiffres seuls (`matchesPhoneAccount`, `otp-verify`).
 - **RLS : ne JAMAIS révoquer `EXECUTE` d'un prédicat de policy à `authenticated`.**
   Une expression de policy est évaluée avec les privilèges de l'APPELANT. La
   migration 0058 l'a fait sur `is_active_staff`/`is_admin_staff`/`is_b2b_of`/

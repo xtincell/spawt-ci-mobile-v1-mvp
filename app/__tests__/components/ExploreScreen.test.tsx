@@ -12,7 +12,9 @@ import type { ExploreCollectionSummary } from "../../src/lib/data-source";
 
 jest.mock("react-native-safe-area-context", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
     SafeAreaView: ({ children }: { children: ReactNode }) =>
       ReactMock.createElement(RNMock.View, null, children),
@@ -31,17 +33,23 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 jest.mock("expo-router", () => {
   const ReactMock = jest.requireActual("react") as typeof import("react");
-  const RNMock = jest.requireActual("react-native") as typeof import("react-native");
+  const RNMock = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
   return {
+    useFocusEffect: (effect: () => void) =>
+      require("react").useEffect(effect, [effect]),
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: mockBack }),
     Redirect: ({ href }: { href: string }) =>
       ReactMock.createElement(RNMock.Text, { testID: "redirect" }, href),
   };
 });
 
+let mockFlagsReady = true;
 let mockFlags: Record<string, boolean> = {};
 jest.mock("../../src/store/feature-flags", () => ({
   useFlag: (code: string) => mockFlags[code] ?? false,
+  useFeatureFlagsStore: (select: (s: unknown) => unknown) => select({ lastSyncAt: mockFlagsReady ? 1 : null, loading: !mockFlagsReady }),
 }));
 
 jest.mock("../../src/lib/analytics", () => ({
@@ -103,9 +111,18 @@ const trackMock = track as jest.Mock;
 
 describe("ExploreScreen — gate du flag mode-explore", () => {
   beforeEach(() => {
+  mockFlagsReady = true;
     jest.clearAllMocks();
     mockFlags = {};
     mockCollections = [];
+  });
+
+  it("keeps a cold-start deep link while remote flags are unresolved", async () => {
+    mockFlagsReady = false;
+    mockFlags = {};
+    const r = await renderScreen();
+    expect(r.root.findAll(n => isHost(n) && n.props.testID === "redirect")).toHaveLength(0);
+    expect(JSON.stringify(r.toJSON())).toContain("common.loading");
   });
 
   it("flag OFF → Redirect vers le feed, aucun event émis", async () => {
@@ -133,10 +150,10 @@ describe("ExploreScreen — gate du flag mode-explore", () => {
     });
   });
 
-  it("zéro collection → état vide (les carnets arrivent)", async () => {
+  it("zéro collection → état vide sans faux carnet", async () => {
     mockFlags = { "mode-explore": true };
     const r = await renderScreen();
-    expect(JSON.stringify(r.toJSON())).toContain("explore.empty_title");
+    expect(JSON.stringify(r.toJSON())).toContain("editorial.collections_empty");
   });
 
   it("tap sur un carnet → push /explore/[slug]", async () => {

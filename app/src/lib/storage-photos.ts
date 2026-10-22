@@ -3,6 +3,7 @@
 // Compression : expo-image-manipulator quality 0.8, resize maxWidth 1920px → cible < 1MB.
 
 import { supabase } from "./supabase";
+import { readUploadBody } from "./upload-body";
 
 export function photoPath(
   spawter_id: string,
@@ -48,11 +49,10 @@ export async function uploadReviewPhoto(
 ): Promise<string | null> {
   const path = photoPath(spawter_id, spawt_id, index);
   try {
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    const body = await readUploadBody(uri);
     const { error } = await supabase.storage
       .from("place-photos")
-      .upload(path, blob, {
+      .upload(path, body, {
         contentType: "image/jpeg",
         upsert: true,
       });
@@ -67,15 +67,32 @@ export async function uploadReviewPhoto(
   }
 }
 
-/** Génère une URL signée TTL 7 jours pour lecture (V1). */
+/** Génère une URL signée pour une heure ; visibilité contrôlée en base. */
 export async function getReviewPhotoUrl(path: string): Promise<string | null> {
   try {
     const { data, error } = await supabase.storage
       .from("place-photos")
-      .createSignedUrl(path, 7 * 24 * 3600);
+      .createSignedUrl(path, 3600);
     if (error || !data) return null;
     return data.signedUrl;
   } catch {
     return null;
   }
+}
+
+/** Résout un lot de chemins ; les URLs historiques restent utilisables. */
+export async function resolveReviewPhotoUrls(photos: readonly string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const paths: string[] = [];
+  for (const photo of new Set(photos)) {
+    if (/^https?:\/\//i.test(photo)) out.set(photo, photo);
+    else if (/^[^/]+\/[^/]+\/[0-2]\.jpg$/.test(photo) && !photo.includes("..")) paths.push(photo);
+  }
+  if (!paths.length) return out;
+  const { data, error } = await supabase.storage.from("place-photos").createSignedUrls(paths, 3600);
+  if (error) return out;
+  for (const signed of data ?? []) {
+    if (signed.path && signed.signedUrl && !signed.error) out.set(signed.path, signed.signedUrl);
+  }
+  return out;
 }

@@ -9,7 +9,7 @@
 // profile.tsx), qui passe la nouvelle valeur en prop à <ChatBubble>. Le test
 // ici simule cette propagation au niveau du composite domain.
 
-import { type ReactNode } from "react";
+import { type ReactElement } from "react";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — react-test-renderer ships JS only; types non-installés
 import TestRenderer from "react-test-renderer";
@@ -29,7 +29,7 @@ interface TestInstanceLike {
 }
 interface TestRendererInstanceLike {
   root: { findByType: (t: unknown) => TestInstanceLike };
-  update: (el: ReactNode) => void;
+  update: (el: ReactElement) => void;
 }
 
 describe("ChatBubble — réactivité stade-up (AC #3)", () => {
@@ -37,7 +37,7 @@ describe("ChatBubble — réactivité stade-up (AC #3)", () => {
     mockTranslate.mockClear();
   });
 
-  function createInstance(element: ReactNode): TestRendererInstanceLike {
+  function createInstance(element: ReactElement): TestRendererInstanceLike {
     let raw: TestRendererInstanceLike | null = null;
     TestRenderer.act(() => {
       raw = TestRenderer.create(element) as unknown as TestRendererInstanceLike;

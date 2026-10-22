@@ -7,15 +7,15 @@ import { z } from "zod";
 const ADN_AXIS = z.number().min(-1).max(1);
 
 export const PlaceLocationSchema = z.object({
-  lat: z.number(),
-  lng: z.number(),
+  lat: z.number().min(-90).max(90).nullable(),
+  lng: z.number().min(-180).max(180).nullable(),
   descriptive_address: z.string(),
   neighborhood: z.string(),
   city: z.string(),
 });
 
 export const PriceRangeSchema = z.object({
-  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable(),
   avg_ticket_xof: z.number().int().nullable().optional(),
 });
 
@@ -38,7 +38,14 @@ export const HoursSchema = z.partialRecord(
   z.array(OpeningSlotSchema),
 );
 
+export const EditorialProfileSchema = z.object({
+  identity: z.string(), specialties: z.string().nullable().optional(),
+  occasions: z.string().nullable().optional(), budget_context: z.string().nullable().optional(),
+  service_context: z.string().nullable().optional(), access_context: z.string().nullable().optional(),
+  verified_on: z.string(), sections: z.array(z.object({ title: z.string(), body: z.string() })).default([]),
+});
 export const PlaceSchema = z.object({
+  editorial_profile: EditorialProfileSchema.nullable().optional().catch(null),
   id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
   name: z.string().min(1),
   cuisine: z.array(z.string()),

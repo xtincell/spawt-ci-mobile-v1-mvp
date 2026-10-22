@@ -78,6 +78,7 @@ export function SwipeDeck({
   const [index, setIndex] = useState(0);
   const translateX = useSharedValue(0);
   const endedRef = useRef(false);
+  const committedIndex = useRef(-1);
 
   const current = deck[index];
   const next = deck[index + 1];
@@ -93,7 +94,8 @@ export function SwipeDeck({
 
   const commitDecision = (direction: SwipeDirection) => {
     const item = deck[index];
-    if (!item) return;
+    if (!item || committedIndex.current === index) return;
+    committedIndex.current = index;
     translateX.value = 0;
     setIndex((i) => i + 1);
     if (direction === "like") {
@@ -187,10 +189,18 @@ export function SwipeDeck({
   return (
     <View style={{ flex: 1 }}>
       {/* Pile : carte suivante derrière (profondeur), carte courante devant. */}
-      <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg }}>
+      <View
+        style={{
+          flex: 1,
+          minHeight: width < 360 ? 280 : 320,
+          paddingHorizontal: theme.spacing.lg,
+        }}
+      >
         {next ? (
           <Animated.View
             pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
             style={[
               {
                 position: "absolute",
@@ -207,7 +217,12 @@ export function SwipeDeck({
         ) : null}
 
         <GestureDetector gesture={pan}>
-          <Animated.View style={[{ flex: 1, marginVertical: theme.spacing.sm }, topCardStyle]}>
+          <Animated.View
+            style={[
+              { flex: 1, marginVertical: theme.spacing.sm },
+              topCardStyle,
+            ]}
+          >
             <Pressable
               onPress={() => onOpenPlace(current)}
               accessibilityRole="button"
@@ -359,7 +374,6 @@ function SwipeCard({ item }: { item: PlaceWithScore }) {
             color: theme.colors.text.inverse,
             marginBottom: 2,
           }}
-          numberOfLines={1}
         >
           {item.place.name}
         </Text>
@@ -369,7 +383,6 @@ function SwipeCard({ item }: { item: PlaceWithScore }) {
             color: theme.colors.text.inverseSecondary,
             marginBottom: theme.spacing.sm,
           }}
-          numberOfLines={1}
         >
           {item.place.location.neighborhood}
           {cuisine0 ? ` · ${cuisine0}` : ""}
@@ -382,12 +395,21 @@ function SwipeCard({ item }: { item: PlaceWithScore }) {
             gap: theme.spacing.sm,
           }}
         >
-          <MatchScore value={item.match_score} />
-          {hasRating ? <Stars value={item.adn.weighted_rating} /> : null}
           <View
-            style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            style={{
+              backgroundColor: theme.colors.surface.base,
+              borderRadius: theme.radius.full,
+            }}
           >
-            <Ico name="walk" size={14} color={theme.colors.text.inverseSecondary} />
+            <MatchScore value={item.match_score} />
+          </View>
+          {hasRating ? <Stars value={item.adn.weighted_rating} /> : null}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Ico
+              name="walk"
+              size={14}
+              color={theme.colors.text.inverseSecondary}
+            />
             <Text
               style={{
                 ...theme.typography.preset.small,

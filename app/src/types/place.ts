@@ -73,8 +73,8 @@ export type PlaceSignal =
   | "noctambule_verifie";
 
 export interface PlaceLocation {
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   /** Description ouest-africaine ("en face de la pharmacie X") — PRD §14.2 */
   descriptive_address: string;
   neighborhood: string;
@@ -83,12 +83,13 @@ export interface PlaceLocation {
 
 export interface PriceRange {
   /** Tranche déclarée — PRD §3.1 Feature 10 */
-  tier: 1 | 2 | 3; // 1=économique, 2=moyen, 3=premium
+  tier: 1 | 2 | 3 | null; // 1=économique, 2=moyen, 3=premium
   /** Optionnel : panier moyen indicatif en FCFA */
   avg_ticket_xof?: number;
 }
 
 export interface Place {
+  editorial_profile?: import("zod").infer<typeof import("./place.schema").EditorialProfileSchema> | null;
   id: string;
   name: string;
   cuisine: CuisineCategory[];

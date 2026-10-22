@@ -1,8 +1,479 @@
+## 2026-10-22 — Envies de sortie (candidat 41, non déployé)
+
+- Plats sourcés, envies de lieux/plats, listes par occasion et partage révocable ; reprise hors ligne et séparation des comptes.
+- Accueil hybride, recherche de plats et accompagnements, choix avec la bande, métriques serveur et suivi des retours.
+- Panel Menus/Envies/Guet, pages web de partage, liens Android vérifiés par domaine, diagnostics étendus.
+- Guet corrigé : proximité distincte d’une visite, vérification serveur explicite, plafonds et coordonnées validées ; interrupteur public fermé jusqu’à réception physique.
+- Migrations 0086–0089 et nouveau contrôle bloquant de publication Android. Voir `documentation/ENVIES_SORTIES_2026-10-22.md` pour les preuves et la réception restante.
+
+## 2026-10-19 — Isolation des brouillons (build 40)
+
+- Brouillons de retours et de contributions isolés dès le changement de compte, avant l’exécution des effets React. Les lectures tardives et mises à jour de l’ancien compte sont ignorées.
+- Régression contrôlée : changement de compte pendant la lecture, persistance et callback tardif. Build 39 annulé avant publication pour intégrer cette correction.
+
+## 2026-10-19 — Contributions modérées aux lieux (build 39)
+
+- Menu photographié et budget proposé, relevé GPS ponctuel : preuves privées, brouillon conservé et accusé serveur.
+- Panel Contributions : comparaison, validation ou refus motivé, récompense Paws unique et barème administrable avec historique.
+- Mise à jour publique et récompense atomiques ; modification concurrente détectée, aucun spawt ni avis fabriqué.
+- Menus validés lisibles dans l’app via des liens temporaires ; migration 0085 et tests des permissions, doublons, quotas et suppression de compte.
+- Build 38 compilé comme étape intermédiaire ; livraison finale portée au build 39 pour intégrer ce circuit.
+
+## 2026-10-19 — Catalogue public et exploration personnelle (build 38)
+
+- Carnets publiés lisibles aussi sans connexion ; les brouillons restent réservés au staff (migration 0084).
+- Publication indépendante d’une visite ou d’une note : GPS et prix inconnus acceptés, affichés comme à préciser ; aucun point fictif sur la carte.
+- Carte et liste : Tous les lieux / À explorer / Mes spawts selon les seuls spawts confirmés du compte.
+- 145 fiches documentaires rendues publiques après sauvegarde et vérifications ; 155 fiches au total, 111 localisées, 44 en liste. Aucun avis ni note ajouté.
+- Build 37 intermédiaire arrêté avant livraison pour intégrer cette demande. La recette finale exige aussi le catalogue complet, une fiche non notée et l’exploration personnelle.
+
+## 2026-10-19 — Accueil, lectures Android et retours privés (intégrés au build 38)
+
+- « Choisir vite », titres gras et sous-textes légers rapprochés, largeur adaptée au texte.
+- Trois usages incompatibles de `AbortSignal.timeout` remplacés : actualités, révision des contenus et activité de l’app.
+- Aide et retours : cinq lectures vérifiables, partage du contrôle, brouillon conservé, accusé serveur et réponses privées de l’équipe.
+- Migration 0082 : retours privés avec droits par auteur, tri du staff, idempotence et limite de débit.
+- La livraison exigera une recette native connectée aux données réelles, en plus de l’ouverture.
+
+## 2026-10-19 — Finalisation des tarifs, préparation Android 36
+
+- Prix Gold codé en dur retiré des cartes verrouillées : l’app décrit l’accès Gold sans annoncer un montant qui peut changer depuis la console.
+- Build 36 préparé sur la lignée du build 35 avec Firebase ; compilation et publication encore à recevoir.
+
+## 2026-10-19 — Finalisation des tarifs et du paiement
+
+- Reprise des PR 17/18 et de la PR 12 de la vitrine ; le prix Gold lieu est bien **60 000 F TTC**, administrable et figé à l'ouverture du paiement.
+- Migration 0080 : rétablit 23 actions de journalisation du panel retirées par d'anciens CHECK SQL, sans effacer l'historique.
+- Migration 0081 : confirmation prestataire réservée au serveur, montant/devise exacts, abonnement + rôle lieu + facture atomiques, répétitions sans double facture.
+- Tests Deno typés (92), schéma PostgreSQL isolé complet, essais de permissions et retour arrière 0079–0081 ; workflow GitHub dédié.
+- Build 36 : retrait d'un prix Gold écrit en dur dans l'app ; compilation et publication suivies dans la documentation de livraison.
+- Migrations 0079–0081 et console déployées après sauvegarde ; recette réelle Xtincell reçue. Build 36 publié après recette native, canal et boutons Android actualisés. Incident de redémarrage résolu et garde du script corrigée ; bilan dans `documentation/FINALISATION_TARIFS_2026-10-19.md`.
+
+## 2026-10-18 — Tarifs administrables, Gold lieu à 60 000 F (0079, non appliquée)
+
+- Décision fondateur : Gold lieu (`b2b_gold`) = 60 000 F CFA TTC par mois, prix final payé par le lieu ; SPAWT absorbe TVA et frais (avant : 65 000 HT, 76 700 TTC). Facture : 50 847 HT + 9 153 de TVA = 60 000.
+- `plans` devient la seule source des prix : l'équipe saisit le prix payé, la base dérive HT = round(TTC / 1,18) et TVA = TTC − HT (trigger, TVA fixe 18 %). Plus aucun montant dans les Edge Functions ni dans la console.
+- Console : page Tarifs (lecture staff, écriture admin par la RPC `admin_update_plan`, motif obligatoire, avant/après journalisés) ; la page Paiements lit le tarif attendu dans `plans`.
+- Checkout : plan lu en base, actif seulement, échec fermé ; HT et TTC figés sur l'abonnement. Webhook et validation manuelle facturent ces montants figés (facturé = encaissé).
+- Migration 0079 + down + test SQL autonome, exécutés sur un PostgreSQL 16 local reconstruit depuis 0001 (montée, descente à l'identique, remontée). **Non appliquée en production.**
+
+## 2026-10-18 — Firebase Android et publication automatique, build 35
+
+- Application Android `com.upgraders.spawt` enregistrée dans le projet existant `spawt-ci`, avec la signature de distribution actuelle.
+- Configuration client Firebase ajoutée au binaire ; contrôles du projet, du package et des ressources effectivement compilées.
+- Compte technique FCM dédié ; workflow de liaison Expo par identité Google temporaire. La clé privée reste hors dépôt et hors APK.
+- Build 35 compilé, signé et publié après recette native : cinq contrôles de démarrage/réouverture, animation et initialisation Firebase réussis. Validation Google sans envoi réel ; réception sur téléphone encore à vérifier.
+- Publication Android : contrôle de l’empreinte de l’asset puis mise à jour automatique du manifeste public, sans régression de numéro. Les boutons de la vitrine suivent ce manifeste avec repli local.
+
+## 2026-10-18 — liaison panel / app, build 34
+
+- Actualités, informations et promotions éditoriales : brouillon, publication, programmation, retrait et suppression depuis le panel ; lecture dans le fil mobile.
+- Liens directs Explore préservés pendant le chargement des fonctionnalités, indépendant du Guet.
+- Actualisation des fiches, avis éditoriaux et communautaires, carnets, événements et offres au retour dans l’app et sur changement serveur (sonde 30 s ; échéances à la minute).
+- Activité authentifiée : dernière présence au premier plan, version/build, état push et écritures du compte en attente, consultables par le staff.
+- Push : estimation serveur paginée, cible individuelle, filtre Gold fermé en cas d’erreur, réservation atomique/idempotente et historique avant envoi ; correction CORS. Acceptation Expo distincte de la réception.
+- Migrations 0077/0078 appliquées après sauvegarde. FCM Android non configuré dans les accès disponibles : aucune réception push mobile revendiquée.
+
+## 18 octobre 2026 — Fiches documentaires sans note
+
+- 145 nouveaux brouillons issus des missions, préparatifs, brunchs et recherches Drive, avec provenance et 147 rapprochements.
+- Brouillons enregistrables sans GPS ni prix inventés ; publication bloquée tant que les champs nécessaires manquent. Absence de note affichée « — ».
+- Aucun avis, visite ou changement des dix lieux publics.
+
+## 2026-10-18 — Mise en service de la rédaction et du corpus
+
+- Migration 0075 appliquée après sauvegarde PostgreSQL vérifiée. Import effectif de 31 492 références (31 sources), dont 129 enrichissements ; dix profils brouillons créés.
+- Dix avis éditoriaux publiés sous le compte staff Xtincell, trois carnets et sept entrées publiés. Trente avis fondateurs conservés ; l'inventaire public reste à dix lieux.
+- Admin déployé au commit c8ede0e : contexte racine partagé, Docker Node 22/nginx, mode statique Coolify désactivé. Cinq parcours navigateur authentifiés passent sans erreur API/JavaScript ; bundle public identique au build vérifié.
+- Commentaires mobiles : insertion, trois notes, lecture et modification testées sous droits propriétaire en transaction annulée. Aucun texte dans les trois spawts mobiles et les neuf contributions quiz existants ; recette de l'app installée encore distincte. Voir `documentation/MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`.
+
+## 2026-10-18 — Audit admin et accès aux textes
+
+- Complément Drive : base SQLite de 31 363 références, 129 enrichissements et rapports Missions 1/2 lus ; 44 fichiers du ZIP d'intégration identiques à la PR15. Circuits formulaire local/quiz/mobile/vitrine documentés ; quatre dépôts vérifiés et aucune branche locale non poussée dans les clones accessibles. Le Mac n'est pas monté. Voir `documentation/AUDIT_DRIVE_DEPOTS_2026-10-18.md`.
+
+- Vérification publique : 10 lieux, 30 textes fondateurs attribués à Alexandre et 2 avis communautaires sans texte ; objets éditoriaux 0075 absents du backend et du panel déployé.
+- Liste Lieux : compteur communautaire explicite et lien vers les avis du lieu, fondateurs inclus ; filtre correspondant dans Modération.
+- Dix textes éditoriaux sourcés préparés pour Xtincell, sans publication. Accès serveur absent : migration, déploiement et recette authentifiée restent ouverts. Voir `documentation/AUDIT_ADMIN_COMMENTAIRES_2026-10-18.md`.
+
+## 2026-10-17 — Recherche et espace éditorial (préparation build 32)
+
+Profils identitaires, notes internes éditables et avis de terrain ; corpus privé rapprochable, publication explicite et historique. Horaires/galerie éditables, ADN de référence recalculé atomiquement, carnets duo gérés sur serveur et lecteur mobile de rubriques. Migration 0075 testée localement ; serveur/admin non déployés, compilation Android à recevoir. Voir documentation/ESPACE_EDITORIAL_ET_RECHERCHE_2026-10-17.md.
+
+## 2026-10-13 — Contenu de prévalidation des mini-interfaces
+
+- En duo : deux aperçus illustrés « Un café à deux » et « Une table pour deux », explicitement non publiés, sans lieux attribués arbitrairement.
+- Les sélections : aperçus éditoriaux des maquettes si aucun carnet publié n’est accessible ; publications réelles prioritaires, flags et erreurs conservés.
+- Carte indisponible : fiches des spots réels avec photo, quartier et navigation, sans inventer de géographie.
+- TypeScript, vocabulaire, i18n, 1 055 tests mobile et export web vérifiés. Captures actualisées ; aucun APK ni écriture de production.
+
+## 2026-10-13 — Mini-interfaces Accueil (prévalidation, aucun APK)
+
+- Base build 29 `bd0b61f`, branche locale `codex/mini-interfaces-build29`.
+- Suggestions, Rapide, Les sélections, En duo et Les spots dans le cadre commun ; moteurs swipe/carnets/carte partagés, classement Suggestions conservé.
+- Carnets en liste verticale, duo vide explicite en attente de curation, erreurs/réessais et retours protégés ; texte agrandi sans troncature dans les accès et la navigation inférieure.
+- 1 054 tests mobile réussis, TypeScript/vocabulaire/i18n et export web réussis. Captures web réelles à 320/360/393 px ; carte native et accessibilité système restent à vérifier.
+- Aucun changement de flags ou données de production. Validation des captures obligatoire avant APK. Voir `documentation/PREVALIDATION_MINI_INTERFACES.md`.
+
+## Android 1.1.1 — build 29, La Bande (2026-10-13, préparation)
+
+- Fil communautaire réel : avis, notes détaillées, avatars Moka, photos officielles ou illustration explicite, coups de cœur et partage natif.
+- Lecture des auteurs via `spawters_public` : l’ancienne jointure sur les profils privés masquait les autres membres. Aucun élargissement des droits ni migration.
+- Filtres Tout/Avis/Coups de cœur, pagination chronologique, rechargement au retour et après publication, conservation du contenu en cas de panne et protection des requêtes concurrentes.
+- Filtres adaptatifs avec grand texte ; Crew temporaire secondaire. Tanière durable et abonnements réservés à la V2.
+- Accueil discret et tuiles illustrées inclus. Voir `documentation/ANDROID_1_1_1_BUILD29_BANDE.md`.
+
+## 2026-10-13 — Accueil compact et La Bande (revue, non publié)
+
+- Sélecteur discret Suggestions / Se poser / Découvrir / Sélections, quatre SVG dédiés et états actifs mobiles.
+- Carrousel éditorial indépendant du feed Palais ; carnets sur place, lecture sous flag avec chargement/erreur/vide/réessai.
+- Tuiles avec photos et illustration d’attente explicite, y compris en cas d’image défaillante.
+- La Bande garde son fil ; Crew secondaire replié, contextes duo/groupe sans nouvelle mécanique. Formulaire sans débordement.
+- Tests source et captures web : `documentation/ACCUEIL_BANDE_2026_10_13.md`. Pas de build natif, déploiement ou migration.
+
 # SPAWT — Changelog
 
 Toutes les modifications notables du repo. Format : Conventional Commits versionné par Sprint.
 
 ---
+
+## Réconcilier la source publiée avant la recette native 31 (2026-10-16)
+
+La préparation 29 du raccord de session est abandonnée : le build 29 avait déjà
+été publié et le build 30 compilé le 13 octobre depuis une lignée conservée par
+ses tags, sans branche à sa tête. La compilation 38897200580 est annulée ; elle
+n’a livré aucun APK. Le numéro de la branche d’audit (28) ne représentait donc
+pas la dernière application existante.
+
+Les trois commits menant à `3cc5e92` sont réintégrés avec leurs interfaces
+Accueil/La Bande/mini-interfaces, leurs tests, leurs assets et leurs preuves
+existantes. Le raccord de session partagé est conservé. La prochaine source
+passe au numéro natif 31, version applicative 1.1.1. Typage, vocabulaire,
+i18n, 1 075 tests mobile (quatre ignorés) et conformité passent sur cet ensemble.
+CI mobile/console verte sur `699d67d` (38898635497). APK31 compilé et signé
+sur la recette existante (38899084321) ; version, backend, CRC et signature
+contrôlés avant dépôt de l’artefact. La passe Android35 (38902277011) reçoit
+l’ouverture et le téléphone anonymes dans deux processus, avec cinq assertions,
+analyse vidéo réussie et deux captures examinées. Fichier complet reçu localement : taille, SHA-256 et CRC identiques ; `aapt`
+confirme le paquet/version/code31, `apksigner` confirme la signature et sa
+continuité avec le build29 publié. Session signée/AsyncStorage,
+clients historiques et appareil physique ne sont pas reçus. Aucune release31,
+OTA ou publication store livrée par cette passe.
+La recette existante refuse désormais un numéro déjà occupé par un autre tag
+et vérifie que la source préserve sa précédente compilation réussie. Un APK
+produit reste conservé comme diagnostic si sa réception ultérieure échoue ;
+seul un run entièrement réussi peut le qualifier.
+
+La recette ADB existante prépare aussi une passe `opening` sur cet APK exact :
+ouverture filmée, écran téléphone anonyme, arrêt du processus et réouverture.
+Cette passe n’envoie aucun OTP et n’utilise aucun compte ; elle ne reçoit pas
+la reprise de session signée ni AsyncStorage après changement de signature.
+Les anciennes recettes 27/29 restent attachées à leurs révisions historiques.
+
+## Préparation 29 abandonnée avant artefact (2026-10-16)
+
+La source passe au numéro natif 29 pour distinguer le prochain binaire contenant
+le raccord de session reçu sur SDK et console. Version applicative 1.1.1,
+backend, permissions et signature existants conservés. Les recettes 28/27
+restent des preuves historiques ; aucune compilation, réception sur appareil,
+OTA ou publication de cette version n’est déduite du seul numéro. Le journal
+des APK sera complété après réception de l’artefact réel.
+
+La recette Android locale existante sélectionne maintenant le descripteur de
+build : source exacte, numéro, date et dernière CI mobile/console verte. Elle
+conserve le profil EAS et la signature précédents, puis contrôle le paquet natif,
+le backend réellement embarqué, le CRC et l’empreinte avant dépôt de l’artefact.
+La source 29 a passé les deux jobs de CI ; le bundle Android Hermes compile.
+Les tests source utilisent leur environnement habituel ; les variables du profil
+distribuable restent réservées à la compilation. La persistance AsyncStorage
+après rotation fictive reste à recevoir sur le binaire natif.
+
+## Reprendre une session dont le jeton a été invalidé (2026-10-16)
+
+Après une rotation de signature, un jeton local peut sembler encore valable
+alors que le serveur le refuse. Le mobile et la console réutilisent désormais
+`auth.refreshSession()` du SDK pour reprendre une lecture d’identité ou une
+requête REST ainsi rejetée. Le raccord est partagé ; les stockages, comptes,
+permissions et règles métier existants restent les autorités.
+
+La reprise est limitée au jeton de la session courante et à un rejeu. Les appels
+simultanés partagent le renouvellement. Une déconnexion, un changement de compte,
+un refus de droits, une panne réseau ou une clé de passerelle inconnue ne sont
+pas convertis en accès. L’identité Auth est relue après libération du verrou SDK ;
+les transports Auth, Storage et Edge ne sont pas interceptés.
+
+Régression reproduite sur les SDK épinglés 2.105.1 et 2.106.0, puis correction
+éprouvée sur une copie isolée avec GoTrue, PostgREST et Kong réels : six scénarios
+identité/lectures simultanées/écriture, six renouvellements automatiques, deux
+écritures présentes chacune une seule fois et refus RLS conservés. Les six clients
+recréés reprennent les nouveaux jetons via un adaptateur mémoire de test. Les
+145 règles RLS sont identiques ; conteneurs et accès de test arrêtés.
+Validation locale sur checkout complet : typage, vocabulaire, i18n, 1 043 tests
+mobile (4 ignorés), 191 tests console, quatre gardes EAS et compilations web
+mobile/console réussis. CI distante encore à recevoir.
+
+Cette preuve SDK ne reçoit ni AsyncStorage sur appareil, ni localStorage en
+navigateur, ni l’APK publié, ni les sessions historiques. Storage, Realtime et Edge
+restent à recevoir avant une rotation réelle coordonnée. Aucun secret de production
+roté, aucune migration ni nouvelle permission ; aucun APK, OTA ou déploiement livré
+par ce lot. Le gestionnaire d’appels IA du Shinkiro reste celui de La Fusée.
+
+## Android 1.1.1 — Accueil et la bande (2026-10-12, build 28 compilé)
+
+- « Accueil » remplace « Feed » dans la navigation et les retours du mode Rapide.
+- « La bande » harmonise les 46 textes concernés : communauté, invitations,
+  badges, défis, héritage du quiz, bilans, suggestions et partage.
+- Les libellés accessibles et les secours de navigation utilisent le même catalogue.
+- « Ton Crew » reste un groupe sur invitation, distinct de la communauté.
+  Les routes, identifiants, codes et droits sont conservés.
+- TypeScript, vocabulaire, i18n, 1 023 tests mobile (4 ignorés), quatre tests
+  de configuration EAS et export web réussis ; 191 tests admin en CI réussis.
+- APK 28 compilé et signé ; version, empreinte, CRC et libellés du bundle
+  vérifiés après téléchargement. Recette native sur appareil encore à faire ;
+  les preuves du build 27 restent historiques.
+
+Voir `documentation/ANDROID_1_1_1_BUILD28_VOCABULAIRE.md`.
+
+## Android 1.1.1 — affichage, Moka et avis (2026-10-10)
+
+Le splash natif utilise le repère-carte du pack fourni « SPAWT fenêtre V2 »,
+sur fond blanc. Sur Android, ses tracés sont convertis en VectorDrawable et
+cadrés pour conserver la pointe entière dans le masque du splash système.
+Le PNG original reste copié à l’identique. L’ouverture reprend ensuite les
+images exactes de la vidéo fournie : surgissement, rebond, étoiles et clin d’œil.
+Deux textures PNG contiennent les 69 cadres, chargés avant le retrait du splash.
+Le mouvement se joue sur le thread UI avec Reanimated, dans 200 × 320 dp, sans
+rendu React par image ni décodeur vidéo. Une frame tardive ralentit la séquence
+pour préserver ses poses. Sa durée nominale de 1,15 seconde précède une sortie
+de 260 ms ; le passage tactile et la réduction des mouvements restent accessibles.
+La restauration du compte se poursuit derrière l’ouverture. Le retrait réel du
+splash attend le module Android SpawtOpening, deux frames natives puis React.
+Les erreurs de chargement et l’absence de fin ont un secours borné.
+La politique OTA `nativeVersion` isole les APK avec le nouveau module natif.
+Le contrôle vidéo exige le surgissement, le clin d’œil puis sa réouverture et
+l’absence de surface noire. Les lecteurs vidéo intermédiaires ont été refusés
+après inspection. Le build final 27 réussit la recette native : surgissement,
+œil fermé puis rouvert, aucune surface noire et restauration du compte.
+Les 31 contrôles photos/réseau réussissent et les captures sont inspectées.
+Les comptes et fichiers de recette sont supprimés par les fonctions auditées ;
+les deux démos fournies et les 30 avis fondateurs sont conservés.
+
+Les deux entrées « Spawt le ! » et Spawter créent ou reprennent la même visite
+avant d'ouvrir le formulaire avec le nom du lieu. Cuisine, cadre et service
+sont obligatoires dans le nouveau formulaire ; leur moyenne est affichée à
+une décimale, avec un entier compatible pour les anciennes APK. Les brouillons
+et photos survivent à la fermeture ; un upload refusé garde tout le brouillon.
+La file fusionne visite et avis et distingue publication distante et attente.
+Une mise à jour à zéro ligne n'est plus acquittée. Les avis se rafraîchissent
+après publication et reprise de la file.
+
+Les titres des cartes disposent de deux lignes, l'interlignage Klinsman est
+corrigé, les badges se replient et les boutons restent dans le flux au-dessus
+du clavier. Un avatar partagé cadre le visage de Moka ; les photos personnelles
+et les erreurs de chargement utilisent le même composant, y compris en Meute.
+Les uploads Android utilisent les octets Expo FileSystem.
+
+Migrations 0071–0074 déployées après sauvegarde et recette SQL annulée : notes
+détaillées, attribution publique des 30 avis fondateurs à Alexandre (profil
+mobile confirmé), accès signé aux seules photos d'avis visibles et réparation
+du journal de purge. Le propriétaire technique, les poids et les compteurs
+fondateurs restent conservés. Les jointures des anciennes APK restent valides.
+Les retours arrière sont fournis, avec protection de l'audit historique.
+
+La recette native a révélé puis corrigé le débordement de la carte profil avec
+le texte agrandi, le bouton couvert par le clavier Android et les pluriels
+absents de Hermes. Les libellés du formulaire et les onglets sont lisibles.
+La carte native calcule sa hauteur depuis la largeur mesurée, sans ratio qui
+élargit aussi la carte.
+Les en-têtes d’accueil/favoris se replient et les modes adaptent leur largeur
+au texte système pour garder les mots complets.
+Un échec d’envoi est immédiatement signalé par une alerte, même quand le
+message du formulaire se trouve hors de la zone visible.
+La file relance automatiquement un avis même si le réseau revient avant
+la fin de son délai de réessai.
+
+Contrôles source : 1 017 tests mobile et 191 tests admin réussis (4 mobile
+ignorés), TypeScript, vocabulaire, i18n et conformité réussis. La recette
+Android native et le lien du nouvel APK sont consignés dans RELEASES.md.
+
+## Audit avant recompilation et comptes démo alpha (2026-10-09)
+
+L’ouverture ne redémarre plus ses animations lors des rendus du layout et attend
+la restauration/navigation avant de révéler l’écran. Réduction des mouvements,
+secours des polices, échec de restauration et relais du splash natif sont traités.
+Les erreurs de lecture des lieux affichent une relance au lieu d’un faux vide ;
+une actualisation conserve le dernier résultat et ignore les réponses obsolètes.
+La reprise d’un compte récupère aussi historique et collection, avec isolation
+des sessions dans les caches, flags et progression.
+Le parcours connecté a aussi révélé puis corrigé un plantage du carrousel,
+un retour sans historique sur fiche et des boutons HTML imbriqués dans le profil.
+
+La console retrouve pagination, filtres cohérents, erreurs visibles et auth via
+`current_staff()`. La migration 0070 ajoute les profils `is_demo`, protégés côté
+serveur, et leur suppression admin auditée avec confirmation exacte du nom.
+Les titres suivent désormais la suppression du compte sans autoriser leur
+effacement direct. Deux démos sans avis public sont provisionnées sur l’alpha ;
+elles sont exclues des métriques de comptes. Script de création idempotent fourni.
+
+Les partages ouvrent les routes de l’app installée au lieu du domaine indisponible
+`spawt.ci`. La vérification EAS bloque aussi les réponses réseau indéterminées.
+Les modules Expo sont alignés sur SDK 55. Détails des contrôles et limites de
+recette : `documentation/AUDIT_AVANT_COMPILATION_2026-10-09.md`.
+Après validation de la CI, APK Android build 9 compilé et disponible le 9 octobre
+depuis `2e28acb` (liens dans `RELEASES.md`). Aucun IPA ni OTA publié ; recette sur
+téléphone encore à faire.
+
+## Reprendre le compte après connexion (2026-10-08)
+
+Après OTP, l’app relit le profil et le Palais par les RLS existantes. Un compte
+complet retrouve ses axes mûris, son stade, son rang et ses consentements sans
+upsert d’initialisation. Le lecteur utilisé seulement par l’accès de développement
+est factorisé avec le parcours normal ; ses identifiants et son opt-in restent
+strictement dans la voie `__DEV__`.
+
+Une absence confirmée ouvre l’inscription. Un profil sans premier Palais et sans
+progression reprend le formulaire prérempli ; la sauvegarde conserve sa date,
+son rang et ses consentements d’origine. Une relecture finale adopte un Palais
+apparu entre-temps sans le remplacer ni compter une seconde activation.
+Une panne de lecture reste distincte d’un compte absent : le bouton de reprise
+réutilise la session ouverte sans renvoyer l’OTP déjà consommé.
+
+Les réponses après déconnexion/changement de session sont rejetées. La publication
+locale sérialisée pose le profil après le Palais et les consentements ; une panne
+intermédiaire ne laisse pas l’ancien profil associé au nouveau Palais.
+Aucune migration, permission, table ni fonction serveur ajoutée.
+
+Cinq contre-exemples d’écran rouges avant correction. Tests source et CI qualifiés
+dans la réception Shinkiro ; les médias du checkout local sont simulés, l’export
+complet doit passer en CI. OTP réel, deux appareils, récupération de tout
+l’historique/collection, persistance durable du Palais et finalisations simultanées
+restent ouverts. Un compte déjà avancé dont le Palais manque exige une réparation,
+jamais une remise à zéro. Cette reprise ne reçoit pas le parcours entier.
+
+## Transmettre les réponses La Meute au Palais (2026-10-08)
+
+Le quiz et l’application utilisent les mêmes cinq axes. Le retour OTP conserve
+maintenant le vecteur complet, y compris Foule ↔ Secret porté par la sixième
+question. Un héritage complet rejoint directement la révélation ; « Revoir mes
+préférences » rouvre la calibration existante. Un héritage absent ou incomplet
+conserve le parcours habituel. Carte, analytics et première sauvegarde utilisent
+un calcul partagé ; conversion inverse exacte du moteur existant (÷2).
+
+La migration 0069 étend `claim_meute_heritage` sans nouveau schéma ni droit :
+preview sans création de profil, puis claim après profil et Palais. Le téléphone
+confirmé dans Auth remplace le téléphone public modifiable pour le propriétaire.
+Le chemin Edge service_role post-OTP reste compatible. Les profils déjà vivants
+ne voient pas leurs axes réinitialisés. Un choix explicite de recalibrer conserve
+le rang de pionnier et son nouvel archétype.
+
+Trois critères applicatifs et deux contre-exemples SQL rouges avant correction.
+Après : 878 tests source verts, quatre sauts et quatre snapshots, typage,
+vocabulaire et i18n verts. PostgreSQL local jetable : preview, isolation, numéro
+non confirmé, JSON invalide, idempotence et retour arrière/réapplication reçus.
+3 125 vecteurs vérifient la conversion sans perte. CI complète et déploiement
+restent à recevoir à ce point. Aucun OTP réel, consentement, GPS, EAS, OTA ou
+magasin. Ces contrôles ne valident pas scientifiquement la déduction du quiz,
+ne reconstituent pas une sixième réponse historique et ne reçoivent pas la
+reprise durable du Palais ni le cycle réel sur deux appareils.
+
+## Différer la télémétrie sans session (2026-10-08)
+
+L’entrée non connectée n’envoie plus un lot de signaux pour apprendre son absence
+de session par un refus 401. L’adaptateur vérifie la session existante, puis renvoie
+`false` sans insertion lorsqu’elle est absente, refusée ou sans identité. Le wrapper
+conserve son chemin local de persistance et de reprise à la connexion. Le compte lu
+est fixé sur les lignes envoyées ; une session remplacée ne doit pas les attribuer
+implicitement au nouveau compte. Les choix et textes de consentement restent intacts.
+
+Cinq critères rouges avant correction, sept contrôles verts après. Suite complète
+locale sans cache : 856 tests, quatre sauts et quatre snapshots ; typage, vocabulaire
+et i18n verts. Les médias restent simulés dans le checkout de sources, export complet
+attendu en CI. La première suite avait conservé un ancien transform Jest ; le même
+contrôle d’interopérabilité passe sans cache, sans retoucher l’adaptateur.
+
+La file analytics historique n’est toujours pas identifiée par compte ; concurrence,
+acquittement durable, reprise après relance et données illisibles restent à recevoir.
+Ce lot ne reçoit pas l’apprentissage du Palais ni un parcours authentifié.
+
+## Refus de sauvegarde du profil et du Palais (2026-10-08)
+
+Les deux écrivains Supabase remontent désormais une réponse d’erreur de la base,
+comme une panne réseau, au lieu de résoudre leur promesse comme si la sauvegarde
+avait été acceptée. La reprise existante du profil peut ainsi mettre l’action en
+file ; les callers du Palais peuvent détecter leur échec. Aucun schéma, règle
+métier, calcul d’axe ou appel réseau supplémentaire.
+
+Deux contre-exemples rouges avant correction, six contrôles du contrat après.
+Typage, vocabulaire et i18n verts ; suite locale source : 849 tests verts,
+quatre sauts conservés, quatre snapshots. Les médias absents du checkout partiel
+sont substitués uniquement dans Jest. CI 37711836611 reçue : 849 tests et export
+complet ; aperçu servi depuis cb26f04, bundle natif et public rapprochés.
+Ce lot ne corrige pas le rejeu d’avis, les écritures concurrentes de Palais ni sa
+reprise durable : les appels qui ne font qu’avertir restent à recevoir. La recette
+authentifiée, deux appareils et la distribution native restent ouvertes.
+
+## Imports différés du dispositif Jest (2026-10-08)
+
+L'adaptateur de test enveloppe aussi les modules CommonJS en namespace avec leur
+export par défaut, comme un import différé. Le mock officiel AsyncStorage pouvait
+sinon faire échouer un test avant d'atteindre la mutation étudiée. Un contre-exemple
+verrouille cette interopérabilité. Ce changement est réservé à Jest : le chemin
+Expo/Metro du binaire reste inchangé.
+
+## Continuité des favoris et de la session — réception Shinkiro (2026-10-07)
+
+Deux choix simultanés sont conservés. Cache et intentions non acquittées sont
+écrits ensemble dans le document existant `spawt:saved_places`, identifié par
+compte. Une lecture du serveur ne pousse plus automatiquement les anciens
+favoris absents : les suppressions faites sur un autre appareil sont respectées.
+Seuls les ajouts et retraits explicitement en attente sont repris au lancement,
+au retour réseau et au retour en avant-plan. Une réponse ancienne ne peut pas
+acquitter un choix contraire plus récent ; le réseau ne bloque pas les gestes locaux.
+Les erreurs renvoyées par Supabase ne sont plus assimilées à un succès.
+
+Un échec disque remonte aux trois écrans concernés. Une liste illisible reste
+intacte et affiche une erreur avec reprise dans Mes favoris ; les autres parcours
+restent disponibles. Les caches de compte et consentements sont aussi effacés à
+la déconnexion. Les retours tardifs de favoris, Gold, statut interne et archétype
+sont écartés après la sortie du compte.
+
+Limites : un ancien tableau de favoris ne distinguait pas cache et ajout hors
+ligne ; il reste lisible hors ligne mais ne constitue pas une preuve d'ajout à
+rejouer. La déconnexion conserve sa politique de purge locale explicite, y compris
+les favoris non synchronisés. La file des spawts, les autres mutations asynchrones,
+l'apprentissage du Palais et la recette avec deux comptes réels restent à recevoir.
+
+## Raccords de l’entrée — réception Shinkiro (2026-10-07)
+
+L’écran de consentement ouvre les pages existantes de confidentialité et de CGU
+sur le site actif `spawt.online`, à la place des deux liens `spawt.ci` dont le
+domaine ne résout pas lors de la vérification. Les textes et les décisions de
+consentement sont conservés. Les mentions de validation juridique dans les pages
+restent ouvertes ; rendre le document consultable ne constitue pas son approbation.
+
+
+## Reprise hors ligne — réception Shinkiro (2026-10-07)
+
+Deux actions simultanées et les ajouts pendant un envoi pouvaient s'écraser.
+La file locale sérialise désormais ses écritures et acquitte chaque entrée par
+une identité persistée avant l'envoi ; elle relit le disque au retour du réseau.
+Les déclencheurs simultanés partagent le même envoi. Une purge explicite ne peut
+plus être annulée par une réponse tardive.
+
+Une erreur de stockage remonte au caller. Une file illisible reste intacte et
+l'inspecteur affiche l'échec au lieu de « Tout est synchronisé ». Au plafond de
+200 entrées, le nouvel ajout est refusé sans supprimer les actions déjà acceptées.
+Les actions ne sont plus effacées après cinq tentatives : le délai de reprise
+reste plafonné à 60 secondes. Les anciennes entrées sont migrées à la lecture,
+sans changement de clé de stockage.
+
+Huit contre-exemples reproduits avant correction ; neuf tests de régression ajoutés,
+dont le rendu de l'erreur de lecture. CI indépendante des builds EAS pour les gates
+et l'export web. La livraison native, l'isolation de la file entre comptes et la
+remontée des erreurs des callers restent à recevoir séparément.
+
+La déclaration de la fiche lieu dans le Stack utilise aussi son nom de route
+réel `place/[id]/index` : l'ancien nom désignait une route inexistante et
+produisait un avertissement à chaque rendu observé de l'aperçu web.
 
 ## Corrections boucle adversariale (2026-07-26)
 
@@ -696,3 +1167,8 @@ Toujours pending (process humain). **Statut story 2.3a : reste `review`** — l'
 - *Stéphanie* : tokens en source unique ✓ — TypeScript strict ✓ — i18n setup ✓ — lint scripts ✓
 - *Kidam* : taxonomie events à venir (Claude amendment 5.1) — funnel onboarding scaffolded
 - *Alexandre* : voix du Chat par stade dans `fr.json` ✓ — vocabulaire SPAWT strict ✓ — audit anti-leaderboard ✓
+
+### Édition exploration — 17 octobre 2026
+- Trois carnets éditoriaux préparés, couvertures dessinées avec titres et publication SQL protégée contre l’écrasement.
+- Import recherche : conserve cuisines, liens de menus et dates de modification sourcés, sans photos ni verbatim externes.
+- Build 32 compilé et recette native de démarrage réussie ; backend/admin éditorial toujours non déployés.

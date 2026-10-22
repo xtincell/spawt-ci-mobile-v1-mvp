@@ -14,9 +14,14 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- Plans Sprint 1 — Gold (Premium SPAWT). Pricing PRD §11.
--- ⚠️ Prix annuel : 25 000 F HT (PRD §11.2, « prix annuel corrigé : 25 000,
+-- ⚠️ Depuis la migration 0079, les prix vivent dans `plans.price_ttc` (prix
+-- payé, administré depuis la page Tarifs de la console) ; HT et TVA en sont
+-- dérivés. Les HT ci-dessous ne servent qu'à amorcer une base neuve : 0063
+-- puis 0079 posent ensuite les prix réels, et un seed rejoué après 0079 ne
+-- modifie rien (ON CONFLICT DO NOTHING ; le trigger 0079 reconstitue le prix
+-- payé d'une ligne insérée avec son seul HT).
+-- Prix annuel : 25 000 F HT (PRD §11.2, « prix annuel corrigé : 25 000,
 -- 2 mois offerts ») — l'ancien 22 000 était un reliquat pré-arbitrage.
--- Source de vérité runtime du checkout : _shared/payment/types.ts (alignés).
 -- L'UPDATE rattrape les bases déjà seedées (le ON CONFLICT DO NOTHING
 -- n'aurait jamais corrigé une ligne existante).
 INSERT INTO public.plans (code, label, price_ht, currency_code, country_code, period, is_active)
@@ -29,11 +34,11 @@ UPDATE public.plans SET price_ht = 25000
 WHERE code = 'gold_annual' AND price_ht = 22000;
 
 -- Plans B2B (lieux) — Sprint 2 : souscription en ligne via le portail /pro.
--- Prix PRD (HT, convention d'affichage B2B : HT + TVA 18 % en sus) :
---   pro      : 15 000 F HT/mois → 17 700 TTC
---   b2b_gold : 65 000 F HT/mois → 76 700 TTC
--- Codes alignés sur le CHECK subscriptions.plan (0032) et sur
--- _shared/payment/types.ts (B2B_PLAN_PRICING, source de vérité runtime).
+-- HT d'amorçage (historiques) : pro 15 000, b2b_gold 65 000. Prix en vigueur
+-- après 0079 : pro 17 700 F payés, Gold lieu 60 000 F payés, prix final
+-- (décision du 18/10/2026) — puis ceux de la page Tarifs.
+-- Codes alignés sur le CHECK subscriptions.plan (0032) et sur les codes de
+-- _shared/payment/types.ts (PaidPlan), qui ne porte plus aucun montant.
 INSERT INTO public.plans (code, label, price_ht, currency_code, country_code, period, is_active)
 VALUES
   ('pro',      'Spawt Pro — lieu',  15000, 'XOF', 'CI', 'monthly', true),

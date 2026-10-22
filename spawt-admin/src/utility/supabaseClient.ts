@@ -3,9 +3,20 @@
 // Toute opération privilégiée passe par une Edge Function.
 
 import { createClient } from "@supabase/supabase-js";
+import { createSupabaseSessionRecovery, type SessionAuth } from "../../../shared/supabase-session";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
+
+function isHttpUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Configuration absente = console inutilisable, mais **pas** écran blanc.
@@ -24,12 +35,18 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | und
 export const supabaseConfigError: string | null =
   !SUPABASE_URL || !SUPABASE_ANON_KEY
     ? "Configuration manquante : VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY doivent être posées AU MOMENT DU BUILD (Vite les fige dans le bundle — un simple redéploiement ne suffit pas). Voir spawt-admin/.env.example."
-    : null;
+    : !isHttpUrl(SUPABASE_URL)
+      ? "Configuration invalide : VITE_SUPABASE_URL doit être une adresse HTTP ou HTTPS valide. Corrigez la variable puis reconstruisez la console."
+      : null;
+
+const clientUrl = supabaseConfigError ? "https://configuration-manquante.invalid" : SUPABASE_URL!;
+const recovery = createSupabaseSessionRecovery(clientUrl, () => sessionAuth);
 
 export const supabaseClient = createClient(
-  SUPABASE_URL ?? "https://configuration-manquante.invalid",
-  SUPABASE_ANON_KEY ?? "cle-anon-manquante",
+  clientUrl,
+  supabaseConfigError ? "cle-anon-manquante" : SUPABASE_ANON_KEY!,
   {
+    global: { fetch: recovery.fetch },
     auth: {
       persistSession: true,
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
@@ -37,3 +54,5 @@ export const supabaseClient = createClient(
     },
   },
 );
+const sessionAuth: SessionAuth = supabaseClient.auth;
+export const getAuthenticatedStaff = () => recovery.getUser(() => supabaseClient.auth.getUser());

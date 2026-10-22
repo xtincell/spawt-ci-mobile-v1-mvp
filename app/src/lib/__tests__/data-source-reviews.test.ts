@@ -156,10 +156,9 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
     expect(out[0]?.id).toBe("r-ok");
   });
 
-  it("retourne [] si Supabase remonte une erreur", async () => {
+  it("signale l’erreur réseau au lieu de simuler une liste vide", async () => {
     mockResponse = { data: null, error: { message: "boom" } };
-    const out = await listReviewsForPlaceFromSupabase("place-1", 5);
-    expect(out).toEqual([]);
+    await expect(listReviewsForPlaceFromSupabase("place-1", 5)).rejects.toThrow();
   });
 
   it("retourne [] si data null sans erreur", async () => {
@@ -183,7 +182,7 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
     // 2 orders : note_etoiles desc puis created_at desc.
     const orders = mockCalls.filter((c) => c.kind === "order");
     expect(orders).toHaveLength(2);
-    expect(orders[0]?.args[0]).toBe("note_etoiles");
+    expect(orders[0]?.args[0]).toBe("note_globale");
     expect(orders[1]?.args[0]).toBe("created_at");
     // limit transmis intact.
     const limit = mockCalls.find((c) => c.kind === "limit");

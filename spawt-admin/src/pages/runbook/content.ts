@@ -28,6 +28,38 @@ export interface RunbookSection {
 
 export const RUNBOOK: RunbookSection[] = [
   {
+    id: "catalogue-et-contributions",
+    titre: "Publier un lieu et recevoir les contributions",
+    resume: "Une fiche publique, l’exploration de chacun, puis des informations vérifiées par l’équipe.",
+    blocs: [
+      { type: "p", texte: "Publier une fiche la rend découvrable. Cela ne crée ni visite, ni avis, ni note pour un spawter. Gardez les prix et coordonnées inconnus vides : l’app les affiche comme à préciser. Un lieu sans coordonnées reste dans la liste, sans repère fictif sur la carte." },
+      { type: "liste", lignes: [
+        "Dans l’app à jour : ouvrir une fiche puis Compléter ce lieu. Le spawter peut photographier le menu et proposer un budget, ou relever ponctuellement sa position sur place.",
+        "Dans Contributions aux lieux : ouvrir les preuves privées, comparer aux informations actuelles et vérifier le lieu, la date du menu, sa lisibilité et les montants. Une précision GPS annoncée ne suffit pas à prouver que le relevé correspond au bon lieu.",
+        "Valider : choisir les valeurs retenues. La fiche et les Paws sont enregistrés ensemble, une seule fois. Si la fiche a changé pendant l’examen, recharger et comparer à nouveau.",
+        "Ne pas retenir : expliquer le motif au spawter. Les preuves restent privées et aucune récompense n’est attribuée.",
+        "Le spawter retrouve le statut, le message de l’équipe et les Paws dans Mes contributions à ce lieu ; son solde figure dans Progression.",
+      ] },
+      { type: "p", texte: "Le barème actuel figure en bas de Contributions aux lieux. Un admin peut le modifier avec un motif ; l’historique conserve les changements. Chaque dépôt garde la récompense annoncée à ce moment-là. Une contribution ne remplace jamais la visite personnelle ni la note SPAWT." },
+      { type: "alerte", texte: "Une photo de menu validée devient visible sur la fiche publique. Écarter les visages, données personnelles et documents sans rapport avec le lieu. Les coordonnées importées de la documentation peuvent être approximatives : les confronter aux relevés de terrain." },
+    ],
+  },
+  {
+    id: "controles-et-retours",
+    titre: "Vérifier les données et répondre aux retours",
+    resume: "Des lectures réelles de la base, dans le navigateur et dans l’app.",
+    blocs: [
+      { type: "liste", lignes: [
+        "spawt.online/statut contrôle les lieux, avis éditoriaux, carnets, actualités et révisions des contenus. Une panne est affichée comme indisponible ; elle ne vaut pas zéro contenu.",
+        "spawt.online/carte lit le catalogue publié. Les fiches sans position connue restent accessibles dans la liste.",
+        "App → Paramètres → Aide et retours : version, contrôles partageables, message privé et réponse de l’équipe. Installer la nouvelle APK par-dessus l’ancienne pour conserver les données locales en attente.",
+        "Panel → Retours de l’app : traiter le message et enregistrer une réponse. Seuls son auteur et l’équipe la voient. Une réponse enregistrée ne déclenche pas une campagne push.",
+        "Panel → Activité dans l’app : présence récente, version et envois en attente. Une activité récente ne prouve pas une connexion permanente ni la réception d’un push.",
+      ] },
+      { type: "p", texte: "Le téléchargement officiel suit uniquement les APK publiés après vérification. Une compilation en cours ou annulée ne change pas le bouton. Les preuves natives sont jointes à la release ; l’essai sur un téléphone physique reste distinct." },
+    ],
+  },
+  {
     id: "carte",
     titre: "La carte des lieux (au sens infrastructure)",
     resume: "Quatre dépôts, cinq URL, une seule base.",
@@ -47,9 +79,9 @@ export const RUNBOOK: RunbookSection[] = [
         lignes: [
           "api.spawt.online — le backend (Kong du stack Supabase self-hosted).",
           "admin.spawt.online — cette console.",
-          "portail.spawt.online — le portail, derrière le rideau d'avant-lancement.",
+          "portail.spawt.online — la vitrine publique, également servie sur spawt.online.",
           "quiz.spawt.online — le quiz.",
-          "spawt.online — la page « Bientôt » publique.",
+          "spawt.online — la vitrine, le téléchargement Android et les contrôles publics /statut et /carte.",
         ],
       },
       {
@@ -197,10 +229,42 @@ export const RUNBOOK: RunbookSection[] = [
       {
         type: "alerte",
         texte:
-          "Le tarif existe à deux endroits : la table plans (validation manuelle) et " +
-          "_shared/payment/types.ts (checkout CinetPay). Ils DOIVENT concorder — sinon le " +
-          "même abonnement est facturé à deux prix selon le canal. Ils ont divergé une " +
-          "fois de 3 000 F sur l'annuel.",
+          "Le tarif n'existe qu'à un endroit : la table plans (migration 0079). Le checkout " +
+          "CinetPay, la validation manuelle et cette console la lisent ; aucun montant " +
+          "n'est écrit dans le code. Avant 0079, le prix vivait aussi dans " +
+          "_shared/payment/types.ts et les deux copies avaient divergé de 3 000 F sur " +
+          "l'annuel — d'où la source unique.",
+      },
+    ],
+  },
+  {
+    id: "tarifs",
+    titre: "Changer un prix",
+    resume: "Page Tarifs, admin seulement. On saisit le prix payé ; HT et TVA suivent.",
+    blocs: [
+      {
+        type: "liste",
+        lignes: [
+          "Ouvrir Tarifs (admin) et saisir le prix PAYÉ par le client : TTC, en F CFA entiers.",
+          "La base dérive HT = round(TTC / 1,18) et TVA = TTC − HT ; la TVA reste fixe à 18 %.",
+          "Enregistrer : la confirmation montre l'avant/après, un motif est obligatoire.",
+          "Le changement et son motif sont journalisés (admin_audit_log, plan_update).",
+          "Désactiver un plan arrête sa vente : plus de checkout ni de validation manuelle.",
+        ],
+      },
+      {
+        type: "p",
+        texte:
+          "Un nouveau prix vaut pour les nouveaux paiements. Les factures émises gardent " +
+          "leur montant, et un paiement déjà lancé est facturé au prix figé sur son " +
+          "abonnement au moment du checkout : montant facturé = montant encaissé.",
+      },
+      {
+        type: "alerte",
+        texte:
+          "Ne jamais modifier plans par SQL pour changer un prix : le changement ne serait " +
+          "pas journalisé. Et saisir le TTC, pas le HT : certains prix payés n'ont aucun " +
+          "HT entier (50 847 HT donnent 59 999 F, 50 848 donnent 60 001 — jamais 60 000).",
       },
     ],
   },
@@ -331,10 +395,10 @@ export const RUNBOOK: RunbookSection[] = [
       {
         type: "liste",
         lignes: [
-          "Termii — crédits SMS. Sans clé, l'OTP échoue en fermé (pas de code universel).",
+          "SMS réels — configurer les accès et crédits Termii puis désactiver le mode de recette avant l’ouverture de l’authentification au public.",
           "Coordonnées de versement — numéros Wave / Orange / MoMo à renseigner.",
           "Apple Developer (99 $/an) et Google Play Console (25 $) pour publier.",
-          "Firebase — google-services.json pour les notifications Android.",
+          "Notifications Android — configuration Firebase/FCM reçue ; vérifier la réception d’un push sur un téléphone physique.",
           "Juriste — valider CGU, CGV et confidentialité (loi 2013-450, ARTCI).",
           "GPS des lieux — relever les points sur le terrain avant d'activer Le Guet.",
         ],

@@ -2,7 +2,7 @@
   "expo": {
     "name": "SPAWT",
     "slug": "spawt-mobile-ci",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "spawt",
@@ -12,12 +12,11 @@
       "web"
     ],
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "assetBundlePatterns": [
       "**/*"
     ],
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "nativeVersion"
     },
     "updates": {
       "enabled": true,
@@ -28,7 +27,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.upgraders.spawt",
-      "buildNumber": "8",
+      "buildNumber": "41",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -41,7 +40,8 @@
     },
     "android": {
       "package": "com.upgraders.spawt",
-      "versionCode": 8,
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 41,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -51,7 +51,32 @@
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES"
+      ],
+      "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "spawt.online",
+              "pathPrefix": "/lieu/"
+            },
+            {
+              "scheme": "https",
+              "host": "spawt.online",
+              "pathPrefix": "/liste/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ]
     },
     "plugins": [
@@ -62,17 +87,25 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Pour détecter tes spawts en arrière-plan."
+          "locationAlwaysAndWhenInUsePermission": "Pour te proposer les lieux proches, même quand SPAWT est fermé. Une proximité ne crée jamais de visite.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": false
         }
       ],
       "@react-native-community/datetimepicker",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 240,
+          "image": "./assets/brand/window-repere.png",
+          "imageWidth": 285,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF"
+          "backgroundColor": "#FFFFFF",
+          "android": {
+            "drawable": {
+              "icon": "./assets/brand/window-repere.android.xml"
+            }
+          }
         }
       ],
       [
@@ -83,7 +116,14 @@
         }
       ],
       "@maplibre/maplibre-react-native",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pour choisir ta photo de profil dans ta galerie.",
+          "cameraPermission": "Pour prendre ta photo de profil."
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"
@@ -98,8 +138,12 @@
       "eas": {
         "projectId": "15ac2301-e901-4caa-a8c8-864c6621bcd0"
       },
-      "buildDate": ""
+      "buildDate": "2026-10-19"
     },
-    "owner": "xtincell"
+    "owner": "xtincell",
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#FFFFFF"
+    }
   }
 }

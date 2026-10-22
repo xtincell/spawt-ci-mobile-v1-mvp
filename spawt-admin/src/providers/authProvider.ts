@@ -1,7 +1,5 @@
-// Story 6.1 — authProvider Refine custom branché sur spawt_staff.
-// Défense en profondeur : la RLS `spawt_staff_select_own` (migration 0001) bloque
-// déjà la lecture à un non-staff — la double vérification (`.maybeSingle()` + signout)
-// est défense en profondeur côté UX (message clair plutôt que page vide).
+// Identité staff fournie par la RPC current_staff() (0062).
+// Elle ne renvoie que le compte actif de la session, quel que soit son rôle.
 
 import type { AuthProvider } from "@refinedev/core";
 import { supabaseClient } from "../utility/supabaseClient";
@@ -10,14 +8,16 @@ import { logAuditAction } from "../lib/audit";
 interface StaffRow {
   id: string;
   role: "admin" | "moderator" | "operator";
-  is_active: boolean;
   display_name: string;
-  email: string;
 }
 
 interface LoginParams {
   email: string;
   password: string;
+}
+
+function currentStaff() {
+  return supabaseClient.rpc("current_staff").maybeSingle<StaffRow>();
 }
 
 export const authProvider: AuthProvider = {
@@ -36,12 +36,14 @@ export const authProvider: AuthProvider = {
       };
     }
 
-    const { data: staff } = await supabaseClient
-      .from("spawt_staff")
-      .select("id, role, is_active, display_name, email")
-      .eq("id", data.session.user.id)
-      .eq("is_active", true)
-      .maybeSingle<StaffRow>();
+    const { data: staff, error: staffError } = await currentStaff();
+    if (staffError) {
+      await supabaseClient.auth.signOut();
+      return {
+        success: false,
+        error: { name: "StaffLookupError", message: `Vérification de l'accès impossible : ${staffError.message}` },
+      };
+    }
 
     if (!staff) {
       await supabaseClient.auth.signOut();
@@ -54,7 +56,15 @@ export const authProvider: AuthProvider = {
       };
     }
 
-    await logAuditAction({ action: "login", entity_type: "session" });
+    try {
+      await logAuditAction({ action: "login", entity_type: "session" });
+    } catch {
+      await supabaseClient.auth.signOut();
+      return {
+        success: false,
+        error: { name: "AuditError", message: "La connexion n'a pas pu être journalisée. Réessaie dans un instant." },
+      };
+    }
 
     return { success: true, redirectTo: "/lieux" };
   },
@@ -69,12 +79,12 @@ export const authProvider: AuthProvider = {
     if (!data.session) {
       return { authenticated: false, redirectTo: "/login" };
     }
-    const { data: staff } = await supabaseClient
-      .from("spawt_staff")
-      .select("id, is_active")
-      .eq("id", data.session.user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+    const { data: staff, error: staffError } = await currentStaff();
+    if (staffError) {
+      // Une panne réseau ne révoque pas la session. L'accès reste fermé et
+      // pourra être vérifié de nouveau sans supprimer le jeton local.
+      return { authenticated: false, redirectTo: "/login", error: staffError };
+    }
     if (!staff) {
       await supabaseClient.auth.signOut();
       return { authenticated: false, redirectTo: "/login" };
@@ -85,26 +95,18 @@ export const authProvider: AuthProvider = {
   getPermissions: async () => {
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) return null;
-    const { data: staff } = await supabaseClient
-      .from("spawt_staff")
-      .select("role")
-      .eq("id", data.session.user.id)
-      .maybeSingle<{ role: StaffRow["role"] }>();
+    const { data: staff } = await currentStaff();
     return staff?.role ?? null;
   },
 
   getIdentity: async () => {
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) return null;
-    const { data: staff } = await supabaseClient
-      .from("spawt_staff")
-      .select("id, email, display_name, role")
-      .eq("id", data.session.user.id)
-      .maybeSingle<StaffRow>();
+    const { data: staff } = await currentStaff();
     if (!staff) return null;
     return {
       id: staff.id,
-      email: staff.email,
+      email: data.session.user.email,
       display_name: staff.display_name,
       role: staff.role,
     };

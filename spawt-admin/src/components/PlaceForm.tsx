@@ -20,6 +20,7 @@ import { useCreate, useDelete, useOne, useUpdate } from "@refinedev/core";
 import { PlaceFormSchema, PlaceAdnFormSchema, type PlaceForm as PlaceFormValues } from "../types/place.schema";
 import { logAuditActionBestEffort } from "../lib/audit";
 import { uploadPlacePhoto } from "../lib/storage";
+import { supabaseClient } from "../utility/supabaseClient";
 
 export const ABIDJAN_NEIGHBORHOODS = [
   "Cocody", "Plateau", "Marcory", "Treichville", "Yopougon", "Abobo",
@@ -46,8 +47,8 @@ interface Props {
 const emptyForm: PlaceFormValues = {
   name: "",
   cuisine: [],
-  location: { lat: 5.35, lng: -3.97, descriptive_address: "", neighborhood: "Cocody", city: "Abidjan" },
-  price: { tier: 2, avg_ticket_xof: null },
+  location: { lat: null, lng: null, descriptive_address: "", neighborhood: "", city: "Abidjan" },
+  price: { tier: null, avg_ticket_xof: null },
   hours: {},
   phone: null,
   whatsapp: null,
@@ -77,16 +78,16 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
   const existingData = existingQuery.data;
   const loadingExisting = existingQuery.isLoading;
   const { mutateAsync: createPlace } = useCreate();
-  const { mutateAsync: updatePlace } = useUpdate();
   const { mutateAsync: deletePlace } = useDelete();
   const [submitting, setSubmitting] = useState(false);
   const { mutateAsync: createPlaceAdn } = useCreate();
-  const { mutateAsync: updatePlaceAdn } = useUpdate();
   const [uploadError, setUploadError] = useState<string | null>(null);
   // CR m7 — useEffect re-sync re-écrase les valeurs en cours d'édition à
   // chaque refetch. On gate avec useRef pour ne sync qu'au premier load réussi
   // (sinon l'utilisateur perd ses changements unsaved à la prochaine query).
   const hydratedOnce = useRef(false);
+  const loadedVersions = useRef<{ place: unknown; adn: unknown }>({ place: null, adn: null });
+  const submitLock = useRef(false);
 
   const { mutateAsync: updateSuggestion } = useUpdate();
 
@@ -105,6 +106,7 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
   // Miroir texte du champ menu_urls (une URL par ligne) — évite que le
   // roundtrip join/split avale la ligne vide en cours de saisie.
   const [menuUrlsText, setMenuUrlsText] = useState("");
+  const [galleryUrlsText, setGalleryUrlsText] = useState("");
   const [adn, setAdn] = useState({
     axe_local_international: 0,
     axe_informel_etabli: 0,
@@ -120,20 +122,21 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
       const row = existingData.data as Record<string, unknown> & {
         place_adn?: typeof adn | null;
       };
+      loadedVersions.current = { place: row.updated_at, adn: (row.place_adn as Record<string, unknown> | null)?.updated_at };
       // Re-pivot DB flat → form nested.
       setValues({
         ...emptyForm,
         name: (row.name as string) ?? "",
         cuisine: (row.cuisine as string[]) ?? [],
         location: {
-          lat: (row.lat as number) ?? 0,
-          lng: (row.lng as number) ?? 0,
+          lat: (row.lat as number | null) ?? null,
+          lng: (row.lng as number | null) ?? null,
           descriptive_address: (row.descriptive_address as string) ?? "",
-          neighborhood: (row.neighborhood as string) ?? "Cocody",
-          city: (row.city as string) ?? "Abidjan",
+          neighborhood: (row.neighborhood as string) ?? "",
+          city: (row.city as string) ?? "",
         },
         price: {
-          tier: ((row.price_tier as 1 | 2 | 3) ?? 2),
+          tier: (row.price_tier as 1 | 2 | 3 | null) ?? null,
           avg_ticket_xof: (row.avg_ticket_xof as number) ?? null,
         },
         hours: (row.hours as PlaceFormValues["hours"]) ?? {},
@@ -146,14 +149,15 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
         is_published: Boolean(row.is_published),
       });
       setMenuUrlsText(((row.menu_urls as string[]) ?? []).join("\n"));
+      setGalleryUrlsText(((row.gallery_urls as string[]) ?? []).join("\n"));
       if (row.place_adn) {
         const pa = row.place_adn as Record<string, unknown>;
         setAdn({
-          axe_local_international: Number(pa.axe_local_international ?? 0),
-          axe_informel_etabli: Number(pa.axe_informel_etabli ?? 0),
-          axe_budget_premium: Number(pa.axe_budget_premium ?? 0),
-          axe_populaire_prive: Number(pa.axe_populaire_prive ?? 0),
-          axe_decontracte_habille: Number(pa.axe_decontracte_habille ?? 0),
+          axe_local_international: Number(pa.base_axe_local_international ?? pa.axe_local_international ?? 0),
+          axe_informel_etabli: Number(pa.base_axe_informel_etabli ?? pa.axe_informel_etabli ?? 0),
+          axe_budget_premium: Number(pa.base_axe_budget_premium ?? pa.axe_budget_premium ?? 0),
+          axe_populaire_prive: Number(pa.base_axe_populaire_prive ?? pa.axe_populaire_prive ?? 0),
+          axe_decontracte_habille: Number(pa.base_axe_decontracte_habille ?? pa.axe_decontracte_habille ?? 0),
         });
       }
     }
@@ -163,6 +167,7 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (submitLock.current) return;
     setErrors([]);
     const parsed = PlaceFormSchema.safeParse(values);
     if (!parsed.success) {
@@ -195,6 +200,7 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
       is_published: parsed.data.is_published,
     };
 
+    submitLock.current = true;
     setSubmitting(true);
     try {
       if (mode === "create") {
@@ -206,7 +212,7 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
         try {
           await createPlaceAdn({
             resource: "place_adn",
-            values: { place_id: placeId, ...parsedAdn.data, total_reviews: 0, confidence_score: 0, weighted_rating: 0 },
+            values: { place_id: placeId, ...parsedAdn.data, ...Object.fromEntries(Object.entries(parsedAdn.data).map(([key, value]) => [`base_${key}`, value])), total_reviews: 0, confidence_score: 0, weighted_rating: 0 },
           });
         } catch (adnErr) {
           // Rollback explicite du place pour éviter l'orphan.
@@ -255,12 +261,14 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
         }
         navigate("/lieux");
       } else if (id) {
-        await updatePlace({ resource: "places", id, values: dbRow });
-        await updatePlaceAdn({
-          resource: "place_adn",
-          id,
-          values: parsedAdn.data,
+        const adnResult = await supabaseClient.rpc("save_place_with_editorial_adn", {
+          p_fields: dbRow,
+          p_expected_place_updated_at: loadedVersions.current.place,
+          p_place_id: id,
+          p_axes: parsedAdn.data,
+          p_expected_adn_updated_at: loadedVersions.current.adn,
         });
+        if (adnResult.error) throw new Error(`Aucune modification enregistrée : ${adnResult.error.message}. Recharge la fiche avant de reprendre.`);
         await logAuditActionBestEffort({
           action: "place_update",
           entity_type: "place",
@@ -281,7 +289,8 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
       const msg = err instanceof Error ? err.message : String(err);
       setErrors((prev) => [...prev, msg]);
     } finally {
-      setSubmitting(false);
+      submitLock.current = false;
+    setSubmitting(false);
     }
   }
 
@@ -317,6 +326,7 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
   return (
     <form onSubmit={onSubmit} style={{ display: "grid", gap: 16, maxWidth: 720 }}>
       <h1>{mode === "create" ? "Nouveau lieu" : "Édition lieu"}</h1>
+      <p>Une fiche publique rend le lieu accessible à l’exploration, sans créer de visite ni de note. Le nom et la ville sont requis ; laisse le prix et les coordonnées inconnus vides. Sans coordonnées, le lieu apparaît en liste.</p>
       {suggestionId ? (
         <p style={{ background: "var(--bg-warm)", padding: 10, borderRadius: 6, fontSize: 13 }}>
           ⓘ Approbation d&apos;une suggestion de la Meute : le formulaire est pré-rempli.
@@ -356,12 +366,12 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
       <fieldset>
         <legend>Localisation</legend>
         <label>Latitude
-          <input type="number" step="0.000001" value={values.location.lat}
-            onChange={(e) => setValues({ ...values, location: { ...values.location, lat: Number(e.target.value) } })} />
+          <input type="number" step="any" value={values.location.lat ?? ""}
+            onChange={(e) => setValues({ ...values, location: { ...values.location, lat: e.target.value === "" ? null : Number(e.target.value) } })} />
         </label>
         <label>Longitude
-          <input type="number" step="0.000001" value={values.location.lng}
-            onChange={(e) => setValues({ ...values, location: { ...values.location, lng: Number(e.target.value) } })} />
+          <input type="number" step="any" value={values.location.lng ?? ""}
+            onChange={(e) => setValues({ ...values, location: { ...values.location, lng: e.target.value === "" ? null : Number(e.target.value) } })} />
         </label>
         <label>Adresse descriptive
           <input value={values.location.descriptive_address}
@@ -371,16 +381,22 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
         <label>Quartier
           <select value={values.location.neighborhood}
             onChange={(e) => setValues({ ...values, location: { ...values.location, neighborhood: e.target.value } })}>
+            <option value="">Non renseigné</option>
+            {values.location.neighborhood && !ABIDJAN_NEIGHBORHOODS.includes(values.location.neighborhood) && <option value={values.location.neighborhood}>{values.location.neighborhood}</option>}
             {ABIDJAN_NEIGHBORHOODS.map((n) => (<option key={n} value={n}>{n}</option>))}
           </select>
+        </label>
+        <label>Ville
+          <input value={values.location.city} onChange={(e) => setValues({ ...values, location: { ...values.location, city: e.target.value } })} />
         </label>
       </fieldset>
 
       <fieldset>
         <legend>Tarification</legend>
         <label>Tier
-          <select value={values.price.tier}
-            onChange={(e) => setValues({ ...values, price: { ...values.price, tier: Number(e.target.value) as 1 | 2 | 3 } })}>
+          <select value={values.price.tier ?? ""}
+            onChange={(e) => setValues({ ...values, price: { ...values.price, tier: e.target.value === "" ? null : Number(e.target.value) as 1 | 2 | 3 } })}>
+            <option value="">Non renseignée</option>
             <option value={1}>1 — Économique</option>
             <option value={2}>2 — Moyen</option>
             <option value={3}>3 — Premium</option>
@@ -448,7 +464,29 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
       </fieldset>
 
       <fieldset>
-        <legend>ADN (5 axes, range [-1, 1])</legend>
+        <legend>Galerie du lieu</legend>
+        <label>Photos de la galerie (une URL autorisée par ligne)
+          <textarea rows={4} value={galleryUrlsText} onChange={(e) => { setGalleryUrlsText(e.target.value); setValues(v => ({ ...v, gallery_urls: parseUrlLines(e.target.value) })); }} style={{ width: "100%" }} />
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Horaires</legend>
+        <p>Un jour absent reste non renseigné. Une liste sans créneau signifie fermé ce jour-là.</p>
+        {([['mon','Lundi'],['tue','Mardi'],['wed','Mercredi'],['thu','Jeudi'],['fri','Vendredi'],['sat','Samedi'],['sun','Dimanche']] as const).map(([day,label]) => <div key={day} style={{ marginBottom: 12 }}>
+          <strong>{label}</strong>
+          {(values.hours[day] ?? []).map((slot,i) => <div key={i}>
+            <label>Ouverture {label} {i + 1}<input type="time" value={slot.open} onChange={e => setValues(v => ({ ...v, hours: { ...v.hours, [day]: v.hours[day]?.map((s,j) => j===i ? { ...s, open:e.target.value } : s) } }))} /></label>
+            <label>Fermeture {label} {i + 1}<input type="time" value={slot.close} onChange={e => setValues(v => ({ ...v, hours: { ...v.hours, [day]: v.hours[day]?.map((s,j) => j===i ? { ...s, close:e.target.value } : s) } }))} /></label>
+            <button type="button" onClick={() => setValues(v => ({ ...v, hours:{...v.hours,[day]:v.hours[day]?.filter((_,j)=>j!==i)} }))}>Retirer ce créneau</button>
+          </div>)}
+          <button type="button" onClick={() => setValues(v => ({ ...v, hours:{...v.hours,[day]:[...(v.hours[day]??[]),{open:"",close:""}]} }))}>Ajouter un créneau — {label}</button>
+          <button type="button" onClick={() => setValues(v => ({ ...v,hours:{...v.hours,[day]:[]} }))}>Fermé — {label}</button>
+          <button type="button" onClick={() => setValues(v => { const hours={...v.hours};delete hours[day];return {...v,hours}; })}>Non renseigné — {label}</button>
+        </div>)}
+      </fieldset>
+      <fieldset>
+        <legend>ADN éditorial de référence (5 axes, [-1, 1])</legend>
+        <p>Le moteur repart de ces axes puis intègre les avis. Modifier ce socle ne crée ni note ni visite.</p>
         {(Object.keys(adn) as Array<keyof typeof adn>).map((k) => (
           <label key={k} style={{ display: "block" }}>
             {k}

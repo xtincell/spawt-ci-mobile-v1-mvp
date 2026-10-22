@@ -1,3 +1,10 @@
+import { GuetPage } from "./pages/guet";
+import { ActualitesList } from "./pages/actualites";
+import { MenusPage } from "./pages/menus";
+import { EnviesPage } from "./pages/envies";
+import { RetoursList } from "./pages/retours";
+import { ContributionsList } from "./pages/contributions";
+import { ActiviteList } from "./pages/activite";
 import { Authenticated, Refine } from "@refinedev/core";
 import { dataProvider, liveProvider } from "@refinedev/supabase";
 import routerProvider from "@refinedev/react-router";
@@ -23,9 +30,12 @@ import { PromotionsList } from "./pages/promotions";
 import { DefisList } from "./pages/defis";
 import { SuggestionsList } from "./pages/suggestions";
 import { PaiementsList } from "./pages/paiements";
+import { TarifsPage } from "./pages/tarifs";
 import { RunbookPage } from "./pages/runbook";
 import { B2bList } from "./pages/b2b";
 import { PushCampaigns } from "./pages/push";
+import { PlaceEditorial } from "./pages/editorial";
+import { ResearchQueue } from "./pages/editorial/research";
 import { ExploreCuration } from "./pages/explore";
 
 // CR Chunk B C6 — Guard d'auth wrapper. Refine v5 `<Authenticated>` redirige
@@ -116,6 +126,8 @@ export const App = () =>
         // Paiement à validation manuelle (0063) : CinetPay est devenu secondaire,
         // l'essentiel arrive par Wave / Orange Money / MoMo et se valide ici.
         { name: "payment_requests", list: "/paiements", meta: { label: "Paiements" } },
+        // Tarifs (0079) : `plans` est la seule source des prix, administrée ici.
+        { name: "plans", list: "/tarifs", meta: { label: "Tarifs" } },
         // Mode d'emploi de la suite — pas une ressource de données, juste une
         // entrée de menu vers la page runbook.
         { name: "runbook", list: "/runbook", meta: { label: "Mode d'emploi" } },
@@ -133,11 +145,18 @@ export const App = () =>
         <Route element={<ProtectedLayout />}>
           <Route path="/" element={<Navigate to="/lieux" replace />} />
           <Route path="/lieux" element={<LieuxList />} />
+          <Route path="/menus" element={<MenusPage />} />
+          <Route path="/guet" element={<GuetPage />} />
+          <Route path="/envies" element={<EnviesPage />} />
           <Route path="/lieux/create" element={<LieuCreate />} />
           <Route path="/lieux/import" element={<LieuxImport />} />
           <Route path="/lieux/edit/:id" element={<LieuEdit />} />
+          <Route path="/lieux/editorial/:id" element={<PlaceEditorial />} />
+          <Route path="/recherche" element={<ResearchQueue />} />
           <Route path="/moderation" element={<ModerationList />} />
           <Route path="/signalements" element={<SignalementsList />} />
+          <Route path="/retours" element={<RetoursList />} />
+          <Route path="/contributions" element={<ContributionsList />} />
           <Route path="/comptes" element={<ComptesList />} />
           <Route path="/comptes/show/:id" element={<CompteShow />} />
           <Route path="/metriques" element={<MetriquesDashboard />} />
@@ -147,8 +166,11 @@ export const App = () =>
           <Route path="/defis" element={<DefisList />} />
           <Route path="/suggestions" element={<SuggestionsList />} />
           <Route path="/paiements" element={<PaiementsList />} />
+          <Route path="/tarifs" element={<TarifsPage />} />
           <Route path="/runbook" element={<RunbookPage />} />
           <Route path="/b2b" element={<B2bList />} />
+          <Route path="/actualites" element={<ActualitesList />} />
+          <Route path="/activite" element={<ActiviteList />} />
           <Route path="/push" element={<PushCampaigns />} />
           <Route path="/explore" element={<ExploreCuration />} />
         </Route>

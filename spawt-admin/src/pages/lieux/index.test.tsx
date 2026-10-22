@@ -1,0 +1,81 @@
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Refine, type DataProvider, type GetListParams } from "@refinedev/core";
+import { MemoryRouter } from "react-router";
+import { LieuxList } from "./index";
+
+vi.mock("../../lib/audit", () => ({ logAuditAction: vi.fn() }));
+const getList = vi.fn();
+const provider: DataProvider = {
+  getList,
+  getOne: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  deleteOne: vi.fn(),
+  getApiUrl: () => "https://api.example.test",
+};
+const places = Array.from({ length: 26 }, (_, index) => ({
+  id: `place-${index + 1}`, name: `Spot ${index + 1}`, neighborhood: "Cocody",
+  cuisine: ["ivoirienne"], price_tier: 1, is_published: true,
+}));
+
+function mount() {
+  return render(
+    <MemoryRouter>
+      <Refine dataProvider={provider} options={{ reactQuery: { clientConfig: { defaultOptions: { queries: { retry: false } } } } }}>
+        <LieuxList />
+      </Refine>
+    </MemoryRouter>,
+  );
+}
+
+afterEach(cleanup);
+beforeEach(() => {
+  getList.mockReset();
+  getList.mockImplementation(({ pagination, filters }: GetListParams) => {
+    const search = filters?.find((filter) => "field" in filter && filter.field === "name");
+    const matching = search ? places.filter((place) => place.name.includes(String(search.value))) : places;
+    const start = ((pagination?.currentPage ?? 1) - 1) * 25;
+    return Promise.resolve({ data: matching.slice(start, start + 25), total: matching.length });
+  });
+});
+
+describe("inventaire paginé", () => {
+  it("affiche une absence de note pour un lieu sans avis, même si l’agrégat technique vaut zéro", async () => {
+    getList.mockResolvedValue({ data: [{ ...places[0], price_tier: null,
+      place_adn: { weighted_rating: 0, total_reviews: 0, confidence_score: 0 } }], total: 1 });
+    mount();
+    const row = (await screen.findByText("Spot 1")).closest("tr")!;
+    expect(within(row).getAllByText("—")).toHaveLength(2);
+    expect(within(row).queryByText("0.00")).not.toBeInTheDocument();
+  });
+
+  it("permet de consulter les textes même lorsque le compteur communautaire est nul", async () => {
+    mount();
+    const link = await screen.findByRole("link", { name: "Voir les avis de Spot 1" });
+    expect(link).toHaveAttribute("href", "/moderation?place_id=place-1");
+    expect(screen.getByRole("columnheader", { name: "Avis communautaires" })).toBeInTheDocument();
+    expect(screen.getByText(/Les avis fondateurs en sont exclus/)).toBeInTheDocument();
+  });
+
+  it("rend accessibles les lieux après la première page puis revient à la page 1 à la recherche", async () => {
+    mount();
+    await screen.findByText("Spot 1");
+    expect(screen.queryByText("Spot 26")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Suivante" }));
+    await screen.findByText("Spot 26");
+    expect(screen.queryByText("Spot 1")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText("Rechercher un nom…"), { target: { value: "Spot 1" } });
+    await screen.findByText("Spot 1");
+    await waitFor(() => expect(getList).toHaveBeenLastCalledWith(expect.objectContaining({ pagination: expect.objectContaining({ currentPage: 1 }) })));
+  });
+
+  it("distingue une panne de lecture d'un inventaire vide et permet de réessayer", async () => {
+    getList.mockRejectedValueOnce({ message: "Connexion interrompue", statusCode: 503 });
+    mount();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Connexion interrompue");
+    expect(screen.queryByText("Aucun résultat pour ces filtres.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByText("Spot 1");
+  });
+});

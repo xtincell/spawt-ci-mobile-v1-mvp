@@ -19,6 +19,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import { hasMeuteCalibration } from "../../src/lib/meute-heritage";
 import {
   Pressable,
   ScrollView,
@@ -238,13 +239,21 @@ export default function ProfileScreen() {
     communeChosen &&
     dobValid;
 
+  // Ce qui reste à remplir, dans l'ordre de l'écran.
+  const manquants: string[] = [];
+  if (!(nameLen >= 2 && nameLen <= 50 && alphaCount(trimmedName) >= 2)) {
+    manquants.push("onboarding.profile_missing_name");
+  }
+  if (!communeChosen) manquants.push("onboarding.profile_missing_commune");
+  if (!dobValid) manquants.push("onboarding.profile_missing_dob");
+
   const onContinue = () => {
     if (!valid) return;
     track({
       name: "onboarding_step_completed",
       properties: { step: "profile", step_index: 3 },
     });
-    router.push("/(onboarding)/calibration");
+    router.push(hasMeuteCalibration(draft) ? "/(onboarding)/palais-reveal" : "/(onboarding)/calibration");
   };
 
   return (
@@ -473,6 +482,38 @@ export default function ProfileScreen() {
             />
           ) : null}
         </Field>
+
+        {/* Un bouton grisé sans explication est un mur : on voit qu'on ne peut
+            pas avancer, jamais pourquoi. Trois conditions se cumulent ici
+            (prénom, commune, date de naissance) et rien ne disait laquelle
+            manquait — de quoi rester coincé sur cet écran indéfiniment.
+            On les nomme. */}
+        {!valid ? (
+          <View
+            testID="profile-missing"
+            style={{ marginTop: theme.spacing.lg, gap: theme.spacing.xs }}
+          >
+            <Text
+              style={{
+                color: theme.colors.text.secondary,
+                fontSize: theme.typography.size.sm,
+              }}
+            >
+              {t("onboarding.profile_missing_intro")}
+            </Text>
+            {manquants.map((cle) => (
+              <Text
+                key={cle}
+                style={{
+                  color: theme.colors.text.secondary,
+                  fontSize: theme.typography.size.sm,
+                }}
+              >
+                {`\u00b7 ${t(cle)}`}
+              </Text>
+            ))}
+          </View>
+        ) : null}
 
         <Pressable
           disabled={!valid}

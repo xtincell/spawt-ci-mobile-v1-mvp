@@ -5,7 +5,7 @@
 // Garde-fous V1 (NFR-GEO + cahier Sprint 1 §5.8) :
 //   - Mode démo (fallback / Expo Go) → no-op silencieux.
 //   - Consent géoloc absent (`spawter.geoloc_consent_at === null`) → no-op + warn.
-//   - Feature flag `guet-geofence` désactivé → no-op + log.
+//   - Feature flag `guet-proximity-v2` désactivé → no-op + log.
 //   - Cap MAX_ACTIVE_GEOFENCES = 20 (limite iOS CLLocationManager + battery Android).
 //
 // Permissions runtime demandées lazy au moment de `armGuet` — pas au boot
@@ -19,7 +19,7 @@ import { haversineKm } from "../matching";
 import { GUET_TASK } from "./guet-task";
 
 export const MAX_ACTIVE_GEOFENCES = 20;
-export const GEOFENCE_RADIUS_METERS = 10;
+export const GEOFENCE_RADIUS_METERS = 150;
 
 export interface ArmablePlace {
   id: string;
@@ -53,16 +53,15 @@ export function selectClosestPlaces<T extends ArmablePlace>(
 }
 
 /**
- * Arme N geofences (10m radius) sur les lieux fournis. Idempotent : re-arme = reset.
+ * Arme N geofences (150m radius) sur les lieux fournis. Idempotent : re-arme = reset.
  *
  * No-op si :
  *  - mode démo (`dataSourceMode === "fallback"`)
  *  - consent géoloc non posé (`hasGeolocConsent === false`)
- *  - feature flag `guet-geofence` désactivé
+ *  - feature flag `guet-proximity-v2` désactivé
  *  - permission foreground refusée
  *
- * Background permission échoue → fallback foreground-only (mode dégradé documenté
- * Story 4.1 Dev Notes §1 — D-405 defer).
+ * Background permission refusée → désarmement. Les actions manuelles restent disponibles.
  */
 export async function armGuet(
   places: ReadonlyArray<ArmablePlace>,
@@ -77,10 +76,10 @@ export async function armGuet(
     return;
   }
   if (!isGuetFlagEnabled()) {
-    if (__DEV__) console.info("[guet] armGuet skipped — flag guet-geofence disabled");
+    if (__DEV__) console.info("[guet] armGuet skipped — flag guet-proximity-v2 disabled");
     return;
   }
-  if (places.length === 0) return;
+  if (places.length === 0 || !options.spawter) { await disarmGuet(); return; }
 
   // Permission foreground d'abord — sans elle, on ne peut rien armer.
   try {
@@ -89,12 +88,10 @@ export async function armGuet(
       if (__DEV__) console.warn("[guet] armGuet aborted — foreground permission denied");
       return;
     }
-    // Background : best-effort, fallback foreground-only si refusé (D-405).
+    // Une permission de premier plan seule ne permet pas les geofences natives.
     if (typeof Location.requestBackgroundPermissionsAsync === "function") {
       const bg = await Location.requestBackgroundPermissionsAsync();
-      if (bg.status !== "granted" && __DEV__) {
-        console.info("[guet] background permission denied — foreground-only mode");
-      }
+      if (bg.status !== "granted") { await disarmGuet(); return; }
     }
   } catch (err) {
     if (__DEV__) console.warn("[guet] permission request failed", err);
@@ -168,17 +165,5 @@ export function _resetArmedForTest(): void {
 }
 
 function isGuetFlagEnabled(): boolean {
-  // Si le store des flags n'a pas été hydraté V1 (`flags === {}`), on
-  // considère le flag activé par défaut en `__DEV__` (alpha/internal),
-  // désactivé en prod. Story 1.8 hydrate les flags via fetch côté boot — V1
-  // de Story 4.1 ne câble pas le polling, donc fallback `__DEV__` documenté
-  // dans Dev Notes §AC #7.
-  try {
-    const store = useFeatureFlagsStore.getState();
-    const flag = store.flags?.["guet-geofence"];
-    if (flag !== undefined) return Boolean(flag);
-  } catch {
-    // Store potentiellement non monté en mode test — fallback __DEV__.
-  }
-  return Boolean(__DEV__);
+  return Boolean(useFeatureFlagsStore.getState().flags?.["guet-proximity-v2"]);
 }

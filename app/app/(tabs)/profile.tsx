@@ -20,7 +20,11 @@ import { resetAll } from "../../src/lib/storage";
 import { inspect } from "../../src/lib/offline-queue";
 import { isEntitlementCurrentlyActive, portalAccountUrl } from "../../src/lib/spawter-gold";
 import { compressAvatar, uploadAvatar } from "../../src/lib/storage-avatars";
-import { isSupabaseConfigured } from "../../src/lib/data-source";
+import {
+  isSupabaseConfigured,
+  listMyCoupsDeCoeur,
+  type MonCoupDeCoeur,
+} from "../../src/lib/data-source";
 import { defaultTitleKeyForStade } from "../../src/lib/titres-catalogue";
 import { isArchetypeKey } from "../../src/lib/archetype-engine";
 import { ARCHETYPES } from "../../src/data/archetypes";
@@ -95,6 +99,20 @@ export default function ProfileScreen() {
     track({ name: "profile_opened", properties: {} });
   }, []);
 
+  // Mes Coups de Cœur — le profil n'en montrait AUCUN. On pouvait en donner,
+  // jamais les revoir ni les reprendre : une monnaie rare dont on ne voit pas
+  // le solde n'en est pas une. `null` = pas encore chargé, et se distingue
+  // d'une liste vide (afficher « aucun » avant de savoir serait un mensonge).
+  const [mesCoupsDeCoeur, setMesCoupsDeCoeur] = useState<MonCoupDeCoeur[] | null>(null);
+  const chargerCoupsDeCoeur = useCallback(async () => {
+    if (!isSupabaseConfigured) return;
+    const res = await listMyCoupsDeCoeur();
+    setMesCoupsDeCoeur(res ?? []);
+  }, []);
+  useEffect(() => {
+    void chargerCoupsDeCoeur();
+  }, [chargerCoupsDeCoeur]);
+
   if (!spawter || !palais) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
@@ -130,9 +148,27 @@ export default function ProfileScreen() {
           ? await ImagePicker.requestCameraPermissionsAsync()
           : await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (perm.status !== "granted") {
+        // `canAskAgain: false` = refus définitif, ou permission absente du
+        // manifeste. Redemander ne servira jamais : le seul chemin passe par
+        // les réglages du système, et il faut le dire au lieu de reproposer un
+        // dialogue qui ne s'affichera pas.
+        const definitif = perm.canAskAgain === false;
         Alert.alert(
           t("profile.avatar_permission_title"),
-          t("profile.avatar_permission_body"),
+          definitif
+            ? t("profile.avatar_permission_settings")
+            : t("profile.avatar_permission_body"),
+          definitif
+            ? [
+                {
+                  text: t("profile.avatar_permission_open_settings"),
+                  onPress: () => {
+                    void Linking.openSettings();
+                  },
+                },
+                { text: t("common.cancel"), style: "cancel" },
+              ]
+            : undefined,
         );
         return;
       }
@@ -157,8 +193,12 @@ export default function ProfileScreen() {
       await updateAvatar(url);
       track({ name: "avatar_updated", properties: { source } });
     } catch (err) {
+      // Le message générique envoyait chercher la panne du mauvais côté : un
+      // module absent, une permission refusée et un envoi qui échoue n'ont ni
+      // la même cause ni le même correctif. On rapporte ce qu'on sait.
+      const detail = String((err as { message?: string })?.message ?? err).slice(0, 120);
       if (__DEV__) console.warn("[profile] avatar change failed", err);
-      Alert.alert(t("profile.avatar_upload_failed"));
+      Alert.alert(t("profile.avatar_upload_failed"), detail);
     }
   };
 
@@ -420,15 +460,71 @@ export default function ProfileScreen() {
         ) : null}
 
         <View style={{ gap: theme.spacing.sm }}>
+          <Text
+            style={{
+              ...theme.typography.preset.caption,
+              color: theme.colors.text.tertiary,
+            }}
+          >
+            {t("profile.listes_section_title")}
+          </Text>
+
+          {/* Aperçu RÉEL, pas un compteur. Un chiffre seul ne dit pas à qui on
+              a donné son cœur ce mois-ci — et c'est précisément ce qu'on veut
+              revoir. Trois au plus : au-delà, l'écran dédié. */}
+          {mesCoupsDeCoeur && mesCoupsDeCoeur.length > 0 ? (
+            <View
+              testID="profile-cdc-preview"
+              style={{
+                gap: theme.spacing.xs,
+                padding: theme.spacing.base,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.colors.surface.subtle,
+              }}
+            >
+              {mesCoupsDeCoeur.slice(0, 3).map((c) => (
+                <Pressable
+                  key={`${c.place_id}-${c.month_key}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={c.place_name}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/place/[id]",
+                      params: { id: c.place_id, ref: "direct" },
+                    })
+                  }
+                  style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      ...theme.typography.preset.body,
+                      color: theme.colors.text.primary,
+                    }}
+                  >
+                    ❤️ {c.place_name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
           <QuickLink
             label={t("profile.link_saved")}
             count={savedPlaceIds.size}
             onPress={() => router.push("/saved" as never)}
           />
           <QuickLink
+            label={t("profile.link_cdc")}
+            // Pas de compteur tant que la liste n'est pas revenue : afficher
+            // « 0 » avant de savoir serait une affirmation fausse.
+            {...(mesCoupsDeCoeur ? { count: mesCoupsDeCoeur.length } : {})}
+            onPress={() => router.push("/coups-de-coeur" as never)}
+          />
+          <QuickLink
             label={t("profile.link_spawts")}
             count={spawter.total_spawts}
-            onPress={() => Alert.alert(t("profile.link_spawts_stub"))}
+            onPress={() => router.push("/spawts" as never)}
           />
           <QuickLink
             label={t("profile.link_settings")}

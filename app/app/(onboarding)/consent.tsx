@@ -132,7 +132,7 @@ export default function ConsentScreen() {
         }}
       >
         <Pressable
-          onPress={() => Linking.openURL("https://spawt.ci/privacy")}
+          onPress={() => Linking.openURL("https://spawt.online/legal/confidentialite")}
           accessibilityRole="link"
         >
           <Text
@@ -146,7 +146,7 @@ export default function ConsentScreen() {
           </Text>
         </Pressable>
         <Pressable
-          onPress={() => Linking.openURL("https://spawt.ci/terms")}
+          onPress={() => Linking.openURL("https://spawt.online/legal/cgu")}
           accessibilityRole="link"
         >
           <Text

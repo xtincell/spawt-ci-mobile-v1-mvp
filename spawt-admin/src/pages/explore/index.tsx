@@ -22,7 +22,7 @@ import {
 } from "./logic";
 
 const COLLECTION_COLUMNS =
-  "id, slug, title_key, subtitle_key, cover_url, sort_order, is_published, city_code, created_at, updated_at";
+  "id, slug, title_key, subtitle_key, cover_url, sort_order, is_published, city_code, created_at, updated_at, audience";
 const ITEM_COLUMNS =
   "id, collection_id, place_id, editorial_text, sort_order, places(name, neighborhood)";
 
@@ -407,6 +407,7 @@ export const ExploreCuration = () => {
         <label>Sous-titre (optionnel)
           <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} style={{ width: "100%" }} />
         </label>
+        <label>Usage <select aria-label="Usage du carnet" value={form.audience ?? "general"} onChange={(e) => setForm({ ...form, audience: e.target.value as "general" | "duo" })}><option value="general">Les sélections</option><option value="duo">En duo</option></select></label>
         <label>Cover (URL, optionnelle)
           <input value={form.cover_url} placeholder="https://…" onChange={(e) => setForm({ ...form, cover_url: e.target.value })} style={{ width: "100%" }} />
         </label>

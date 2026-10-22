@@ -24,7 +24,7 @@ export type MockResolver = (ctx: MockQueryCtx) => MockResult;
 
 const CHAINED = [
   "select", "order", "limit", "eq", "neq", "is", "in", "gte", "lte", "lt",
-  "gt", "not", "single", "maybeSingle",
+  "gt", "not", "single", "maybeSingle", "range",
 ] as const;
 
 /** Fabrique un `from(table)` thenable compatible avec les pages admin. */

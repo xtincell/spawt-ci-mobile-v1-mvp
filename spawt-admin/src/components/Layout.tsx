@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, NavLink } from "react-router";
 import { useGetIdentity, useLogout } from "@refinedev/core";
 
@@ -11,6 +12,12 @@ interface StaffIdentity {
 export const Layout = () => {
   const { data: identity } = useGetIdentity<StaffIdentity>();
   const { mutate: logout } = useLogout();
+  // L'avertissement de largeur était un panneau opaque plein écran, z-index
+  // 9999, SANS aucun moyen de le fermer : sous 1024 px la console devenait
+  // inutilisable, sans recours. Ce n'est pas un avertissement, c'est un mur —
+  // et il tombe aussi sur un portable dont l'affichage est mis à l'échelle.
+  // On prévient, on laisse passer.
+  const [avertissementMasque, setAvertissementMasque] = useState(false);
 
   return (
     <div className="app-shell">
@@ -24,6 +31,7 @@ export const Layout = () => {
           <NavLink to="/lieux" className={({ isActive }) => (isActive ? "active" : "")}>
             Lieux
           </NavLink>
+          <NavLink to="/recherche" className={({ isActive }) => (isActive ? "active" : "")}>Recherche & rédaction</NavLink>
           <NavLink to="/evenements" className={({ isActive }) => (isActive ? "active" : "")}>
             Événements
           </NavLink>
@@ -54,9 +62,20 @@ export const Layout = () => {
           <NavLink to="/paiements" className={({ isActive }) => (isActive ? "active" : "")}>
             Paiements
           </NavLink>
+          {/* Les prix que la validation de Paiements facture : à côté. */}
+          <NavLink to="/tarifs" className={({ isActive }) => (isActive ? "active" : "")}>
+            Tarifs
+          </NavLink>
           <NavLink to="/b2b" className={({ isActive }) => (isActive ? "active" : "")}>
             Comptes B2B
           </NavLink>
+          <NavLink to="/actualites" className={({ isActive }) => isActive ? "active" : ""}>Actualités</NavLink>
+          <NavLink to="/activite" className={({ isActive }) => isActive ? "active" : ""}>Activité dans l’app</NavLink>
+          <NavLink to="/retours" className={({ isActive }) => isActive ? "active" : ""}>Retours de l’app</NavLink>
+          <NavLink to="/contributions" className={({ isActive }) => isActive ? "active" : ""}>Contributions aux lieux</NavLink>
+          <NavLink to="/guet" className={({ isActive }) => isActive ? "active" : ""}>Le Guet — coordonnées</NavLink>
+          <NavLink to="/menus" className={({ isActive }) => isActive ? "active" : ""}>Menus et plats</NavLink>
+          <NavLink to="/envies" className={({ isActive }) => isActive ? "active" : ""}>Envies de sortie</NavLink>
           <NavLink to="/push" className={({ isActive }) => (isActive ? "active" : "")}>
             Push
           </NavLink>
@@ -72,7 +91,7 @@ export const Layout = () => {
             to="/runbook"
             className={({ isActive }) => (isActive ? "active nav-doc" : "nav-doc")}
           >
-            Mode d'emploi
+            Mode d&apos;emploi
           </NavLink>
         </nav>
       </aside>
@@ -96,9 +115,14 @@ export const Layout = () => {
           <Outlet />
         </section>
       </main>
-      <div className="viewport-warning">
-        Le panel SPAWT admin est optimisé pour un écran ≥ 1024px.
-      </div>
+      {!avertissementMasque && (
+        <div className="viewport-warning" role="status">
+          <span>Le panel SPAWT admin est prévu pour un écran d’au moins 1024&nbsp;px. En dessous, l’affichage peut être à l’étroit.</span>
+          <button type="button" onClick={() => setAvertissementMasque(true)}>
+            Continuer quand même
+          </button>
+        </div>
+      )}
     </div>
   );
 };

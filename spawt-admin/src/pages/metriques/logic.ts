@@ -67,9 +67,10 @@ export function countGoldActive(subs: SubscriptionLite[], now: Date = new Date()
 }
 
 /**
- * Nombre de mois couverts par le prix d'un plan (miroir de PLAN_PRICING côté
- * Edge : gold_annual = 12 mois, tous les autres plans = 1 mois). Sert à
- * normaliser un abonnement annuel en équivalent MENSUEL pour le MRR.
+ * Nombre de mois couverts par le prix d'un plan (miroir de `plans.period` et
+ * de PLAN_PERIOD côté Edge : gold_annual = 12 mois, tous les autres plans =
+ * 1 mois). Sert à normaliser un abonnement annuel en équivalent MENSUEL pour
+ * le MRR.
  */
 export function planPeriodMonths(plan: string): number {
   return plan === "gold_annual" ? 12 : 1;

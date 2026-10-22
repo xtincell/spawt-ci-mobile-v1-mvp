@@ -1,0 +1,67 @@
+[
+  {
+    "id": "1568ab81-3611-573e-a65e-d87c1205d367",
+    "place_id": "a1000000-0000-4000-8000-000000000001",
+    "name": "Sushi",
+    "aliases": [],
+    "accompaniments": [],
+    "price_xof": null,
+    "photo_url": null,
+    "source_url": "editorial_review:7d855c2a-eb3b-565f-83f5-eba7f8755b99",
+    "observed_on": "2026-03-10",
+    "is_published": false,
+    "description": "Relevé historique de la mission 1. Carte actuelle à confirmer avant publication."
+  },
+  {
+    "id": "e3817a6d-a3d0-50e8-8f73-d09190c7d80a",
+    "place_id": "a1000000-0000-4000-8000-000000000001",
+    "name": "Carpaccio",
+    "aliases": [],
+    "accompaniments": [],
+    "price_xof": null,
+    "photo_url": null,
+    "source_url": "editorial_review:7d855c2a-eb3b-565f-83f5-eba7f8755b99",
+    "observed_on": "2026-03-10",
+    "is_published": false,
+    "description": "Relevé historique de la mission 1. Carte actuelle à confirmer avant publication."
+  },
+  {
+    "id": "e198cf5c-b81e-5bdf-81b3-834028e22e4c",
+    "place_id": "a1000000-0000-4000-8000-000000000002",
+    "name": "Ribs",
+    "aliases": [],
+    "accompaniments": [],
+    "price_xof": null,
+    "photo_url": null,
+    "source_url": "editorial_review:6979eddc-ac28-5474-b581-3a19b9a0d6c7",
+    "observed_on": "2026-03-10",
+    "is_published": false,
+    "description": "Relevé historique de la mission 1. Carte actuelle à confirmer avant publication."
+  },
+  {
+    "id": "06ef02e0-fe51-52c2-bc78-2143f9cc140f",
+    "place_id": "a1000000-0000-4000-8000-000000000003",
+    "name": "Crispy Bomb",
+    "aliases": [],
+    "accompaniments": [],
+    "price_xof": null,
+    "photo_url": null,
+    "source_url": "editorial_review:370eb1a1-17ba-5caf-a06c-fd621956083e",
+    "observed_on": "2026-03-09",
+    "is_published": false,
+    "description": "Relevé historique de la mission 1. Carte actuelle à confirmer avant publication."
+  },
+  {
+    "id": "3f3bd44c-39b0-5efd-ac01-c59819745632",
+    "place_id": "a1000000-0000-4000-8000-000000000004",
+    "name": "Travers de porc",
+    "aliases": [],
+    "accompaniments": [],
+    "price_xof": 6500,
+    "photo_url": null,
+    "source_url": "editorial_review:372014b8-047c-552d-9731-e4b9319a1e05",
+    "observed_on": "2026-03-11",
+    "is_published": false,
+    "description": "Relevé historique de la mission 1. Carte actuelle à confirmer avant publication."
+  }
+]

@@ -64,11 +64,13 @@ jest.mock("../../src/store/spawter-store", () => {
   const fn = (
     selector: (s: {
       spawter: Spawter | null;
+      spawts: [];
       registerSpawt: typeof mockRegisterSpawt;
     }) => unknown,
   ) =>
     selector({
       spawter: mockSpawter,
+      spawts: [],
       registerSpawt: mockRegisterSpawt,
     });
   return { useSpawterStore: fn };
@@ -324,7 +326,7 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
     );
   });
 
-  it("État #5 — tap CTA sur lieu <100m → registerSpawt(is_verified=true) + analytics + navigate review", async () => {
+  it("État #5 — tap CTA sur lieu <100m → registerSpawt déclaré ; vérification réservée au serveur + analytics + navigate review", async () => {
     mockGetFgPerms.mockResolvedValue({ status: "granted" });
     mockGetPos.mockResolvedValue({
       coords: { latitude: 5.348, longitude: -3.998 },
@@ -350,15 +352,15 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
       geolocation_lng: number;
       geolocation_source: "gps" | "manual";
     };
-    expect(registeredRow.is_verified).toBe(true);
+    expect(registeredRow.is_verified).toBe(false);
     expect(registeredRow.place_id).toBe("p-near");
     expect(registeredRow.check_in_type).toBe("manual");
     // Adversarial sweep 2026-05-21 — anti-corruption coords. Le row doit
     // contenir les coords USER (5.348 / -3.998) et NON pas les coords du
-    // lieu (5.348+0.0005 / -3.998). geolocation_source="gps" car in-range.
+    // lieu (5.348+0.0005 / -3.998). la vérification GPS attend la réponse du serveur.
     expect(registeredRow.geolocation_lat).toBe(5.348);
     expect(registeredRow.geolocation_lng).toBe(-3.998);
-    expect(registeredRow.geolocation_source).toBe("gps");
+    expect(registeredRow.geolocation_source).toBe("manual");
 
     expect(mockTrack).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -370,7 +372,7 @@ describe("<SpawterTabScreen /> — Story 4.10", () => {
       }),
     );
 
-    expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/review\//));
+    expect(mockPush).toHaveBeenCalledWith(expect.objectContaining({ pathname: "/review/[spawt_id]" }));
   });
 
   it("Tap CTA sur lieu >100m → registerSpawt(is_verified=false) + is_within_range=false", async () => {

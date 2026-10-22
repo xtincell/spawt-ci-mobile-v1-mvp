@@ -1,0 +1,187 @@
+{
+  "date": "2026-10-18",
+  "app_source": "47cc174d2558ae0155f1847aac566a111e8ababd",
+  "admin_source": "47cc174d2558ae0155f1847aac566a111e8ababd",
+  "tests": {
+    "mobile": 1085,
+    "mobile_skipped": 4,
+    "mobile_snapshots": 4,
+    "admin": 205,
+    "sql_bridge": 13,
+    "edge_push": 16,
+    "portal": 43
+  },
+  "api": {
+    "public_content_status": true,
+    "public_announcements": 0,
+    "public_editorial_reviews": 10,
+    "places?is_published=eq.true&select=id": 10,
+    "explore_collections?is_published=eq.true&select=id": 3,
+    "push_all_spawters": {
+      "targets": 14,
+      "tokens": 0,
+      "dry_run": true
+    },
+    "push_gold_only": {
+      "targets": 0,
+      "tokens": 0,
+      "dry_run": true
+    },
+    "push_stade": {
+      "targets": 3,
+      "tokens": 0,
+      "dry_run": true
+    },
+    "push_spawter_ids": {
+      "targets": 1,
+      "tokens": 0,
+      "dry_run": true
+    },
+    "unauthenticated_push_denied": true,
+    "campaign_count": 0,
+    "inventory": {
+      "places": 155,
+      "published": 10,
+      "editorial": 10,
+      "visits": 33,
+      "collections": 3
+    }
+  },
+  "browser": {
+    "checks": [
+      "Xtincell creates and edits a private news draft; public API excludes it",
+      "Deleting the draft removes it and retains an editorial audit entry",
+      "Browser push preflight succeeds; exact server estimate returns zero devices and send stays disabled",
+      "Build 34 web compilation reads live public announcements and handles an empty feed",
+      "Latest app renders the exact published editorial text read from production",
+      "Published collection index and detail load from the real server",
+      "App heartbeat reaches production and appears in admin under the authenticated account, platform web"
+    ],
+    "page_errors": [],
+    "api_errors": [],
+    "campaigns_sent": 0,
+    "bundle": {
+      "asset": "/assets/index-Baq8sYCu.js",
+      "sha256": "1ef8ce271b27e94f4c2ffeccea08c4ef3585ca882a0d4bc64ba9dc5b7167d98f",
+      "all_686_sources_match_local": true
+    },
+    "status": "passed"
+  },
+  "live_sql": {
+    "mobile_owner_insert_upsert_and_public_review_projection": "passed",
+    "staff_draft_publish_scheduled_projection": "passed",
+    "rolled_back": true,
+    "test_reviews_persisted": 0,
+    "test_news_persisted": 0
+  },
+  "automatic_refresh": {
+    "without_navigation": true,
+    "server_invalidation_refetched_editorial": true,
+    "before": 1,
+    "after": 2,
+    "page_errors": []
+  },
+  "limitations": [
+    "No Firebase client configuration in the current Android build; push reception cannot be validated without it and Expo FCM credentials.",
+    "Web browser verification does not replace testing on a physical mobile device.",
+    "No local phone comment can be recovered without the text stored on that device."
+  ],
+  "native_build": {
+    "status": "completed",
+    "conclusion": "success",
+    "version": "1.1.1",
+    "build": 34,
+    "buildDate": "2026-10-18",
+    "sourceCommit": "47cc174d2558ae0155f1847aac566a111e8ababd",
+    "sourceCiRun": 39132769008,
+    "recipeSha256": "fd3ad04edda9dc20ce98060cbfaa6c3574482b1f4e6cdf0d05d50e083d757c3a",
+    "sha256": "39875c39314c5da714e6179a5c412c80bfcf7f4061ea5a91dabbe4ee7a71628f",
+    "bytes": 162451883,
+    "signatureMatchesBuild25": true,
+    "zipCrcPassed": true,
+    "nativePackageVerified": true,
+    "compiledBackendConfigVerified": true,
+    "backendUrl": "https://api.spawt.online",
+    "backendKeySha256": "7adfc35afaf81a6a954ef35a3941a9af8ef5cdc068df494643cadfe52e52076c",
+    "runId": 39133029325
+  },
+  "native_opening": {
+    "run": 39135323263,
+    "platform": "Android 35 emulator",
+    "status": "passed",
+    "assertions": [
+      {
+        "check": "cold animated launch keeps SPAWT in foreground",
+        "passed": true
+      },
+      {
+        "check": "anonymous phone controls available",
+        "passed": true
+      },
+      {
+        "check": "first native process running",
+        "passed": true
+      },
+      {
+        "check": "new native process after force-stop",
+        "passed": true
+      },
+      {
+        "check": "anonymous phone controls after process restart",
+        "passed": true
+      }
+    ],
+    "animation_visible": true,
+    "wink_verified": true,
+    "black_surface_frames": 0,
+    "screenshot_reviewed": true,
+    "authenticated_account_used": false
+  },
+  "qa_cleanup": {
+    "temporary_sessions_closed": 2,
+    "own_web_activity_rows_removed": 4,
+    "other_sessions_unchanged": true
+  },
+  "publication": {
+    "run": 39135805050,
+    "status": "success",
+    "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-18-34",
+    "public": true,
+    "prerelease": true
+  },
+  "portal": {
+    "source": "8f48c243aad6e59c654dcc306a70b1de307aefe5",
+    "deployment": {
+      "deployment_uuid": "ua566moqyyhiovs38ju6ocre",
+      "status": "finished",
+      "commit": "8f48c243aad6e59c654dcc306a70b1de307aefe5",
+      "created_at": "2026-10-18T14:25:47.000000Z",
+      "updated_at": "2026-10-18T14:27:19.000000Z",
+      "finished_at": "2026-10-18T14:27:18.000000Z"
+    },
+    "apk_url": "https://spawt.online/downloads/spawt-1.1.1-build34.apk",
+    "page_errors": [],
+    "android_buttons": 2,
+    "bytes": 162451883,
+    "sha256": "39875c39314c5da714e6179a5c412c80bfcf7f4061ea5a91dabbe4ee7a71628f",
+    "mime_type": "application/vnd.android.package-archive",
+    "download_verified": true,
+    "checksum_file_verified": true,
+    "aliases": {
+      "www.spawt.online": 200,
+      "portail.spawt.online": 200
+    }
+  },
+  "final_inventory": {
+    "places": 155,
+    "published_places": 10,
+    "draft_places": 145,
+    "published_editorial_reviews": 10,
+    "published_collections": 3,
+    "visits_including_founders": 33,
+    "announcements": 0,
+    "campaigns": 0,
+    "push_tokens": 0,
+    "activity_rows": 0
+  }
+}

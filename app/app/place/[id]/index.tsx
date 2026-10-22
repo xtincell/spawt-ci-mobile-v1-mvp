@@ -1,3 +1,5 @@
+import { useContentRevision } from "../../../src/lib/content-sync";
+import { PlaceEditorial } from "../../../src/components/place/PlaceEditorial";
 // Story 3.4 — Fiche lieu canonique (UX spec §1127).
 // Story 3.6 — toggle favori (heart top-right) + signal matching +0.05.
 // Story 3.7 — bouton partager (share) + payload WhatsApp natif.
@@ -14,6 +16,7 @@
 // place_first_view.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DataLoadNotice } from "../../../src/components/DataLoadNotice";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -37,6 +40,7 @@ import { AdnTags } from "../../../src/components/AdnTags";
 import { PlaceReviews } from "../../../src/components/PlaceReviews";
 import { DataSourceBanner } from "../../../src/components/DataSourceBanner";
 import { getPlace, type PlaceWithAdn } from "../../../src/lib/data-source";
+import { buildPlaceShareUrl } from "../../../src/lib/share-links";
 import {
   computeRawScore,
   displayedScore,
@@ -47,12 +51,15 @@ import { useFlag } from "../../../src/store/feature-flags";
 import { EMPTY_PALAIS } from "../../../src/data/seed/sample-spawter";
 import { track } from "../../../src/lib/analytics";
 import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
-import { buildManualSpawt } from "../../../src/lib/guet";
+import { startManualReview } from "../../../src/lib/manual-review";
+import { subscribeReviewChanges } from "../../../src/lib/review-events";
 import { OpeningHours } from "../../../src/components/OpeningHours";
 import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
 import { PlaceTabs } from "../../../src/components/place/PlaceTabs";
 import { PlaceMediaTab } from "../../../src/components/place/PlaceMediaTab";
 import { PlaceMenuTab } from "../../../src/components/place/PlaceMenuTab";
+import { OutingActions } from "../../../src/components/OutingActions";
+import { useOutings } from "../../../src/store/outings-store";
 import { formatXofAmount } from "../../../src/lib/format-price";
 import {
   buildStaticMapUrl,
@@ -99,20 +106,32 @@ const VALID_REFS: ReadonlyArray<Referrer> = [
 type PlaceTabKey = "media" | "menu" | "avis";
 
 export default function PlaceDetailScreen() {
-  const params = useLocalSearchParams<{ id: string; ref?: string }>();
+  const contentRevision = useContentRevision();
+  const params = useLocalSearchParams<{ id: string; ref?: string; tab?: string }>();
+  useOutings();
   const id = params.id;
   const ref = (VALID_REFS as ReadonlyArray<string>).includes(params.ref ?? "")
     ? (params.ref as Referrer)
     : "direct";
   const router = useRouter();
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  };
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
+  const loadedId = useRef<string | null>(null);
   const [place, setPlace] = useState<PlaceWithAdn | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [coverFailed, setCoverFailed] = useState(false);
-  const [activeTab, setActiveTab] = useState<PlaceTabKey>("media");
+  const [activeTab, setActiveTab] = useState<PlaceTabKey>(params.tab === "menu" ? "menu" : "media");
+  useEffect(() => { if (params.tab === "menu") setActiveTab("menu"); }, [params.tab, params.id]);
+  const spawtBusy = useRef(false);
+  const [startingReview, setStartingReview] = useState(false);
 
   const registerSpawt = useSpawterStore((s) => s.registerSpawt);
   const spawter = useSpawterStore((s) => s.spawter);
@@ -126,17 +145,29 @@ export default function PlaceDetailScreen() {
   const adnUnderConstructionEmittedRef = useRef(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) { setPlace(null); setLoading(false); return; }
     let cancelled = false;
+    setLoading(loadedId.current !== id);
+    setFailed(false);
+    if (loadedId.current !== id) setPlace(null);
+    setCoverFailed(false);
+    placeViewedEmittedRef.current = false;
+    adnUnderConstructionEmittedRef.current = false;
     void getPlace(id).then((p) => {
       if (cancelled) return;
+      loadedId.current = id;
       setPlace(p);
-      setLoading(false);
-    });
+    }).catch(() => {
+      if (!cancelled) setFailed(true);
+    }).finally(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, attempt, contentRevision]);
+
+  useEffect(() => subscribeReviewChanges(placeId => {
+    if (placeId === id) setAttempt(n => n + 1);
+  }), [id]);
 
   const visited = useMemo(
     () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
@@ -207,7 +238,7 @@ export default function PlaceDetailScreen() {
         properties: {
           place_id: place.id,
           match_score: matchScore ?? 0,
-          distance_km: distanceKm,
+          distance_km: Number.isFinite(distanceKm) ? distanceKm : null,
           time_since_onboarding_seconds: timeSinceOnboardingSeconds,
         },
       });
@@ -243,6 +274,15 @@ export default function PlaceDetailScreen() {
     );
   }
 
+  if (failed) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
+      <DataLoadNotice loading={false} failed onRetry={() => setAttempt((n) => n + 1)} />
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={goBack} style={{ padding: theme.spacing.lg }}>
+        <Text style={{ color: theme.colors.text.primary }}>{t("common.back")}</Text>
+      </Pressable>
+    </SafeAreaView>;
+  }
+
   if (!place) {
     return (
       <SafeAreaView
@@ -259,7 +299,7 @@ export default function PlaceDetailScreen() {
           <Text style={{ color: theme.colors.text.secondary }}>
             {t("place.not_found")}
           </Text>
-          <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")} onPress={goBack} style={{ marginTop: 16 }}>
             <Text style={{ color: theme.colors.brand.accent }}>
               ← {t("common.back")}
             </Text>
@@ -305,7 +345,7 @@ export default function PlaceDetailScreen() {
   const avgTicket = avgPriceEnabled ? formatXofAmount(place.price.avg_ticket_xof) : null;
   const priceLabel = avgTicket
     ? t("place.price_avg", { amount: avgTicket })
-    : PRICE_TIER_LABELS[place.price.tier];
+    : (place.price.tier === null ? t("place.price_unknown") : PRICE_TIER_LABELS[place.price.tier]);
 
   const onCallPress = () => {
     if (!place.phone) return;
@@ -383,7 +423,7 @@ export default function PlaceDetailScreen() {
       name: "share_initiated",
       properties: { place_id: place.id, surface: "place_detail" },
     });
-    const url = `https://spawt.ci/place/${place.id}`;
+    const url = buildPlaceShareUrl(place.id);
     const rating = place.adn.weighted_rating;
     const message = t("share.message_template", {
       name: place.name,
@@ -425,7 +465,7 @@ export default function PlaceDetailScreen() {
         name: wasAdded ? "place_saved" : "place_unsaved",
         properties: { place_id: place.id },
       });
-    });
+    }).catch(() => Alert.alert(t("saved.save_failed")));
   };
 
   // R17 — changement d'onglet. PlaceTabs ne déclenche `onChange` que sur un
@@ -442,6 +482,7 @@ export default function PlaceDetailScreen() {
   // gère pas toujours → fallback Apple Maps après test canOpenURL.
   const onOpenMap = async () => {
     const { lat, lng } = place.location;
+    if (lat === null || lng === null) return;
     const geo = geoUrl(lat, lng, place.name);
     try {
       const canGeo = await Linking.canOpenURL(geo);
@@ -452,6 +493,7 @@ export default function PlaceDetailScreen() {
   };
 
   const handleSpawt = async () => {
+    if (spawtBusy.current) return;
     if (!spawter) {
       // Pas d'onboarding fini → on ne peut pas créer de spawt. Alert plutôt
       // qu'un router.back() silencieux qui ferait croire au geste enregistré.
@@ -471,17 +513,23 @@ export default function PlaceDetailScreen() {
     // Story 4.2 — `buildManualSpawt` factorise la construction de row mode démo
     // (UUID, timestamps, geolocation_source = "manual", is_verified = false).
     // Le badge Premier Spawt n'est pas déclenché en mode démo (is_verified false).
-    const row = buildManualSpawt(
-      spawter.id,
-      place.id,
-      place.location.lat,
-      place.location.lng,
-    );
-    await registerSpawt(row);
-    router.back();
+    spawtBusy.current = true;
+    setStartingReview(true);
+    try {
+      const row = await startManualReview({ spawterId: spawter.id, placeId: place.id,
+        lat: position.source === "gps" ? position.lat : null,
+        lng: position.source === "gps" ? position.lng : null,
+        spawts, register: registerSpawt });
+      router.push({ pathname: "/review/[spawt_id]", params: { spawt_id: row.id, entry: "place_detail", place_name: place.name } });
+    } catch (error) {
+      if (__DEV__) console.warn("[place] start review failed", error);
+      Alert.alert(t("review.error_title"), t("review.start_failed"));
+    } finally {
+      spawtBusy.current = false;
+      setStartingReview(false);
+    }
   };
 
-  const STICKY_HEIGHT = 64;
 
   return (
     <SafeAreaView
@@ -492,7 +540,7 @@ export default function PlaceDetailScreen() {
 
       <ScrollView
         contentContainerStyle={{
-          paddingBottom: STICKY_HEIGHT + insets.bottom + theme.spacing.lg,
+          paddingBottom: theme.spacing.lg,
         }}
       >
         {/* Photo hero + header overlay — hauteur identique avec/sans cover
@@ -531,7 +579,7 @@ export default function PlaceDetailScreen() {
             }}
           >
             <Pressable
-              onPress={() => router.back()}
+              onPress={goBack}
               accessibilityRole="button"
               accessibilityLabel={t("place.back")}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -717,7 +765,7 @@ export default function PlaceDetailScreen() {
                   color: theme.colors.text.tertiary,
                 }}
               >
-                {distanceKm.toFixed(1)} km
+                {Number.isFinite(distanceKm) ? `${distanceKm.toFixed(1)} km` : t("place.location_pending")}
               </Text>
             </View>
           </View>
@@ -756,6 +804,12 @@ export default function PlaceDetailScreen() {
           ) : null}
 
           {/* Signaux */}
+          <OutingActions placeId={place.id} full />
+          <Pressable testID="place-contribute" accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/contribute/[id]", params: { id: place.id, name: place.name } } as never)}
+            style={{ minHeight: 48, justifyContent: "center", marginBottom: theme.spacing.base }}>
+            <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("contribution.title")}</Text>
+          </Pressable>
           {place.signals.length > 0 && (
             <View
               style={{
@@ -797,7 +851,7 @@ export default function PlaceDetailScreen() {
               />
             ) : null}
             {activeTab === "menu" ? (
-              <PlaceMenuTab urls={place.menu_urls} />
+              <PlaceMenuTab urls={place.menu_urls} placeId={place.id} />
             ) : null}
             {activeTab === "avis" ? (
               /* Q2 — PlaceReviews porte « Voir tous les avis (N) » → l'écran
@@ -813,6 +867,8 @@ export default function PlaceDetailScreen() {
               />
             ) : null}
           </View>
+
+          <PlaceEditorial place={place} />
 
           {/* Section ADN */}
           <View
@@ -870,7 +926,7 @@ export default function PlaceDetailScreen() {
           <View style={{ marginTop: theme.spacing.lg }}>
             <InfoLine
               label={t("place.info_address")}
-              value={place.location.descriptive_address}
+              value={place.location.descriptive_address || t("place.location_pending")}
               theme={theme}
             />
             {/* Story 4.12 — carte statique tappable sous l'adresse. Fallback :
@@ -957,10 +1013,6 @@ export default function PlaceDetailScreen() {
       {/* R11 — Sticky CTA bas « Spawt le ! » (texte produit définitif). */}
       <View
         style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.sm,
           paddingBottom: theme.spacing.sm + insets.bottom,
@@ -974,12 +1026,15 @@ export default function PlaceDetailScreen() {
             void handleSpawt();
           }}
           accessibilityRole="button"
+          testID="place-start-review"
+          disabled={startingReview}
+          accessibilityState={{ disabled: startingReview, busy: startingReview }}
           accessibilityLabel={t("place.spawt_cta")}
           style={({ pressed }) => ({
             backgroundColor: theme.colors.brand.accent,
             paddingVertical: theme.spacing.base,
             borderRadius: theme.radius.lg,
-            opacity: pressed ? 0.85 : 1,
+            opacity: startingReview ? 0.5 : pressed ? 0.85 : 1,
             alignItems: "center",
             justifyContent: "center",
             minHeight: 48,

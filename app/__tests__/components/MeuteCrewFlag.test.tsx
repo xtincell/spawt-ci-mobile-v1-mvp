@@ -29,8 +29,11 @@ jest.mock("react-i18next", () => ({
 }));
 
 const mockPush = jest.fn();
+let mockCrewCode: string | undefined;
 jest.mock("expo-router", () => ({
+  useFocusEffect: (effect: () => unknown) => require("react").useEffect(effect, [effect]),
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
+  useLocalSearchParams: () => ({ crewCode: mockCrewCode }),
 }));
 
 // Flags contrôlés par test.
@@ -46,6 +49,7 @@ jest.mock("../../src/lib/analytics", () => ({
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
 import MeuteScreen from "../../app/(tabs)/meute";
 import { useSpawterStore } from "../../src/store/spawter-store";
+import { useCrewStore } from "../../src/store/crew-store";
 import { SAMPLE_SPAWTER } from "../../src/data/seed/sample-spawter";
 
 interface TestInstanceLike {
@@ -93,6 +97,8 @@ function findCrewBlocks(r: TestRendererInstanceLike): TestInstanceLike[] {
 beforeEach(() => {
   jest.clearAllMocks();
   mockFlags = {};
+  mockCrewCode = undefined;
+  useCrewStore.setState({ persistedRef: null });
   // Un spawter onboardé — le CrewBlock a besoin de son identité.
   useSpawterStore.setState({ spawter: SAMPLE_SPAWTER, hydrating: false });
 });
@@ -111,7 +117,7 @@ describe("Onglet Meute — flag mode-crew OFF (non-régression)", () => {
     expect(texts).not.toContain("crew.block_title");
     expect(texts).not.toContain("crew.cta_launch");
 
-    r.unmount();
+    await TestRenderer.act(async () => { r.unmount(); });
   });
 });
 
@@ -124,21 +130,53 @@ describe("Onglet Meute — flag mode-crew ON", () => {
     const r = await renderScreen();
     const texts = gatherTexts(r);
 
+    expect(findCrewBlocks(r)).toHaveLength(0);
+    const toggle = r.root.findAll((n) => n.props.testID === "crew-toggle" && typeof n.props.onPress === "function")[0]!;
+    await TestRenderer.act(async () => { (toggle.props.onPress as () => void)(); });
+    const expandedTexts = gatherTexts(r);
     expect(findCrewBlocks(r).length).toBeGreaterThan(0);
-    expect(texts).toContain("crew.block_title");
-    expect(texts).toContain("crew.cta_launch");
-    expect(texts).toContain("crew.join_label");
+    expect(expandedTexts).toContain("crew.block_title");
+    expect(expandedTexts).toContain("crew.cta_launch");
+    expect(expandedTexts).toContain("crew.join_label");
 
     // L'existant reste rendu (EmptyState démo sous le bloc).
     expect(texts).toContain("empty_state.meute_title");
 
-    r.unmount();
+    await TestRenderer.act(async () => { r.unmount(); });
   });
 
   it("sans spawter onboardé, le bloc Crew reste masqué (identité requise)", async () => {
     useSpawterStore.setState({ spawter: null, hydrating: false });
     const r = await renderScreen();
     expect(findCrewBlocks(r)).toHaveLength(0);
-    r.unmount();
+    await TestRenderer.act(async () => { r.unmount(); });
+  });
+
+  it("préremplit le code partagé sans rejoindre automatiquement", async () => {
+    mockCrewCode = " abc23 ";
+    const r = await renderScreen();
+    const input = r.root.findAll((n) => n.props.testID === "crew-join-input")[0];
+    if (!input) throw new Error("Crew join input missing");
+    expect(input.props.value).toBe("ABC23");
+    expect(mockPush).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => { r.unmount(); });
+  });
+
+  it("conserve une nouvelle invitation visible et copiable pendant un vote existant", async () => {
+    mockCrewCode = "NEW23";
+    useCrewStore.setState({ persistedRef: { session_id: "old-session", code: "OLD12", expires_at: "2099-01-01T00:00:00Z" } });
+    const r = await renderScreen();
+    const code = r.root.findAll((n) => n.props.testID === "crew-pending-invite-code")[0];
+    if (!code) throw new Error("Pending crew invitation missing");
+    expect(code.props.children).toBe("NEW23");
+    expect(code.props.selectable).toBe(true);
+    expect(r.root.findAll((n) => n.props.testID === "crew-join-input")).toHaveLength(0);
+    expect(useCrewStore.getState().persistedRef?.code).toBe("OLD12");
+    expect(mockPush).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => { useCrewStore.setState({ persistedRef: null }); });
+    const input = r.root.findAll((n) => n.props.testID === "crew-join-input")[0];
+    if (!input) throw new Error("Crew join input missing after leaving");
+    expect(input.props.value).toBe("NEW23");
+    await TestRenderer.act(async () => { r.unmount(); });
   });
 });

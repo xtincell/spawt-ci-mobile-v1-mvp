@@ -1,6 +1,7 @@
 // Story 6.4 — Liste des spawters avec filtres + actions warning/ban.
 
 import { useState } from "react";
+import { ListFeedback, ListPagination } from "../../components/ListFeedback";
 import { useNavigate } from "react-router";
 import { useTable } from "@refinedev/core";
 
@@ -13,6 +14,9 @@ interface SpawterRow {
   total_spawts: number;
   warning_count: number;
   is_banned: boolean;
+  is_demo: boolean;
+  is_seed: boolean;
+  is_internal: boolean;
 }
 
 const STADES = ["touriste", "explorateur", "detective", "djidji", "guide"];
@@ -39,8 +43,9 @@ export const ComptesList = () => {
   const [status, setStatus] = useState<"all" | "active" | "banned">("all");
   const [stade, setStade] = useState<"all" | string>("all");
   const [minWarnings, setMinWarnings] = useState(0);
+  const [kind, setKind] = useState<"all" | "demo" | "seed" | "internal">("all");
 
-  const { tableQuery } = useTable<SpawterRow>({
+  const { tableQuery, currentPage, setCurrentPage, pageCount } = useTable<SpawterRow>({
     resource: "spawters",
     pagination: { pageSize: 50 },
     sorters: { initial: [{ field: "updated_at", order: "desc" }] },
@@ -51,29 +56,42 @@ export const ComptesList = () => {
         ...(status === "banned" ? [{ field: "is_banned", operator: "eq" as const, value: true }] : []),
         ...(stade !== "all" ? [{ field: "stade", operator: "eq" as const, value: stade }] : []),
         ...(minWarnings > 0 ? [{ field: "warning_count", operator: "gte" as const, value: minWarnings }] : []),
+        ...(kind !== "all" ? [{ field: `is_${kind}`, operator: "eq" as const, value: true }] : []),
       ],
     },
+    // Exiger le marqueur : une base non migrée doit rendre une erreur visible,
+    // jamais faire passer les comptes de test pour des comptes ordinaires.
+    meta: { select: "*, is_demo" },
   });
 
-  const rows = (tableQuery.data?.data ?? []) as SpawterRow[];
+  const rows = (tableQuery.isError ? [] : tableQuery.data?.data ?? []) as SpawterRow[];
 
   return (
     <div>
       <h1>Comptes spawters</h1>
+      <p>Les comptes « Démo alpha » sont identifiés explicitement pour les tests. Les comptes fondateurs et les accès internes restent distincts.</p>
       <div style={{ display: "flex", gap: 12, margin: "16px 0", flexWrap: "wrap" }}>
-        <input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+        <input placeholder="Rechercher…" value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} />
+        <select value={status} onChange={(e) => { setStatus(e.target.value as typeof status); setCurrentPage(1); }}>
           <option value="all">Tous</option>
           <option value="active">Actifs</option>
           <option value="banned">Bannis</option>
         </select>
-        <select value={stade} onChange={(e) => setStade(e.target.value)}>
+        <select value={stade} onChange={(e) => { setStade(e.target.value); setCurrentPage(1); }}>
           <option value="all">Tous stades</option>
           {STADES.map((s) => (<option key={s} value={s}>{s}</option>))}
         </select>
+        <select aria-label="Type de compte" value={kind} onChange={(e) => { setKind(e.target.value as typeof kind); setCurrentPage(1); }}>
+          <option value="all">Tous les types</option>
+          <option value="demo">Démo alpha</option>
+          <option value="seed">Comptes fondateurs</option>
+          <option value="internal">Accès internes</option>
+        </select>
         <label>Warnings ≥ <input type="number" min={0} value={minWarnings}
-          onChange={(e) => setMinWarnings(Math.max(0, Number(e.target.value)))} style={{ width: 60 }} /></label>
+          onChange={(e) => { setMinWarnings(Math.max(0, Number(e.target.value))); setCurrentPage(1); }} style={{ width: 60 }} /></label>
       </div>
+      <ListFeedback query={tableQuery} empty={rows.length === 0} />
+      <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
         <thead>
           <tr>
@@ -81,6 +99,7 @@ export const ComptesList = () => {
             <th>Phone (masqué)</th>
             <th>Quartier</th>
             <th>Stade</th>
+            <th>Type</th>
             <th>Spawts</th>
             <th>Warnings</th>
             <th>Statut</th>
@@ -94,6 +113,10 @@ export const ComptesList = () => {
               <td>{maskPhone(row.phone_e164)}</td>
               <td>{row.neighborhood ?? "—"}</td>
               <td>{row.stade}</td>
+              <td>
+                {row.is_demo ? <strong>Démo alpha</strong> : row.is_seed ? "Fondateur" : "Spawter"}
+                {row.is_internal ? <span className="role-badge">Interne</span> : null}
+              </td>
               <td>{row.total_spawts}</td>
               <td>{row.warning_count}</td>
               <td>{row.is_banned ? "Banni" : "Actif"}</td>

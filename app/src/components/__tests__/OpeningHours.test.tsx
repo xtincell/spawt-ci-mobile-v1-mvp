@@ -35,12 +35,12 @@ interface RendererLike {
   root: { findAllByType: (t: unknown) => NodeLike[] };
 }
 
-function render(today: DayOfWeek): RendererLike {
+function render(today: DayOfWeek, hours = HOURS): RendererLike {
   let r: RendererLike | null = null;
   TestRenderer.act(() => {
     r = TestRenderer.create(
       <ThemeProvider>
-        <OpeningHours hours={HOURS} today={today} />
+        <OpeningHours hours={hours} today={today} />
       </ThemeProvider>,
     ) as unknown as RendererLike;
   });
@@ -85,4 +85,11 @@ describe("<OpeningHours /> — Story 4.12 AC #2", () => {
     expect((wed?.props.style as { fontWeight?: string })?.fontWeight).toBe("700");
     expect((mon?.props.style as { fontWeight?: string })?.fontWeight).toBe("400");
   });
+});
+
+it("distinguishes missing hours from an explicitly closed day", () => {
+  const partial = { mon: [] } as unknown as Record<DayOfWeek, OpeningSlot[]>;
+  const result = texts(render("mon", partial));
+  expect(result.filter(x => x === "place.info_hours_unknown")).toHaveLength(6);
+  expect(result.filter(x => x === "place.info_hours_closed")).toHaveLength(1);
 });
