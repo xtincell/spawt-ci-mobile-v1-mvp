@@ -11,19 +11,22 @@ ALTER TABLE public.place_location_checks ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.place_location_checks FROM anon,authenticated;
 GRANT SELECT ON public.place_location_checks TO authenticated;
 CREATE POLICY location_checks_staff ON public.place_location_checks FOR SELECT TO authenticated USING(public.is_active_staff());
-CREATE FUNCTION public.validate_place_location(p_place_id uuid,p_source text,p_accuracy real) RETURNS void
+CREATE FUNCTION public.validate_place_location(p_place_id uuid,p_source text,p_accuracy real,p_expected_lat double precision DEFAULT NULL,p_expected_lng double precision DEFAULT NULL) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE p public.places; BEGIN
  IF NOT public.is_active_staff() THEN RAISE EXCEPTION 'staff_required' USING ERRCODE='42501'; END IF;
  SELECT * INTO STRICT p FROM public.places WHERE id=p_place_id FOR UPDATE;
+ IF (p_expected_lat IS NOT NULL AND p.lat IS DISTINCT FROM p_expected_lat) OR (p_expected_lng IS NOT NULL AND p.lng IS DISTINCT FROM p_expected_lng) THEN
+  RAISE EXCEPTION 'location_changed' USING ERRCODE='40001';
+ END IF;
  INSERT INTO public.place_location_checks(place_id,lat,lng,accuracy_meters,source,checked_by)
  VALUES(p.id,p.lat,p.lng,p_accuracy,p_source,auth.uid())
  ON CONFLICT(place_id) DO UPDATE SET lat=EXCLUDED.lat,lng=EXCLUDED.lng,accuracy_meters=EXCLUDED.accuracy_meters,source=EXCLUDED.source,checked_by=EXCLUDED.checked_by,checked_at=now();
  INSERT INTO public.editorial_history(actor_id,entity_table,entity_key,after_value)
  VALUES(auth.uid(),'place_location_checks',p.id::text,jsonb_build_object('lat',p.lat,'lng',p.lng,'source',p_source,'accuracy_meters',p_accuracy));
 END $$;
-REVOKE ALL ON FUNCTION public.validate_place_location(uuid,text,real) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.validate_place_location(uuid,text,real) TO authenticated;
+REVOKE ALL ON FUNCTION public.validate_place_location(uuid,text,real,double precision,double precision) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.validate_place_location(uuid,text,real,double precision,double precision) TO authenticated;
 CREATE VIEW public.public_guet_places WITH(security_barrier=true) AS
  SELECT p.id,p.name,p.lat,p.lng,c.checked_at FROM public.places p JOIN public.place_location_checks c ON c.place_id=p.id
  WHERE p.is_published AND p.lat=c.lat AND p.lng=c.lng;

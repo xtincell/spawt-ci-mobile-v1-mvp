@@ -16,7 +16,7 @@ export function GuetPage() {
   e.preventDefault(); if (busy || !place || place.lat == null || place.lng == null) return;
   setBusy(true); setMessage("");
   try {
-   const { error } = await db.rpc("validate_place_location", { p_place_id: id, p_source: source.trim(), p_accuracy: Number(accuracy) });
+   const { error } = await db.rpc("validate_place_location", { p_place_id: id, p_source: source.trim(), p_accuracy: Number(accuracy), p_expected_lat: place.lat, p_expected_lng: place.lng });
    if (error) throw error;
    await load(); setMessage("Coordonnées validées et journalisées. Le Guet reste soumis à sa réception sur téléphone et à son interrupteur de publication.");
   } catch { setMessage("La validation n’a pas été confirmée. Réessaie après avoir vérifié les coordonnées."); }

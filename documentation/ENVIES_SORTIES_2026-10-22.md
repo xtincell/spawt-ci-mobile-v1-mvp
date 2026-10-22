@@ -91,3 +91,5 @@ Dernière correction avant compilation finale : l’affichage d’une zone atten
 
 
 Source finale du candidat 41 : `e4106b0cfa638ed44884532847f0c79917dd384a`. [CI mobile/panel 39700994234](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994234) et [SQL 39700994214](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994214) reçues vertes après correction de la déconnexion. Site : [CI 39700457209](https://github.com/xtincell/project_spawt_mobile_ci/actions/runs/39700457209) verte, nginx réel compris.
+
+Le panel transmet aussi les coordonnées affichées lors du contrôle : si un autre membre les a modifiées entre-temps, la validation échoue. Correction serveur/panel additive ; le contrat de lecture du candidat Android reste inchangé.

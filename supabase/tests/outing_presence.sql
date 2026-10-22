@@ -52,4 +52,11 @@ DO $$ BEGIN
  IF EXISTS(SELECT 1 FROM public_guet_places WHERE id='eeee0000-0000-4000-8000-0000000088c1') THEN RAISE EXCEPTION 'changed coordinates still eligible'; END IF;
  IF EXISTS(SELECT 1 FROM feature_flags WHERE flag_code='guet-proximity-v2' AND enabled) THEN RAISE EXCEPTION 'Guet enabled before physical receipt'; END IF;
 END $$;
+SELECT set_config('request.jwt.claim.sub','eeee0000-0000-4000-8000-0000000088a3',true);
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+ BEGIN PERFORM validate_place_location('eeee0000-0000-4000-8000-0000000088c1','old displayed point',10,5.3,-4);
+  RAISE EXCEPTION 'stale coordinate validation'; EXCEPTION WHEN serialization_failure THEN NULL; END;
+END $$;
+RESET ROLE;
 ROLLBACK;
