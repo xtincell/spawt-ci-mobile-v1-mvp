@@ -1,0 +1,19 @@
+{
+  "mode": "Local web UI; private account, delayed read and mutations are fixtures; all writes intercepted. This is not a production or APK receipt.",
+  "cases": [
+    {
+      "correctedSource": false,
+      "mutationsReceived": [],
+      "pending": 1,
+      "javascriptErrors": []
+    },
+    {
+      "correctedSource": true,
+      "mutationsReceived": [
+        "list_share"
+      ],
+      "pending": 0,
+      "javascriptErrors": []
+    }
+  ]
+}

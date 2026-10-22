@@ -97,3 +97,9 @@ en cours, contrôle le propriétaire puis vide les nouvelles mutations. Le test 
 régression échoue avant correction et réussit après, y compris la protection lors
 d’un changement de compte. Les preuves du candidat initial ne valident pas le
 nouveau binaire : compilation et réception native complètes sont requises.
+
+La même course est reçue dans Chromium sur l’interface réelle avec réponses réseau
+interceptées : ancien export = une action en attente, aucune écriture ; source
+corrigée = une écriture de partage, file vide et bouton « Désactiver le lien »
+visible. `envies-reception/sync-ui-proof.json` distingue explicitement cette
+régression locale de la recette APK/production.
