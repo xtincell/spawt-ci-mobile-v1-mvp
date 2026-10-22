@@ -1,0 +1,17 @@
+{
+  "mode": "local UI recipe; private account and new menu/list APIs are fixtures; existing public content fetched anonymously; ALL writes intercepted; not a production or APK receipt",
+  "errors": [],
+  "intercepted_writes": [
+    "report_app_activity",
+    "report_app_activity",
+    "user_signals",
+    "report_app_activity"
+  ],
+  "sourceCommit": "30b8f41e2229d727f516bbd3e2f62bf44063b382",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "native_receipt": false,
+  "production_receipt": false
+}

@@ -1,3 +1,6 @@
+const mockOutings = { snapshot: { dismissed: [] } };
+jest.mock("../../src/store/outings-store", () => ({ useOutings: () => mockOutings }));
+jest.mock("../../src/components/OutingDiscovery", () => ({ EditorialDiscovery: () => null, OutingDiscovery: () => null }));
 jest.mock("../../src/components/RapideContent", () => ({
   RapideContent: () => null,
 }));

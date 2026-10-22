@@ -1,0 +1,18 @@
+{
+  "nativeRunExposingPendingWrite": 39710670306,
+  "scenario": "A list action is enqueued while an earlier sync is awaiting its final snapshot. A second sync must send this new action before resolving.",
+  "beforeFix": {
+    "regressionPassed": false,
+    "mutationsReceived": []
+  },
+  "afterFix": {
+    "regressionPassed": true,
+    "mutationsReceived": [
+      "list_create",
+      "list_share"
+    ],
+    "pending": 0,
+    "accountChangePreventsWaitingWrites": true
+  },
+  "note": "Unit regression plus real failed native receipt; replacement APK must pass complete native QA before publication."
+}

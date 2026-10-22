@@ -30,12 +30,21 @@ jobs:
           import {execFileSync} from 'node:child_process';
           const c=JSON.parse(fs.readFileSync('documentation/android-release.json'));
           if(!Number.isSafeInteger(c.build) || !/^[a-f0-9]{64}$/.test(c.sha256) || !/^[a-f0-9]{40}$/.test(c.sourceCommit) || c.tag!==`local-build-android-${c.buildDate}-${c.build}` || !Number.isSafeInteger(c.bytes)) throw new Error('Invalid release recipe');
-          const tag=execFileSync('git',['rev-parse',c.tag+'^{commit}'],{encoding:'utf8'}).trim();
-          if(tag!==c.buildWorkflowCommit) throw new Error('Release tag changed');
           for(const [id,sha,path] of [[c.buildRun,c.buildWorkflowCommit,'.github/workflows/android-local-build.yml'],[c.qaRun,c.qaWorkflowCommit,'.github/workflows/android-qa.yml']]) {
             const r=JSON.parse(execFileSync('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${id}`],{encoding:'utf8'}));
             if(r.status!=='completed' || r.conclusion!=='success' || r.head_sha!==sha || r.path!==path) throw new Error('Required verified run is missing');
           }
+          // Create the provenance tag only after both pinned runs succeeded.
+          // The workflow token suppresses a second build triggered by this tag.
+          // Existing tags remain immutable, including on publication retries.
+          let tag;
+          try { tag=execFileSync('git',['rev-parse','--verify',c.tag+'^{commit}'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim(); }
+          catch {
+            execFileSync('git',['tag',c.tag,c.buildWorkflowCommit],{stdio:'inherit'});
+            execFileSync('git',['push','origin',`refs/tags/${c.tag}`],{stdio:'inherit'});
+            tag=execFileSync('git',['rev-parse',c.tag+'^{commit}'],{encoding:'utf8'}).trim();
+          }
+          if(tag!==c.buildWorkflowCommit) throw new Error('Release tag changed');
           execFileSync('gh',['run','download',String(c.buildRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-apk','--dir','release-apk'],{stdio:'inherit'});
           execFileSync('gh',['run','download',String(c.qaRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-proof','--dir','native-proof'],{stdio:'inherit'});
           JS
@@ -56,6 +65,17 @@ jobs:
           if(m.sourceCommit!==c.sourceCommit || m.version!==c.version || m.build!==c.build || m.runId!==c.buildRun || m.sha256!==c.sha256 || m.bytes!==c.bytes || q.sha256!==m.sha256 || assertions.length<5 || !assertions.every(a=>a.passed===true) || opening.passed!==true) throw new Error('Release proof mismatch');
           if(!['signatureMatchesBuild25','zipCrcPassed','nativePackageVerified','compiledBackendConfigVerified','compiledFirebaseConfigVerified'].every(k=>m[k]===true)) throw new Error('APK checks incomplete');
           if(firebase.defaultAppInitialized!==true) throw new Error('Firebase native initialization was not verified');
+          if(c.build>=41) {
+            const upgrade=JSON.parse(fs.readFileSync('native-proof/upgrade-install.json'));
+            if(upgrade.from!==40 || upgrade.to!==c.build || upgrade.installedOverPrevious!==true || upgrade.backgroundLocationDeclared!==true) throw new Error('Native upgrade receipt missing');
+            const outing=JSON.parse(fs.readFileSync('native-proof/outing-data.json'));
+            const required=['menuRead','dishSearch','saveReceipt','namedListRead','shareReadInBrowser','revokedLinkRefused','chooseReceipt','feedbackReceipt','sevenContentChecks','appLinkOpened','offlineSaveResumed','crossAccountIsolation'];
+            if(outing.build!==c.build || outing.sha256!==m.sha256 || outing.apiOrigin!=='https://api.spawt.online' || !required.every(k=>outing[k]===true)) throw new Error('Live native outing/list/web proof missing');
+            if(typeof outing.guetEnabled!=='boolean') throw new Error('Guet gate status missing');
+            if(outing.guetEnabled===true && outing.physicalGuetReceipt!==true) throw new Error('Physical Guet receipt required before activation');
+            fs.copyFileSync('native-proof/outing-data.json','release-apk/outing-data-proof.json');
+            for(const name of ['outing-native-menu','outing-dish-search','outing-named-list','outing-public-browser','outing-app-link','outing-revoked-browser']) fs.copyFileSync(`native-proof/${name}.png`,`release-apk/${name}.png`);
+          }
           if(c.build>=37) {
             const live=JSON.parse(fs.readFileSync('native-proof/live-data.json'));
             if(live.build!==c.build || live.apiOrigin!=='https://api.spawt.online' || !['nativeAuthenticated','announcementsRead','editorialTextMatched','collectionRead','fiveContentChecksPassed','offlineFailureAndRecovery','feedbackReceiptReceived','feedbackReplyRead','personalExplorationChecked','unratedDocumentaryRead'].every(key=>live[key]===true)) throw new Error('Live native database and feedback proof missing');
@@ -81,7 +101,7 @@ jobs:
           const release=JSON.parse(gh(['release','view',c.tag,'--json','isDraft,assets']));
           if(release.isDraft) {
             if(release.assets.length) throw new Error('Draft release has partial assets; inspect before retrying');
-            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256',...(c.build>=37 ? ['release-apk/live-data-proof.json','release-apk/home-native.png','release-apk/content-checks-native.png'] : []),...(c.build>=39 ? ['release-apk/menu-moderation-native.png','release-apk/contribution-reward-native.png','release-apk/paws-ledger-native.png'] : [])]);
+            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256',...(c.build>=37 ? ['release-apk/live-data-proof.json','release-apk/home-native.png','release-apk/content-checks-native.png'] : []),...(c.build>=39 ? ['release-apk/menu-moderation-native.png','release-apk/contribution-reward-native.png','release-apk/paws-ledger-native.png'] : []),...(c.build>=41 ? ['release-apk/outing-data-proof.json',...['outing-native-menu','outing-dish-search','outing-named-list','outing-public-browser','outing-app-link','outing-revoked-browser'].map(name=>`release-apk/${name}.png`)] : [])]);
             gh(['release','edit',c.tag,'--draft=false','--prerelease','--latest=false','--title',`SPAWT Android ${c.version} — build ${c.build}`,'--notes-file',`documentation/android-build${c.build}-release-notes.md`]);
           }
           console.log('Release assets ready for final verification: build '+c.build);

@@ -73,6 +73,9 @@ export const Layout = () => {
           <NavLink to="/activite" className={({ isActive }) => isActive ? "active" : ""}>Activité dans l’app</NavLink>
           <NavLink to="/retours" className={({ isActive }) => isActive ? "active" : ""}>Retours de l’app</NavLink>
           <NavLink to="/contributions" className={({ isActive }) => isActive ? "active" : ""}>Contributions aux lieux</NavLink>
+          <NavLink to="/guet" className={({ isActive }) => isActive ? "active" : ""}>Le Guet — coordonnées</NavLink>
+          <NavLink to="/menus" className={({ isActive }) => isActive ? "active" : ""}>Menus et plats</NavLink>
+          <NavLink to="/envies" className={({ isActive }) => isActive ? "active" : ""}>Envies de sortie</NavLink>
           <NavLink to="/push" className={({ isActive }) => (isActive ? "active" : "")}>
             Push
           </NavLink>

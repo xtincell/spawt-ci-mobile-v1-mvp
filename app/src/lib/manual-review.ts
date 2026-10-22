@@ -31,11 +31,16 @@ export function startManualReview(input: {
     const row = reusable ?? {
       ...buildManualSpawt(input.spawterId, input.placeId, input.lat ?? 0, input.lng ?? 0),
       geolocation_lat: input.lat, geolocation_lng: input.lng,
-      is_verified: Boolean(input.verified && input.lat !== null && input.lng !== null),
-      geolocation_source: input.verified ? "gps" as const : "manual" as const,
+      is_verified: false,
+      geolocation_source: "manual" as const,
     };
     if (!reusable) await input.register(row);
-    await persistReviewSpawt(row);
+    const receipt = await persistReviewSpawt(row);
+    if (receipt.persisted === "remote") {
+      const { verifyVisitPresence } = await import("./visit-presence");
+      // Verification failure must not prevent a declared visit or its review.
+      await verifyVisitPresence(row.id, input.spawterId).catch(() => false);
+    }
     return row;
   })();
   inFlight.set(key, action);

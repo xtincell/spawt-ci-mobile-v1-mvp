@@ -421,7 +421,7 @@
     "results_empty_suggest_cta": "Ton spot n'existe pas encore ? Suggère-le"
   },
   "saved": {
-    "title": "Mes spawts sauvegardés",
+    "title": "Mes envies",
     "empty_title": "Tu n'as pas encore sauvegardé de spawt",
     "empty_body": "Tape le cœur sur une fiche pour le retrouver ici.",
     "count_zero": "0 spawt sauvegardé",
@@ -1428,7 +1428,9 @@
       "editorials": "Avis éditoriaux",
       "collections": "Carnets",
       "announcements": "Fil du Chat",
-      "sync": "Actualisation"
+      "sync": "Actualisation",
+      "menus": "Menus et plats",
+      "guet": "Coordonnées prêtes pour Le Guet"
     },
     "ok": "Accessible",
     "read_count_one": "{{count}} élément accessible",
@@ -1510,5 +1512,62 @@
     "menu_close": "Fermer le menu",
     "menu_loading": "Chargement du menu…",
     "menu_failed": "Le menu n’a pas pu être chargé. Réessaie."
+  },
+  "outings": {
+    "title": "Mes envies",
+    "subtitle": "Un plat, une adresse, une occasion. Garde ce qui te tente.",
+    "save": "Ça me tente",
+    "saved": "Enregistré",
+    "classify": "Dans une liste",
+    "choose": "Choisir ce lieu",
+    "chosen": "Cette envie est choisie. Bonne sortie !",
+    "all": "Toutes mes envies",
+    "new_list": "Créer une liste",
+    "edit_list": "Modifier la liste",
+    "list_name": "Le nom de ta liste",
+    "confirm": "Enregistrer",
+    "share": "Partager",
+    "crew": "Choisir avec la bande",
+    "revoke": "Désactiver le lien",
+    "delete_list": "Supprimer la liste",
+    "delete_keeps_saves": "Tes lieux et plats restent dans toutes tes envies.",
+    "remove_from_list": "Retirer de cette liste",
+    "empty": "Ta prochaine sortie commence par une envie. Enregistre un lieu ou un plat pour le retrouver ici.",
+    "pick_list": "Dans quelle liste gardes-tu cette envie ?",
+    "pending": "Enregistré sur ce téléphone. Synchronisation en attente.",
+    "rejected": "Certaines modifications n’ont pas été acceptées. Les données reçues du serveur sont conservées.",
+    "dismiss_rejected": "Fermer ce message",
+    "failed": "Je n’ai pas pu enregistrer ce changement. Réessaie dans un instant.",
+    "price_unknown": "Prix à confirmer",
+    "price": "{{price}} F CFA",
+    "observed": "Menu relevé le {{date}}",
+    "retired": "Ce plat n’est plus référencé dans le menu publié.",
+    "dishes": "Les plats qui te tentent",
+    "feedback": "Une information à corriger ? Un retour ?",
+    "editorial": "Les choix du Chat",
+    "personal": "Pour ton Palais",
+    "resume": "Tes prochaines sorties",
+    "not_for_me": "Pas pour moi",
+    "browse": "Retrouver mes envies",
+    "occasions": {
+      "date": "Date",
+      "anniversaire": "Anniversaire",
+      "vendredi": "Vendredi soir",
+      "brunch": "Brunch",
+      "autre": "Autre occasion"
+    },
+    "shared": "Une envie partagée",
+    "link_unavailable": "Ce lien n’est plus disponible. Son propriétaire a peut-être désactivé le partage.",
+    "remove_saved": "Retirer de mes envies"
+  },
+  "guet_v2": {
+    "title": "Le Guet",
+    "open": "Voir le menu",
+    "discover": "À proximité : {{name}}. Une découverte qui pourrait te tenter.",
+    "saved": "{{name}} est tout près. Tu l’avais gardé : retrouve son menu.",
+    "visited": "Tu connais {{name}}. Retrouve son menu et ton avis.",
+    "saved_visited": "Envie de retourner chez {{name}} ? Retrouve ce que tu avais gardé.",
+    "review": "Tu es passé chez {{name}}. Raconte-nous ton expérience quand tu veux.",
+    "review_open": "Donner mon avis"
   }
 }

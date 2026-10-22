@@ -119,6 +119,18 @@ def scroll_tap(value): tap_node(scroll_find(value))
 
 def scroll(): adb('shell','input','swipe','550','1500','550','550','350'); time.sleep(.6)
 
+def contribution_receipt():
+    # Sending resets the photo form and moves the receipt above the retained
+    # scroll offset. Do not scroll down while the upload is still in flight.
+    try:
+        find('contribution-receipt',timeout=30)
+        return
+    except AssertionError:
+        for _ in range(9):
+            adb('shell','input','swipe','550','550','550','1600','200')
+            time.sleep(.2)
+        scroll_find('contribution-receipt',attempts=12)
+
 def rate():
     for key,n in [('cuisine',5),('cadre',4),('service',4)]: scroll_tap(f'review-note_{key}-{n}')
 
@@ -212,6 +224,8 @@ def photo_and_network_cases():
 def live_content_cases():
     """Read actual public records, exercise native network failure, receive private feedback."""
     cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
+    build=json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']
+    expected_checks=7 if build>=41 else 5
     def read(path):
         req=urllib.request.Request(cfg['EXPO_PUBLIC_SUPABASE_URL']+'/rest/v1/'+path,headers={'apikey':cfg['EXPO_PUBLIC_SUPABASE_ANON_KEY']})
         with urllib.request.urlopen(req,timeout=25) as r: return json.load(r)
@@ -245,12 +259,12 @@ def live_content_cases():
     find('support-check-sync',timeout=30)
     tree=snap('live-content-checks')
     check_nodes=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
-    check('all five native content checks reached production',len(check_nodes)==5 and all('ndisponible' not in label(n) for n in check_nodes))
+    check('all native content checks reached production',len(check_nodes)==expected_checks and all('ndisponible' not in label(n) for n in check_nodes))
     # The same published binary must report a real outage and recover.
     adb('shell','cmd','connectivity','airplane-mode','enable'); adb('shell','svc','wifi','disable'); adb('shell','svc','data','disable')
     tap('support-check'); time.sleep(18)
     tree=snap('live-offline-checks'); failed=[n for n in tree.iter('node') if n.get('resource-id','').startswith('support-check-')]
-    check('offline checks do not pretend data is empty',len(failed)==5 and all('ndisponible' in label(n) for n in failed))
+    check('offline checks do not pretend data is empty',len(failed)==expected_checks and all('ndisponible' in label(n) for n in failed))
     scroll_tap('support-message'); adb('shell','input','text',MARKER.replace(' ','%s')); back()
     scroll_tap('support-send'); find('support-send-error',timeout=25); snap('live-feedback-offline')
     check('offline feedback remains unconfirmed',True)
@@ -289,7 +303,7 @@ def live_content_cases():
         scroll_tap('contribution-comment'); adb('shell','input','text',('Recette menu natif '+RUN+' - image technique, pas un menu reel, ne pas publier.').replace(' ','%s')); back()
         restart(); deep('contribute/'+PLACE); scroll_find('contribution-remove-0')
         scroll_find('contribution-comment'); check('native menu draft survives process restart',('Recette menu natif '+RUN) in label(find('contribution-comment')))
-        scroll_tap('contribution-send'); scroll_find('contribution-receipt',attempts=12); snap('live-menu-contribution-received')
+        scroll_tap('contribution-send'); contribution_receipt(); snap('live-menu-contribution-received')
         end=time.monotonic()+180
         while time.monotonic()<end:
             deep('settings'); deep('contribute/'+PLACE); scroll_tap('contribution-refresh'); time.sleep(2)
@@ -306,7 +320,7 @@ def live_content_cases():
         except AssertionError: pass
         find('contribution-position',timeout=35)
         scroll_tap('contribution-comment'); adb('shell','input','text',('Recette enrichissement natif '+RUN+' - GPS simule identique a la fiche, aucun releve terrain nouveau.').replace(' ','%s')); back()
-        scroll_tap('contribution-send'); scroll_find('contribution-receipt',attempts=12); snap('live-contribution-received')
+        scroll_tap('contribution-send'); contribution_receipt(); snap('live-contribution-received')
         check('native location contribution receives a server receipt',True)
         end=time.monotonic()+180
         while time.monotonic()<end:
@@ -375,7 +389,17 @@ try:
     login(PHONE)
     snap('signed-in')
     if MODE=='live':
+        # Receive the new journey first so its diagnostics do not require
+        # repeating the already received editorial/moderation journey first.
+        outing=None
+        if json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']>=41:
+            from android_outing_qa import run_outing_cases
+            outing=run_outing_cases(globals())
         live_content_cases()
+        if outing is not None:
+            live=json.loads((OUT/'live-data.json').read_text())
+            outing.update(feedbackReceipt=live['feedbackReceiptReceived'],sevenContentChecks=live['fiveContentChecksPassed'])
+            (OUT/'outing-data.json').write_text(json.dumps(outing,ensure_ascii=False,indent=2))
         raise SystemExit(0)
     if MODE=='community':
         # Existing alpha account; this path never publishes, saves or changes backend data.

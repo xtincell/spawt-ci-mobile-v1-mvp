@@ -1,3 +1,4 @@
+jest.mock("../visit-presence", () => ({ verifyVisitPresence: jest.fn(async () => false) }));
 jest.mock("../data-source", () => ({ isSupabaseConfigured: true }));
 jest.mock("../data-source.supabase", () => ({}));
 const mockSave = jest.fn();

@@ -44,6 +44,9 @@ import { isPlaceLocked } from "../src/lib/paywall-geo";
 import { isGoldSpawter } from "../src/lib/spawter-gold";
 import { useFlag } from "../src/store/feature-flags";
 import { GoldUpsellSheet } from "../src/components/GoldUpsellSheet";
+import { useMenuItems, findMenuItems } from "../src/lib/use-menu-items";
+import { MenuItemCard } from "../src/components/MenuItemCard";
+import { useOutings } from "../src/store/outings-store";
 
 const SEARCH_DEBOUNCE_MS = 800;
 
@@ -68,6 +71,7 @@ export default function SearchScreen() {
   const suggestionsEnabled = useFlag("suggestions-lieux");
 
   const [query, setQuery] = useState("");
+  const menu = useMenuItems(); useOutings();
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const { places, loading, failed, reload } = usePlaces();
   const [recents, setRecents] = useState<string[]>([]);
@@ -101,6 +105,10 @@ export default function SearchScreen() {
     () => searchPlaces(places, query, filters, ctx),
     [places, query, filters, ctx],
   );
+  const dishResults = useMemo(() => {
+    const eligible = new Set((isFiltersEmpty(filters) ? places : searchPlaces(places, "", filters, ctx)).map(p => p.id));
+    return findMenuItems(menu.items, query).filter(d => eligible.has(d.place_id));
+  }, [menu.items, query, filters, places, ctx]);
 
   // Debounce search_submitted event.
   useEffect(() => {
@@ -120,12 +128,12 @@ export default function SearchScreen() {
         properties: {
           query,
           filters,
-          results_count: results.length,
+          results_count: results.length + dishResults.length,
         },
       });
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query, filters, results.length, loading, failed]);
+  }, [query, filters, results.length, dishResults.length, loading, failed]);
 
   const handleToggle = (kind: FilterKind, value: unknown) => {
     setFilters((prev) => {
@@ -351,8 +359,9 @@ export default function SearchScreen() {
             </View>
           </View>
         </ScrollView>
-      ) : results.length === 0 ? (
+      ) : results.length === 0 && dishResults.length === 0 ? (
         <View style={{ flex: 1 }}>
+          <DataLoadNotice loading={menu.loading} failed={menu.failed} onRetry={menu.reload} />
           <EmptyState
             icon="search"
             title={t("search.results_empty_title")}
@@ -386,6 +395,7 @@ export default function SearchScreen() {
       ) : (
         <FlatList
           data={results}
+          ListHeaderComponent={<View style={{ padding: theme.spacing.base, gap: theme.spacing.sm }}><DataLoadNotice loading={menu.loading} failed={menu.failed} onRetry={menu.reload} />{dishResults.length ? <Text style={{ ...theme.typography.preset.h2, color: theme.colors.text.primary }}>{t("outings.dishes")}</Text> : null}{dishResults.map(item => <MenuItemCard key={item.id} item={item} />)}</View>}
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ paddingBottom: theme.spacing["2xl"] }}
           renderItem={({ item }) => (

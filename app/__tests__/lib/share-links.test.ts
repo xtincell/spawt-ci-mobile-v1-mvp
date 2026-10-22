@@ -9,7 +9,7 @@ describe("partages vers l'app installée", () => {
     expect(normalizeCrewInviteCode(undefined)).toBeNull();
   });
 
-  it("encode le segment de la fiche sans inventer de page web", () => {
-    expect(buildPlaceShareUrl("lieu/a")).toBe("spawt://place/lieu%2Fa");
+  it("encode le segment de la fiche vers la page publique avec ouverture dans l’app", () => {
+    expect(buildPlaceShareUrl("lieu/a")).toBe("https://spawt.online/lieu/lieu%2Fa");
   });
 });

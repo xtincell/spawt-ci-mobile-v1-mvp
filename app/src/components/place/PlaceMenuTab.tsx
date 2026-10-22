@@ -11,12 +11,27 @@ import { useTheme } from "../../theme/ThemeProvider";
 import { EmptyState } from "../EmptyState";
 import { Ico } from "../primitives/Ico";
 import { resolveMenuUrls } from "../../lib/place-contributions";
+import { useMenuItems } from "../../lib/use-menu-items";
+import { MenuItemCard } from "../MenuItemCard";
+import { DataLoadNotice } from "../DataLoadNotice";
 
 interface Props {
   urls: readonly string[];
+  placeId?: string;
 }
 
-export function PlaceMenuTab({ urls }: Props) {
+export function PlaceMenuTab({ urls, placeId }: Props) {
+  return placeId ? <StructuredPlaceMenu urls={urls} placeId={placeId} /> : <MenuPhotos urls={urls} />;
+}
+function StructuredPlaceMenu({ urls, placeId }: { urls: readonly string[]; placeId: string }) {
+  const menu = useMenuItems(placeId); const theme = useTheme();
+  return <View style={{ gap: theme.spacing.base }}>
+    <DataLoadNotice loading={menu.loading} failed={menu.failed} onRetry={menu.reload} />
+    {menu.items.map(item => <MenuItemCard key={item.id} item={item} />)}
+    <MenuPhotos urls={urls} hideEmpty={menu.items.length > 0} />
+  </View>;
+}
+function MenuPhotos({ urls, hideEmpty = false }: { urls: readonly string[]; hideEmpty?: boolean }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const signature = JSON.stringify(urls);
@@ -34,6 +49,7 @@ export function PlaceMenuTab({ urls }: Props) {
   if (hasStored && !valid.length) return <View style={{ padding: theme.spacing.base }}><Text style={{ ...theme.typography.preset.body, color: theme.colors.text.primary }}>{t(failed ? "contribution.menu_failed" : "contribution.menu_loading")}</Text>{failed ? <Pressable accessibilityRole="button" onPress={() => setAttempt(a => a + 1)} style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("common.retry")}</Text></Pressable> : null}</View>;
 
   if (valid.length === 0) {
+    if (hideEmpty) return null;
     return (
       <View style={{ paddingVertical: theme.spacing.base }}>
         <EmptyState
