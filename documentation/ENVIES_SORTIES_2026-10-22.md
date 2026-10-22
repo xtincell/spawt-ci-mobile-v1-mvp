@@ -74,3 +74,12 @@ Aucun accès Coolify authentifié n’est déclaré dans cet environnement. Le d
 
 
 Sources produit relues : [Lean Canvas V5.1](https://docs.google.com/document/d/1XkpV-F41_8P-2YmSnJMGbFcFpmcqGL7jbeM-85eM9To/edit) et documentation SPAWT du Drive. Les décisions de cette conversation sur la NS et les listes priment sur l’ancienne NS du Canvas.
+
+
+## Contrôles GitHub reçus
+
+- Source du candidat : `30b8f41e2229d727f516bbd3e2f62bf44063b382`.
+- [CI app et panel 39700452723](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700452723) : succès, y compris export web et contrats Expo/HTML.
+- [PostgreSQL, migrations et contrats paiement 39700452815](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700452815) : succès.
+- [PR app/base/panel #21](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/pull/21) et [PR site #17](https://github.com/xtincell/project_spawt_mobile_ci/pull/17), en brouillon jusqu’à réception de la livraison coordonnée.
+- Recette du candidat compilable : `documentation/android-build41.json`, lignée Android 40 reçue. La compilation ne publie ni l’APK ni le manifeste public.
