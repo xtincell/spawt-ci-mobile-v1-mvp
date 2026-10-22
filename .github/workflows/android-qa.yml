@@ -144,7 +144,23 @@ jobs:
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
           adb shell settings put secure show_ime_with_hard_keyboard 1
+          if [ "$(python3 -c 'import json;print(json.load(open("documentation/android-qa.json"))["build"])')" -ge 41 ]; then
+            curl -fsSL 'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-40/spawt-1.1.1-build40.apk' -o previous.apk
+            echo 'f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648  previous.apk' | sha256sum -c -
+            adb install previous.apk
+            adb shell dumpsys package com.upgraders.spawt > android-proof/previous-package.txt
+          fi
           adb install -r spawt.apk
+          python3 - <<'PYCODE'
+          import json,pathlib,subprocess
+          c=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+          if c['build']>=41:
+              before=pathlib.Path('android-proof/previous-package.txt').read_text()
+              after=subprocess.check_output(['adb','shell','dumpsys','package','com.upgraders.spawt'],text=True)
+              assert 'versionCode=40 ' in before and 'versionCode='+str(c['build'])+' ' in after
+              assert 'android.permission.ACCESS_BACKGROUND_LOCATION' in after
+              pathlib.Path('android-proof/upgrade-install.json').write_text(json.dumps({'from':40,'to':c['build'],'installedOverPrevious':True,'backgroundLocationDeclared':True}))
+          PYCODE
       - name: Recette native
         if: steps.apk.outputs.ready == 'true'
         run: |

@@ -57,6 +57,8 @@ jobs:
           if(!['signatureMatchesBuild25','zipCrcPassed','nativePackageVerified','compiledBackendConfigVerified','compiledFirebaseConfigVerified'].every(k=>m[k]===true)) throw new Error('APK checks incomplete');
           if(firebase.defaultAppInitialized!==true) throw new Error('Firebase native initialization was not verified');
           if(c.build>=41) {
+            const upgrade=JSON.parse(fs.readFileSync('native-proof/upgrade-install.json'));
+            if(upgrade.from!==40 || upgrade.to!==c.build || upgrade.installedOverPrevious!==true || upgrade.backgroundLocationDeclared!==true) throw new Error('Native upgrade receipt missing');
             const outing=JSON.parse(fs.readFileSync('native-proof/outing-data.json'));
             const required=['menuRead','dishSearch','saveReceipt','namedListRead','shareReadInBrowser','revokedLinkRefused','chooseReceipt','feedbackReceipt','sevenContentChecks','appLinkOpened'];
             if(outing.build!==c.build || outing.sha256!==m.sha256 || outing.apiOrigin!=='https://api.spawt.online' || !required.every(k=>outing[k]===true)) throw new Error('Live native outing/list/web proof missing');
