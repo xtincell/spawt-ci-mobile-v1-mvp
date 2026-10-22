@@ -1,0 +1,78 @@
+[
+  {
+    "check": "cold animated launch keeps SPAWT in foreground",
+    "passed": true
+  },
+  {
+    "check": "360-1: home feed has no read error",
+    "passed": true
+  },
+  {
+    "check": "393-1: home feed has no read error",
+    "passed": true
+  },
+  {
+    "check": "320-1.3: home feed has no read error",
+    "passed": true
+  },
+  {
+    "check": "native map counts match all public records and known coordinates",
+    "passed": true
+  },
+  {
+    "check": "team catalogue does not populate personal spawts",
+    "passed": true
+  },
+  {
+    "check": "unexplored public records are accessible in native list",
+    "passed": true
+  },
+  {
+    "check": "native documentary place keeps unknown price and no rating",
+    "passed": true
+  },
+  {
+    "check": "native announcements match public database",
+    "passed": true
+  },
+  {
+    "check": "native editorial matches exact public database text",
+    "passed": true
+  },
+  {
+    "check": "native collection index and detail match public database",
+    "passed": true
+  },
+  {
+    "check": "all native content checks reached production",
+    "passed": true
+  },
+  {
+    "check": "offline checks do not pretend data is empty",
+    "passed": true
+  },
+  {
+    "check": "offline feedback remains unconfirmed",
+    "passed": true
+  },
+  {
+    "check": "private feedback draft survives process restart",
+    "passed": true
+  },
+  {
+    "check": "native feedback receives server receipt",
+    "passed": true
+  },
+  {
+    "check": "native feedback reads admin team reply",
+    "passed": true
+  },
+  {
+    "check": "native content reads recover after network outage",
+    "passed": true
+  },
+  {
+    "check": "native menu draft survives process restart",
+    "passed": true
+  }
+]
