@@ -6,6 +6,7 @@ import { withReadTimeout } from "../data-read-error";
 import { supabase } from "../supabase";
 import { dataSourceMode } from "../data-source";
 import { useSpawterStore } from "../../store/spawter-store";
+import { useGuetActive } from "../../store/guet-active";
 import { useFeatureFlagsStore } from "../../store/feature-flags";
 import { localOutings } from "../outings";
 import { armGuet, disarmGuet, isGuetArmed } from "./geofence";
@@ -38,6 +39,7 @@ export async function shutdownGuet(): Promise<void> {
   generation++; owner = null; lastArmAt = 0;
   listener?.remove(); listener = null; stopResponses?.(); stopResponses = null;
   registerGeofenceCallback(null); setPlaceNameLookup(() => null);
+  useGuetActive.getState().exit();
   await clearGuetContext();
   await serialGuet(async () => { await disarmGuet(); await cancelAllGuetNotifications().catch(() => undefined); });
 }

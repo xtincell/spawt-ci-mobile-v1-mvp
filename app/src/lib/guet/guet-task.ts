@@ -77,6 +77,9 @@ if (typeof TaskManager.defineTask === "function") {
 }
 
 async function handleEnter(place: PlaceLookup): Promise<void> {
+  const nearby = await import("./guet-nearby");
+  const context = await nearby.readGuetContext();
+  if (!context?.places.some(p => p.id === place.id)) return;
   useGuetActive.getState().enter({ place_id: place.id, place_name: place.name });
   if (externalCallback) await externalCallback("enter", place);
   else await (await import("./guet-nearby")).handleNearbyEvent("enter", place.id);

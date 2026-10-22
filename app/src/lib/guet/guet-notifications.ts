@@ -47,6 +47,8 @@ export async function cancelAllGuetNotifications(): Promise<void> {
   if (Platform.OS === "web") return;
   const pending = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(pending.filter(p => p.identifier.startsWith("spawt:guet:")).map(p => Notifications.cancelScheduledNotificationAsync(p.identifier)));
+  const presented = await Notifications.getPresentedNotificationsAsync();
+  await Promise.all(presented.filter(p => p.request.identifier.startsWith("spawt:guet:")).map(p => Notifications.dismissNotificationAsync(p.request.identifier)));
 }
 export interface NotificationResponseHandler { (action: "confirm" | "snooze" | "default", payload: GuetPromptPayload): void | Promise<void>; }
 export function registerNotificationResponseHandler(handler: NotificationResponseHandler): () => void {

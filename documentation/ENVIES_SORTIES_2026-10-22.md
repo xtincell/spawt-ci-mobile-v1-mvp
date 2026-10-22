@@ -53,7 +53,7 @@ un rappel de proximité par lieu sur sept jours, silence 22 h–9 h.
 
 ## Preuves locales
 
-1 107 tests mobiles (4 ignorés), 231 tests panel cumulés, 50 tests portail ; gates TypeScript/vocabulaire/i18n/build ; tests SQL sur PostgreSQL 15 isolé, schéma complet et aller/retour des quatre migrations ; tests de propriété/idempotence/listes sur PGlite ; appel du vrai parseur Expo installé ; contrat de partage HTML ; configuration nginx testée dans l’image `nginx:alpine`.
+1 108 tests mobiles (4 ignorés), 231 tests panel cumulés, 50 tests portail ; gates TypeScript/vocabulaire/i18n/build ; tests SQL sur PostgreSQL 15 isolé, schéma complet et aller/retour des quatre migrations ; tests de propriété/idempotence/listes sur PGlite ; appel du vrai parseur Expo installé ; contrat de partage HTML ; configuration nginx testée dans l’image `nginx:alpine`.
 
 Inspection Chromium à 393 px : page Envies, recherche de plat et accueil. Les contenus publics existants ont été relus anonymement ; le compte, les menus et les listes nouveaux sont des fixtures locales, toutes les écritures interceptées. Cette inspection n’est pas une réception en production ni une recette APK.
 
@@ -83,3 +83,8 @@ Sources produit relues : [Lean Canvas V5.1](https://docs.google.com/document/d/1
 - [PostgreSQL, migrations et contrats paiement 39700452815](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700452815) : succès.
 - [PR app/base/panel #21](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/pull/21) et [PR site #17](https://github.com/xtincell/project_spawt_mobile_ci/pull/17), en brouillon jusqu’à réception de la livraison coordonnée.
 - Recette du candidat compilable : `documentation/android-build41.json`, lignée Android 40 reçue. La compilation ne publie ni l’APK ni le manifeste public.
+
+
+[Aperçu local : Mes envies](envies-reception/envies.png) · [Recherche de plat](envies-reception/recherche.png) · [Accueil](envies-reception/accueil.png). Les fixtures sont explicites dans `envies-reception/visual-proof.json` ; aucun avis ni aucune envie de recette n’a été envoyé à la production.
+
+Dernière correction avant compilation finale : l’affichage d’une zone attend aussi un contexte authentifié valide ; les notifications du Guet déjà affichées sont retirées à la déconnexion, sans toucher aux campagnes Firebase. Premier essai de compilation 41 arrêté pour intégrer ce contrôle (39700643440, aucun APK publié).
