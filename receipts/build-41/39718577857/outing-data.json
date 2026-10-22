@@ -1,0 +1,30 @@
+{
+  "upgradeInstall": {
+    "from": 40,
+    "to": 41,
+    "installedOverPrevious": true,
+    "backgroundLocationDeclared": true
+  },
+  "build": 41,
+  "sha256": "62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9",
+  "apiOrigin": "https://api.spawt.online",
+  "menuRead": true,
+  "dishSearch": true,
+  "saveReceipt": true,
+  "namedListRead": true,
+  "shareReadInBrowser": true,
+  "revokedLinkRefused": true,
+  "chooseReceipt": true,
+  "appLinkOpened": true,
+  "guetEnabled": false,
+  "physicalGuetReceipt": false,
+  "offlineSaveResumed": true,
+  "crossAccountIsolation": true,
+  "placeId": "c5acfd12-01dd-5cd3-9beb-0531d89c3e99",
+  "menuItemId": "6dad3f00-d87f-4c70-87a7-b083af11c4d7",
+  "listId": "ef225b94-2e56-4269-a72d-324a163d2670",
+  "listTitle": "Brunch recette 39718577857",
+  "checkedAt": "2026-10-22T03:52:16Z",
+  "feedbackReceipt": true,
+  "sevenContentChecks": true
+}
