@@ -389,10 +389,17 @@ try:
     login(PHONE)
     snap('signed-in')
     if MODE=='live':
-        live_content_cases()
+        # Receive the new journey first so its diagnostics do not require
+        # repeating the already received editorial/moderation journey first.
+        outing=None
         if json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build']>=41:
             from android_outing_qa import run_outing_cases
-            run_outing_cases(globals())
+            outing=run_outing_cases(globals())
+        live_content_cases()
+        if outing is not None:
+            live=json.loads((OUT/'live-data.json').read_text())
+            outing.update(feedbackReceipt=live['feedbackReceiptReceived'],sevenContentChecks=live['fiveContentChecksPassed'])
+            (OUT/'outing-data.json').write_text(json.dumps(outing,ensure_ascii=False,indent=2))
         raise SystemExit(0)
     if MODE=='community':
         # Existing alpha account; this path never publishes, saves or changes backend data.
