@@ -1,0 +1,26 @@
+[
+  {
+    "check": "cold animated launch keeps SPAWT in foreground",
+    "passed": true
+  },
+  {
+    "check": "published real dish has source date and observed price",
+    "passed": true
+  },
+  {
+    "check": "native place reads published structured menu",
+    "passed": true
+  },
+  {
+    "check": "native alias search reaches published dish",
+    "passed": true
+  },
+  {
+    "check": "offline dish save persists and reaches owning server account",
+    "passed": true
+  },
+  {
+    "check": "native named occasion list and dish received by server",
+    "passed": true
+  }
+]

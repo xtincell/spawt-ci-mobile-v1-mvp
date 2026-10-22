@@ -1,0 +1,520 @@
+{
+  "passed": true,
+  "sampleFps": 30,
+  "sampledFrames": 249,
+  "captureWidth": 392,
+  "captureHeight": 800,
+  "visibleFrames": 41,
+  "longestVisibleSeconds": 1.367,
+  "minimumVisibleSeconds": 0.333,
+  "earlyMotionSeconds": 0.45,
+  "earlyGoldTravelPixels": 119.84,
+  "minimumGoldTravelPixels": 20,
+  "viewportOrigin": [
+    97,
+    240
+  ],
+  "winkPassed": true,
+  "closedEyeFrames": 8,
+  "reopenedEyeFrames": 10,
+  "maximumEyeDistance": 18,
+  "minimumEyeDistanceMargin": 3,
+  "blackSurfaceFrames": 0,
+  "blackSurfaceSeconds": [],
+  "visible": [
+    {
+      "second": 3.5,
+      "goldPixels": 293,
+      "goldCenterY": 471.21
+    },
+    {
+      "second": 3.533,
+      "goldPixels": 1158,
+      "goldCenterY": 435.12
+    },
+    {
+      "second": 3.567,
+      "goldPixels": 1158,
+      "goldCenterY": 435.12
+    },
+    {
+      "second": 3.6,
+      "goldPixels": 1158,
+      "goldCenterY": 435.12
+    },
+    {
+      "second": 3.633,
+      "goldPixels": 1158,
+      "goldCenterY": 435.12
+    },
+    {
+      "second": 3.667,
+      "goldPixels": 1994,
+      "goldCenterY": 351.37
+    },
+    {
+      "second": 3.7,
+      "goldPixels": 2398,
+      "goldCenterY": 357.49
+    },
+    {
+      "second": 3.733,
+      "goldPixels": 2839,
+      "goldCenterY": 363.78
+    },
+    {
+      "second": 3.767,
+      "goldPixels": 2839,
+      "goldCenterY": 363.78
+    },
+    {
+      "second": 3.8,
+      "goldPixels": 2839,
+      "goldCenterY": 363.78
+    },
+    {
+      "second": 3.833,
+      "goldPixels": 3056,
+      "goldCenterY": 362.38
+    },
+    {
+      "second": 3.867,
+      "goldPixels": 3056,
+      "goldCenterY": 362.38
+    },
+    {
+      "second": 3.9,
+      "goldPixels": 3056,
+      "goldCenterY": 362.38
+    },
+    {
+      "second": 3.933,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 3.967,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.0,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.033,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.067,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.1,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.133,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.167,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.2,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.233,
+      "goldPixels": 3126,
+      "goldCenterY": 357.46
+    },
+    {
+      "second": 4.267,
+      "goldPixels": 3156,
+      "goldCenterY": 355.8
+    },
+    {
+      "second": 4.3,
+      "goldPixels": 3157,
+      "goldCenterY": 355.79
+    },
+    {
+      "second": 4.333,
+      "goldPixels": 3157,
+      "goldCenterY": 355.79
+    },
+    {
+      "second": 4.367,
+      "goldPixels": 3157,
+      "goldCenterY": 355.79
+    },
+    {
+      "second": 4.4,
+      "goldPixels": 3157,
+      "goldCenterY": 355.79
+    },
+    {
+      "second": 4.433,
+      "goldPixels": 3157,
+      "goldCenterY": 355.79
+    },
+    {
+      "second": 4.467,
+      "goldPixels": 3157,
+      "goldCenterY": 355.79
+    },
+    {
+      "second": 4.5,
+      "goldPixels": 3157,
+      "goldCenterY": 355.79
+    },
+    {
+      "second": 4.533,
+      "goldPixels": 3076,
+      "goldCenterY": 353.43
+    },
+    {
+      "second": 4.567,
+      "goldPixels": 3076,
+      "goldCenterY": 353.43
+    },
+    {
+      "second": 4.6,
+      "goldPixels": 3076,
+      "goldCenterY": 353.43
+    },
+    {
+      "second": 4.633,
+      "goldPixels": 3055,
+      "goldCenterY": 352.56
+    },
+    {
+      "second": 4.667,
+      "goldPixels": 3055,
+      "goldCenterY": 352.56
+    },
+    {
+      "second": 4.7,
+      "goldPixels": 3055,
+      "goldCenterY": 352.56
+    },
+    {
+      "second": 4.733,
+      "goldPixels": 3055,
+      "goldCenterY": 352.56
+    },
+    {
+      "second": 4.767,
+      "goldPixels": 3055,
+      "goldCenterY": 352.56
+    },
+    {
+      "second": 4.8,
+      "goldPixels": 3055,
+      "goldCenterY": 352.56
+    },
+    {
+      "second": 4.833,
+      "goldPixels": 3055,
+      "goldCenterY": 352.56
+    }
+  ],
+  "eyeSamples": [
+    {
+      "second": 3.5,
+      "closedDistance": 120.9,
+      "openDistance": 114.93,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.533,
+      "closedDistance": 120.62,
+      "openDistance": 114.57,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.567,
+      "closedDistance": 120.62,
+      "openDistance": 114.57,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.6,
+      "closedDistance": 120.62,
+      "openDistance": 114.57,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.633,
+      "closedDistance": 120.62,
+      "openDistance": 114.57,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.667,
+      "closedDistance": 44.21,
+      "openDistance": 50.54,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.7,
+      "closedDistance": 45.97,
+      "openDistance": 38.26,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.733,
+      "closedDistance": 58.66,
+      "openDistance": 64.31,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.767,
+      "closedDistance": 58.66,
+      "openDistance": 64.31,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.8,
+      "closedDistance": 58.66,
+      "openDistance": 64.31,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.833,
+      "closedDistance": 67.68,
+      "openDistance": 71.24,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.867,
+      "closedDistance": 67.68,
+      "openDistance": 71.24,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.9,
+      "closedDistance": 67.68,
+      "openDistance": 71.24,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.933,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 3.967,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.0,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.033,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.067,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.1,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.133,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.167,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.2,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.233,
+      "closedDistance": 53.92,
+      "openDistance": 61.63,
+      "closed": false,
+      "open": false
+    },
+    {
+      "second": 4.267,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.3,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.333,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.367,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.4,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.433,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.467,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.5,
+      "closedDistance": 6.99,
+      "openDistance": 27.89,
+      "closed": true,
+      "open": false
+    },
+    {
+      "second": 4.533,
+      "closedDistance": 28.77,
+      "openDistance": 11.35,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.567,
+      "closedDistance": 28.77,
+      "openDistance": 11.35,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.6,
+      "closedDistance": 28.77,
+      "openDistance": 11.35,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.633,
+      "closedDistance": 31.15,
+      "openDistance": 9.44,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.667,
+      "closedDistance": 31.15,
+      "openDistance": 9.44,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.7,
+      "closedDistance": 31.15,
+      "openDistance": 9.44,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.733,
+      "closedDistance": 31.15,
+      "openDistance": 9.44,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.767,
+      "closedDistance": 31.15,
+      "openDistance": 9.44,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.8,
+      "closedDistance": 31.15,
+      "openDistance": 9.44,
+      "closed": false,
+      "open": true
+    },
+    {
+      "second": 4.833,
+      "closedDistance": 31.15,
+      "openDistance": 9.44,
+      "closed": false,
+      "open": true
+    }
+  ]
+}
