@@ -1,0 +1,46 @@
+[
+  {
+    "check": "cold animated launch keeps SPAWT in foreground",
+    "passed": true
+  },
+  {
+    "check": "published real dish has source date and observed price",
+    "passed": true
+  },
+  {
+    "check": "native place reads published structured menu",
+    "passed": true
+  },
+  {
+    "check": "native alias search reaches published dish",
+    "passed": true
+  },
+  {
+    "check": "offline dish save persists and reaches owning server account",
+    "passed": true
+  },
+  {
+    "check": "native named occasion list and dish received by server",
+    "passed": true
+  },
+  {
+    "check": "native explicit choice receives a new server receipt without visit",
+    "passed": true
+  },
+  {
+    "check": "share action is fully visible and enabled",
+    "passed": true
+  },
+  {
+    "check": "native shared list is readable in anonymous real browser",
+    "passed": true
+  },
+  {
+    "check": "Android verifies official website App Link",
+    "passed": true
+  },
+  {
+    "check": "public HTTPS list opens the installed native package",
+    "passed": true
+  }
+]
