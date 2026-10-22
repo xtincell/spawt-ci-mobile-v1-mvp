@@ -26,6 +26,25 @@ def run_outing_cases(g):
             time.sleep(2)
         raise AssertionError('Expected server receipt did not arrive')
     adb=g['adb'];deep=g['deep'];tap=g['tap'];find=g['find'];snap=g['snap'];check=g['check'];back=g['back'];scroll_tap=g['scroll_tap'];scroll_find=g['scroll_find'];restart=g['restart']
+    def stable_action(value):
+        # Loading notices move the list toolbar. Require the enabled action
+        # to retain its actual native bounds across two settled UI dumps.
+        end=time.monotonic()+45;previous=None
+        while time.monotonic()<end:
+            tree,_=g['nodes']()
+            texts=[g['label'](n).casefold() for n in tree.iter('node')]
+            if any('un instant' in t or 'synchronisation en attente' in t for t in texts):
+                previous=None;time.sleep(.5);continue
+            found=next((n for n in tree.iter('node') if n.get('clickable')=='true' and n.get('enabled')=='true' and any(n.get(k,'')==value for k in ('text','content-desc'))),None)
+            if found is not None:
+                position=g['bounds'](found)
+                if position[1]>=72 and position[3]<=2320 and position[2]>position[0] and position[3]>position[1]:
+                    if position==previous:g['tap_node'](found);return found
+                    previous=position
+                else:previous=None
+            else:previous=None
+            time.sleep(.5)
+        raise AssertionError('Native action not settled, visible and enabled: '+value)
     out=g['OUT'];run=g['RUN'];place='c5acfd12-01dd-5cd3-9beb-0531d89c3e99'
     dishes=req('/rest/v1/public_menu_items?select=*&place_id=eq.'+place)
     dish=next(d for d in dishes if d['name']=='Eggs Benedict')
@@ -50,10 +69,9 @@ def run_outing_cases(g):
     scroll_tap('Choisir ce lieu');find('Cette envie est choisie');tap('OK',exact=True);until(lambda:any(c['place_id']==place and c['chosen_at']!=previous_choice for c in state()['choices']));check('native explicit choice receives a new server receipt without visit',True)
     # Reopen at the top after choosing below the fold. An existing route may
     # retain its scroll offset and expose a clipped accessibility target.
-    restart();deep('saved');tap(title,exact=True)
-    share=find('Partager',exact=True,enabled=True)
-    check('share action is fully visible and enabled',share.get('clickable')=='true' and g['bounds'](share)[1]>=72)
-    snap('outing-before-share');g['tap_node'](find('Partager',exact=True,enabled=True))
+    restart();deep('saved');stable_action(title)
+    snap('outing-before-share');stable_action('Partager')
+    check('share action is settled, visible and enabled',True)
     # Wait for the real server receipt before dismissing the Android chooser.
     # On failure, keep the current native error/sheet visible for diagnosis.
     entry=until(lambda:next((l for l in state()['lists'] if l['id']==lid and l['share_token']),None));url='https://spawt.online/liste/'+entry['share_token']
@@ -76,7 +94,8 @@ def run_outing_cases(g):
         result=adb('shell','am','start','-W','-a','android.intent.action.VIEW','-c','android.intent.category.BROWSABLE','-d',url)
         (out/'outing-link-navigation.txt').write_text(result);find(title);tree=snap('outing-app-link')
         check('public HTTPS list opens the installed native package',any(n.get('package')==g['PACKAGE'] for n in tree.iter('node')))
-        deep('saved');tap(title,exact=True);tap('Désactiver le lien');until(lambda:next((l for l in state()['lists'] if l['id']==lid and l['share_token'] is None),None))
+        restart();deep('saved');stable_action(title);snap('outing-before-revoke');stable_action('Désactiver le lien')
+        until(lambda:next((l for l in state()['lists'] if l['id']==lid and l['share_token'] is None),None));snap('outing-revoke-received')
         response=p.goto(url,wait_until='networkidle');assert response.status==404;expect(p.get_by_text('Ce lien n’est plus disponible.')).to_be_visible();p.screenshot(path=str(out/'outing-revoked-browser.png'),full_page=True);b.close()
     check('native revoke immediately removes public browser access',True)
     # Account B cannot read or mutate account A's private list.
