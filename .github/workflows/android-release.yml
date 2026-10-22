@@ -30,12 +30,21 @@ jobs:
           import {execFileSync} from 'node:child_process';
           const c=JSON.parse(fs.readFileSync('documentation/android-release.json'));
           if(!Number.isSafeInteger(c.build) || !/^[a-f0-9]{64}$/.test(c.sha256) || !/^[a-f0-9]{40}$/.test(c.sourceCommit) || c.tag!==`local-build-android-${c.buildDate}-${c.build}` || !Number.isSafeInteger(c.bytes)) throw new Error('Invalid release recipe');
-          const tag=execFileSync('git',['rev-parse',c.tag+'^{commit}'],{encoding:'utf8'}).trim();
-          if(tag!==c.buildWorkflowCommit) throw new Error('Release tag changed');
           for(const [id,sha,path] of [[c.buildRun,c.buildWorkflowCommit,'.github/workflows/android-local-build.yml'],[c.qaRun,c.qaWorkflowCommit,'.github/workflows/android-qa.yml']]) {
             const r=JSON.parse(execFileSync('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${id}`],{encoding:'utf8'}));
             if(r.status!=='completed' || r.conclusion!=='success' || r.head_sha!==sha || r.path!==path) throw new Error('Required verified run is missing');
           }
+          // Create the provenance tag only after both pinned runs succeeded.
+          // The workflow token suppresses a second build triggered by this tag.
+          // Existing tags remain immutable, including on publication retries.
+          let tag;
+          try { tag=execFileSync('git',['rev-parse','--verify',c.tag+'^{commit}'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim(); }
+          catch {
+            execFileSync('git',['tag',c.tag,c.buildWorkflowCommit],{stdio:'inherit'});
+            execFileSync('git',['push','origin',`refs/tags/${c.tag}`],{stdio:'inherit'});
+            tag=execFileSync('git',['rev-parse',c.tag+'^{commit}'],{encoding:'utf8'}).trim();
+          }
+          if(tag!==c.buildWorkflowCommit) throw new Error('Release tag changed');
           execFileSync('gh',['run','download',String(c.buildRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-apk','--dir','release-apk'],{stdio:'inherit'});
           execFileSync('gh',['run','download',String(c.qaRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-proof','--dir','native-proof'],{stdio:'inherit'});
           JS
