@@ -14,7 +14,17 @@ def run_outing_cases(g):
         with urllib.request.urlopen(r,timeout=30) as response:
             raw=response.read();return json.loads(raw) if raw else None
     def auth(phone):
-        s=req('/functions/v1/otp-verify',{'phone_e164':phone,'otp_code':'123456'})
+        assert phone in ('+2250000000193','+2250000000194')
+        payload={'phone_e164':phone,'otp_code':'123456'}
+        try:s=req('/functions/v1/otp-verify',payload)
+        except urllib.error.HTTPError as error:
+            # The secondary account did not go through the native OTP screen.
+            # Follow the same send/verify protocol instead of assuming an old
+            # pending code still exists. These are synthetic test numbers only.
+            if error.code!=400 or json.loads(error.read()).get('error')!='no_pending_otp':raise
+            sent=req('/functions/v1/otp-send',{'phone_e164':phone})
+            assert sent['success'] and sent['request_id'].startswith(('mock-','reviewer-'))
+            s=req('/functions/v1/otp-verify',payload)
         assert s['success'];return s
     s=auth(g['PHONE']);assert s['user_id']==g['OWNER'];token=s['access_token']
     def state():return req('/rest/v1/rpc/my_outings',{'p_owner':g['OWNER']},token)
