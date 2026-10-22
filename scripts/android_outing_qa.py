@@ -32,7 +32,7 @@ def run_outing_cases(g):
     check('published real dish has source date and observed price',dish['price_xof']==7000 and bool(dish['source_url']) and bool(dish['observed_on']))
     deep('place/'+place+'?tab=menu');scroll_find(dish['name'],attempts=25);snap('outing-native-menu');check('native place reads published structured menu',True)
     deep('search');tree,_=g['nodes']();field=next(n for n in tree.iter('node') if n.get('class')=='android.widget.EditText')
-    g['tap_node'](field);adb('shell','input','text','benedict');back();find(dish['name']);snap('outing-dish-search');check('native dish search reaches published menu',True)
+    g['tap_node'](field);adb('shell','input','text','oeufs');back();find(dish['name']);snap('outing-dish-search');check('native alias search reaches published dish',True)
     # Offline save is acknowledged locally, then actually received after restart.
     assert not any(d['id']==dish['id'] for d in state()['dishes']), 'Clean only the synthetic recipe account before retrying'
     adb('shell','cmd','connectivity','airplane-mode','enable');adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
