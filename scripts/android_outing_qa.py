@@ -71,7 +71,8 @@ def run_outing_cases(g):
         leaked=req('/rest/v1/rpc/my_outings',{'p_owner':g['OWNER']},other['access_token']);check('cross-owner snapshot rejected',leaked is None)
     finally:req('/auth/v1/logout?scope=local',token=other['access_token'],method='POST')
     live=json.loads((out/'live-data.json').read_text());metadata=json.loads((out/'apk-metadata.json').read_text())
-    proof={'build':metadata['build'],'sha256':metadata['sha256'],'apiOrigin':origin,'menuRead':True,'dishSearch':True,'saveReceipt':True,'namedListRead':True,'shareReadInBrowser':True,'revokedLinkRefused':True,'chooseReceipt':True,'feedbackReceipt':live['feedbackReceiptReceived'],'sevenContentChecks':True,'appLinkOpened':True,'guetEnabled':False,'physicalGuetReceipt':False,'offlineSaveResumed':True,'crossAccountIsolation':True,'placeId':place,'menuItemId':dish['id'],'listId':lid,'listTitle':title,'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+    upgrade=json.loads((out/'upgrade-install.json').read_text())
+    proof={'upgradeInstall':upgrade,'build':metadata['build'],'sha256':metadata['sha256'],'apiOrigin':origin,'menuRead':True,'dishSearch':True,'saveReceipt':True,'namedListRead':True,'shareReadInBrowser':True,'revokedLinkRefused':True,'chooseReceipt':True,'feedbackReceipt':live['feedbackReceiptReceived'],'sevenContentChecks':True,'appLinkOpened':True,'guetEnabled':False,'physicalGuetReceipt':False,'offlineSaveResumed':True,'crossAccountIsolation':True,'placeId':place,'menuItemId':dish['id'],'listId':lid,'listTitle':title,'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
     flags=req('/rest/v1/feature_flags?select=enabled&flag_code=eq.guet-proximity-v2',token=token)
     assert flags and not any(f['enabled'] for f in flags)
     # Private QA artifacts are not public catalogue data or commercial activity.
