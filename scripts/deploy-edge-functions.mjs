@@ -149,8 +149,8 @@ async function main() {
     return;
   }
 
-  // État courant : Coolify renvoie les montages existants ; on met à jour
-  // (PATCH par uuid) plutôt que de recréer, sinon on empile des doublons.
+  // État courant : recréer seulement les fichiers modifiés. PATCH ne réécrit
+  // pas le fichier sur l'hôte (voir ci-dessous).
   const cur = await api("GET", `/services/${SERVICE_UUID}/storages`);
   if (!cur.ok) fail(`lecture des montages : HTTP ${cur.status} ${cur.text.slice(0, 200)}`);
   const existing = new Map(
@@ -165,7 +165,8 @@ async function main() {
     const mount_path = `${MOUNT_PREFIX}/${f.rel}`;
     const prev = existing.get(mount_path);
 
-    if (prev && prev.content === content) {
+    // Coolify retire le saut de ligne final lors de l'enregistrement.
+    if (prev && prev.content?.replace(/\n+$/, "") === content.replace(/\n+$/, "")) {
       unchanged += 1;
       continue;
     }
@@ -231,11 +232,13 @@ async function main() {
     `/services/${SERVICE_UUID}/applications/${EDGE_RESOURCE_UUID}/restart`,
   );
   if (!r.ok) {
-    // L'endpoint par sous-ressource n'existe pas sur toutes les versions de
-    // Coolify ; on retombe sur le redéploiement du service entier.
-    log(`  redémarrage ciblé indisponible (HTTP ${r.status}) — redéploiement du service.`);
-    const d = await api("POST", `/deploy?uuid=${SERVICE_UUID}&force=true`);
-    if (!d.ok) fail(`redéploiement : HTTP ${d.status} ${d.text.slice(0, 200)}`);
+    // Coolify 4.1.2 n'expose pas ce redémarrage ciblé. Ne jamais arrêter la
+    // base, Auth, Storage et Kong pour recharger des fichiers TypeScript.
+    // Les fichiers sont posés ; seul le conteneur edge doit être redémarré
+    // depuis l'accès d'exploitation du serveur, puis les routes vérifiées.
+    fail(`fichiers posés, redémarrage ciblé indisponible (HTTP ${r.status}). ` +
+      `Redémarrer uniquement supabase-edge-functions-${SERVICE_UUID} depuis le serveur. ` +
+      "Le stack Supabase n'a pas été redémarré par ce script.");
   }
   log("déclenché. Vérifier ensuite que chaque route répond 405 et non 500.");
 }

@@ -11,7 +11,7 @@ import { Ico } from "./primitives/Ico";
 import { MatchScore } from "./primitives/MatchScore";
 import { Stars } from "./primitives/Stars";
 import { useTheme } from "../theme/ThemeProvider";
-import { maskPlaceName, GOLD_PRICE_LABEL_TTC } from "../lib/paywall-geo";
+import { maskPlaceName } from "../lib/paywall-geo";
 import type { PlaceWithAdn } from "../lib/data-source";
 
 interface Props {
@@ -121,7 +121,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
             numberOfLines={2}
           >
             {locked
-              ? t("paywall.locked_hint", { price: GOLD_PRICE_LABEL_TTC })
+              ? t("paywall.locked_hint")
               : `${place.location.neighborhood}${cuisineLabel}`}
           </Text>
           <View
@@ -145,7 +145,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
                 {safeDistance}
               </Text>
             </View>
-            <Chip label={PRICE_TIER_LABELS[place.price.tier]} variant="default" />
+            <Chip label={(place.price.tier === null ? t("place.price_unknown") : PRICE_TIER_LABELS[place.price.tier])} variant="default" />
           </View>
         </View>
       </View>

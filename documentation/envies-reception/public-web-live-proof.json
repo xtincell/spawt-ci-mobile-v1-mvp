@@ -1,0 +1,16 @@
+{
+  "publicChecks": {
+    "places": "Lieux publiés\n155 accessibles",
+    "editorials": "Avis éditoriaux\n10 accessibles",
+    "collections": "Carnets\n3 accessibles",
+    "announcements": "Fil du Chat\n1 accessible",
+    "menus": "Menus et plats\n24 accessibles",
+    "guet": "Coordonnées validées pour Le Guet\n0 accessibles",
+    "sync": "Actualisation des contenus\nAccessible"
+  },
+  "placeMenuRendered": true,
+  "noStore": true,
+  "missingList404": true,
+  "appLinkCertificate": true,
+  "javascriptErrors": []
+}

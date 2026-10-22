@@ -1,67 +1,7 @@
-// Edge Function `push-send` — Feature 13 (push serveur).
-// Runtime : Deno (Supabase Edge). Envoi de notifications push via l'API Expo.
-//
-// ━━━ CONTRAT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// POST /functions/v1/push-send
-//
-// Auth (2 modes) :
-//   (a) interne — `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`
-//       (appels serveur→serveur : payment-cron, futurs crons). Pas de limite.
-//   (b) staff — `Authorization: Bearer <access_token>` d'un compte dont
-//       is_admin_staff() est vrai (spawt_staff role='admin' + is_active,
-//       vérifié par SELECT via le client service_role — pattern
-//       moderate-spawter). Limite anti-abus : max 3 campagnes / jour UTC,
-//       comptées via admin_audit_log action='push_campaign'.
-//
-// Body JSON :
-//   {
-//     "spawter_ids"?: string[],   // cibles directes (prioritaire sur les filtres)
-//     "stade"?: string,           // filtre spawter_progression.stade
-//     "archetype"?: string,       // filtre spawters.quiz_archetype
-//     "gold_only"?: boolean,      // filtre vue active_entitlements.is_active
-//     "title": string,            // requis (1..178 chars)
-//     "body": string,             // requis (1..2048 chars)
-//     "data"?: { ... }            // payload notif — ex. deep_link, type
-//   }
-//   Au moins UNE cible requise (spawter_ids OU stade OU archetype OU gold_only).
-//   stade + archetype + gold_only se cumulent en intersection.
-//
-// Appel interne type (payment-cron, renouvellement Gold) :
-//   POST push-send   Authorization: Bearer <SERVICE_ROLE>
-//   { "spawter_ids": ["<uuid>"], "title": "…", "body": "…",
-//     "data": { "type": "gold_renewal", "deep_link": "/settings" } }
-//
-// Réponse 200 : { "sent": n, "failed": n, "purged": n }
-//   sent   = tickets Expo status "ok"
-//   failed = tickets en erreur (hors purge) + chunks en échec réseau/HTTP
-//   purged = tokens DeviceNotRegistered supprimés de push_tokens
-// Erreurs : 400 invalid_json | invalid_payload | missing_targets,
-//           401 unauthenticated, 403 forbidden, 405 method_not_allowed,
-//           429 campaign_limit_reached, 500 edge_misconfigured | targets_failed.
-//
-// Envoi : POST https://exp.host/--/api/v2/push/send par chunks de 100 messages
-// (limite API Expo), channelId Android "spawt" (créé côté app, push-token.ts).
-// DeviceNotRegistered au niveau ticket → DELETE du token. Les receipts
-// asynchrones Expo (getReceipts) ne sont pas interrogés en V1 : la purge se
-// fait sur les tickets immédiats + naturellement au prochain envoi.
-//
-// gold_only : si la vue active_entitlements est absente/en échec (migration
-// 0032 pas encore appliquée), fallback SILENCIEUX — le filtre est ignoré
-// (loggé), les autres critères s'appliquent.
-//
-// ⚠️ Limite connue : le CHECK de admin_audit_log.action (migration 0017)
-// n'inclut pas encore 'push_campaign'. Tant que le chantier migrations ne l'a
-// pas étendu, l'INSERT d'audit échoue (loggé, non bloquant — l'envoi est déjà
-// parti) et la limite 3 campagnes/jour est de facto inopérante (count = 0).
-// Fail-open assumé, cf. mission Feature 13.
-//
-// CORS : pattern ALLOWED_ORIGINS fail-closed (copié d'otp-send — jamais de
-// reflect d'une origin non-whitelistée).
-// Secrets : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
-// (injectés par défaut), ALLOWED_ORIGINS (CSV origins web autorisées).
-//
-// Déploiement :
-//   supabase functions deploy push-send
+// Push console: server-side targeting, dry-run estimates and an atomic,
+// idempotent reservation before sending. `sent` means accepted by Expo,
+// never proof of display on a phone. Campaigns in `sending` after a timeout
+// must be reconciled by an operator; they are never automatically replayed.
 
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -73,6 +13,9 @@ declare const Deno: { env: { get(name: string): string | undefined }; serve: (h:
 
 interface PushSendPayload {
   spawter_ids?: string[];
+  all_spawters?: boolean;
+  dry_run?: boolean;
+  request_id?: string;
   stade?: string;
   archetype?: string;
   gold_only?: boolean;
@@ -86,7 +29,7 @@ export const EXPO_PUSH_CHUNK_SIZE = 100;
 /** Chunk des clauses `.in()` PostgREST (longueur d'URL bornée). */
 const DB_IN_CHUNK_SIZE = 200;
 /** Anti-abus staff : max campagnes par jour UTC. */
-const MAX_STAFF_CAMPAIGNS_PER_DAY = 3;
+
 /** Channel Android côté app (push-token.ts — ensurePushChannel). */
 const ANDROID_CHANNEL_ID = "spawt";
 
@@ -107,7 +50,7 @@ function corsHeaders(req: Request): Record<string, string> {
   const reflect = origin && allowed.includes(origin) ? origin : "null";
   return {
     "access-control-allow-origin": reflect,
-    "access-control-allow-headers": "authorization, apikey, content-type",
+    "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
     "access-control-allow-methods": "POST, OPTIONS",
     "vary": "origin",
   };
@@ -163,69 +106,51 @@ function validatePayload(raw: unknown): { ok: true; payload: PushSendPayload } |
   if (p.data !== undefined && (typeof p.data !== "object" || p.data === null || Array.isArray(p.data))) {
     return { ok: false, detail: "data doit être un objet" };
   }
+  if (p.dry_run !== undefined && typeof p.dry_run !== "boolean") return { ok: false, detail: "dry_run invalide" };
+  if (p.all_spawters !== undefined && typeof p.all_spawters !== "boolean") return { ok: false, detail: "all_spawters invalide" };
+  if (p.request_id !== undefined && (typeof p.request_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(p.request_id))) return { ok: false, detail: "request_id invalide" };
+  if (p.data && JSON.stringify(p.data).length > 2500) return { ok: false, detail: "data trop grand" };
   return { ok: true, payload: p as PushSendPayload };
 }
 
-/**
- * Résout les spawter_ids ciblés. spawter_ids directs prioritaires ; sinon
- * intersection des filtres stade / archetype / gold_only.
- * Retourne null si une query indispensable échoue (stade/archetype) —
- * gold_only seul est fail-open (fallback silencieux si vue absente).
- */
-async function resolveTargets(
-  // deno-lint-ignore no-explicit-any
-  admin: any,
-  payload: PushSendPayload,
-): Promise<string[] | null> {
-  if (payload.spawter_ids && payload.spawter_ids.length > 0) {
-    return [...new Set(payload.spawter_ids)];
+/** Paginate every filter and token read; PostgREST caps each response. */
+// deno-lint-ignore no-explicit-any
+async function readPages(query: () => any): Promise<any[] | null> {
+  const rows = [];
+  for (let offset = 0; offset < 100_000; offset += 200) {
+    const { data, error } = await query().range(offset, offset + 199);
+    if (error) return null;
+    rows.push(...(data ?? []));
+    if (!data || data.length < 200) return rows;
   }
-
-  let ids: Set<string> | null = null;
+  return null; // Never send to a silently truncated audience.
+}
+// deno-lint-ignore no-explicit-any
+async function resolveTargets(admin: any, payload: PushSendPayload): Promise<string[] | null> {
+  let ids: Set<string> | null = payload.spawter_ids !== undefined ? new Set(payload.spawter_ids) : null;
   const intersect = (next: string[]) => {
-    const nextSet = new Set(next);
-    ids = ids === null ? nextSet : new Set([...ids].filter((id) => nextSet.has(id)));
+    const set = new Set(next);
+    ids = ids === null ? set : new Set([...ids].filter(id => set.has(id)));
   };
-
   if (payload.stade) {
-    const { data, error } = await admin
-      .from("spawter_progression")
-      .select("spawter_id")
-      .eq("stade", payload.stade);
-    if (error) {
-      console.error("[push-send] filtre stade failed", error.message);
-      return null;
-    }
-    intersect((data ?? []).map((r: { spawter_id: string }) => r.spawter_id));
+    const rows = await readPages(() => admin.from("spawter_progression").select("spawter_id").eq("stade",payload.stade).order("spawter_id"));
+    if (!rows) return null;
+    intersect(rows.map(r => r.spawter_id));
   }
-
-  if (payload.archetype) {
-    const { data, error } = await admin
-      .from("spawters")
-      .select("id")
-      .eq("quiz_archetype", payload.archetype);
-    if (error) {
-      console.error("[push-send] filtre archetype failed", error.message);
-      return null;
-    }
-    intersect((data ?? []).map((r: { id: string }) => r.id));
-  }
-
   if (payload.gold_only) {
-    const { data, error } = await admin
-      .from("active_entitlements")
-      .select("spawter_id")
-      .eq("is_active", true);
-    if (error) {
-      // Vue absente (migration 0032 pas appliquée) — fallback SILENCIEUX :
-      // le filtre gold est ignoré, les autres critères restent appliqués.
-      console.warn("[push-send] vue active_entitlements indisponible — filtre gold ignoré", error.message);
-    } else {
-      intersect((data ?? []).map((r: { spawter_id: string }) => r.spawter_id));
-    }
+    const rows = await readPages(() => admin.from("active_entitlements").select("spawter_id").eq("is_active",true).in("plan",["gold_monthly","gold_annual"]).order("spawter_id"));
+    if (!rows) return null;
+    intersect(rows.map(r => r.spawter_id));
   }
-
-  return ids === null ? [] : [...(ids as Set<string>)];
+  // Exclude banned accounts for every targeting mode, including explicit ids.
+  const rows = await readPages(() => {
+    let q = admin.from("spawters").select("id").eq("is_banned",false).order("id");
+    if (payload.archetype) q=q.eq("quiz_archetype",payload.archetype);
+    return q;
+  });
+  if (!rows) return null;
+  intersect(rows.map(r => r.id));
+  return [...(ids ?? new Set<string>())];
 }
 
 interface ExpoTicket {
@@ -299,7 +224,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   const payload = validated.payload;
 
   const hasTarget =
-    (payload.spawter_ids && payload.spawter_ids.length > 0) ||
+    payload.spawter_ids !== undefined || payload.all_spawters === true ||
     Boolean(payload.stade) ||
     Boolean(payload.archetype) ||
     payload.gold_only === true;
@@ -307,50 +232,32 @@ export async function handleRequest(req: Request): Promise<Response> {
     return json({ error: "missing_targets" }, req, 400);
   }
 
-  // ━━━ Anti-abus staff : max 3 campagnes / jour UTC ━━━━━━━━━━━━━━━━━━━━━━━━
-  // Comptage via admin_audit_log action='push_campaign'. Fail-open : si le
-  // comptage échoue (CHECK 0017 pas encore étendu → aucune row ; table en
-  // erreur), on log et on continue — cf. limite connue en tête de fichier.
-  if (staffId) {
-    const dayStart = new Date();
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const { count, error: countError } = await admin
-      .from("admin_audit_log")
-      .select("*", { count: "exact", head: true })
-      .eq("action", "push_campaign")
-      .gte("created_at", dayStart.toISOString());
-    if (countError) {
-      console.warn("[push-send] comptage campagnes failed — limite non appliquée", countError.message);
-    } else if ((count ?? 0) >= MAX_STAFF_CAMPAIGNS_PER_DAY) {
-      return json({ error: "campaign_limit_reached", limit: MAX_STAFF_CAMPAIGNS_PER_DAY }, req, 429);
-    }
-  }
+  if (staffId && !payload.dry_run && !payload.request_id) return json({ error: "invalid_payload", detail: "request_id requis" }, req, 400);
 
   // ━━━ Résolution des cibles → tokens ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const targetIds = await resolveTargets(admin, payload);
   if (targetIds === null) {
     return json({ error: "targets_failed" }, req, 500);
   }
-  if (targetIds.length === 0) {
-    return json({ sent: 0, failed: 0, purged: 0 }, req, 200);
-  }
-
   const tokens: string[] = [];
   for (const idChunk of chunk(targetIds, DB_IN_CHUNK_SIZE)) {
-    const { data, error } = await admin
-      .from("push_tokens")
-      .select("token")
-      .in("spawter_id", idChunk);
-    if (error) {
-      console.error("[push-send] lecture push_tokens failed", error.message);
-      return json({ error: "targets_failed" }, req, 500);
-    }
-    for (const row of (data ?? []) as { token: string }[]) {
-      if (row.token) tokens.push(row.token);
-    }
+    const rows = await readPages(() => admin.from("push_tokens").select("token").in("spawter_id",idChunk).order("id"));
+    if (!rows) return json({ error: "targets_failed" }, req, 500);
+    tokens.push(...rows.map(r => r.token).filter(Boolean));
   }
-  if (tokens.length === 0) {
-    return json({ sent: 0, failed: 0, purged: 0 }, req, 200);
+  if (payload.dry_run) return json({ targets: targetIds.length, tokens: tokens.length, dry_run: true }, req);
+  if (staffId) {
+    const { dry_run: _dry, request_id: _id, ...content } = payload;
+    const { data, error } = await admin.rpc("reserve_push_campaign", {
+      p_id: payload.request_id, p_staff_id: staffId, p_payload: content,
+      p_targets: targetIds.length, p_tokens: tokens.length,
+    });
+    if (error) return json({ error: error.message === "campaign_limit_reached" ? "campaign_limit_reached" : "campaign_reservation_failed" }, req, error.message === "campaign_limit_reached" ? 429 : 500);
+    if (!data?.reserved) {
+      const previous = data?.campaign;
+      if (previous?.status === "completed") return json({ sent: previous.sent, failed: previous.failed, purged: previous.purged, replayed: true }, req);
+      return json({ error: "campaign_in_progress", request_id: payload.request_id }, req, 409);
+    }
   }
 
   // ━━━ Envoi Expo par chunks de 100 + purge DeviceNotRegistered ━━━━━━━━━━━━
@@ -413,29 +320,9 @@ export async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  // ━━━ Audit (staff uniquement) — fail-open, l'envoi est déjà parti ━━━━━━━━
   if (staffId) {
-    const { error: auditError } = await admin.from("admin_audit_log").insert({
-      spawt_staff_id: staffId,
-      action: "push_campaign",
-      entity_type: "session",
-      entity_id: null,
-      payload_after: {
-        title: payload.title,
-        targets: targetIds.length,
-        tokens: tokens.length,
-        sent,
-        failed,
-        purged,
-      },
-      ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
-      user_agent: req.headers.get("user-agent") ?? null,
-    });
-    if (auditError) {
-      // CHECK 0017 pas encore étendu à 'push_campaign' → échec attendu tant
-      // que le chantier migrations n'a pas livré. Loggé, non bloquant.
-      console.error("[push-send] audit push_campaign failed (envoi effectué)", auditError.message);
-    }
+    const { error } = await admin.from("push_campaigns").update({ status: "completed", sent, failed, purged, completed_at: new Date().toISOString() }).eq("id",payload.request_id);
+    if (error) return json({ error: "campaign_result_unconfirmed", request_id: payload.request_id }, req, 500);
   }
 
   return json({ sent, failed, purged }, req, 200);

@@ -62,9 +62,20 @@ export const Layout = () => {
           <NavLink to="/paiements" className={({ isActive }) => (isActive ? "active" : "")}>
             Paiements
           </NavLink>
+          {/* Les prix que la validation de Paiements facture : à côté. */}
+          <NavLink to="/tarifs" className={({ isActive }) => (isActive ? "active" : "")}>
+            Tarifs
+          </NavLink>
           <NavLink to="/b2b" className={({ isActive }) => (isActive ? "active" : "")}>
             Comptes B2B
           </NavLink>
+          <NavLink to="/actualites" className={({ isActive }) => isActive ? "active" : ""}>Actualités</NavLink>
+          <NavLink to="/activite" className={({ isActive }) => isActive ? "active" : ""}>Activité dans l’app</NavLink>
+          <NavLink to="/retours" className={({ isActive }) => isActive ? "active" : ""}>Retours de l’app</NavLink>
+          <NavLink to="/contributions" className={({ isActive }) => isActive ? "active" : ""}>Contributions aux lieux</NavLink>
+          <NavLink to="/guet" className={({ isActive }) => isActive ? "active" : ""}>Le Guet — coordonnées</NavLink>
+          <NavLink to="/menus" className={({ isActive }) => isActive ? "active" : ""}>Menus et plats</NavLink>
+          <NavLink to="/envies" className={({ isActive }) => isActive ? "active" : ""}>Envies de sortie</NavLink>
           <NavLink to="/push" className={({ isActive }) => (isActive ? "active" : "")}>
             Push
           </NavLink>

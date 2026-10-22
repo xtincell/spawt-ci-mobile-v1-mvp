@@ -1,5 +1,7 @@
+import { startContentSync } from "../src/lib/content-sync";
+import { startAppActivity } from "../src/lib/app-activity";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { AppState, Platform, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -37,7 +39,7 @@ import { StadeCelebration } from "../src/components/StadeCelebration";
 // badges-v2). Même doctrine d'overlay root que StadeCelebration.
 import { BadgeUnlocked } from "../src/components/progression/BadgeUnlocked";
 import { useProgressionStore } from "../src/store/progression-store";
-import { useFlag } from "../src/store/feature-flags";
+import { useFlag, useFeatureFlagsStore } from "../src/store/feature-flags";
 import {
   bootOfflineQueue,
   shutdownOfflineQueue,
@@ -101,15 +103,52 @@ export default function RootLayout() {
   // Story 4.1 + 4.2 — channel Android + catégories d'actions notif (Confirmer/Snooze).
   // Idempotent — pose les fondations pour scheduleGuetPrompt côté guet-task.
   useEffect(() => {
-    void ensureGuetChannel();
-    void setupGuetCategories();
+    void ensureGuetChannel().catch(() => undefined);
+    void setupGuetCategories().catch(() => undefined);
   }, []);
 
   // Câblage MVP — orchestrateur du Guet : dès qu'un spawter onboardé existe,
-  // boucle complète armement → geofence → notif 15min → confirm/passive.
+  // proximité → contenu, sans créer de visite automatique.
   // Au logout (spawter → null post-hydratation), tout est désarmé.
   const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
   const storeHydrating = useSpawterStore((s) => s.hydrating);
+  useEffect(() => {
+    if (storeHydrating || !spawterId || !isSupabaseConfigured) return;
+    const refresh = () => { void import("../src/store/outings-store").then(m => m.refreshCurrentOutings()).catch(() => undefined); };
+    refresh();
+    const sub = AppState.addEventListener("change", state => { if (state === "active") refresh(); });
+    return () => sub.remove();
+  }, [spawterId, storeHydrating]);
+  // Editorial availability must not depend on geofencing consent or opt-out.
+  useEffect(() => {
+    if (storeHydrating) return;
+    const refresh = () => { void useFeatureFlagsStore.getState().hydrate(spawterId); };
+    refresh();
+    const sub = AppState.addEventListener("change", state => { if (state === "active") refresh(); });
+    const timer = setInterval(() => { if (AppState.currentState === "active") refresh(); }, 60_000);
+    return () => { sub.remove(); clearInterval(timer); };
+  }, [spawterId, storeHydrating]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    return startContentSync(async () => {
+      const { supabase } = await import("../src/lib/supabase");
+      const { withReadTimeout } = await import("../src/lib/data-read-error");
+      const { data, error } = await withReadTimeout("content_status", signal => supabase.rpc("public_content_status").abortSignal(signal));
+      if (error || typeof data !== "string") throw error ?? new Error("content_status_failed");
+      return data;
+    });
+  }, []);
+  useEffect(() => {
+    if (!isSupabaseConfigured || storeHydrating || !spawterId) return;
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    void startAppActivity(spawterId).then(cleanup => {
+      if (cancelled) cleanup(); else stop = cleanup;
+    }).catch(() => {});
+    return () => { cancelled = true; stop?.(); };
+  }, [spawterId, storeHydrating]);
+
   useEffect(() => {
     if (storeHydrating) return;
     if (spawterId) {
@@ -120,7 +159,7 @@ export default function RootLayout() {
       // les deux cas). Jamais avant le consentement : un spawter n'existe
       // qu'après l'écran consent bloquant de l'onboarding.
       void (async () => {
-        await bootGuet();
+        await bootGuet().catch(() => undefined);
         await registerPushToken();
       })();
     } else {

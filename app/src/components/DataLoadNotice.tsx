@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
+import { useRouter } from "expo-router";
 
 export function DataLoadNotice({ loading, failed, onRetry }: {
   loading: boolean;
@@ -9,6 +10,7 @@ export function DataLoadNotice({ loading, failed, onRetry }: {
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const router = useRouter();
   if (!loading && !failed) return null;
   return (
     <View style={{ padding: theme.spacing.lg, gap: theme.spacing.sm }}>
@@ -20,6 +22,10 @@ export function DataLoadNotice({ loading, failed, onRetry }: {
           <Pressable accessibilityRole="button" accessibilityLabel={t("common.retry")} onPress={onRetry}
             style={{ minHeight: 44, justifyContent: "center" }}>
             <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("common.retry")}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/support?context=data_load")}
+            style={{ minHeight: 44, justifyContent: "center" }}>
+            <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("support.error_link")}</Text>
           </Pressable>
         </>
       )}

@@ -1,0 +1,82 @@
+{
+  "checkedAt": "2026-10-18T16:50:37.394458+00:00",
+  "firebaseProjectId": "spawt-ci",
+  "firebaseProjectNumber": "784936275475",
+  "firebaseAndroidAppId": "1:784936275475:android:3592fb2dc6cc9ffc0a39e6",
+  "packageName": "com.upgraders.spawt",
+  "expoAppId": "15ac2301-e901-4caa-a8c8-864c6621bcd0",
+  "serviceAccount": "spawt-expo-fcm@spawt-ci.iam.gserviceaccount.com",
+  "serviceAccountRoles": [
+    "roles/firebasecloudmessaging.admin"
+  ],
+  "fcmApiEnabled": true,
+  "fcmV1ConfiguredInExpo": true,
+  "googleValidateOnlyPassed": true,
+  "actualMessagesSent": 0,
+  "configurationRun": 39143630770,
+  "bootstrapProviderDisabled": true,
+  "bootstrapBindingsRemaining": 0,
+  "unusedKeysRemoved": 2,
+  "localServiceAccountKeyRemoved": true,
+  "physicalDeviceDeliveryVerified": false,
+  "androidBuild": 35,
+  "androidBuildRun": 39143492062,
+  "androidSourceCommit": "f265ae2a14ca01ee3b919a52aee6aac8c960ab9b",
+  "androidBuildStatus": "success",
+  "androidSha256": "53b7dcb40f0718484b10541a078c24382951536d5ab8c26a846cc4078f8c4086",
+  "androidBytes": 162454527,
+  "compiledFirebaseConfigVerified": true,
+  "firebaseInstallationsApiEnabled": true,
+  "fcmRegistrationsApiEnabled": true,
+  "clientRegistrationPassed": true,
+  "temporaryInstallationDeleted": true,
+  "nativeQaRun": 39146032702,
+  "nativeQaWorkflowCommit": "3caa8813831a807c6cfe70f1563d768372a9e499",
+  "nativeQaPassed": true,
+  "nativeAssertionsPassed": 5,
+  "firebaseDefaultAppInitialized": true,
+  "openingAnimationPassed": true,
+  "nativeScreenshotsReviewed": true,
+  "androidPublicationRun": 39146376114,
+  "androidPublishedAt": "2026-10-18T16:44:47Z",
+  "androidPublicationPassed": true,
+  "publicDownloadChannelUpdated": true,
+  "publicDownloadChannelUrl": "https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/android-releases/latest.json",
+  "portalCommit": "5dc7357d44537b0d115c76e272917b4a750baf3d",
+  "portalDeployment": "aca81amlluymnkhn3gbj1lum",
+  "portalDeploymentFinishedAt": "2026-10-18T16:50:26.000000Z",
+  "portalHealthy": true,
+  "portalBrowserCases": [
+    {
+      "mode": "live",
+      "links": [
+        "/downloads/spawt-1.1.1-build35.apk",
+        "/downloads/spawt-1.1.1-build35.apk"
+      ],
+      "channelStatus": [
+        200
+      ],
+      "javascriptErrors": [],
+      "passed": true
+    },
+    {
+      "mode": "channel-unavailable",
+      "links": [
+        "/downloads/spawt-1.1.1-build35.apk",
+        "/downloads/spawt-1.1.1-build35.apk"
+      ],
+      "channelStatus": [
+        503
+      ],
+      "javascriptErrors": [],
+      "passed": true
+    }
+  ],
+  "publicDownload": {
+    "url": "https://spawt.online/downloads/spawt-1.1.1-build35.apk",
+    "bytes": 162454527,
+    "sha256": "53b7dcb40f0718484b10541a078c24382951536d5ab8c26a846cc4078f8c4086",
+    "verified": true
+  },
+  "portalObsoleteBuildMentionRemoved": true
+}

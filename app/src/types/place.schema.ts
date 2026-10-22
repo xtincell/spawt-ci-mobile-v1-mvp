@@ -7,15 +7,15 @@ import { z } from "zod";
 const ADN_AXIS = z.number().min(-1).max(1);
 
 export const PlaceLocationSchema = z.object({
-  lat: z.number(),
-  lng: z.number(),
+  lat: z.number().min(-90).max(90).nullable(),
+  lng: z.number().min(-180).max(180).nullable(),
   descriptive_address: z.string(),
   neighborhood: z.string(),
   city: z.string(),
 });
 
 export const PriceRangeSchema = z.object({
-  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable(),
   avg_ticket_xof: z.number().int().nullable().optional(),
 });
 

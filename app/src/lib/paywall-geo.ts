@@ -10,7 +10,6 @@
 import { haversineKm } from "./matching";
 
 export const FREE_RADIUS_KM = 3;
-export const GOLD_PRICE_LABEL_TTC = "2 950 F/mois TTC";
 
 /** Un lieu est verrouillé si le paywall est actif, le spawter non-Gold,
  *  et le lieu au-delà du rayon gratuit. Position fallback (permission refusée)
@@ -21,9 +20,10 @@ export function isPlaceLocked(options: {
   positionSource: "gps" | "fallback";
   spawterLat: number;
   spawterLng: number;
-  placeLat: number;
-  placeLng: number;
+  placeLat: number | null;
+  placeLng: number | null;
 }): boolean {
+  if (options.placeLat === null || options.placeLng === null) return false;
   if (!options.paywallEnabled || options.isGold) return false;
   if (options.positionSource === "fallback") return false;
   return (

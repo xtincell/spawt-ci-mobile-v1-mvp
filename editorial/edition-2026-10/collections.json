@@ -24,8 +24,8 @@
       ],
       "city_code": "abidjan",
       "edition": "2026-10",
-      "editorial_status": "ready_for_authorized_publication",
-      "published_in_production": false,
+      "editorial_status": "published",
+      "published_in_production": true,
       "cover_url": "https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/d78f4359e4c8853a5f83663ac6441c6b859c59d8/editorial/edition-2026-10/covers/premiers-pas.png"
     },
     {
@@ -57,8 +57,8 @@
       ],
       "city_code": "abidjan",
       "edition": "2026-10",
-      "editorial_status": "ready_for_authorized_publication",
-      "published_in_production": false,
+      "editorial_status": "published",
+      "published_in_production": true,
       "cover_url": "https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/d78f4359e4c8853a5f83663ac6441c6b859c59d8/editorial/edition-2026-10/covers/zone-quatre.png"
     },
     {
@@ -84,8 +84,8 @@
       ],
       "city_code": "abidjan",
       "edition": "2026-10",
-      "editorial_status": "ready_for_authorized_publication",
-      "published_in_production": false,
+      "editorial_status": "published",
+      "published_in_production": true,
       "cover_url": "https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/d78f4359e4c8853a5f83663ac6441c6b859c59d8/editorial/edition-2026-10/covers/duo.png"
     }
   ],
@@ -127,5 +127,6 @@
     }
   ],
   "cover_disclosure": "Illustrations générées ; aucun lieu, plat ou trajet réel représenté. Ne pas utiliser comme photo de fiche lieu.",
-  "publication_requires": "Accès administrateur et migration 0075 pour audience=duo. Aucun carnet écrit en production à ce stade."
+  "publication_requires": "Accès administrateur et migration 0075 pour audience=duo. Aucun carnet écrit en production à ce stade.",
+  "published_on": "2026-10-18"
 }

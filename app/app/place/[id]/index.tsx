@@ -1,3 +1,4 @@
+import { useContentRevision } from "../../../src/lib/content-sync";
 import { PlaceEditorial } from "../../../src/components/place/PlaceEditorial";
 // Story 3.4 — Fiche lieu canonique (UX spec §1127).
 // Story 3.6 — toggle favori (heart top-right) + signal matching +0.05.
@@ -57,6 +58,8 @@ import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
 import { PlaceTabs } from "../../../src/components/place/PlaceTabs";
 import { PlaceMediaTab } from "../../../src/components/place/PlaceMediaTab";
 import { PlaceMenuTab } from "../../../src/components/place/PlaceMenuTab";
+import { OutingActions } from "../../../src/components/OutingActions";
+import { useOutings } from "../../../src/store/outings-store";
 import { formatXofAmount } from "../../../src/lib/format-price";
 import {
   buildStaticMapUrl,
@@ -103,7 +106,9 @@ const VALID_REFS: ReadonlyArray<Referrer> = [
 type PlaceTabKey = "media" | "menu" | "avis";
 
 export default function PlaceDetailScreen() {
-  const params = useLocalSearchParams<{ id: string; ref?: string }>();
+  const contentRevision = useContentRevision();
+  const params = useLocalSearchParams<{ id: string; ref?: string; tab?: string }>();
+  useOutings();
   const id = params.id;
   const ref = (VALID_REFS as ReadonlyArray<string>).includes(params.ref ?? "")
     ? (params.ref as Referrer)
@@ -117,12 +122,14 @@ export default function PlaceDetailScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
+  const loadedId = useRef<string | null>(null);
   const [place, setPlace] = useState<PlaceWithAdn | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [coverFailed, setCoverFailed] = useState(false);
-  const [activeTab, setActiveTab] = useState<PlaceTabKey>("media");
+  const [activeTab, setActiveTab] = useState<PlaceTabKey>(params.tab === "menu" ? "menu" : "media");
+  useEffect(() => { if (params.tab === "menu") setActiveTab("menu"); }, [params.tab, params.id]);
   const spawtBusy = useRef(false);
   const [startingReview, setStartingReview] = useState(false);
 
@@ -140,14 +147,15 @@ export default function PlaceDetailScreen() {
   useEffect(() => {
     if (!id) { setPlace(null); setLoading(false); return; }
     let cancelled = false;
-    setLoading(true);
+    setLoading(loadedId.current !== id);
     setFailed(false);
-    setPlace(null);
+    if (loadedId.current !== id) setPlace(null);
     setCoverFailed(false);
     placeViewedEmittedRef.current = false;
     adnUnderConstructionEmittedRef.current = false;
     void getPlace(id).then((p) => {
       if (cancelled) return;
+      loadedId.current = id;
       setPlace(p);
     }).catch(() => {
       if (!cancelled) setFailed(true);
@@ -155,7 +163,7 @@ export default function PlaceDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, attempt]);
+  }, [id, attempt, contentRevision]);
 
   useEffect(() => subscribeReviewChanges(placeId => {
     if (placeId === id) setAttempt(n => n + 1);
@@ -230,7 +238,7 @@ export default function PlaceDetailScreen() {
         properties: {
           place_id: place.id,
           match_score: matchScore ?? 0,
-          distance_km: distanceKm,
+          distance_km: Number.isFinite(distanceKm) ? distanceKm : null,
           time_since_onboarding_seconds: timeSinceOnboardingSeconds,
         },
       });
@@ -337,7 +345,7 @@ export default function PlaceDetailScreen() {
   const avgTicket = avgPriceEnabled ? formatXofAmount(place.price.avg_ticket_xof) : null;
   const priceLabel = avgTicket
     ? t("place.price_avg", { amount: avgTicket })
-    : PRICE_TIER_LABELS[place.price.tier];
+    : (place.price.tier === null ? t("place.price_unknown") : PRICE_TIER_LABELS[place.price.tier]);
 
   const onCallPress = () => {
     if (!place.phone) return;
@@ -474,6 +482,7 @@ export default function PlaceDetailScreen() {
   // gère pas toujours → fallback Apple Maps après test canOpenURL.
   const onOpenMap = async () => {
     const { lat, lng } = place.location;
+    if (lat === null || lng === null) return;
     const geo = geoUrl(lat, lng, place.name);
     try {
       const canGeo = await Linking.canOpenURL(geo);
@@ -756,7 +765,7 @@ export default function PlaceDetailScreen() {
                   color: theme.colors.text.tertiary,
                 }}
               >
-                {distanceKm.toFixed(1)} km
+                {Number.isFinite(distanceKm) ? `${distanceKm.toFixed(1)} km` : t("place.location_pending")}
               </Text>
             </View>
           </View>
@@ -795,6 +804,12 @@ export default function PlaceDetailScreen() {
           ) : null}
 
           {/* Signaux */}
+          <OutingActions placeId={place.id} full />
+          <Pressable testID="place-contribute" accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/contribute/[id]", params: { id: place.id, name: place.name } } as never)}
+            style={{ minHeight: 48, justifyContent: "center", marginBottom: theme.spacing.base }}>
+            <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("contribution.title")}</Text>
+          </Pressable>
           {place.signals.length > 0 && (
             <View
               style={{
@@ -836,7 +851,7 @@ export default function PlaceDetailScreen() {
               />
             ) : null}
             {activeTab === "menu" ? (
-              <PlaceMenuTab urls={place.menu_urls} />
+              <PlaceMenuTab urls={place.menu_urls} placeId={place.id} />
             ) : null}
             {activeTab === "avis" ? (
               /* Q2 — PlaceReviews porte « Voir tous les avis (N) » → l'écran
@@ -911,7 +926,7 @@ export default function PlaceDetailScreen() {
           <View style={{ marginTop: theme.spacing.lg }}>
             <InfoLine
               label={t("place.info_address")}
-              value={place.location.descriptive_address}
+              value={place.location.descriptive_address || t("place.location_pending")}
               theme={theme}
             />
             {/* Story 4.12 — carte statique tappable sous l'adresse. Fallback :

@@ -1,0 +1,24 @@
+{
+  "guet": [
+    {
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "scope": "alpha",
+      "enabled": false
+    },
+    {
+      "scope": "beta",
+      "enabled": false
+    },
+    {
+      "scope": "prod",
+      "enabled": false
+    }
+  ],
+  "synthetic_location_checks": 0,
+  "recipe_lists": 0,
+  "recipe_visits": 0,
+  "checkedAt": "2026-10-22T04:05:22.207958+00:00"
+}

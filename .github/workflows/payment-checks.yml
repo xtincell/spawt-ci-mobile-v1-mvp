@@ -1,0 +1,27 @@
+name: Payment and audit checks
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'scripts/test-payment-sql.sh'
+      - '.github/workflows/payment-checks.yml'
+  push:
+    branches: ['main', 'codex/audit-admin-commentaires', 'codex/finalisation-tarifs']
+permissions:
+  contents: read
+jobs:
+  payments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.6
+      - name: Typecheck and test provider contracts
+        run: >-
+          deno test --config=supabase/deno.json --lock=supabase/deno.lock --frozen
+          --allow-env --allow-net supabase/functions/_shared/payment/
+          supabase/functions/payment-checkout/index.test.ts
+          supabase/functions/payment-webhook/index.test.ts
+      - name: Fresh database and rollback tests
+        run: bash scripts/test-payment-sql.sh

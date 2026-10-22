@@ -1,3 +1,4 @@
+import { useContentRevision } from "../lib/content-sync";
 // Story 4.9 — Section "Ce qu'en dit la bande" sur la fiche lieu.
 // Story 4.12 — AC #4 : lien « Voir tous les avis (N) » → écran dédié quand le
 // total réel dépasse les 5 affichés. Le rendu d'avis est partagé via ReviewCard.
@@ -40,6 +41,7 @@ type FetchState =
   | { kind: "error" };
 
 export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }: Props) {
+  const contentRevision = useContentRevision();
   const { t } = useTranslation();
   const theme = useTheme();
   const [state, setState] = useState<FetchState>({ kind: "loading" });
@@ -71,7 +73,7 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
     return () => {
       cancelled = true;
     };
-  }, [placeId, limit, fetcher, counter, revision]);
+  }, [placeId, limit, fetcher, counter, revision, contentRevision]);
 
   return (
     <View

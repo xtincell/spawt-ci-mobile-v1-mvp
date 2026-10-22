@@ -1,3 +1,7 @@
+import { Announcements } from "../../src/components/Announcements";
+import { EditorialDiscovery, OutingDiscovery } from "../../src/components/OutingDiscovery";
+import { useOutings } from "../../src/store/outings-store";
+import { useContentRevision } from "../../src/lib/content-sync";
 // Story 3.3c — HomeD canonique (UX spec §1119-1156).
 // Editorial selection and personalized feed are independent.
 // Consomme rankPlaces (Story 3.3b) + listPlaces durci Zod (Story 3.3a) + saved_place_ids (Story 3.6).
@@ -55,6 +59,7 @@ import { GoldUpsellSheet } from "../../src/components/GoldUpsellSheet";
 const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 
 export default function HomeD() {
+  const contentRevision = useContentRevision();
   const theme = useTheme();
   const router = useRouter();
   const navigate = useNavigationAction();
@@ -64,6 +69,7 @@ export default function HomeD() {
   const spawter = useSpawterStore((s) => s.spawter);
   const spawts = useSpawterStore((s) => s.spawts);
   const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
+  const outings = useOutings();
 
   const { places, loading, failed, reload } = usePlaces();
   const refreshing = loading && places.length > 0;
@@ -82,7 +88,7 @@ export default function HomeD() {
   const firstViewRef = useRef(false);
 
   const visited = useMemo(
-    () => new Set(spawts.filter((s) => s.is_verified).map((s) => s.place_id)),
+    () => new Set(spawts.filter((s) => !s.is_seed && !s.is_cancelled && s.check_in_type !== "passive" && s.checked_in_at !== null).map((s) => s.place_id)),
     [spawts],
   );
 
@@ -102,12 +108,12 @@ export default function HomeD() {
   const ranked = useMemo(() => {
     const scored = rankPlaces(
       ctx,
-      places.map((p) => ({ place: p, adn: p.adn, last_spawt_at: null })),
+      places.filter(p => !outings.snapshot.dismissed.includes(p.id)).map((p) => ({ place: p, adn: p.adn, last_spawt_at: null })),
     );
     // R20 — les lieux OUVERTS maintenant remontent en tête (l'ordre match est
     // préservé dans chaque groupe — tri stable, cf. opening-hours.ts).
     return partitionOpenFirst(scored, (item) => item.place.hours, ctx.now);
-  }, [places, ctx]);
+  }, [places, ctx, outings.snapshot.dismissed]);
 
   const [editorialRefresh, setEditorialRefresh] = useState(0);
 
@@ -182,7 +188,7 @@ export default function HomeD() {
     return () => {
       cancelled = true;
     };
-  }, [activityEnabled, places]);
+  }, [activityEnabled, places, contentRevision]);
 
   // Phase 2 F14 — paywall géographique (nudge, flag OFF par défaut) :
   // un lieu hors zone gratuite ouvre l'upsell Gold au lieu de la fiche.
@@ -316,6 +322,7 @@ export default function HomeD() {
                       : theme.colors.surface.subtle,
                 }}
               >
+                {mode === "suggestions" ? <Announcements compact /> : null}
                 {mode !== "rapide" ? (
                   <View
                     style={{
@@ -390,6 +397,8 @@ export default function HomeD() {
                         })
                       }
                     />
+                    <EditorialDiscovery />
+                    <OutingDiscovery ranked={ranked} />
 
                     {/* « Ça bouge cette semaine » — événements à venir (0049), auto-gatée
             par le flag `evenements-promos` (OFF → null, aucun fetch). */}

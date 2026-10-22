@@ -47,8 +47,8 @@ interface Props {
 const emptyForm: PlaceFormValues = {
   name: "",
   cuisine: [],
-  location: { lat: 5.35, lng: -3.97, descriptive_address: "", neighborhood: "Cocody", city: "Abidjan" },
-  price: { tier: 2, avg_ticket_xof: null },
+  location: { lat: null, lng: null, descriptive_address: "", neighborhood: "", city: "Abidjan" },
+  price: { tier: null, avg_ticket_xof: null },
   hours: {},
   phone: null,
   whatsapp: null,
@@ -129,14 +129,14 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
         name: (row.name as string) ?? "",
         cuisine: (row.cuisine as string[]) ?? [],
         location: {
-          lat: (row.lat as number) ?? 0,
-          lng: (row.lng as number) ?? 0,
+          lat: (row.lat as number | null) ?? null,
+          lng: (row.lng as number | null) ?? null,
           descriptive_address: (row.descriptive_address as string) ?? "",
-          neighborhood: (row.neighborhood as string) ?? "Cocody",
-          city: (row.city as string) ?? "Abidjan",
+          neighborhood: (row.neighborhood as string) ?? "",
+          city: (row.city as string) ?? "",
         },
         price: {
-          tier: ((row.price_tier as 1 | 2 | 3) ?? 2),
+          tier: (row.price_tier as 1 | 2 | 3 | null) ?? null,
           avg_ticket_xof: (row.avg_ticket_xof as number) ?? null,
         },
         hours: (row.hours as PlaceFormValues["hours"]) ?? {},
@@ -326,6 +326,7 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
   return (
     <form onSubmit={onSubmit} style={{ display: "grid", gap: 16, maxWidth: 720 }}>
       <h1>{mode === "create" ? "Nouveau lieu" : "Édition lieu"}</h1>
+      <p>Une fiche publique rend le lieu accessible à l’exploration, sans créer de visite ni de note. Le nom et la ville sont requis ; laisse le prix et les coordonnées inconnus vides. Sans coordonnées, le lieu apparaît en liste.</p>
       {suggestionId ? (
         <p style={{ background: "var(--bg-warm)", padding: 10, borderRadius: 6, fontSize: 13 }}>
           ⓘ Approbation d&apos;une suggestion de la Meute : le formulaire est pré-rempli.
@@ -365,12 +366,12 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
       <fieldset>
         <legend>Localisation</legend>
         <label>Latitude
-          <input type="number" step="0.000001" value={values.location.lat}
-            onChange={(e) => setValues({ ...values, location: { ...values.location, lat: Number(e.target.value) } })} />
+          <input type="number" step="any" value={values.location.lat ?? ""}
+            onChange={(e) => setValues({ ...values, location: { ...values.location, lat: e.target.value === "" ? null : Number(e.target.value) } })} />
         </label>
         <label>Longitude
-          <input type="number" step="0.000001" value={values.location.lng}
-            onChange={(e) => setValues({ ...values, location: { ...values.location, lng: Number(e.target.value) } })} />
+          <input type="number" step="any" value={values.location.lng ?? ""}
+            onChange={(e) => setValues({ ...values, location: { ...values.location, lng: e.target.value === "" ? null : Number(e.target.value) } })} />
         </label>
         <label>Adresse descriptive
           <input value={values.location.descriptive_address}
@@ -380,16 +381,22 @@ export const PlaceForm = ({ mode, id, prefill, suggestionId }: Props) => {
         <label>Quartier
           <select value={values.location.neighborhood}
             onChange={(e) => setValues({ ...values, location: { ...values.location, neighborhood: e.target.value } })}>
+            <option value="">Non renseigné</option>
+            {values.location.neighborhood && !ABIDJAN_NEIGHBORHOODS.includes(values.location.neighborhood) && <option value={values.location.neighborhood}>{values.location.neighborhood}</option>}
             {ABIDJAN_NEIGHBORHOODS.map((n) => (<option key={n} value={n}>{n}</option>))}
           </select>
+        </label>
+        <label>Ville
+          <input value={values.location.city} onChange={(e) => setValues({ ...values, location: { ...values.location, city: e.target.value } })} />
         </label>
       </fieldset>
 
       <fieldset>
         <legend>Tarification</legend>
         <label>Tier
-          <select value={values.price.tier}
-            onChange={(e) => setValues({ ...values, price: { ...values.price, tier: Number(e.target.value) as 1 | 2 | 3 } })}>
+          <select value={values.price.tier ?? ""}
+            onChange={(e) => setValues({ ...values, price: { ...values.price, tier: e.target.value === "" ? null : Number(e.target.value) as 1 | 2 | 3 } })}>
+            <option value="">Non renseignée</option>
             <option value={1}>1 — Économique</option>
             <option value={2}>2 — Moyen</option>
             <option value={3}>3 — Premium</option>

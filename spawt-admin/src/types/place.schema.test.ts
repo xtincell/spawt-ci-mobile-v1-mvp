@@ -29,9 +29,28 @@ describe("PlaceFormSchema — Story 6.2", () => {
     expect(r.success).toBe(false);
   });
 
-  it("rejette cuisine vide", () => {
+  it("enregistre un brouillon documentaire sans inventer de localisation ni de prix", () => {
+    const draft = { ...base, is_published: false, cuisine: [],
+      location: { lat: null, lng: null, descriptive_address: "", neighborhood: "", city: "" },
+      price: { tier: null, avg_ticket_xof: null } };
+    const result = PlaceFormSchema.parse(draft);
+    expect(result.location.lat).toBeNull();
+    expect(result.price.tier).toBeNull();
+    expect(PlaceFormSchema.safeParse({ ...draft, is_published: true }).success).toBe(false);
+  });
+
+  it.each(["lat", "lng"] as const)("refuse de publier sans %s", (key) => {
+    expect(PlaceFormSchema.safeParse({ ...base, location: { ...base.location, [key]: null } }).success).toBe(false);
+  });
+
+  it("publie sans inventer une gamme de prix ou une adresse", () => {
+    expect(PlaceFormSchema.safeParse({ ...base, price: { tier: null } }).success).toBe(true);
+    expect(PlaceFormSchema.safeParse({ ...base, location: { ...base.location, descriptive_address: "   " } }).success).toBe(true);
+  });
+
+  it("accepte une cuisine encore inconnue", () => {
     const r = PlaceFormSchema.safeParse({ ...base, cuisine: [] });
-    expect(r.success).toBe(false);
+    expect(r.success).toBe(true);
   });
 
   it("rejette lat hors range", () => {

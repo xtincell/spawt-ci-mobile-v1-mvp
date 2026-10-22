@@ -91,7 +91,7 @@ export function searchPlaces(
     }
     if (
       filters.budgetTiers.length > 0 &&
-      !filters.budgetTiers.includes(place.price.tier)
+      (place.price.tier === null || !filters.budgetTiers.includes(place.price.tier))
     ) {
       continue;
     }

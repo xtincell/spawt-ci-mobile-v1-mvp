@@ -38,8 +38,14 @@ export const PUSH_TOKEN_STORAGE_KEY = "spawt:push:token";
 /** Channel Android des pushes serveur (distinct du channel "guet" local). */
 export const PUSH_CHANNEL_ID = "spawt";
 
+export type PushRegistrationStatus = "unknown" | "registered" | "denied" | "unavailable" | "registration_failed" | "web";
+let registrationStatus: PushRegistrationStatus = "unknown";
+export function getPushRegistrationStatus(): PushRegistrationStatus {
+  return Platform.OS === "web" ? "web" : registrationStatus;
+}
 let fcmWarned = false;
 let channelEnsured = false;
+let lastResponseId: string | null = null;
 let responseSub: { remove: () => void } | null = null;
 
 /** Channel Android "spawt" pour l'affichage des pushes serveur — idempotent. */
@@ -85,7 +91,7 @@ export async function registerPushToken(): Promise<string | null> {
   const permission = await ensureNotifPermissionPostOTP(
     Boolean(spawter.geoloc_consent_at),
   );
-  if (permission !== "granted") return null;
+  if (permission !== "granted") { registrationStatus = "denied"; return null; }
 
   await ensurePushChannel();
 
@@ -94,6 +100,7 @@ export async function registerPushToken(): Promise<string | null> {
     Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined
   )?.eas?.projectId;
   if (!projectId) {
+    registrationStatus = "unavailable";
     if (__DEV__) console.warn("[push-token] extra.eas.projectId absent — push serveur désactivé");
     return null;
   }
@@ -106,6 +113,7 @@ export async function registerPushToken(): Promise<string | null> {
     // Cas documenté RUNBOOK_SOUMISSION_STORES : Android sans google-services.json
     // (FCM pas configuré côté client) → getExpoPushTokenAsync throw. Dégradation
     // propre : un seul warn, return null, zéro impact sur le reste de l'app.
+    registrationStatus = "unavailable";
     if (!fcmWarned) {
       fcmWarned = true;
       console.warn(
@@ -121,8 +129,10 @@ export async function registerPushToken(): Promise<string | null> {
   try {
     // Data layer : upsert `push_tokens` (mode démo = no-op silencieux).
     await upsertPushToken(token, platform);
+    registrationStatus = "registered";
   } catch (err) {
-    // Échec réseau : le token reste mémorisé localement, le prochain boot retentera.
+    registrationStatus = "registration_failed";
+    return null;
     if (__DEV__) console.warn("[push-token] upsert push_tokens failed", err);
   }
   try {
@@ -228,7 +238,10 @@ export function resolvePushExternalUrl(
  */
 export function registerPushResponseHandler(): () => void {
   responseSub?.remove();
-  responseSub = Notifications.addNotificationResponseReceivedListener((event) => {
+  let disposed = false;
+  const handleResponse = (event: Notifications.NotificationResponse) => {
+    if (disposed || event.notification.request.identifier === lastResponseId) return;
+    lastResponseId = event.notification.request.identifier;
     const data = event.notification.request.content.data as PushNotificationData;
     // Rappel de renouvellement Gold/Pro : deep_link https vers le portail web →
     // ouverture externe (le paiement vit sur le portail, finding P1#3).
@@ -242,8 +255,13 @@ export function registerPushResponseHandler(): () => void {
     const path = resolvePushDeepLink(data);
     if (!path) return;
     navigateToDeepLink(path);
-  });
+  };
+  responseSub = Notifications.addNotificationResponseReceivedListener(handleResponse);
+  if (typeof Notifications.getLastNotificationResponseAsync === "function") {
+    void Notifications.getLastNotificationResponseAsync().then(event => { if (event) handleResponse(event); }).catch(() => {});
+  }
   return () => {
+    disposed = true;
     responseSub?.remove();
     responseSub = null;
   };
@@ -265,6 +283,8 @@ function navigateToDeepLink(path: string, attempt = 0): void {
 
 /** Test-only : reset l'état module (warn-once, channel, subscription). */
 export function _resetPushTokenStateForTest(): void {
+  lastResponseId = null;
+  registrationStatus = "unknown";
   fcmWarned = false;
   channelEnsured = false;
   responseSub?.remove();

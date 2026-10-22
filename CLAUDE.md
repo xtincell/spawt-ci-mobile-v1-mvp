@@ -36,7 +36,50 @@ Admin : `cd spawt-admin && npm test` (vitest). Tests SQL : `supabase/tests/`.
 - **Migrations** : numérotées `NNNN_description.sql` + `.down.sql` apparié + tests dans `supabase/tests/` pour la logique (cf. `0012_antifraud_triggers`). Trous 0015-0016 = réservés, normaux.
 - **Textes produit** : ton du Chat SPAWT (complice, jamais corporate), français ivoirien assumé.
 
-## État déployé (2026-07-28 — mesuré, pas déclaré)
+## Contributions et catalogue — 2026-10-19
+
+- 0082–0084 déployées : retours privés, 155 fiches publiées (111 coordonnées / 44 inconnues), carnets publics. Aucun avis ni visite ajouté.
+- Build **40 publié** : 0085 déployée, contributions menu/prix et GPS privées, validation staff avec Paws atomiques et barème audité ; interface app et panel `/contributions`.
+- Les menus validés utilisent `storage://place-contributions/...` dans `menu_urls`, résolu en URL signée par l’app. Les preuves ne sont jamais remplaçables après envoi.
+- Build39 annulé avant publication : brouillons et réponses asynchrones désormais isolés immédiatement par compte ; tests des lectures et callbacks tardifs.
+- Source `e072507`, compilation `39341782221`, 24 assertions natives sur la base réelle `39344928365`, publication `39346327204`. Réception menu/modération/GPS/+5 Paws et captures : `documentation/ACCUEIL_CATALOGUE_RETOURS_2026-10-19.md`.
+
+## Tarifs et livraison — 2026-10-19
+
+- PR 17/18 reprises ; migrations 0079–0081 appliquées après sauvegarde. Gold lieu **60 000 F TTC** (50 847 HT + 9 153 TVA), autres tarifs conservés. Page Tarifs opérationnelle pour Xtincell, journal admin restauré, confirmation prestataire et facture atomiques.
+- Console reçue sur `231b7d1`. Sept fichiers paiement vérifiés dans le runtime. `deploy-edge-functions.mjs` ne redémarre plus le stack entier si le redémarrage Edge ciblé est indisponible : Coolify 4.1.2 ne propose pas cet endpoint.
+- Build **36** : source `76fb9be`, compilation `39175490281`, recette `39177562951`, publication `39177846463`. Le manifeste Android public et les deux boutons suivent cette version. Aucun prix écrit en dur dans le texte Gold hors zone.
+- 155 lieux, 10 avis éditoriaux et 3 carnets publiés conservés. CinetPay non configuré ; aucun paiement ou push réel envoyé. Réception physique toujours à confirmer.
+- Voir `documentation/FINALISATION_TARIFS_2026-10-19.md` et `finalisation-tarifs-proof.json` pour les preuves, l'incident de redémarrage résolu et les limites.
+
+## Firebase et publication Android — 2026-10-18
+
+- Connexion officielle Firebase établie ; compte FCM dédié limité à `roles/firebasecloudmessaging.admin`, clé privée dans Expo uniquement. Identité de configuration temporaire désactivée, autorisations retirées et clés inutilisées supprimées.
+- Build 35 : source `f265ae2`, compilation `39143492062`, recette native `39146032702`, publication `39146376114`. Les avis, carnets, actualités et remontées d’activité du build 34 sont conservés.
+- La publication vérifiée avance `android-releases/latest.json`. La vitrine `5dc7357` déployée sur spawt.online suit automatiquement ce manifeste ; deux boutons et fichier public vérifiés. Une compilation seule ne change pas le bouton. Préserver ce circuit pour les futures versions.
+- Réception push sur téléphone restant à confirmer. Voir `documentation/FIREBASE_ANDROID_2026-10-18.md` et la preuve JSON associée.
+
+## Liaison panel / app — 2026-10-18
+
+- Migrations 0077/0078 en production, sauvegarde complète conservée. Console épinglée sur `47cc174d2558ae0155f1847aac566a111e8ababd` : actualités programmables, activité des comptes à partir du build 34, estimation et historique push.
+- Invalidation commune des contenus publics au premier plan ; liens directs Explore attendent le chargement des fonctionnalités. Le suivi d’activité n’existe pas dans les anciennes versions.
+- Le nombre `sent` indique une acceptation Expo, jamais une réception. Firebase/FCM configuré dans `spawt-ci` et Expo, intégré au build 35 et initialisé sur émulateur. Aucun téléphone enregistré lors du contrôle ; ne pas annoncer une réception physique sans essai réel.
+- Le build 33 a été annulé avant livraison ; build 34 publié après contrôle de signature et ouverture Android 35, puis remplacé par le build 35 avec Firebase. Preuves et limites : `documentation/LIAISON_PANEL_APP_2026-10-18.md` et `documentation/liaison-panel-app-verification.json`.
+
+## Fiches documentaires créées le 2026-10-18
+
+- Migration 0076 : brouillons avec GPS/prix inconnus ; publication protégée. Panel déployé sur `66bc56ee6f894781bb0f131504622f43733ed083` à 12:54 UTC ; quatre contrôles navigateur réels sans erreur API/JS.
+- 145 nouveaux brouillons sans note ni visite, 147 références rattachées : inventaire total 155 dont dix publics. Provenance, limites et vérifications dans `editorial/documentation-2026-10-18/`.
+
+## Mise en service confirmée le 2026-10-18
+
+- Migration 0075 appliquée après sauvegarde PostgreSQL ; 31 492 références de recherche privées (31 sources), dont 129 enrichissements, et dix profils brouillons.
+- Dix avis éditoriaux publiés sous le compte staff Xtincell (affiché Alexandre), trois carnets/sept entrées publiés ; trente textes fondateurs conservés. Dix lieux publics, aucune publication automatique des références.
+- Console `https://admin.spawt.online` : branche `codex/audit-admin-commentaires`, commit applicatif épinglé `c8ede0ecf288c829f738f2ca09514fb4450803e3`. Dockerfile `/spawt-admin/Dockerfile`, contexte `/`, `is_static=false`, port80 ; Node22 compile les imports de `shared/`, nginx sert la SPA.
+- Recette navigateur réelle Xtincell : lieux, modération, rédaction, recherche, carnets ; zéro erreur API/JS. Test transactionnel des commentaires mobiles sous droits propriétaire réussi puis annulé ; le téléphone installé reste à diagnostiquer séparément.
+- Preuves et reprise : `documentation/MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`.
+
+## Repères d'exploitation antérieurs (2026-07-28)
 
 ⚠️ **Le projet Supabase cloud `ucymjsxmnzdxvvupgaof` est SUPPRIMÉ** (NXDOMAIN). Toute
 doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qui vit
@@ -106,13 +149,24 @@ doc qui le mentionne comme actif est périmée. « La base » = le PostgreSQL qu
   `scripts/create-staff-account.mjs`.
 - **Paiement à validation manuelle** (0063/0064) : **CinetPay est secondaire**. Le payeur
   déclare son versement (Wave, Orange Money, MoMo, Moov, espèces, virement) depuis
-  `portail/gold/paiement-manuel`, l'équipe valide dans la page **Paiements** de la console.
+  `portail/gold/paiement-manuel` (page absente de la vitrine servie depuis le
+  2026-09-22 : elle n'existe plus que sur la PR #1 du portail), l'équipe valide dans la
+  page **Paiements** de la console.
   `approve_payment_request()` fait tout en UNE transaction : abonnement + facture
   numérotée + rôle B2B + audit. Idempotente (`provider_tx_id = manuel:<id>`, UNIQUE).
-  ⚠️ Le prix vient de la table `plans`, jamais du montant déclaré. `plans` DOIT rester
-  aligné sur `_shared/payment/types.ts` — les deux avaient divergé de 3 000 F sur
-  l'annuel. Coordonnées de versement : table `payment_instructions`, **toutes inactives
-  tant que les numéros ne sont pas renseignés**.
+  ⚠️ **Les prix ne vivent QUE dans `plans`** (migration 0079) — jamais en constante
+  dans le code, jamais le montant déclaré. L'équipe saisit le **prix payé**
+  (`price_ttc`, F CFA entiers) dans la page **Tarifs** de la console (RPC
+  `admin_update_plan` : admin, motif, avant/après audités) ; un trigger dérive
+  `price_ht = round(TTC / 1,18)` et `tva_amount = TTC − HT` (TVA fixe 18 %). Le checkout
+  lit le plan (actif, sinon échec fermé) et fige HT/TTC sur l'abonnement
+  (`subscriptions.price_ttc`) ; webhook et validation manuelle facturent ces montants
+  figés : facturé = encaissé. Décision du 2026-10-18 : **Gold lieu (`b2b_gold`) =
+  60 000 F TTC, prix final** (50 847 HT + 9 153 TVA ; avant : 65 000 HT, 76 700 TTC).
+  ⚠️ **0079 n'est PAS appliquée en production** (branche `claude/gold-lieu-prix-final`) :
+  d'ici là, base et fonctions déployées gardent l'ancien catalogue. Coordonnées de
+  versement : table `payment_instructions`, **toutes inactives tant que les numéros ne
+  sont pas renseignés**.
 - **Feature flags** : 16 en base ; `paywall-geo` désormais actif sur `internal`/`alpha`
   (l'équipe peut le voir), **fermé sur `beta`/`prod`** tant que `payment_instructions`
   n'a pas de numéro actif. Pilotables depuis la page Fonctionnalités de l'admin.

@@ -1,0 +1,15 @@
+DROP TRIGGER IF EXISTS crew_vote_intent ON public.crew_votes;
+DROP TRIGGER IF EXISTS crew_proposal_intent ON public.crew_proposals;
+DROP FUNCTION IF EXISTS public.capture_crew_intent();
+DROP FUNCTION IF EXISTS public.admin_outing_metrics();
+DROP FUNCTION IF EXISTS public.public_outing_list(uuid);
+DROP FUNCTION IF EXISTS public.my_outings(uuid);
+DROP FUNCTION IF EXISTS public.mutate_outing(uuid,text,jsonb,uuid);
+DROP TRIGGER IF EXISTS saved_place_intent ON public.saved_places;
+DROP TRIGGER IF EXISTS saved_menu_intent ON public.saved_menu_items;
+DROP TRIGGER IF EXISTS unsaved_place_lists ON public.saved_places;
+DROP TRIGGER IF EXISTS unsaved_menu_lists ON public.saved_menu_items;
+DROP FUNCTION IF EXISTS public.capture_saved_intent();
+DROP FUNCTION IF EXISTS public.remove_unsaved_list_items();
+DROP VIEW IF EXISTS public.public_menu_items;
+DROP TABLE IF EXISTS public.outing_intent_events,public.outing_mutations,public.place_preferences,public.outing_choices,public.personal_list_items,public.personal_lists,public.saved_menu_items,public.menu_items;

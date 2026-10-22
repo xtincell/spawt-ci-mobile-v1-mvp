@@ -3,13 +3,13 @@ on:
   push:
     tags: ['local-build-android-*']
     branches: ['codex/editorial-research-admin']
-    paths: ['documentation/android-build32.json']
+    paths: ['documentation/android-build41.json']
   workflow_dispatch:
     inputs:
       recipe:
         description: Recette de compilation déjà contrôlée
         type: string
-        default: documentation/android-build32.json
+        default: documentation/android-build41.json
         required: true
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
-      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build32.json' }}
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build41.json' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           const headers={accept:'application/vnd.github+json','user-agent':'SPAWT-native-release',...(process.env.GH_TOKEN?{authorization:'Bearer '+process.env.GH_TOKEN}:{})};
           const read=async suffix=>{const response=await fetch(api+suffix,{headers});if(!response.ok) throw new Error('Lecture CI HTTP '+response.status);return response.json();};
           const previous=await read('/actions/runs/'+recipe.previousBuildRun);
-          if(previous.status!=='completed' || previous.conclusion!=='success' || previous.head_sha!==recipe.previousSourceCommit || previous.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation précédente non reçue');
+          if(previous.status!=='completed' || previous.conclusion!=='success' || previous.head_sha!==(recipe.previousBuildRunHead || recipe.previousSourceCommit) || previous.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation précédente non reçue');
           const runs=await read('/actions/runs?head_sha='+recipe.sourceCommit+'&per_page=100');
           const run=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/app-checks.yml').sort((a,b)=>b.id-a.id)[0];
           if(!run || run.status!=='completed' || run.conclusion!=='success') throw new Error('La dernière CI source doit être terminée et verte avant compilation');
@@ -108,6 +108,9 @@ jobs:
         with:
           eas-version: 22.5.0
           token: ${{ secrets.EXPO_TOKEN }}
+      - name: Préparer la configuration Firebase Android
+        run: |
+          node scripts/check-firebase-config.mjs
       - name: Compiler avec la signature EAS existante
         working-directory: app
         env:
@@ -128,6 +131,13 @@ jobs:
           badging=subprocess.check_output([str(tools/'aapt'),'dump','badging',str(path)],text=True)
           package=re.search(r"package: name='([^']+)' versionCode='([0-9]+)' versionName='([^']+)'",badging)
           assert package and package.groups()==('com.upgraders.spawt',str(build),version),'Identité native du binaire incorrecte'
+          firebase=json.loads(pathlib.Path('app/google-services.json').read_text())
+          client=next(c for c in firebase['client'] if c['client_info']['android_client_info']['package_name']=='com.upgraders.spawt')
+          resources=subprocess.check_output([str(tools/'aapt'),'dump','--values','resources',str(path)],text=True)
+          native_firebase={'google_app_id':client['client_info']['mobilesdk_app_id'],'gcm_defaultSenderId':firebase['project_info']['project_number'],'project_id':firebase['project_info']['project_id'],'google_api_key':client['api_key'][0]['current_key']}
+          for name,value in native_firebase.items():
+              blocks=re.findall(r'(?m)^\s*resource [^\n]*:string/'+re.escape(name)+r'\b[^\n]*\n(?:(?!\s*resource ).*\n)*',resources)
+              assert blocks and any('"'+str(value)+'"' in block for block in blocks),'Ressource Firebase compilée incorrecte : '+name
           expected=json.loads(pathlib.Path('app/app.json').read_text())['expo']['extra']
           with zipfile.ZipFile(path) as archive:
               assert archive.testzip() is None
@@ -136,6 +146,7 @@ jobs:
           assert extra.get('supabaseUrl')==expected['supabaseUrl'] and extra.get('supabaseAnonKey')==expected['supabaseAnonKey'],'Backend embarqué différent de la recette'
           recipe=pathlib.Path(os.environ['RUNNER_TEMP'])/'spawt-build-recipe.json'
           data={'version':version,'build':build,'buildDate':os.environ['SPAWT_APK_DATE'],'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sourceCiRun':int(os.environ['SPAWT_SOURCE_CI_RUN']),'recipeSha256':hashlib.sha256(recipe.read_bytes()).hexdigest(),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'nativePackageVerified':True,'compiledBackendConfigVerified':True,'backendUrl':extra['supabaseUrl'],'backendKeySha256':hashlib.sha256(extra['supabaseAnonKey'].encode()).hexdigest(),'runId':int(os.environ['GITHUB_RUN_ID'])}
+          data.update({'compiledFirebaseConfigVerified':True,'firebaseProjectId':firebase['project_info']['project_id'],'firebaseAndroidAppId':client['client_info']['mobilesdk_app_id']})
           pathlib.Path('apk-metadata.json').write_text(json.dumps(data,indent=2)+'\n')
           print(json.dumps(data))
           PY

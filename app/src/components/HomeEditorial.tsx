@@ -16,6 +16,7 @@ import type { ModeKey } from "./ModeStories";
 import { PlaceCover } from "./PlaceCover";
 import type { PlaceActivityMap } from "../lib/place-activity";
 import { PlaceActivityPill } from "./PlaceActivityPill";
+import { OutingActions } from "./OutingActions";
 
 export function HomeEditorial({
   mode,
@@ -65,7 +66,7 @@ export function HomeEditorial({
 
   if (mode === "selections")
     return <ExploreCollections refreshKey={refreshKey} />;
-  if (mode === "duo") return <DuoEditorial />;
+  if (mode === "duo") return <DuoEditorial refreshKey={refreshKey} />;
   const cards = places.map((item) => ({
     id: item.place.id,
     title: item.place.name,
@@ -99,7 +100,7 @@ export function HomeEditorial({
           viewabilityConfig={viewability}
           onViewableItemsChanged={onVisible}
           renderItem={({ item }) => (
-            <EditorialCard {...item} width={width - 64} activity={activity} />
+            <View style={{ width: width - 64 }}><EditorialCard {...item} width={width - 64} activity={activity} /><OutingActions placeId={item.id} /></View>
           )}
         />
       ) : !inventoryPending ? (

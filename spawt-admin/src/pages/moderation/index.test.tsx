@@ -8,6 +8,19 @@ vi.mock("../../lib/audit", () => ({ logAuditAction: vi.fn(), logAuditActionBestE
 vi.mock("../../lib/moderate-spawter", () => ({ moderateSpawter: vi.fn() }));
 afterEach(cleanup);
 
+it("filtre les avis du lieu demandé sans exclure les fondateurs", async () => {
+ const getList = vi.fn().mockResolvedValue({ data: [], total: 0 });
+ const provider: DataProvider = { getList, getOne: vi.fn(), create: vi.fn(), update: vi.fn(), deleteOne: vi.fn(), getApiUrl: () => "https://api.example.test" };
+ render(<MemoryRouter initialEntries={["/moderation?place_id=mission-place"]}><Refine dataProvider={provider}><ModerationList /></Refine></MemoryRouter>);
+ await waitFor(() => expect(getList).toHaveBeenCalled());
+ expect(getList.mock.lastCall?.[0].filters).toEqual([
+  { field: "note_etoiles", operator: "nnull", value: "null" },
+  { field: "deleted_at", operator: "null", value: "null" },
+  { field: "place_id", operator: "eq", value: "mission-place" },
+ ]);
+ expect(screen.getByRole("link", { name: "Voir tous les lieux" })).toHaveAttribute("href", "/moderation");
+});
+
 it("conserve les filtres de modération à travers Refine : avis notés, non supprimés et signalés", async () => {
   const getList = vi.fn().mockResolvedValue({ data: [], total: 0 });
   const provider: DataProvider = { getList, getOne: vi.fn(), create: vi.fn(), update: vi.fn(), deleteOne: vi.fn(), getApiUrl: () => "https://api.example.test" };

@@ -272,7 +272,7 @@
       },
       "rapide": {
         "title": "Rapide",
-        "subtitle": "Décider vite"
+        "subtitle": "Choisir vite"
       },
       "selections": {
         "title": "Les sélections",
@@ -421,7 +421,7 @@
     "results_empty_suggest_cta": "Ton spot n'existe pas encore ? Suggère-le"
   },
   "saved": {
-    "title": "Mes spawts sauvegardés",
+    "title": "Mes envies",
     "empty_title": "Tu n'as pas encore sauvegardé de spawt",
     "empty_body": "Tape le cœur sur une fiche pour le retrouver ici.",
     "count_zero": "0 spawt sauvegardé",
@@ -964,7 +964,9 @@
     "review_photo_alt": "Photo jointe à cet avis",
     "photo_pending": "Photo à venir",
     "photo_illustration": "Illustration",
-    "info_hours_unknown": "À confirmer"
+    "info_hours_unknown": "À confirmer",
+    "price_unknown": "Prix à préciser",
+    "location_pending": "Localisation à préciser"
   },
   "place_activity": {
     "section_title": "En ce moment",
@@ -1015,7 +1017,18 @@
     "loading": "Chargement de la carte…",
     "unavailable_title": "La carte est indisponible ici",
     "available_places": "Les spots à consulter",
-    "open_place": "Voir la fiche"
+    "open_place": "Voir la fiche",
+    "filters": {
+      "all": "Tous les lieux",
+      "unexplored": "À explorer",
+      "mine": "Mes spawts"
+    },
+    "inventory_count": "{{total}} lieux · {{mapped}} sur la carte",
+    "location_pending_hint": "Les lieux sans point précis restent accessibles dans la liste.",
+    "show_map": "Voir la carte",
+    "show_list": "Voir tous les lieux en liste",
+    "explored": "Déjà spawté par toi",
+    "to_explore": "À explorer"
   },
   "cdc": {
     "button": "❤️ Mon Coup de Cœur",
@@ -1041,7 +1054,7 @@
   },
   "paywall": {
     "locked_badge": "PREMIUM",
-    "locked_hint": "Hors de ta zone — {{price}} · Tout Abidjan",
+    "locked_hint": "Hors de ta zone · Tout Abidjan avec Gold",
     "upsell_title": "Tout Abidjan t'attend",
     "upsell_body": "Ta zone gratuite fait 3 km. Avec Spawter Gold, le Chat te guide dans toute la ville — {{price}}.",
     "upsell_soon": "Bientôt disponible — le Chat prépare la suite.",
@@ -1300,7 +1313,8 @@
       "avis_publie": "Avis publié",
       "badge_obtenu": "Badge obtenu",
       "defi_collectif": "Défi collectif bouclé",
-      "ajustement_admin": "Geste du Chat"
+      "ajustement_admin": "Geste du Chat",
+      "contribution_validee": "Contribution validée"
     },
     "profile_teaser_title": "Progression",
     "profile_teaser_badges_one": "{{count}} badge débloqué",
@@ -1393,5 +1407,167 @@
     "visit": "{{name}} · visite du {{date}}",
     "duo_empty": "Les carnets pour deux sont en préparation. Ils apparaîtront ici dès leur publication.",
     "collections_empty": "Les carnets sont en préparation. Ils apparaîtront ici dès leur publication."
+  },
+  "announcements": {
+    "title": "Le fil du Chat",
+    "empty": "Pas de nouvelle publication pour le moment.",
+    "info": "Info SPAWT",
+    "news": "Actualité",
+    "promo": "Promotion",
+    "open": "Découvrir",
+    "all": "Toutes les publications"
+  },
+  "support": {
+    "title": "Aide et retours",
+    "version": "Version {{version}} · build {{build}}",
+    "check_intro": "Vérifie que les contenus arrivent bien jusqu’à ton app. Une liste vide peut simplement ne pas encore avoir de publication.",
+    "check": "Vérifier les contenus",
+    "check_failed": "La vérification n’a pas abouti. Réessaie dans un instant.",
+    "checks": {
+      "places": "Lieux publiés",
+      "editorials": "Avis éditoriaux",
+      "collections": "Carnets",
+      "announcements": "Fil du Chat",
+      "sync": "Actualisation",
+      "menus": "Menus et plats",
+      "guet": "Coordonnées prêtes pour Le Guet"
+    },
+    "ok": "Accessible",
+    "read_count_one": "{{count}} élément accessible",
+    "read_count_other": "{{count}} éléments accessibles",
+    "unavailable": "Indisponible — à réessayer",
+    "checked_at": "Vérifié le {{date}}",
+    "share": "Partager ce contrôle",
+    "send_title": "Un souci ou une idée ?",
+    "private": "Ton retour reste privé. L’équipe le retrouve dans son panel et peut te répondre ici.",
+    "kinds": {
+      "bug": "Un souci",
+      "content": "Un contenu",
+      "idea": "Une idée"
+    },
+    "message": "Décris ton retour en 10 caractères minimum…",
+    "attach": "Joindre le résultat de mes contrôles",
+    "privacy": "La version et le type d’appareil accompagnent ton retour. Les contrôles ajoutent seulement leur date et les résultats de lecture, sans localisation ni clé de connexion.",
+    "signin": "Connecte-toi pour envoyer un retour et retrouver la réponse.",
+    "sending": "Envoi en cours…",
+    "send": "Envoyer à l’équipe",
+    "send_failed": "Envoi non confirmé. Ton texte est conservé : réessaie avec une connexion.",
+    "receipt": "Reçu par l’équipe · référence {{id}}",
+    "history": "Mes retours",
+    "refresh": "Actualiser mes retours",
+    "history_failed": "Tes retours n’ont pas pu être chargés. Réessaie.",
+    "status": {
+      "received": "Reçu",
+      "reviewing": "En cours",
+      "resolved": "Résolu"
+    },
+    "reply": "L’équipe : {{reply}}",
+    "error_link": "Vérifier ou signaler ce souci"
+  },
+  "contribution": {
+    "title": "Compléter ce lieu",
+    "intro": "Partage ce que tu as vu sur place. L’équipe vérifie ta contribution avant de mettre la fiche à jour. Ta visite et ta note SPAWT restent personnelles.",
+    "kind": {
+      "menu": "Menu et prix",
+      "location": "Position du lieu"
+    },
+    "reward": "Après validation : {{count}} Paws. Le barème annoncé au dépôt sera conservé.",
+    "menu_help": "Ajoute de 1 à 3 photos lisibles du menu actuel, prises par toi. Évite les visages et les informations personnelles.",
+    "camera": "Photographier le menu",
+    "gallery": "Choisir une photo du menu",
+    "remove_photo": "Retirer la photo {{number}}",
+    "price": "Budget par personne en F CFA (facultatif)",
+    "price_help": "Plat et accompagnement, hors boissons. L’équipe vérifiera le montant sur le menu.",
+    "tier": {
+      "unknown": "Gamme à préciser",
+      "1": "Petit budget",
+      "2": "Budget moyen",
+      "3": "Budget élevé"
+    },
+    "gps_help": "Tu es devant ce lieu ? Relève sa position maintenant. Ce relevé ponctuel n’active pas le suivi en arrière-plan.",
+    "locate": "Je suis sur place : relever ma position",
+    "position": "{{lat}}, {{lng}} · précision ±{{accuracy}} m",
+    "comment": "Précisions pour l’équipe (facultatif)",
+    "privacy": "Tes preuves restent privées pendant l’examen. Les menus, prix et coordonnées retenus seront visibles sur la fiche publique.",
+    "send": "Envoyer à l’équipe",
+    "receipt": "Contribution reçue · {{id}}. Elle attend la vérification de l’équipe.",
+    "history": "Mes contributions à ce lieu",
+    "status": {
+      "pending": "À vérifier",
+      "approved": "Validée",
+      "rejected": "Non retenue"
+    },
+    "earned": "{{count}} Paws attribués",
+    "errors": {
+      "photo_permission": "Autorise l’accès à l’appareil photo ou aux photos pour joindre le menu.",
+      "photo_failed": "La photo n’a pas pu être préparée. Choisis-la à nouveau.",
+      "gps_permission": "Autorise la localisation pendant l’utilisation pour relever la position du lieu.",
+      "gps_precise": "Relève à nouveau ta position sur place : elle doit dater de moins de dix minutes, avec une précision de 100 m maximum.",
+      "gps_failed": "La position n’a pas pu être relevée. Réessaie à l’extérieur, devant le lieu.",
+      "menu_required": "Ajoute une photo du menu. Si tu précises un budget, utilise un montant entier entre 1 et 1 000 000 F CFA.",
+      "limit": "Tu as déjà plusieurs contributions en attente. Attends leur examen avant d’en envoyer d’autres.",
+      "send_failed": "L’envoi n’a pas été confirmé. Ton brouillon est conservé : réessaie avec une connexion. Si une photo a disparu, ajoute-la de nouveau."
+    },
+    "menu_open": "Agrandir le menu",
+    "menu_close": "Fermer le menu",
+    "menu_loading": "Chargement du menu…",
+    "menu_failed": "Le menu n’a pas pu être chargé. Réessaie."
+  },
+  "outings": {
+    "title": "Mes envies",
+    "subtitle": "Un plat, une adresse, une occasion. Garde ce qui te tente.",
+    "save": "Ça me tente",
+    "saved": "Enregistré",
+    "classify": "Dans une liste",
+    "choose": "Choisir ce lieu",
+    "chosen": "Cette envie est choisie. Bonne sortie !",
+    "all": "Toutes mes envies",
+    "new_list": "Créer une liste",
+    "edit_list": "Modifier la liste",
+    "list_name": "Le nom de ta liste",
+    "confirm": "Enregistrer",
+    "share": "Partager",
+    "crew": "Choisir avec la bande",
+    "revoke": "Désactiver le lien",
+    "delete_list": "Supprimer la liste",
+    "delete_keeps_saves": "Tes lieux et plats restent dans toutes tes envies.",
+    "remove_from_list": "Retirer de cette liste",
+    "empty": "Ta prochaine sortie commence par une envie. Enregistre un lieu ou un plat pour le retrouver ici.",
+    "pick_list": "Dans quelle liste gardes-tu cette envie ?",
+    "pending": "Enregistré sur ce téléphone. Synchronisation en attente.",
+    "rejected": "Certaines modifications n’ont pas été acceptées. Les données reçues du serveur sont conservées.",
+    "dismiss_rejected": "Fermer ce message",
+    "failed": "Je n’ai pas pu enregistrer ce changement. Réessaie dans un instant.",
+    "price_unknown": "Prix à confirmer",
+    "price": "{{price}} F CFA",
+    "observed": "Menu relevé le {{date}}",
+    "retired": "Ce plat n’est plus référencé dans le menu publié.",
+    "dishes": "Les plats qui te tentent",
+    "feedback": "Une information à corriger ? Un retour ?",
+    "editorial": "Les choix du Chat",
+    "personal": "Pour ton Palais",
+    "resume": "Tes prochaines sorties",
+    "not_for_me": "Pas pour moi",
+    "browse": "Retrouver mes envies",
+    "occasions": {
+      "date": "Date",
+      "anniversaire": "Anniversaire",
+      "vendredi": "Vendredi soir",
+      "brunch": "Brunch",
+      "autre": "Autre occasion"
+    },
+    "shared": "Une envie partagée",
+    "link_unavailable": "Ce lien n’est plus disponible. Son propriétaire a peut-être désactivé le partage.",
+    "remove_saved": "Retirer de mes envies"
+  },
+  "guet_v2": {
+    "title": "Le Guet",
+    "open": "Voir le menu",
+    "discover": "À proximité : {{name}}. Une découverte qui pourrait te tenter.",
+    "saved": "{{name}} est tout près. Tu l’avais gardé : retrouve son menu.",
+    "visited": "Tu connais {{name}}. Retrouve son menu et ton avis.",
+    "saved_visited": "Envie de retourner chez {{name}} ? Retrouve ce que tu avais gardé.",
+    "review": "Tu es passé chez {{name}}. Raconte-nous ton expérience quand tu veux.",
+    "review_open": "Donner mon avis"
   }
 }

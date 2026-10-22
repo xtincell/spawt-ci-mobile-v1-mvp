@@ -1,0 +1,11 @@
+{
+  "source": "https://www.inconceptstore.com/brunch-menu/",
+  "observedOn": "2026-10-22",
+  "sourceBrowserStatus": 200,
+  "placeId": "c5acfd12-01dd-5cd3-9beb-0531d89c3e99",
+  "checks": [
+    "real sourced dish published through admin browser"
+  ],
+  "publishedDishes": 24,
+  "historicalDrafts": 5
+}

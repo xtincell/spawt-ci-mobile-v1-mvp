@@ -27,7 +27,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.upgraders.spawt",
-      "buildNumber": "32",
+      "buildNumber": "41",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -40,7 +40,8 @@
     },
     "android": {
       "package": "com.upgraders.spawt",
-      "versionCode": 32,
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 41,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -54,7 +55,29 @@
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES"
       ],
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "spawt.online",
+              "pathPrefix": "/lieu/"
+            },
+            {
+              "scheme": "https",
+              "host": "spawt.online",
+              "pathPrefix": "/liste/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "plugins": [
       "expo-router",
@@ -64,7 +87,10 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Pour détecter tes spawts en arrière-plan."
+          "locationAlwaysAndWhenInUsePermission": "Pour te proposer les lieux proches, même quand SPAWT est fermé. Une proximité ne crée jamais de visite.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": false
         }
       ],
       "@react-native-community/datetimepicker",
@@ -112,7 +138,7 @@
       "eas": {
         "projectId": "15ac2301-e901-4caa-a8c8-864c6621bcd0"
       },
-      "buildDate": "2026-10-17"
+      "buildDate": "2026-10-19"
     },
     "owner": "xtincell",
     "androidStatusBar": {

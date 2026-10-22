@@ -1,3 +1,100 @@
+## 2026-10-22 — Envies de sortie (candidat 41, non déployé)
+
+- Plats sourcés, envies de lieux/plats, listes par occasion et partage révocable ; reprise hors ligne et séparation des comptes.
+- Accueil hybride, recherche de plats et accompagnements, choix avec la bande, métriques serveur et suivi des retours.
+- Panel Menus/Envies/Guet, pages web de partage, liens Android vérifiés par domaine, diagnostics étendus.
+- Guet corrigé : proximité distincte d’une visite, vérification serveur explicite, plafonds et coordonnées validées ; interrupteur public fermé jusqu’à réception physique.
+- Migrations 0086–0089 et nouveau contrôle bloquant de publication Android. Voir `documentation/ENVIES_SORTIES_2026-10-22.md` pour les preuves et la réception restante.
+
+## 2026-10-19 — Isolation des brouillons (build 40)
+
+- Brouillons de retours et de contributions isolés dès le changement de compte, avant l’exécution des effets React. Les lectures tardives et mises à jour de l’ancien compte sont ignorées.
+- Régression contrôlée : changement de compte pendant la lecture, persistance et callback tardif. Build 39 annulé avant publication pour intégrer cette correction.
+
+## 2026-10-19 — Contributions modérées aux lieux (build 39)
+
+- Menu photographié et budget proposé, relevé GPS ponctuel : preuves privées, brouillon conservé et accusé serveur.
+- Panel Contributions : comparaison, validation ou refus motivé, récompense Paws unique et barème administrable avec historique.
+- Mise à jour publique et récompense atomiques ; modification concurrente détectée, aucun spawt ni avis fabriqué.
+- Menus validés lisibles dans l’app via des liens temporaires ; migration 0085 et tests des permissions, doublons, quotas et suppression de compte.
+- Build 38 compilé comme étape intermédiaire ; livraison finale portée au build 39 pour intégrer ce circuit.
+
+## 2026-10-19 — Catalogue public et exploration personnelle (build 38)
+
+- Carnets publiés lisibles aussi sans connexion ; les brouillons restent réservés au staff (migration 0084).
+- Publication indépendante d’une visite ou d’une note : GPS et prix inconnus acceptés, affichés comme à préciser ; aucun point fictif sur la carte.
+- Carte et liste : Tous les lieux / À explorer / Mes spawts selon les seuls spawts confirmés du compte.
+- 145 fiches documentaires rendues publiques après sauvegarde et vérifications ; 155 fiches au total, 111 localisées, 44 en liste. Aucun avis ni note ajouté.
+- Build 37 intermédiaire arrêté avant livraison pour intégrer cette demande. La recette finale exige aussi le catalogue complet, une fiche non notée et l’exploration personnelle.
+
+## 2026-10-19 — Accueil, lectures Android et retours privés (intégrés au build 38)
+
+- « Choisir vite », titres gras et sous-textes légers rapprochés, largeur adaptée au texte.
+- Trois usages incompatibles de `AbortSignal.timeout` remplacés : actualités, révision des contenus et activité de l’app.
+- Aide et retours : cinq lectures vérifiables, partage du contrôle, brouillon conservé, accusé serveur et réponses privées de l’équipe.
+- Migration 0082 : retours privés avec droits par auteur, tri du staff, idempotence et limite de débit.
+- La livraison exigera une recette native connectée aux données réelles, en plus de l’ouverture.
+
+## 2026-10-19 — Finalisation des tarifs, préparation Android 36
+
+- Prix Gold codé en dur retiré des cartes verrouillées : l’app décrit l’accès Gold sans annoncer un montant qui peut changer depuis la console.
+- Build 36 préparé sur la lignée du build 35 avec Firebase ; compilation et publication encore à recevoir.
+
+## 2026-10-19 — Finalisation des tarifs et du paiement
+
+- Reprise des PR 17/18 et de la PR 12 de la vitrine ; le prix Gold lieu est bien **60 000 F TTC**, administrable et figé à l'ouverture du paiement.
+- Migration 0080 : rétablit 23 actions de journalisation du panel retirées par d'anciens CHECK SQL, sans effacer l'historique.
+- Migration 0081 : confirmation prestataire réservée au serveur, montant/devise exacts, abonnement + rôle lieu + facture atomiques, répétitions sans double facture.
+- Tests Deno typés (92), schéma PostgreSQL isolé complet, essais de permissions et retour arrière 0079–0081 ; workflow GitHub dédié.
+- Build 36 : retrait d'un prix Gold écrit en dur dans l'app ; compilation et publication suivies dans la documentation de livraison.
+- Migrations 0079–0081 et console déployées après sauvegarde ; recette réelle Xtincell reçue. Build 36 publié après recette native, canal et boutons Android actualisés. Incident de redémarrage résolu et garde du script corrigée ; bilan dans `documentation/FINALISATION_TARIFS_2026-10-19.md`.
+
+## 2026-10-18 — Tarifs administrables, Gold lieu à 60 000 F (0079, non appliquée)
+
+- Décision fondateur : Gold lieu (`b2b_gold`) = 60 000 F CFA TTC par mois, prix final payé par le lieu ; SPAWT absorbe TVA et frais (avant : 65 000 HT, 76 700 TTC). Facture : 50 847 HT + 9 153 de TVA = 60 000.
+- `plans` devient la seule source des prix : l'équipe saisit le prix payé, la base dérive HT = round(TTC / 1,18) et TVA = TTC − HT (trigger, TVA fixe 18 %). Plus aucun montant dans les Edge Functions ni dans la console.
+- Console : page Tarifs (lecture staff, écriture admin par la RPC `admin_update_plan`, motif obligatoire, avant/après journalisés) ; la page Paiements lit le tarif attendu dans `plans`.
+- Checkout : plan lu en base, actif seulement, échec fermé ; HT et TTC figés sur l'abonnement. Webhook et validation manuelle facturent ces montants figés (facturé = encaissé).
+- Migration 0079 + down + test SQL autonome, exécutés sur un PostgreSQL 16 local reconstruit depuis 0001 (montée, descente à l'identique, remontée). **Non appliquée en production.**
+
+## 2026-10-18 — Firebase Android et publication automatique, build 35
+
+- Application Android `com.upgraders.spawt` enregistrée dans le projet existant `spawt-ci`, avec la signature de distribution actuelle.
+- Configuration client Firebase ajoutée au binaire ; contrôles du projet, du package et des ressources effectivement compilées.
+- Compte technique FCM dédié ; workflow de liaison Expo par identité Google temporaire. La clé privée reste hors dépôt et hors APK.
+- Build 35 compilé, signé et publié après recette native : cinq contrôles de démarrage/réouverture, animation et initialisation Firebase réussis. Validation Google sans envoi réel ; réception sur téléphone encore à vérifier.
+- Publication Android : contrôle de l’empreinte de l’asset puis mise à jour automatique du manifeste public, sans régression de numéro. Les boutons de la vitrine suivent ce manifeste avec repli local.
+
+## 2026-10-18 — liaison panel / app, build 34
+
+- Actualités, informations et promotions éditoriales : brouillon, publication, programmation, retrait et suppression depuis le panel ; lecture dans le fil mobile.
+- Liens directs Explore préservés pendant le chargement des fonctionnalités, indépendant du Guet.
+- Actualisation des fiches, avis éditoriaux et communautaires, carnets, événements et offres au retour dans l’app et sur changement serveur (sonde 30 s ; échéances à la minute).
+- Activité authentifiée : dernière présence au premier plan, version/build, état push et écritures du compte en attente, consultables par le staff.
+- Push : estimation serveur paginée, cible individuelle, filtre Gold fermé en cas d’erreur, réservation atomique/idempotente et historique avant envoi ; correction CORS. Acceptation Expo distincte de la réception.
+- Migrations 0077/0078 appliquées après sauvegarde. FCM Android non configuré dans les accès disponibles : aucune réception push mobile revendiquée.
+
+## 18 octobre 2026 — Fiches documentaires sans note
+
+- 145 nouveaux brouillons issus des missions, préparatifs, brunchs et recherches Drive, avec provenance et 147 rapprochements.
+- Brouillons enregistrables sans GPS ni prix inventés ; publication bloquée tant que les champs nécessaires manquent. Absence de note affichée « — ».
+- Aucun avis, visite ou changement des dix lieux publics.
+
+## 2026-10-18 — Mise en service de la rédaction et du corpus
+
+- Migration 0075 appliquée après sauvegarde PostgreSQL vérifiée. Import effectif de 31 492 références (31 sources), dont 129 enrichissements ; dix profils brouillons créés.
+- Dix avis éditoriaux publiés sous le compte staff Xtincell, trois carnets et sept entrées publiés. Trente avis fondateurs conservés ; l'inventaire public reste à dix lieux.
+- Admin déployé au commit c8ede0e : contexte racine partagé, Docker Node 22/nginx, mode statique Coolify désactivé. Cinq parcours navigateur authentifiés passent sans erreur API/JavaScript ; bundle public identique au build vérifié.
+- Commentaires mobiles : insertion, trois notes, lecture et modification testées sous droits propriétaire en transaction annulée. Aucun texte dans les trois spawts mobiles et les neuf contributions quiz existants ; recette de l'app installée encore distincte. Voir `documentation/MISE_EN_SERVICE_EDITORIALE_2026-10-18.md`.
+
+## 2026-10-18 — Audit admin et accès aux textes
+
+- Complément Drive : base SQLite de 31 363 références, 129 enrichissements et rapports Missions 1/2 lus ; 44 fichiers du ZIP d'intégration identiques à la PR15. Circuits formulaire local/quiz/mobile/vitrine documentés ; quatre dépôts vérifiés et aucune branche locale non poussée dans les clones accessibles. Le Mac n'est pas monté. Voir `documentation/AUDIT_DRIVE_DEPOTS_2026-10-18.md`.
+
+- Vérification publique : 10 lieux, 30 textes fondateurs attribués à Alexandre et 2 avis communautaires sans texte ; objets éditoriaux 0075 absents du backend et du panel déployé.
+- Liste Lieux : compteur communautaire explicite et lien vers les avis du lieu, fondateurs inclus ; filtre correspondant dans Modération.
+- Dix textes éditoriaux sourcés préparés pour Xtincell, sans publication. Accès serveur absent : migration, déploiement et recette authentifiée restent ouverts. Voir `documentation/AUDIT_ADMIN_COMMENTAIRES_2026-10-18.md`.
+
 ## 2026-10-17 — Recherche et espace éditorial (préparation build 32)
 
 Profils identitaires, notes internes éditables et avis de terrain ; corpus privé rapprochable, publication explicite et historique. Horaires/galerie éditables, ADN de référence recalculé atomiquement, carnets duo gérés sur serveur et lecteur mobile de rubriques. Migration 0075 testée localement ; serveur/admin non déployés, compilation Android à recevoir. Voir documentation/ESPACE_EDITORIAL_ET_RECHERCHE_2026-10-17.md.

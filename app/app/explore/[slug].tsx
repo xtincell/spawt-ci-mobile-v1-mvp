@@ -1,3 +1,5 @@
+import { FeatureLoading } from "../../src/components/FeatureLoading";
+import { useContentRevision } from "../../src/lib/content-sync";
 import { DataLoadNotice } from "../../src/components/DataLoadNotice";
 import { useNavigationAction } from "../../src/lib/use-navigation-action";
 // Mode Explore — détail d'un carnet éditorial (feature post-MVP #3).
@@ -37,10 +39,11 @@ import { rankPlaces } from "../../src/lib/matching";
 import { track } from "../../src/lib/analytics";
 import { useSpawterPosition } from "../../src/lib/use-spawter-position";
 import { useSpawterStore } from "../../src/store/spawter-store";
-import { useFlag } from "../../src/store/feature-flags";
+import { useFlag, useFeatureFlagsStore } from "../../src/store/feature-flags";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 
 export default function ExploreCollectionScreen() {
+  const contentRevision = useContentRevision();
   const theme = useTheme();
   const router = useRouter();
   const navigate = useNavigationAction();
@@ -50,6 +53,7 @@ export default function ExploreCollectionScreen() {
 
   // Tous les hooks AVANT tout early return (leçon R22 — rules of hooks).
   const enabled = useFlag("mode-explore");
+  const flagsReady = useFeatureFlagsStore(s => s.lastSyncAt !== null);
   const position = useSpawterPosition();
   const palais = useSpawterStore((s) => s.palais ?? EMPTY_PALAIS);
   const spawts = useSpawterStore((s) => s.spawts);
@@ -89,7 +93,7 @@ export default function ExploreCollectionScreen() {
     return () => {
       cancelled = true;
     };
-  }, [enabled, slug, attempt]);
+  }, [enabled, slug, attempt, contentRevision]);
 
   // Scores de matching du moteur canonique, indexés par place_id — l'ordre
   // affiché reste celui du carnet (sort_order), seuls les chiffres viennent
@@ -123,6 +127,7 @@ export default function ExploreCollectionScreen() {
     return map;
   }, [detail, palais, position, spawts, savedPlaceIds]);
 
+  if (!flagsReady) return <FeatureLoading />;
   if (!enabled) {
     return <Redirect href="/(tabs)" />;
   }

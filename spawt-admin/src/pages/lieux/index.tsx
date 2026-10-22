@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ListFeedback, ListPagination } from "../../components/ListFeedback";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useTable, useUpdate, useInvalidate } from "@refinedev/core";
 import { logAuditAction } from "../../lib/audit";
 
@@ -11,7 +11,7 @@ interface PlaceRow {
   name: string;
   neighborhood: string;
   cuisine: string[];
-  price_tier: 1 | 2 | 3;
+  price_tier: 1 | 2 | 3 | null;
   is_published: boolean;
   updated_at: string;
   place_adn?: { weighted_rating: number; total_reviews: number; confidence_score: number } | null;
@@ -88,6 +88,7 @@ export const LieuxList = () => {
         </select>
       </div>
 
+      <p>Le compteur indique les avis communautaires. Les avis fondateurs en sont exclus ; « Voir les avis » permet aussi de lire leurs textes.</p>
       <ListFeedback query={tableQuery} empty={rows.length === 0} />
       <ListPagination currentPage={currentPage} pageCount={pageCount} onPageChange={setCurrentPage} disabled={tableQuery.isFetching} />
       <table>
@@ -98,7 +99,7 @@ export const LieuxList = () => {
             <th>Cuisine</th>
             <th>Tier</th>
             <th>Note</th>
-            <th>Avis</th>
+            <th>Avis communautaires</th>
             <th>Statut</th>
             <th>Actions</th>
           </tr>
@@ -109,11 +110,12 @@ export const LieuxList = () => {
               <td><strong>{row.name}</strong></td>
               <td>{row.neighborhood}</td>
               <td>{row.cuisine.join(", ")}</td>
-              <td>{row.price_tier}</td>
-              <td>{row.place_adn?.weighted_rating?.toFixed(2) ?? "—"}</td>
+              <td>{row.price_tier ?? "—"}</td>
+              <td>{(row.place_adn?.total_reviews ?? 0) > 0 ? row.place_adn?.weighted_rating?.toFixed(2) ?? "—" : "—"}</td>
               <td>{row.place_adn?.total_reviews ?? 0}</td>
               <td>{row.is_published ? "Publié" : "Brouillon"}</td>
               <td style={{ display: "flex", gap: 6 }}>
+                <Link to={`/moderation?place_id=${encodeURIComponent(row.id)}`} aria-label={`Voir les avis de ${row.name}`}>Voir les avis</Link>
                 <button type="button" onClick={() => navigate(`/lieux/edit/${row.id}`)}>Éditer</button>
                 <button type="button" onClick={() => togglePublish(row)}>
                   {row.is_published ? "Dépublier" : "Publier"}

@@ -778,12 +778,12 @@ export async function upsertPushTokenToSupabase(
 ): Promise<void> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user?.id;
-  if (!uid) return; // pas de session — la RPC refuserait l'écriture (42501)
+  if (!uid) throw new Error("session_required");
   const { error } = await supabase.rpc("claim_push_token", {
     p_token: token,
     p_platform: platform,
   });
-  if (error && __DEV__) console.warn("[data-source] claim_push_token failed", error);
+  if (error) throw error;
 }
 
 /** DELETE par token — RLS owner-only (à faire AVANT auth.signOut). */
