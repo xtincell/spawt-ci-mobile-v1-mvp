@@ -1,0 +1,35 @@
+{
+  "migrations": [
+    "0086_outing_intents",
+    "0087_guet_location_evidence",
+    "0088_visit_presence",
+    "0089_outing_engagement"
+  ],
+  "live_transaction_rolled_back": true,
+  "counts_unchanged": [
+    {
+      "places": 155,
+      "visits": 33,
+      "invoices": 0,
+      "saved_places": 5
+    }
+  ],
+  "guet_flags": [
+    {
+      "scope": "alpha",
+      "enabled": false
+    },
+    {
+      "scope": "beta",
+      "enabled": false
+    },
+    {
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "scope": "prod",
+      "enabled": false
+    }
+  ]
+}

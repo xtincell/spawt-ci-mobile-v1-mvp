@@ -61,7 +61,7 @@ Cinq brouillons de plats documentés dans `editorial/envies-2026-10/menu-drafts.
 
 ## Réception de la livraison 41
 
-La version publique contrôlée le 22 octobre reste **1.1.1 / 40**. Les lecteurs publics des nouvelles tables répondent 404 : migrations non déployées. Les lectures actuelles répondent : 155 lieux, 10 avis éditoriaux, 3 carnets.
+La version publique contrôlée le 22 octobre reste **1.1.1 / 40** pendant la réception du candidat 41. Les migrations 0086–0089 sont déployées : lecteurs menus et Guet HTTP 200. Les lectures existantes sont conservées : 155 lieux, 10 avis éditoriaux, 3 carnets. Sauvegarde PostgreSQL de 4 262 562 octets vérifiée avant migration ; tests transactionnels en production annulés par ROLLBACK, compteurs inchangés. Preuves dans `envies-reception/schema-live-proof.json` et `backup-proof.json`.
 
 1. Sauvegarder la base et les paramètres, appliquer 0086–0089, contrôler les policies sous identité anonyme et deux comptes distincts. Garder le Guet fermé.
 2. Déployer `public-share` (index et renderer), puis les commits panel/portail. Contrôler les routes avec une fiche publiée et une vraie liste ; une liste révoquée doit rendre 404, une panne 503. Contrôler `/.well-known/assetlinks.json` et le certificat du candidat.
@@ -70,7 +70,7 @@ La version publique contrôlée le 22 octobre reste **1.1.1 / 40**. Les lecteurs
 5. Installer par-dessus le build 40, contrôler signature, Firebase natif, poids/SHA et démarrage. Publier seulement après réception app/base/panel/site, puis vérifier que le manifeste et les deux boutons passent ensemble au nouveau build.
 6. Tester le Guet sur téléphone physique : premier plan/arrière-plan/app fermée, sortie avant deux minutes, permission refusée, changement de compte, quatre messages, cooldown et limites. Activer ensuite uniquement les lieux réellement contrôlés. Un succès du planificateur n’est pas une réception du téléphone.
 
-Aucun accès Coolify authentifié n’est déclaré dans cet environnement. Le déploiement et la réception en ligne restent bloqués par cet accès ; le GitHub connecté permet de préparer les branches, les PR et le candidat de compilation. Les migrations `.down.sql` servent à tester la réversibilité ; ne pas les appliquer en production sur des envies réelles sans sauvegarde et plan de restauration.
+L’accès Coolify a été retrouvé et vérifié sur son adresse actuelle. La fonction publique de partage est déployée et répond 200 pour une fiche existante, sans redémarrer le stack Supabase. Le panel et le portail sont en cours de déploiement ; la compilation Android 41 est reçue dans le run 39701288073 (signature, CRC, identité, backend et Firebase compilés vérifiés). Le compte synthétique de recette Android est marqué interne et exclu des indicateurs commerciaux. Les migrations `.down.sql` servent à tester la réversibilité ; ne pas les appliquer en production sur des envies réelles sans sauvegarde et plan de restauration.
 
 
 Sources produit relues : [Lean Canvas V5.1](https://docs.google.com/document/d/1XkpV-F41_8P-2YmSnJMGbFcFpmcqGL7jbeM-85eM9To/edit) et documentation SPAWT du Drive. Les décisions de cette conversation sur la NS et les listes priment sur l’ancienne NS du Canvas.
@@ -93,3 +93,10 @@ Dernière correction avant compilation finale : l’affichage d’une zone atten
 Source finale du candidat 41 : `e4106b0cfa638ed44884532847f0c79917dd384a`. [CI mobile/panel 39700994234](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994234) et [SQL 39700994214](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994214) reçues vertes après correction de la déconnexion. Site : [CI 39700457209](https://github.com/xtincell/project_spawt_mobile_ci/actions/runs/39700457209) verte, nginx réel compris.
 
 Le panel transmet aussi les coordonnées affichées lors du contrôle : si un autre membre les a modifiées entre-temps, la validation échoue. Correction serveur/panel additive ; le contrat de lecture du candidat Android reste inchangé.
+
+
+## Carte documentée pour la première recherche de plats
+
+La carte brunch officielle d’IN’ Concept Store a été relue dans Chromium le 22 octobre (HTTP 200). 24 plats à la carte, prix observés et descriptions d’origine ; aucune photo non autorisée ni disponibilité garantie. Texte et empreinte dans `envies-reception/in-concept-menu-source.txt` et `menu-source-proof.json`. Les cinq relevés historiques de mars restent des brouillons.
+
+Recette native 41 : mise à niveau par-dessus l’APK public 40, sept lecteurs réels, enregistrement hors ligne puis reprise, liste par occasion, partage anonyme dans Chromium, révocation, App Links vérifiés par Android et isolation entre deux identités de recette. La preuve de sortie est liée au SHA de l’APK et devient un fichier public de la release.

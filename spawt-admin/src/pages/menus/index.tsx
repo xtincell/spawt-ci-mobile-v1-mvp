@@ -30,11 +30,11 @@ export function MenusPage() {
   setBusy(false);
  }
  function edit(row: Dish) { setEditing(row); setForm({ ...row, aliases: row.aliases.join(", "), accompaniments: row.accompaniments.join(", "), price: row.price_xof?.toString() ?? "", photo_url: row.photo_url ?? "" }); }
- return <main><h1>Menus et plats</h1><p>Documenter un plat, son prix et sa source, puis le publier pour la recherche et les envies dans l’app. Les photos reçues restent modérées dans <a href="/contributions">Contributions</a>.</p>
+ return <main className="editorial-workspace"><h1>Menus et plats</h1><p>Documenter un plat, son prix et sa source, puis le publier pour la recherche et les envies dans l’app. Les photos reçues restent modérées dans <a href="/contributions">Contributions</a>.</p>
   {failed ? <p role="alert">{failed}</p> : null}<button onClick={() => void load()} disabled={busy}>Actualiser</button>
   <form onSubmit={event => void save(event)} className="panel" style={{ display: "grid", gap: 12, maxWidth: 760 }}>
    <h2>{editing ? "Modifier le plat" : "Ajouter un plat"}</h2>
-   <label>Lieu<select required value={form.place_id} onChange={e => setForm({ ...form, place_id: e.target.value })}><option value="">Choisir un lieu</option>{places.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+   <label>Lieu<select aria-label="Lieu" required value={form.place_id} onChange={e => setForm({ ...form, place_id: e.target.value })}><option value="">Choisir un lieu</option>{places.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
    <label>Nom du plat<input required maxLength={160} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
    <label>Variantes de nom, séparées par des virgules<input value={form.aliases} onChange={e => setForm({ ...form, aliases: e.target.value })} /></label>
    <label>Accompagnements, séparés par des virgules<input value={form.accompaniments} onChange={e => setForm({ ...form, accompaniments: e.target.value })} /></label>
