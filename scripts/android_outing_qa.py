@@ -58,6 +58,7 @@ def run_outing_cases(g):
         adb('shell','pm','verify-app-links','--re-verify',g['PACKAGE']);time.sleep(12)
         links=adb('shell','pm','get-app-links',g['PACKAGE']);(out/'outing-app-links.txt').write_text(links)
         check('Android verifies official website App Link', 'spawt.online: verified' in links)
+        deep('settings')  # Start elsewhere: a stale saved-list title cannot satisfy this check.
         result=adb('shell','am','start','-W','-a','android.intent.action.VIEW','-c','android.intent.category.BROWSABLE','-d',url)
         (out/'outing-link-navigation.txt').write_text(result);find(title);tree=snap('outing-app-link')
         check('public HTTPS list opens the installed native package',any(n.get('package')==g['PACKAGE'] for n in tree.iter('node')))

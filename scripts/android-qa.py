@@ -119,6 +119,18 @@ def scroll_tap(value): tap_node(scroll_find(value))
 
 def scroll(): adb('shell','input','swipe','550','1500','550','550','350'); time.sleep(.6)
 
+def contribution_receipt():
+    # Sending resets the photo form and moves the receipt above the retained
+    # scroll offset. Do not scroll down while the upload is still in flight.
+    try:
+        find('contribution-receipt',timeout=30)
+        return
+    except AssertionError:
+        for _ in range(9):
+            adb('shell','input','swipe','550','550','550','1600','200')
+            time.sleep(.2)
+        scroll_find('contribution-receipt',attempts=12)
+
 def rate():
     for key,n in [('cuisine',5),('cadre',4),('service',4)]: scroll_tap(f'review-note_{key}-{n}')
 
@@ -291,7 +303,7 @@ def live_content_cases():
         scroll_tap('contribution-comment'); adb('shell','input','text',('Recette menu natif '+RUN+' - image technique, pas un menu reel, ne pas publier.').replace(' ','%s')); back()
         restart(); deep('contribute/'+PLACE); scroll_find('contribution-remove-0')
         scroll_find('contribution-comment'); check('native menu draft survives process restart',('Recette menu natif '+RUN) in label(find('contribution-comment')))
-        scroll_tap('contribution-send'); scroll_find('contribution-receipt',attempts=12); snap('live-menu-contribution-received')
+        scroll_tap('contribution-send'); contribution_receipt(); snap('live-menu-contribution-received')
         end=time.monotonic()+180
         while time.monotonic()<end:
             deep('settings'); deep('contribute/'+PLACE); scroll_tap('contribution-refresh'); time.sleep(2)
@@ -308,7 +320,7 @@ def live_content_cases():
         except AssertionError: pass
         find('contribution-position',timeout=35)
         scroll_tap('contribution-comment'); adb('shell','input','text',('Recette enrichissement natif '+RUN+' - GPS simule identique a la fiche, aucun releve terrain nouveau.').replace(' ','%s')); back()
-        scroll_tap('contribution-send'); scroll_find('contribution-receipt',attempts=12); snap('live-contribution-received')
+        scroll_tap('contribution-send'); contribution_receipt(); snap('live-contribution-received')
         check('native location contribution receives a server receipt',True)
         end=time.monotonic()+180
         while time.monotonic()<end:
