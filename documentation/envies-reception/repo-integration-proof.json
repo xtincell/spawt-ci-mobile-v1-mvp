@@ -1,0 +1,23 @@
+{
+  "productBranchesIncluded": {
+    "codex/accueil-donnees-feedback": true,
+    "codex/finalisation-tarifs": true,
+    "codex/firebase-push-readiness": true,
+    "codex/audit-admin-commentaires": true,
+    "main": true
+  },
+  "portalBranchesIncluded": {
+    "codex/android38-download": true,
+    "codex/controle-public-build37": true,
+    "codex/android-build36-download": true,
+    "codex/finalisation-pages-legales": true,
+    "codex/android-download-channel": true
+  },
+  "separateLegacyCountdownCommit": {
+    "original": "2e275c4",
+    "portedBy": "a07bbf9",
+    "file": "bientot/index.html",
+    "identicalBlob": "9460775c5b924ea8991b47cf3c0a8c54de0903b4"
+  },
+  "otherWorktreesCleanAtCheck": true
+}

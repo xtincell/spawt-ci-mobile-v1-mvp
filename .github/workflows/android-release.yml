@@ -65,6 +65,7 @@ jobs:
             if(typeof outing.guetEnabled!=='boolean') throw new Error('Guet gate status missing');
             if(outing.guetEnabled===true && outing.physicalGuetReceipt!==true) throw new Error('Physical Guet receipt required before activation');
             fs.copyFileSync('native-proof/outing-data.json','release-apk/outing-data-proof.json');
+            for(const name of ['outing-native-menu','outing-dish-search','outing-named-list','outing-public-browser','outing-app-link','outing-revoked-browser']) fs.copyFileSync(`native-proof/${name}.png`,`release-apk/${name}.png`);
           }
           if(c.build>=37) {
             const live=JSON.parse(fs.readFileSync('native-proof/live-data.json'));
@@ -91,7 +92,7 @@ jobs:
           const release=JSON.parse(gh(['release','view',c.tag,'--json','isDraft,assets']));
           if(release.isDraft) {
             if(release.assets.length) throw new Error('Draft release has partial assets; inspect before retrying');
-            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256',...(c.build>=37 ? ['release-apk/live-data-proof.json','release-apk/home-native.png','release-apk/content-checks-native.png'] : []),...(c.build>=39 ? ['release-apk/menu-moderation-native.png','release-apk/contribution-reward-native.png','release-apk/paws-ledger-native.png'] : []),...(c.build>=41 ? ['release-apk/outing-data-proof.json'] : [])]);
+            gh(['release','upload',c.tag,path,'release-apk/apk-metadata.json',path+'.sha256',...(c.build>=37 ? ['release-apk/live-data-proof.json','release-apk/home-native.png','release-apk/content-checks-native.png'] : []),...(c.build>=39 ? ['release-apk/menu-moderation-native.png','release-apk/contribution-reward-native.png','release-apk/paws-ledger-native.png'] : []),...(c.build>=41 ? ['release-apk/outing-data-proof.json',...['outing-native-menu','outing-dish-search','outing-named-list','outing-public-browser','outing-app-link','outing-revoked-browser'].map(name=>`release-apk/${name}.png`)] : [])]);
             gh(['release','edit',c.tag,'--draft=false','--prerelease','--latest=false','--title',`SPAWT Android ${c.version} — build ${c.build}`,'--notes-file',`documentation/android-build${c.build}-release-notes.md`]);
           }
           console.log('Release assets ready for final verification: build '+c.build);
