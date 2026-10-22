@@ -1,105 +1,89 @@
-# Envies de sortie — chantier du 22 octobre 2026
+# Envies de sortie — livraison du 22 octobre 2026
 
-## Décisions acceptées
+## Objectif et périmètre
 
-Une publication coordonnée app / panel / base / site, après le build 40.
-North star : personnes distinctes ayant enregistré, proposé ou choisi une sortie
-sur sept jours ; ouvertures, proximité et visites restent distinctes.
-Accueil mêlant éditorial SPAWT et personnalisation. Enregistrement des lieux ET
-des plats, listes personnelles partageables sur le web, vote via le groupe
-existant. Réservation et édition collaborative des listes hors de ce lot.
+Relier l’envie de sortir à un lieu ou un plat enregistré, une liste par occasion,
+un choix explicite et, séparément, une visite déclarée. L’accueil mêle éditorial
+SPAWT et personnalisation. La north star compte les personnes distinctes ayant
+enregistré, proposé ou choisi une sortie sur sept jours. Le panel montre aussi
+les actifs 24/72 h et les retours des cohortes arrivées à maturité.
 
-## Réception à produire
+Les comptes internes, fondateurs et bannis sont exclus des indicateurs ; aucune
+activité historique n’a été transformée en nouvelle envie. La réservation et
+l’édition collaborative des listes restent hors de cette livraison ; les votes
+utilisent le groupe existant.
 
-- [x] Schéma additif, RLS, idempotence, compatibilité favoris du build 40.
-- [ ] Plats documentés, recherche, publication/modération et actualisation.
-- [x] Enregistrement, listes, partage révocable, choix et indicateurs serveur.
-- [ ] Accueil hybride et retours contextuels, inspection des rendus.
-- [ ] Guet : événements Expo réels, permissions natives, exécution sans React,
-  comptes isolés, proximité distincte d'une visite, limitation des rappels.
-- [ ] Pages publiques de partage et preuves de lecture sur le site.
-- [ ] Gates mobile, panel, portail, migrations et recette APK.
-- [ ] Déploiement reçu, signature / empreinte / canal de téléchargement vérifiés.
-- [ ] Réception Guet sur téléphone réel avant activation publique.
+Sources produit : [Lean Canvas V5.1](https://docs.google.com/document/d/1XkpV-F41_8P-2YmSnJMGbFcFpmcqGL7jbeM-85eM9To/edit)
+et documentation SPAWT du Drive. Les décisions de la conversation sur les listes
+et la north star priment sur l’ancienne mesure du Canvas.
 
-## Base vérifiée
+## État reçu
 
-Mobile/panel : `32ad7cc` (PR 20), source livrée Android 40 `e072507`.
-Portail : `5f9059b` (PR 16). Branches de travail : `codex/envies-sorties`
-et `codex/envies-partage`. Aucun secret serveur déclaré dans l'environnement
-au démarrage ; lecture GitHub disponible. Ne pas confondre préparation, tests
-locaux, compilation, publication et réception réelle.
+- **Base en production** : migrations additives 0086–0089 appliquées après sauvegarde PostgreSQL vérifiée. Propriété/RLS, identifiants de mutation stables, partage révocable, validation GPS et indicateurs serveur. Les favoris du build 40 restent compatibles.
+- **Panel en production** : commit `23e4eef249fecafedc76f81dad69889d8164e576`, pages `/menus`, `/envies`, `/guet`. Publication/édition des plats, source et date, concurrence détectée ; validation GPS auditée et refus d’une validation si les coordonnées ont changé entre-temps.
+- **Site en production** : fiches `/lieu/:id`, listes `/liste/:token`, rendu anonyme et aperçus sociaux, absence de cache des partages, 404 après révocation. Sept lecteurs sur `/statut`, certificat Android App Links reçu. Vérification TLS conservée avec une profondeur de chaîne adaptée au certificat croisé Let’s Encrypt.
+- **Android 41 compilé** : source `e4106b0cfa638ed44884532847f0c79917dd384a`, 162 536 319 octets, SHA-256 `c53620b70905741e909de5e61d4adc1604b074179a21379aa3739845d28b2019`. Recette native finale en cours ; canal public encore au build 40 jusqu’à son succès.
+- **Guet désactivé** : interrupteur `guet-proximity-v2` fermé pour tous les publics. Aucune campagne Firebase envoyée par cette livraison.
 
-Défauts Guet confirmés : `eventType` lu dans `region` au lieu de `data` ;
-déclencheur de notification sans type ; permission de localisation en arrière-plan
-absente de l'APK 40 ; callback injecté seulement au montage de React ; attentes
-globales et fausse vérification de présence à partir d'une entrée en zone.
+## Comportements livrés
 
-Les anciens guides décrivent 10 m / 15 minutes / visite passive. Le plan accepté
-les remplace pour la proximité : 150 m, rappel après deux minutes, aucune visite
-automatique, coordonnées validées uniquement, deux sollicitations par jour,
-un rappel de proximité par lieu sur sept jours, silence 22 h–9 h.
+« Ça me tente » enregistre un lieu ou un plat. Les listes personnelles peuvent
+être créées, renommées, supprimées, partagées puis révoquées. Les écritures hors
+ligne gardent leur propriétaire et leur identifiant après redémarrage ; la reprise
+ne duplique pas l’activité. Les erreurs permanentes restent visibles.
 
-## Mise en œuvre préparée
+La recherche couvre les noms de plats, variantes et accompagnements. Les prix
+inconnus restent inconnus. **24 plats** de la carte brunch officielle d’IN’ Concept
+Store ont été relus le 22 octobre, puis publiés depuis le panel et son API staff.
+Exemple : Eggs Benedict, 7 000 F, alias « Œufs Benedict ». Cinq relevés historiques
+de mars restent en brouillon. Ni photo non autorisée ni disponibilité du jour
+inventée. Sources, dates et identifiants : `editorial/envies-2026-10/`.
 
-- 0086 : plats sourcés et datés, envies de plats, listes privées par défaut, partage révocable, choix explicite. Mutations avec identifiant stable et propriétaire explicite ; les favoris existants ne sont pas transformés en nouvelle activité.
-- 0087 : coordonnées contrôlées, invalidation en cas de déplacement du point, intégration aux contributions GPS approuvées. Interrupteur `guet-proximity-v2` fermé pour tous les publics.
-- 0088 : vérification de présence côté serveur (position récente ≤120 s, précision ≤50 m, distance ≤100 m d’un point validé). Une visite explicite reste possible sans GPS ; la proximité ne crée aucune visite. Les vérifications historiques ne sont pas réécrites. Cela valide la cohérence d’une mesure transmise, pas l’absence de simulation GPS sur un appareil compromis.
-- 0089 : NS sept jours, actifs 24/72 h, retours entre 24 et 72 h sur cohortes arrivées à maturité, enregistrement suivi d’un choix/d’une visite déclarée. Comptes internes/fondateurs/bannis exclus, pas d’attribution commerciale inventée.
-- App : « Ça me tente », « Mes envies », listes par occasion, partage, vote via Crew, plats et accompagnements recherchables, accueil éditorial/personnalisé, reprise hors ligne isolée par compte, sept contrôles de données et retours contextuels.
-- Panel : `/menus`, `/envies`, `/guet`. Menus à prix inconnu acceptés, édition concurrente détectée ; validation GPS auditée. Le circuit contributions/modération/Paws existant est conservé.
-- Site : `/lieu/:id` et `/liste/:token` rendus côté serveur par la fonction `public-share`, HTML et aperçus sociaux, accès anonyme seulement, aucun cache de liste révoquée. App Links Android liés au certificat public existant. Deux nouveaux contrôles sur `/statut`.
-- Guet : événement Expo corrigé, tâche sans montage React, déclencheur typé SDK55, permissions natives, contexte par compte, 20 zones proches maximum, annulation des passages courts, messages selon envie/visite, rappel d’avis seulement après une visite explicite persistée. Deux rappels/jour au total, silence local 22–9, rappel de même type au même lieu au plus une fois par semaine. Aucune campagne Firebase envoyée par ce chantier.
+Le catalogue contient **155 lieux**, dont **111 cartographiés**, **10 avis éditoriaux**,
+**3 carnets** et **1 actualité** au contrôle. Un lieu publié sans note reste
+explorable. Un enregistrement, une contribution ou une proximité ne crée pas de
+visite. Les photos de menu et propositions GPS passent par la modération ; une
+validation attribue les Paws une seule fois. Un rejet conserve le motif privé.
 
-## Preuves locales
+Aide et retours fournit sept contrôles de lecture, un reçu serveur et les réponses
+privées de l’équipe. Le panel reçoit l’activité de l’app avec sa plateforme et son
+build. Les anciens commentaires restés uniquement sur un téléphone ne peuvent
+pas être déclarés récupérés sans accès à ce téléphone.
 
-1 108 tests mobiles (4 ignorés), 231 tests panel cumulés, 50 tests portail ; gates TypeScript/vocabulaire/i18n/build ; tests SQL sur PostgreSQL 15 isolé, schéma complet et aller/retour des quatre migrations ; tests de propriété/idempotence/listes sur PGlite ; appel du vrai parseur Expo installé ; contrat de partage HTML ; configuration nginx testée dans l’image `nginx:alpine`.
+## Recette et preuves
 
-Inspection Chromium à 393 px : page Envies, recherche de plat et accueil. Les contenus publics existants ont été relus anonymement ; le compte, les menus et les listes nouveaux sont des fixtures locales, toutes les écritures interceptées. Cette inspection n’est pas une réception en production ni une recette APK.
+- [Compilation signée 39701288073](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39701288073) : signature de la lignée publique, intégrité ZIP, identité native, backend et Firebase compilés reçus.
+- [Recette Android finale 39708319589](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39708319589) : installation par-dessus le build 40, lectures réelles, hors ligne/reprise, retours/réponses, contributions/modération/Paws, recherche et listes, partage navigateur, révocation, ouverture HTTPS native et isolation des comptes.
+- [CI app/panel 39708264026](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39708264026) et [SQL 39708264027](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39708264027) reçues vertes. 1 108 tests mobiles réussis (4 ignorés), 231 tests panel, 50 tests portail ; TypeScript, vocabulaire, i18n, compilation, PostgreSQL 15 et aller/retour des migrations, contrats Expo réels et nginx réel.
+- `envies-reception/` : sauvegarde et schéma, source officielle du menu, captures du panel déployé, lecteurs publics et chaîne TLS. Les premières captures locales `visual-proof.json` utilisent explicitement des fixtures ; elles ne constituent pas une preuve native.
+- Le premier essai Android 39706556027 a échoué sur le défilement du script après remise à zéro du formulaire photo ; 19 assertions terminées étaient réussies. Le script attend désormais le reçu puis le recherche aussi vers le haut. Les exigences de réception restent inchangées.
 
-Cinq brouillons de plats documentés dans `editorial/envies-2026-10/menu-drafts.json`. Sources et dates originales de mars conservées. Ils restent à actualiser avant publication ; aucune photo, aucun prix ni disponibilité du jour inventés.
+Les comptes de recette sont synthétiques et exclus de la north star. Les photos
+techniques ne sont pas publiées ; les coordonnées simulées n’ont modifié aucun
+lieu et leur justificatif technique est retiré après le contrôle. Aucune visite
+personnelle n’est créée par ces tests.
 
-## Réception de la livraison 41
+## Guet et exploitation
 
-La version publique contrôlée le 22 octobre reste **1.1.1 / 40** pendant la réception du candidat 41. Les migrations 0086–0089 sont déployées : lecteurs menus et Guet HTTP 200. Les lectures existantes sont conservées : 155 lieux, 10 avis éditoriaux, 3 carnets. Sauvegarde PostgreSQL de 4 262 562 octets vérifiée avant migration ; tests transactionnels en production annulés par ROLLBACK, compteurs inchangés. Preuves dans `envies-reception/schema-live-proof.json` et `backup-proof.json`.
+Le binaire corrige les événements Expo, le déclencheur typé SDK55, les permissions
+d’arrière-plan et la tâche indépendante du montage React. Contexte isolé par
+compte, nettoyage à la déconnexion, 20 zones proches maximum, rayon 150 m,
+rappel après deux minutes annulé lors d’un passage court. Messages selon envie
+et visite, deux rappels quotidiens au total, silence local 22 h–9 h, même type de
+rappel au même lieu au plus une fois par semaine. Un rappel d’avis exige une
+visite explicite persistée.
 
-1. Sauvegarder la base et les paramètres, appliquer 0086–0089, contrôler les policies sous identité anonyme et deux comptes distincts. Garder le Guet fermé.
-2. Déployer `public-share` (index et renderer), puis les commits panel/portail. Contrôler les routes avec une fiche publiée et une vraie liste ; une liste révoquée doit rendre 404, une panne 503. Contrôler `/.well-known/assetlinks.json` et le certificat du candidat.
-3. Publier les plats uniquement après réception des sources actuelles. La suppression d’une publication doit disparaître de la recherche et des listes publiques ; l’historique privé garde un libellé identifiable.
-4. Recette du candidat APK : recherche plat/alias, enregistrement hors ligne et reprise, changement de compte, liste/partage/révocation, choix, reprise depuis lien Android, sept lectures, retour et réponse du panel. Conserver `native-proof/outing-data.json` lié au SHA de l’APK ; la publication automatique 41 refuse une preuve absente.
-5. Installer par-dessus le build 40, contrôler signature, Firebase natif, poids/SHA et démarrage. Publier seulement après réception app/base/panel/site, puis vérifier que le manifeste et les deux boutons passent ensemble au nouveau build.
-6. Tester le Guet sur téléphone physique : premier plan/arrière-plan/app fermée, sortie avant deux minutes, permission refusée, changement de compte, quatre messages, cooldown et limites. Activer ensuite uniquement les lieux réellement contrôlés. Un succès du planificateur n’est pas une réception du téléphone.
+La vérification de présence serveur exige une mesure récente (≤120 s), une
+précision ≤50 m et une distance ≤100 m d’un point contrôlé. Elle ne garantit pas
+l’absence de simulation sur un appareil compromis. Une visite déclarée reste
+possible sans GPS et n’est alors pas marquée vérifiée.
 
-L’accès Coolify a été retrouvé et vérifié sur son adresse actuelle. La fonction publique de partage est déployée et répond 200 pour une fiche existante, sans redémarrer le stack Supabase. Le panel et le portail sont en cours de déploiement ; la compilation Android 41 est reçue dans le run 39701288073 (signature, CRC, identité, backend et Firebase compilés vérifiés). Le compte synthétique de recette Android est marqué interne et exclu des indicateurs commerciaux. Les migrations `.down.sql` servent à tester la réversibilité ; ne pas les appliquer en production sur des envies réelles sans sauvegarde et plan de restauration.
+**Avant activation publique du Guet :** réception sur téléphone physique au
+premier plan, en arrière-plan et app fermée ; permissions refusées, passage court,
+changement de compte, messages et limites. Seuls les points réellement contrôlés
+seront éligibles. Une simulation d’émulateur ne remplace pas cette réception.
 
-
-Sources produit relues : [Lean Canvas V5.1](https://docs.google.com/document/d/1XkpV-F41_8P-2YmSnJMGbFcFpmcqGL7jbeM-85eM9To/edit) et documentation SPAWT du Drive. Les décisions de cette conversation sur la NS et les listes priment sur l’ancienne NS du Canvas.
-
-
-## Contrôles GitHub reçus
-
-- Source du candidat : `30b8f41e2229d727f516bbd3e2f62bf44063b382`.
-- [CI app et panel 39700452723](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700452723) : succès, y compris export web et contrats Expo/HTML.
-- [PostgreSQL, migrations et contrats paiement 39700452815](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700452815) : succès.
-- [PR app/base/panel #21](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/pull/21) et [PR site #17](https://github.com/xtincell/project_spawt_mobile_ci/pull/17), en brouillon jusqu’à réception de la livraison coordonnée.
-- Recette du candidat compilable : `documentation/android-build41.json`, lignée Android 40 reçue. La compilation ne publie ni l’APK ni le manifeste public.
-
-
-[Aperçu local : Mes envies](envies-reception/envies.png) · [Recherche de plat](envies-reception/recherche.png) · [Accueil](envies-reception/accueil.png). Les fixtures sont explicites dans `envies-reception/visual-proof.json` ; aucun avis ni aucune envie de recette n’a été envoyé à la production.
-
-Dernière correction avant compilation finale : l’affichage d’une zone attend aussi un contexte authentifié valide ; les notifications du Guet déjà affichées sont retirées à la déconnexion, sans toucher aux campagnes Firebase. Premier essai de compilation 41 arrêté pour intégrer ce contrôle (39700643440, aucun APK publié).
-
-
-Source finale du candidat 41 : `e4106b0cfa638ed44884532847f0c79917dd384a`. [CI mobile/panel 39700994234](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994234) et [SQL 39700994214](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994214) reçues vertes après correction de la déconnexion. Site : [CI 39700457209](https://github.com/xtincell/project_spawt_mobile_ci/actions/runs/39700457209) verte, nginx réel compris.
-
-Le panel transmet aussi les coordonnées affichées lors du contrôle : si un autre membre les a modifiées entre-temps, la validation échoue. Correction serveur/panel additive ; le contrat de lecture du candidat Android reste inchangé.
-
-
-## Carte documentée pour la première recherche de plats
-
-La carte brunch officielle d’IN’ Concept Store a été relue dans Chromium le 22 octobre (HTTP 200). 24 plats à la carte, prix observés et descriptions d’origine ; aucune photo non autorisée ni disponibilité garantie. Texte et empreinte dans `envies-reception/in-concept-menu-source.txt` et `menu-source-proof.json`. Les cinq relevés historiques de mars restent des brouillons.
-
-Recette native 41 : mise à niveau par-dessus l’APK public 40, sept lecteurs réels, enregistrement hors ligne puis reprise, liste par occasion, partage anonyme dans Chromium, révocation, App Links vérifiés par Android et isolation entre deux identités de recette. La preuve de sortie est liée au SHA de l’APK et devient un fichier public de la release.
-
-
-Réception web effectuée en production : sept lecteurs reçus (155 lieux, 10 éditoriaux, 3 carnets, 1 actualité, 24 plats, 0 coordonnées Guet validées), menu rendu anonymement, liste absente en 404, absence de cache, certificat App Links conforme et aucune erreur JavaScript. La chaîne TLS croisée Let’s Encrypt YR1 / Root YR / ISRG Root X1 nécessite `proxy_ssl_verify_depth 3` ; vérification du nom et de la chaîne conservée. Candidat Android 41 compilé : SHA-256 `c53620b70905741e909de5e61d4adc1604b074179a21379aa3739845d28b2019`, 162 536 319 octets. Recette native en cours : [39706556027](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39706556027).
+Les migrations `.down.sql` servent à tester la réversibilité ; ne pas les appliquer
+sur des envies réelles sans sauvegarde et plan de restauration. En cas d’incident,
+fermer les fonctions concernées et conserver les données ; ne pas redémarrer tout
+le stack Supabase pour déployer une fonction Edge.
