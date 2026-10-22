@@ -48,11 +48,11 @@ export default function SupportScreen() {
     if (sending || !spawterId || draft.message.trim().length < 10) return;
     setSending(true); setSendFailed(false); setReceipt("");
     try {
-      const id = await sendAppFeedback(draft.id, draft.kind, draft.message, context === "data_load" ? "data_load" : "app", includeChecks ? diagnostic : appDiagnostic());
+      const id = await sendAppFeedback(draft.id, draft.kind, draft.message, context === "data_load" ? "data_load" : "app", { ...(includeChecks ? diagnostic : appDiagnostic()), ...(context && /^(envies|(place|liste):[a-f0-9-]{36})$/.test(context) ? { screenContext: context } : {}) });
       if (currentKey.current !== draftKey) return;
       setReceipt(id.slice(0, 8)); setDraft({ id: Crypto.randomUUID(), kind: "bug", message: "" });
       await history();
-    } catch { setSendFailed(true); } finally { setSending(false); }
+    } catch { if (currentKey.current === draftKey) setSendFailed(true); } finally { if (currentKey.current === draftKey) setSending(false); }
   };
   const body = { ...theme.typography.preset.body, color: theme.colors.text.primary };
   const button = (label: string, onPress: () => void, id: string, disabled = false) => <Pressable testID={id} accessibilityRole="button" disabled={disabled} onPress={onPress} style={{ minHeight: 44, justifyContent: "center", opacity: disabled ? 0.5 : 1 }}><Text style={{ ...body, color: theme.colors.brand.accent }}>{label}</Text></Pressable>;

@@ -37,7 +37,7 @@ export function setPlaceNameLookup(fn: (place_id: string) => string | null): voi
 export type GeofenceCallback = (
   type: GeofenceEventType,
   place: PlaceLookup,
-) => void;
+) => void | Promise<void>;
 
 let externalCallback: GeofenceCallback | null = null;
 export function registerGeofenceCallback(cb: GeofenceCallback | null): void {
@@ -46,11 +46,11 @@ export function registerGeofenceCallback(cb: GeofenceCallback | null): void {
 
 interface RegionPayload {
   identifier: string;
-  eventType: number;
 }
 
 interface TaskData {
   region?: RegionPayload;
+  eventType?: number;
 }
 
 // ⚠️ defineTask top-level — ne JAMAIS déplacer dans une fonction/composant
@@ -68,29 +68,30 @@ if (typeof TaskManager.defineTask === "function") {
     const place_name = placeNameLookup(place_id) ?? place_id;
     const place: PlaceLookup = { id: place_id, name: place_name };
 
-    if (region.eventType === Location.GeofencingEventType.Enter) {
-      handleEnter(place);
-    } else if (region.eventType === Location.GeofencingEventType.Exit) {
-      handleExit(place);
+    if ((data as TaskData).eventType === Location.GeofencingEventType.Enter) {
+      await handleEnter(place);
+    } else if ((data as TaskData).eventType === Location.GeofencingEventType.Exit) {
+      await handleExit(place);
     }
   });
 }
 
-function handleEnter(place: PlaceLookup): void {
+async function handleEnter(place: PlaceLookup): Promise<void> {
   useGuetActive.getState().enter({ place_id: place.id, place_name: place.name });
-  externalCallback?.("enter", place);
+  if (externalCallback) await externalCallback("enter", place);
+  else await (await import("./guet-nearby")).handleNearbyEvent("enter", place.id);
 }
 
-function handleExit(place: PlaceLookup): void {
+async function handleExit(place: PlaceLookup): Promise<void> {
   useGuetActive.getState().exit();
-  externalCallback?.("exit", place);
+  if (externalCallback) await externalCallback("exit", place);
+  else await (await import("./guet-nearby")).handleNearbyEvent("exit", place.id);
 }
 
 /** Test-only : déclenche les handlers comme si la task avait été invoquée. */
 export function _simulateGeofenceForTest(
   type: GeofenceEventType,
   place: PlaceLookup,
-): void {
-  if (type === "enter") handleEnter(place);
-  else handleExit(place);
+): Promise<void> {
+  return type === "enter" ? handleEnter(place) : handleExit(place);
 }

@@ -1,4 +1,7 @@
+import { GuetPage } from "./pages/guet";
 import { ActualitesList } from "./pages/actualites";
+import { MenusPage } from "./pages/menus";
+import { EnviesPage } from "./pages/envies";
 import { RetoursList } from "./pages/retours";
 import { ContributionsList } from "./pages/contributions";
 import { ActiviteList } from "./pages/activite";
@@ -142,6 +145,9 @@ export const App = () =>
         <Route element={<ProtectedLayout />}>
           <Route path="/" element={<Navigate to="/lieux" replace />} />
           <Route path="/lieux" element={<LieuxList />} />
+          <Route path="/menus" element={<MenusPage />} />
+          <Route path="/guet" element={<GuetPage />} />
+          <Route path="/envies" element={<EnviesPage />} />
           <Route path="/lieux/create" element={<LieuCreate />} />
           <Route path="/lieux/import" element={<LieuxImport />} />
           <Route path="/lieux/edit/:id" element={<LieuEdit />} />

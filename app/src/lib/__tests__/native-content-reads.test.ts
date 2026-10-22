@@ -35,11 +35,11 @@ it("does not turn server denial into an empty feed", async () => {
   mockResult.error = { code: "42501" };
   await expect(listAnnouncements()).rejects.toEqual({ code: "42501" });
 });
-it("checks all five real content readers without static AbortSignal helpers", async () => {
+it("checks all seven real content readers without static AbortSignal helpers", async () => {
   const result = await checkAppContent();
-  expect(result.checks).toHaveLength(5);
+  expect(result.checks).toHaveLength(7);
   expect(result.checks?.every(check => check.ok)).toBe(true);
-  expect(mockRequests).toHaveBeenCalledTimes(5);
+  expect(mockRequests).toHaveBeenCalledTimes(7);
 });
 it("reports foreground activity with the native AbortSignal implementation", async () => {
   jest.useFakeTimers();

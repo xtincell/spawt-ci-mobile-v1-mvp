@@ -58,6 +58,8 @@ import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
 import { PlaceTabs } from "../../../src/components/place/PlaceTabs";
 import { PlaceMediaTab } from "../../../src/components/place/PlaceMediaTab";
 import { PlaceMenuTab } from "../../../src/components/place/PlaceMenuTab";
+import { OutingActions } from "../../../src/components/OutingActions";
+import { useOutings } from "../../../src/store/outings-store";
 import { formatXofAmount } from "../../../src/lib/format-price";
 import {
   buildStaticMapUrl,
@@ -105,7 +107,8 @@ type PlaceTabKey = "media" | "menu" | "avis";
 
 export default function PlaceDetailScreen() {
   const contentRevision = useContentRevision();
-  const params = useLocalSearchParams<{ id: string; ref?: string }>();
+  const params = useLocalSearchParams<{ id: string; ref?: string; tab?: string }>();
+  useOutings();
   const id = params.id;
   const ref = (VALID_REFS as ReadonlyArray<string>).includes(params.ref ?? "")
     ? (params.ref as Referrer)
@@ -125,7 +128,8 @@ export default function PlaceDetailScreen() {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [coverFailed, setCoverFailed] = useState(false);
-  const [activeTab, setActiveTab] = useState<PlaceTabKey>("media");
+  const [activeTab, setActiveTab] = useState<PlaceTabKey>(params.tab === "menu" ? "menu" : "media");
+  useEffect(() => { if (params.tab === "menu") setActiveTab("menu"); }, [params.tab, params.id]);
   const spawtBusy = useRef(false);
   const [startingReview, setStartingReview] = useState(false);
 
@@ -800,6 +804,7 @@ export default function PlaceDetailScreen() {
           ) : null}
 
           {/* Signaux */}
+          <OutingActions placeId={place.id} full />
           <Pressable testID="place-contribute" accessibilityRole="button"
             onPress={() => router.push({ pathname: "/contribute/[id]", params: { id: place.id, name: place.name } } as never)}
             style={{ minHeight: 48, justifyContent: "center", marginBottom: theme.spacing.base }}>
@@ -846,7 +851,7 @@ export default function PlaceDetailScreen() {
               />
             ) : null}
             {activeTab === "menu" ? (
-              <PlaceMenuTab urls={place.menu_urls} />
+              <PlaceMenuTab urls={place.menu_urls} placeId={place.id} />
             ) : null}
             {activeTab === "avis" ? (
               /* Q2 — PlaceReviews porte « Voir tous les avis (N) » → l'écran

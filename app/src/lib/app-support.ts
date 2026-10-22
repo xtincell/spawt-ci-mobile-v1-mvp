@@ -5,9 +5,9 @@ import { withReadTimeout } from "./data-read-error";
 import { isSupabaseConfigured } from "./data-source";
 import { listAnnouncements } from "./announcements";
 
-export type CheckKey = "places" | "editorials" | "collections" | "announcements" | "sync";
+export type CheckKey = "places" | "editorials" | "collections" | "announcements" | "menus" | "guet" | "sync";
 export interface ContentCheck { key: CheckKey; ok: boolean; count?: number }
-export interface AppDiagnostic { version: string; build: string; platform: string; checkedAt?: string; checks?: ContentCheck[] }
+export interface AppDiagnostic { version: string; build: string; platform: string; checkedAt?: string; checks?: ContentCheck[]; screenContext?: string }
 export function appDiagnostic(): AppDiagnostic {
   return { version: Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? "—",
     build: Application.nativeBuildVersion ?? "—", platform: Platform.OS };
@@ -15,7 +15,7 @@ export function appDiagnostic(): AppDiagnostic {
 export async function checkAppContent(): Promise<AppDiagnostic> {
   if (!isSupabaseConfigured) throw new Error("backend_unconfigured");
   const { supabase } = await import("./supabase");
-  const checks = await Promise.all((["places", "editorials", "collections", "announcements", "sync"] as const).map(async (key): Promise<ContentCheck> => {
+  const checks = await Promise.all((["places", "editorials", "collections", "announcements", "menus", "guet", "sync"] as const).map(async (key): Promise<ContentCheck> => {
     try {
       if (key === "announcements") return { key, ok: true, count: (await listAnnouncements()).length };
       if (key === "sync") {
@@ -23,9 +23,9 @@ export async function checkAppContent(): Promise<AppDiagnostic> {
         if (error || typeof data !== "string") throw new Error("content_status_failed");
         return { key, ok: true };
       }
-      let query = supabase.from(key === "editorials" ? "public_editorial_reviews" : key === "collections" ? "explore_collections" : "places")
+      let query = supabase.from(key === "menus" ? "public_menu_items" : key === "guet" ? "public_guet_places" : key === "editorials" ? "public_editorial_reviews" : key === "collections" ? "explore_collections" : "places")
         .select("id", { count: "exact", head: true });
-      if (key !== "editorials") query = query.eq("is_published", true);
+      if (key === "places" || key === "collections") query = query.eq("is_published", true);
       const { count, error } = await withReadTimeout(key, signal => query.abortSignal(signal));
       if (error || count === null) throw new Error("content_read_failed");
       return { key, ok: true, count };

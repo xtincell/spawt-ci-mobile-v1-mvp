@@ -103,15 +103,22 @@ export default function RootLayout() {
   // Story 4.1 + 4.2 — channel Android + catégories d'actions notif (Confirmer/Snooze).
   // Idempotent — pose les fondations pour scheduleGuetPrompt côté guet-task.
   useEffect(() => {
-    void ensureGuetChannel();
-    void setupGuetCategories();
+    void ensureGuetChannel().catch(() => undefined);
+    void setupGuetCategories().catch(() => undefined);
   }, []);
 
   // Câblage MVP — orchestrateur du Guet : dès qu'un spawter onboardé existe,
-  // boucle complète armement → geofence → notif 15min → confirm/passive.
+  // proximité → contenu, sans créer de visite automatique.
   // Au logout (spawter → null post-hydratation), tout est désarmé.
   const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
   const storeHydrating = useSpawterStore((s) => s.hydrating);
+  useEffect(() => {
+    if (storeHydrating || !spawterId || !isSupabaseConfigured) return;
+    const refresh = () => { void import("../src/store/outings-store").then(m => m.refreshCurrentOutings()).catch(() => undefined); };
+    refresh();
+    const sub = AppState.addEventListener("change", state => { if (state === "active") refresh(); });
+    return () => sub.remove();
+  }, [spawterId, storeHydrating]);
   // Editorial availability must not depend on geofencing consent or opt-out.
   useEffect(() => {
     if (storeHydrating) return;
@@ -152,7 +159,7 @@ export default function RootLayout() {
       // les deux cas). Jamais avant le consentement : un spawter n'existe
       // qu'après l'écran consent bloquant de l'onboarding.
       void (async () => {
-        await bootGuet();
+        await bootGuet().catch(() => undefined);
         await registerPushToken();
       })();
     } else {

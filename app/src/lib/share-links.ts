@@ -1,6 +1,6 @@
-/** Liens de l'app installée ; aucune page web de lieu n'est encore hébergée. */
+/** Public HTTPS fallback, also handled by verified Android App Links. */
 export function buildPlaceShareUrl(placeId: string): string {
-  return `spawt://place/${encodeURIComponent(placeId)}`;
+  return `https://spawt.online/lieu/${encodeURIComponent(placeId)}`;
 }
 
 export function normalizeCrewInviteCode(value: string | string[] | undefined): string | null {

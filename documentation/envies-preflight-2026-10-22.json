@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-10-22T00:32:59Z",
+  "checks": [
+    {
+      "content": "places",
+      "http": 206,
+      "range": "0-0/155"
+    },
+    {
+      "content": "editorials",
+      "http": 206,
+      "range": "0-0/10"
+    },
+    {
+      "content": "collections",
+      "http": 206,
+      "range": "0-0/3"
+    },
+    {
+      "content": "menus",
+      "http": 404,
+      "range": null
+    },
+    {
+      "content": "guet",
+      "http": 404,
+      "range": null
+    }
+  ]
+}

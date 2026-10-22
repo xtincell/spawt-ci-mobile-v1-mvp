@@ -60,6 +60,7 @@ export async function bootOfflineQueue(): Promise<void> {
           ).catch((err) => {
             if (__DEV__) console.warn("[saved-places] network resume failed", err);
           });
+          void import("../store/outings-store").then(({ refreshCurrentOutings }) => refreshCurrentOutings()).catch(() => undefined);
         }
         wasOnline = online;
       });

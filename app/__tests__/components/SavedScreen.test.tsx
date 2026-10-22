@@ -1,3 +1,5 @@
+jest.mock("../../src/store/outings-store", () => ({ useOutings: () => ({ snapshot: { lists: [], items: [], dishes: [] }, pendingPlaces: {}, refresh: jest.fn(), loading: false, failed: false, pending: 0, rejected: 0 }) }));
+jest.mock("../../src/lib/use-menu-items", () => ({ useMenuItems: () => ({ items: [] }) }));
 import { type ReactNode } from "react";
 // @ts-ignore — react-test-renderer ships JS only.
 import TestRenderer from "react-test-renderer";
@@ -5,7 +7,7 @@ jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: ReactNode }) => children,
 }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock("expo-router", () => ({ useRouter: () => ({ back: jest.fn(), push: jest.fn() }) }));
+jest.mock("expo-router", () => ({ useLocalSearchParams: () => ({}), useRouter: () => ({ back: jest.fn(), push: jest.fn() }) }));
 jest.mock("../../src/lib/analytics", () => ({ track: jest.fn() }));
 jest.mock("../../src/lib/data-source", () => ({ listPlaces: jest.fn(async () => []) }));
 const mockState = { savedPlaceIds: new Set(), savedUnavailable: false, refreshSaved: jest.fn(async () => undefined), toggleSaved: jest.fn() };
@@ -18,7 +20,7 @@ it("une lecture impossible ne devient pas un faux état vide et propose une repr
   await TestRenderer.act(async () => { rendered = TestRenderer.create(<SavedScreen />); });
   const content = JSON.stringify(rendered.toJSON());
   expect(content).toContain("saved.unavailable");
-  expect(content).not.toContain("saved.empty_title");
+  expect(content).not.toContain("outings.empty");
   const retry = rendered.root.findAllByProps({ accessibilityLabel: "saved.retry" }).find((n: { props: { onPress?: unknown } }) => typeof n.props.onPress === "function");
   expect(retry).toBeDefined();
   await TestRenderer.act(async () => { retry!.props.onPress(); await Promise.resolve(); });
@@ -29,7 +31,7 @@ it("une liste vraiment vide conserve son accueil habituel", async () => {
   mockState.savedUnavailable = false;
   let rendered!: ReturnType<typeof TestRenderer.create>;
   await TestRenderer.act(async () => { rendered = TestRenderer.create(<SavedScreen />); });
-  expect(JSON.stringify(rendered.toJSON())).toContain("saved.empty_title");
+  expect(JSON.stringify(rendered.toJSON())).toContain("outings.empty");
   expect(JSON.stringify(rendered.toJSON())).not.toContain("saved.unavailable");
   TestRenderer.act(() => rendered.unmount());
 });
@@ -41,9 +43,9 @@ it("un inventaire inaccessible ne prétend pas que les favoris sont vides et peu
   let rendered!: ReturnType<typeof TestRenderer.create>;
   await TestRenderer.act(async () => { rendered = TestRenderer.create(<SavedScreen />); });
   expect(JSON.stringify(rendered.toJSON())).toContain("common.data_read_error");
-  expect(JSON.stringify(rendered.toJSON())).not.toContain("saved.empty_title");
+  expect(JSON.stringify(rendered.toJSON())).not.toContain("outings.empty");
   const retry = rendered.root.findAllByProps({ accessibilityLabel: "common.retry" }).find((n: { props: { onPress?: unknown } }) => typeof n.props.onPress === "function");
   await TestRenderer.act(async () => { retry!.props.onPress(); });
-  expect(JSON.stringify(rendered.toJSON())).toContain("saved.empty_title");
+  expect(JSON.stringify(rendered.toJSON())).toContain("outings.empty");
   TestRenderer.act(() => rendered.unmount());
 });

@@ -1,3 +1,11 @@
+## 2026-10-22 — Envies de sortie (candidat 41, non déployé)
+
+- Plats sourcés, envies de lieux/plats, listes par occasion et partage révocable ; reprise hors ligne et séparation des comptes.
+- Accueil hybride, recherche de plats et accompagnements, choix avec la bande, métriques serveur et suivi des retours.
+- Panel Menus/Envies/Guet, pages web de partage, liens Android vérifiés par domaine, diagnostics étendus.
+- Guet corrigé : proximité distincte d’une visite, vérification serveur explicite, plafonds et coordonnées validées ; interrupteur public fermé jusqu’à réception physique.
+- Migrations 0086–0089 et nouveau contrôle bloquant de publication Android. Voir `documentation/ENVIES_SORTIES_2026-10-22.md` pour les preuves et la réception restante.
+
 ## 2026-10-19 — Isolation des brouillons (build 40)
 
 - Brouillons de retours et de contributions isolés dès le changement de compte, avant l’exécution des effets React. Les lectures tardives et mises à jour de l’ancien compte sont ignorées.

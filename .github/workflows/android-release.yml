@@ -56,6 +56,14 @@ jobs:
           if(m.sourceCommit!==c.sourceCommit || m.version!==c.version || m.build!==c.build || m.runId!==c.buildRun || m.sha256!==c.sha256 || m.bytes!==c.bytes || q.sha256!==m.sha256 || assertions.length<5 || !assertions.every(a=>a.passed===true) || opening.passed!==true) throw new Error('Release proof mismatch');
           if(!['signatureMatchesBuild25','zipCrcPassed','nativePackageVerified','compiledBackendConfigVerified','compiledFirebaseConfigVerified'].every(k=>m[k]===true)) throw new Error('APK checks incomplete');
           if(firebase.defaultAppInitialized!==true) throw new Error('Firebase native initialization was not verified');
+          if(c.build>=41) {
+            const outing=JSON.parse(fs.readFileSync('native-proof/outing-data.json'));
+            const required=['menuRead','dishSearch','saveReceipt','namedListRead','shareReadInBrowser','revokedLinkRefused','chooseReceipt','feedbackReceipt','sevenContentChecks','appLinkOpened'];
+            if(outing.build!==c.build || outing.sha256!==m.sha256 || outing.apiOrigin!=='https://api.spawt.online' || !required.every(k=>outing[k]===true)) throw new Error('Live native outing/list/web proof missing');
+            if(typeof outing.guetEnabled!=='boolean') throw new Error('Guet gate status missing');
+            if(outing.guetEnabled===true && outing.physicalGuetReceipt!==true) throw new Error('Physical Guet receipt required before activation');
+            fs.copyFileSync('native-proof/outing-data.json','release-apk/outing-data-proof.json');
+          }
           if(c.build>=37) {
             const live=JSON.parse(fs.readFileSync('native-proof/live-data.json'));
             if(live.build!==c.build || live.apiOrigin!=='https://api.spawt.online' || !['nativeAuthenticated','announcementsRead','editorialTextMatched','collectionRead','fiveContentChecksPassed','offlineFailureAndRecovery','feedbackReceiptReceived','feedbackReplyRead','personalExplorationChecked','unratedDocumentaryRead'].every(key=>live[key]===true)) throw new Error('Live native database and feedback proof missing');

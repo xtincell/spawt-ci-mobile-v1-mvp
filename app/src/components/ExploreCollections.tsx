@@ -19,10 +19,12 @@ export function ExploreCollections({
   refreshKey = 0,
   active = true,
   audience = "general",
+  limit,
 }: {
   refreshKey?: number;
   active?: boolean;
   audience?: "general" | "duo";
+  limit?: number;
 }) {
   const contentRevision = useContentRevision();
   const theme = useTheme();
@@ -71,7 +73,7 @@ export function ExploreCollections({
         failed={failed}
         onRetry={() => setRetry((n) => n + 1)}
       />
-      {rows?.map((collection) => (
+      {rows?.slice(0, limit).map((collection) => (
         <CollectionCard
           key={collection.id}
           collection={collection}
