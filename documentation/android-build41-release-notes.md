@@ -2,6 +2,7 @@
 
 Cette version relie les envies de sortie entre l’app, le panel, la base et le site.
 
+- Correction d’une synchronisation concurrente qui pouvait laisser une nouvelle envie ou une action de liste en attente sur le téléphone.
 - « Ça me tente » pour garder un lieu ou un plat ; listes Date, Anniversaire, Vendredi soir, Brunch ou personnalisées.
 - Recherche de plats et variantes de nom, menus avec prix et date de relevé. Première carte structurée : 24 plats d’IN’ Concept Store, relue sur son site officiel le 22 octobre 2026. Un relevé ne garantit pas le stock du jour.
 - Listes partageables sur le web, lien révocable, ouverture directe dans l’app et choix avec la bande.
