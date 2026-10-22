@@ -88,3 +88,6 @@ Sources produit relues : [Lean Canvas V5.1](https://docs.google.com/document/d/1
 [Aperçu local : Mes envies](envies-reception/envies.png) · [Recherche de plat](envies-reception/recherche.png) · [Accueil](envies-reception/accueil.png). Les fixtures sont explicites dans `envies-reception/visual-proof.json` ; aucun avis ni aucune envie de recette n’a été envoyé à la production.
 
 Dernière correction avant compilation finale : l’affichage d’une zone attend aussi un contexte authentifié valide ; les notifications du Guet déjà affichées sont retirées à la déconnexion, sans toucher aux campagnes Firebase. Premier essai de compilation 41 arrêté pour intégrer ce contrôle (39700643440, aucun APK publié).
+
+
+Source finale du candidat 41 : `e4106b0cfa638ed44884532847f0c79917dd384a`. [CI mobile/panel 39700994234](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994234) et [SQL 39700994214](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/39700994214) reçues vertes après correction de la déconnexion. Site : [CI 39700457209](https://github.com/xtincell/project_spawt_mobile_ci/actions/runs/39700457209) verte, nginx réel compris.
