@@ -1,0 +1,79 @@
+{
+  "ticket": "f461ceb6-1f5e-4888-8a7b-a5c900e8853d",
+  "marker": "Recette native SPAWT 1.1.1 39718577857",
+  "diagnostics": {
+    "build": "41",
+    "version": "1.1.1",
+    "platform": "android"
+  },
+  "checks": [
+    "private native feedback received and answered through Xtincell admin panel",
+    "native foreground heartbeat build41 appears in admin"
+  ],
+  "activity": [
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "41",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-22 03:42:28.597642+00",
+      "active": false
+    },
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "40",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-20 00:11:51.068539+00",
+      "active": false
+    },
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "41",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-22 02:11:18.005639+00",
+      "active": false
+    },
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "38",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-19 23:13:49.139775+00",
+      "active": false
+    },
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "41",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-22 03:55:49.202912+00",
+      "active": false
+    },
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "41",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-22 02:24:55.010826+00",
+      "active": false
+    },
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "41",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-22 01:46:43.91878+00",
+      "active": false
+    },
+    {
+      "platform": "android",
+      "app_version": "1.1.1",
+      "app_build": "41",
+      "pending_writes": 0,
+      "last_seen_at": "2026-10-22 03:29:58.703167+00",
+      "active": false
+    }
+  ]
+}
