@@ -22,7 +22,7 @@ et la north star priment sur l’ancienne mesure du Canvas.
 - **Base en production** : migrations additives 0086–0089 appliquées après sauvegarde PostgreSQL vérifiée. Propriété/RLS, identifiants de mutation stables, partage révocable, validation GPS et indicateurs serveur. Les favoris du build 40 restent compatibles.
 - **Panel en production** : commit `23e4eef249fecafedc76f81dad69889d8164e576`, pages `/menus`, `/envies`, `/guet`. Publication/édition des plats, source et date, concurrence détectée ; validation GPS auditée et refus d’une validation si les coordonnées ont changé entre-temps.
 - **Site en production** : fiches `/lieu/:id`, listes `/liste/:token`, rendu anonyme et aperçus sociaux, absence de cache des partages, 404 après révocation. Sept lecteurs sur `/statut`, certificat Android App Links reçu. Vérification TLS conservée avec une profondeur de chaîne adaptée au certificat croisé Let’s Encrypt.
-- **Android 41 compilé** : source `e4106b0cfa638ed44884532847f0c79917dd384a`, 162 536 319 octets, SHA-256 `c53620b70905741e909de5e61d4adc1604b074179a21379aa3739845d28b2019`. Candidat refusé après découverte d’une course de synchronisation ; une source corrigée doit être recompilée et reçue. Canal public toujours au build 40.
+- **Android 41 corrigé et recompilé** : source `e38c8f3ee5c6287e179ef70927ca4ea618ed1878`, 162536491 octets, SHA-256 `62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9`. Compilation 39711862127 réussie ; recette native 39716463647 en cours. Canal public encore au build 40 jusqu’à réception complète.
 - **Guet désactivé** : interrupteur `guet-proximity-v2` fermé pour tous les publics. Aucune campagne Firebase envoyée par cette livraison.
 
 ## Comportements livrés
