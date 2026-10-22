@@ -64,8 +64,13 @@ def run_outing_cases(g):
         response=p.goto(url,wait_until='networkidle');assert response.status==200;expect(p.get_by_role('heading',name=title)).to_be_visible();expect(p.get_by_text(dish['name'],exact=True)).to_be_visible()
         p.screenshot(path=str(out/'outing-public-browser.png'),full_page=True);check('native shared list is readable in anonymous real browser',True)
         # Android must resolve the public HTTPS link to this installed signed app.
-        adb('shell','pm','verify-app-links','--re-verify',g['PACKAGE']);time.sleep(12)
-        links=adb('shell','pm','get-app-links',g['PACKAGE']);(out/'outing-app-links.txt').write_text(links)
+        adb('shell','pm','verify-app-links','--re-verify',g['PACKAGE'])
+        end=time.monotonic()+60
+        while True:
+            links=adb('shell','pm','get-app-links',g['PACKAGE'])
+            if 'spawt.online: verified' in links or time.monotonic()>=end:break
+            time.sleep(2)
+        (out/'outing-app-links.txt').write_text(links)
         check('Android verifies official website App Link', 'spawt.online: verified' in links)
         deep('settings')  # Start elsewhere: a stale saved-list title cannot satisfy this check.
         result=adb('shell','am','start','-W','-a','android.intent.action.VIEW','-c','android.intent.category.BROWSABLE','-d',url)
