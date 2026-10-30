@@ -28,23 +28,27 @@ Base : `main` à `9641c461333e5dc4343a6b5fc9bff5674a9162f2`, descendant du code 
 - Contrôles de configuration EAS/Firebase et canal de publication : réussis. Le test EAS qui lance des sous-processus a été reçu hors du sandbox local, sans modifier son code ni simuler un succès de production.
 - Conformité du dépôt : 262 assertions réussies, seul avertissement attendu sur les identifiants de soumission aux stores.
 - SQL réel PostgreSQL 15.8 : schéma vierge, permissions, tests existants, rollback et réapplication réussis. La migration 0091 passe trois fois dans cette séquence.
+- HTTP réel en environnement isolé : PostgREST 14.6, version attestée par l’OpenAPI publique, retourne HTTP 200 pour les sélections simples, complètes et imbriquées du carnet. La vraie date est reçue ; un lieu sans visite conserve `null`.
 
-## Dépendance serveur
+Source candidate : `8cf7ea89ef7610b69c28f7608218f4e005dbdc30`, [PR 23](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/pull/23). CI mobile/console `41100508359` terminée avec succès à 17:51:29 UTC ; CI SQL `41100508369` terminée avec succès à 17:54:20 UTC. Les deux contrôles portent sur cette source exacte.
 
-La migration appariée **0091_public_place_recency** doit être appliquée avant la réception native et la publication. Elle expose seulement une date agrégée pour un lieu publié. Elle exclut visites seed, passives, non vérifiées, annulées, supprimées, sans date ou futures. Elle ne prend jamais la date d’édition de la fiche. Les anciennes APK restent compatibles.
+## Déploiement serveur
+
+La migration appariée **0091_public_place_recency** a été appliquée en production le 30 octobre 2026 avant la réception native. Sauvegarde PostgreSQL au format custom réalisée et catalogue de restauration vérifié ; fichier SQL téléchargé depuis la source exacte, empreinte SHA-256 vérifiée avant exécution. Application dans une transaction unique avec verrou du migrateur et enregistrement dans `schema_migrations`.
+
+Elle expose seulement une date agrégée pour un lieu publié. Elle exclut visites seed, passives, non vérifiées, annulées, supprimées, sans date ou futures. Elle ne prend jamais la date d’édition de la fiche. Les anciennes APK restent compatibles. La relecture publique après déploiement retourne HTTP 200 pour les 155 lieux publiés. Aucune visite admissible n'étant présente, leurs dates sont `null` ; aucune date artificielle n'a été ajoutée.
 
 Le runner `scripts/test-payment-sql.sh` couvre les migrations existantes, les nouvelles lectures sous rôle anonyme et propriétaire, puis le rollback et la réapplication de 0091. La compilation 42 exige la CI mobile/console et la CI SQL vertes sur sa source exacte.
 
 ## Guet : état constaté, puis mise en service
 
-Lecture publique du 30 octobre : `guet-proximity-v2` est désactivé dans les quatre scopes et `public_guet_places` contient **zéro** lieu. Le champ de fraîcheur n’est pas encore déployé. L’accès API Coolify disponible renvoie HTTP 401 ; le navigateur ouvre la page de connexion.
+Avant intervention, `guet-proximity-v2` était désactivé dans les quatre scopes et `public_guet_places` contenait **zéro** lieu. L'accès API Coolify refusé a été remplacé par une connexion opérateur authentifiée au terminal du service existant.
 
-L’activation est autorisée par le mandat. Elle reste à effectuer avec un accès serveur valide :
+Le drapeau global a été **activé dans les scopes internal, alpha, beta et prod à 17:52:33 UTC le 30 octobre 2026**. Les quatre lignes mises à jour ont été relues via l'API publique : `enabled=true`, sans expiration. Les consentements, les choix individuels et les autorisations des appareils n'ont pas été modifiés. Reçu : `documentation/android-build42-server-receipt.json`.
 
-1. Appliquer 0091 via le migrateur existant et vérifier la lecture REST de `last_spawt_at`.
-2. Examiner les preuves GPS existantes, notamment les contributions de localisation approuvées avant 0087. Raccorder uniquement les preuves admissibles avec leur source et précision réellement connues. La présence de latitude/longitude dans une fiche ne suffit pas à inventer une validation.
-3. Activer le flag existant `guet-proximity-v2`, puis relire ses valeurs et le nombre de lieux éligibles. Ne pas modifier les consentements, l’opt-out ou les autorisations des appareils.
-4. Recevoir le candidat natif : permissions, entrée dans une zone validée, rappel après le délai existant, sortie anticipée, désactivation et changement de compte. Une proximité ne crée jamais une visite.
+Les quatre contributions de localisation approuvées ont été examinées. Leurs commentaires et décisions de modération attestent des positions simulées pour les recettes antérieures, sans nouveau relevé terrain. Elles ne constituent pas une preuve GPS admissible. Aucun enregistrement de validation n'a été créé à partir de ces simulations.
+
+Le catalogue Guet reste donc à **zéro lieu éligible** : le drapeau est actif, mais aucune région native ne peut encore être armée. La réception terrain doit porter sur un lieu réellement validé : permissions, entrée dans la zone, rappel après le délai existant, sortie anticipée, désactivation et changement de compte. Une proximité ne crée jamais une visite.
 
 La réception physique du Guet n’est pas déduite d’un test unitaire ou d’un émulateur. Le contrôle de publication existant qui réclame cette preuve lorsque le Guet est activé reste en place.
 
@@ -52,4 +56,4 @@ La réception physique du Guet n’est pas déduite d’un test unitaire ou d’
 
 Numéro Android 42 et numéro iOS 42, version 1.1.1, date 2026-10-30. Signature EAS existante. La recette d’installation doit partir de l’APK 41 reçue, dont l’empreinte est épinglée, puis vérifier l’installation par-dessus sans désinstallation.
 
-Les actions de compilation, de recette et de publication sont déclenchées séparément depuis la branche de travail, avec leurs recettes et preuves épinglées. Le canal public n’avance qu’après les contrôles existants. Les identifiants de runs, empreintes et résultats effectifs seront ajoutés à réception ; aucun APK ni Guet actif n’est déclaré ici avant cette vérification.
+Les actions de compilation, de recette et de publication sont déclenchées séparément depuis la branche de travail, avec leurs recettes et preuves épinglées. Le canal public n’avance qu’après les contrôles existants. Les identifiants de runs, empreintes et résultats effectifs seront ajoutés à réception. Le drapeau Guet actif ne constitue pas, à lui seul, une réception terrain.
