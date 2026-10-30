@@ -221,6 +221,22 @@ def photo_and_network_cases():
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
 
+def fully_visible_profile_link(tree, value):
+    # The profile receipt runs at 3x density. Require a 44dp touch target and
+    # its visible text inside the real ScrollView, not a clipped AX sliver.
+    for viewport in tree.iter('node'):
+        if viewport.get('class')!='android.widget.ScrollView': continue
+        clip=bounds(viewport)
+        for node in viewport.iter('node'):
+            if node.get('class')!='android.widget.Button' or node.get('content-desc')!=value: continue
+            b=bounds(node)
+            if not (len(b)==4 and b[2]>b[0] and b[3]-b[1]>=132
+                    and clip[1]<=b[1]<b[3]<=clip[3]): continue
+            if any(child.get('text')==value and bounds(child)[3]-bounds(child)[1]>=48
+                   and b[1]<=bounds(child)[1]<bounds(child)[3]<=b[3]
+                   for child in node.iter('node')): return node
+    return None
+
 def raccordements_cases():
     """Candidate receipt only; console moderation and physical Guet stay unreceived."""
     from android_outing_qa import run_outing_cases
@@ -262,9 +278,8 @@ def raccordements_cases():
     # XML labels alone do not prove the five bars are visibly on the verso.
     for page in range(12):
         tree=inspect('raccordements-profile-scroll-'+str(page))
-        settings_bounds=[bounds(n) for n in tree.iter('node') if any(
-            fr['profile']['link_settings']==n.get(k,'') for k in ('text','content-desc'))]
-        if any(len(b)==4 and b[2]>b[0] and 72<=b[1]<b[3]<=2320 for b in settings_bounds): break
+        settings_link=fully_visible_profile_link(tree,fr['profile']['link_settings'])
+        if settings_link is not None: break
         scroll()
     else: raise AssertionError('Profile inspection did not reach the settings link')
     check('native profile inspected from card through its settings link',True)
@@ -272,6 +287,8 @@ def raccordements_cases():
              'homeCatalogueRead':True,'placeSearchRead':True,'placeOpenedFromSearch':True,
              'profileLegacyGoldCopyAbsent':True,'profileAxisLabelsExposed':exposed,
              'profileVersoCapture':'raccordements-profile-verso.png',
+             'profileSettingsCapture':'raccordements-profile-scroll-'+str(page)+'.png',
+             'profileSettingsBounds':bounds(settings_link),'profileSettingsLabelVisible':True,
              'axesRequireVisualReview':True,'consoleModerationReceipt':False,
              'physicalGuetReceipt':False,
              'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}

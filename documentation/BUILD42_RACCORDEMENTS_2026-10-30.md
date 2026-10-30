@@ -75,6 +75,10 @@ Ces étapes sont en attente. La recette `raccordements` sur émulateur produit s
 
 ## Livraison
 
+La compilation complète `41117097867` est reçue `success` à 20:16:31 UTC. La première recette native `41121907854`, sur Android 35, est reçue `success` à 20:25:55 UTC : installation 41 → 42, 29 assertions automatiques, Firebase et animation d'ouverture réussis. L'examen de la capture confirme les cinq barres du Palais. Il révèle toutefois que le critère de fin de défilement du profil acceptait un nœud « Réglages » réduit à trois pixels, sans son texte visible. Cette assertion ne constitue donc pas une preuve de visibilité du lien. La révision 2 de la recette exige une zone tactile d'au moins 44 dp et son libellé visible dans le ScrollView réel ; elle reprend le même binaire, sans modification applicative.
+
+Le libellé « Nomade » passe sur deux lignes dans la capture reçue. Le code de rendu `AxisBar` et ses styles sont identiques à la source du build 41 ; l'observation de ce retour à la ligne est documentée, sans prétendre disposer ici d'une capture comparative du build 41.
+
 Numéro Android 42 et numéro iOS 42, version 1.1.1, date 2026-10-30. Signature EAS existante. La recette d’installation doit partir de l’APK 41 reçue, dont l’empreinte est épinglée, puis vérifier l’installation par-dessus sans désinstallation.
 
 Les actions de compilation, de recette et de publication sont déclenchées séparément depuis la branche de travail, avec leurs recettes et preuves épinglées. Le canal public n’avance qu’après les contrôles existants. Les identifiants de runs, empreintes et résultats effectifs seront ajoutés à réception. Le drapeau Guet actif ne constitue pas, à lui seul, une réception terrain.
