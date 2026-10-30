@@ -7,7 +7,7 @@ import { useNavigationAction } from "../lib/use-navigation-action";
 // reste redirigé vers l’Accueil. Aucun flag n’est activé ici.
 //
 // Deck : buildRapideDeck (rankPlaces canonique) sur la MÊME source de lieux
-// que le feed (listPlaces), favoris exclus, lieux verrouillés paywall exclus.
+// que le feed (listPlaces), favoris exclus.
 // Le deck est FIGÉ à la construction : un like en cours de session ne
 // re-filtre pas les cartes restantes (sinon la pile sauterait sous le doigt).
 //
@@ -28,7 +28,6 @@ import { Ico } from "./primitives/Ico";
 import { listPlaces } from "../lib/data-source";
 import { buildRapideDeck } from "../lib/rapide-deck";
 import type { PlaceWithScore } from "../lib/matching";
-import { isGoldSpawter } from "../lib/spawter-gold";
 import { track } from "../lib/analytics";
 import { useSpawterPosition } from "../lib/use-spawter-position";
 import { useSpawterStore } from "../store/spawter-store";
@@ -51,7 +50,6 @@ export function RapideContent({
 
   // Tous les hooks AVANT tout early return (leçon R22 — rules of hooks).
   const enabled = useFlag("mode-rapide");
-  const paywallEnabled = useFlag("paywall-geo");
   const position = useSpawterPosition();
 
   const toggleSaved = useSpawterStore((s) => s.toggleSaved);
@@ -77,7 +75,6 @@ export function RapideContent({
       // Snapshot du store au moment du build — le deck est une photo, pas
       // une vue réactive (cf. commentaire de tête).
       const st = useSpawterStore.getState();
-      const spawter = st.spawter;
       const built = buildRapideDeck(
         places,
         {
@@ -89,11 +86,6 @@ export function RapideContent({
           ),
           saved_place_ids: st.savedPlaceIds,
           now: new Date(),
-        },
-        {
-          enabled: paywallEnabled,
-          isGold: spawter ? isGoldSpawter(spawter) : false,
-          positionSource: position.source,
         },
       );
       setDeck(built);
@@ -113,7 +105,6 @@ export function RapideContent({
   }, [
     enabled,
     active,
-    paywallEnabled,
     position.lat,
     position.lng,
     position.source,

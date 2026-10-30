@@ -42,19 +42,16 @@ import { listPlaceActivity } from "../../src/lib/data-source";
 // cette semaine ». Flag `evenements-promos` OFF → aucun fetch, feed identique.
 import { EventsWeekRow } from "../../src/components/EventsWeekRow";
 import type { PlaceActivityMap } from "../../src/lib/place-activity";
-import { rankPlaces, type PlaceWithScore } from "../../src/lib/matching";
+import { rankPlaces, toPlaceWithSignals, type PlaceWithScore } from "../../src/lib/matching";
 import { partitionOpenFirst } from "../../src/lib/opening-hours";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { EMPTY_PALAIS } from "../../src/data/seed/sample-spawter";
 import { track } from "../../src/lib/analytics";
 import { useSpawterPosition } from "../../src/lib/use-spawter-position";
-import { isPlaceLocked } from "../../src/lib/paywall-geo";
-import { isGoldSpawter } from "../../src/lib/spawter-gold";
 import { useFlag } from "../../src/store/feature-flags";
 // SPAWT Wrapped — bannière saisonnière (flag `wrapped` + fenêtre déc-janv).
 import { WrappedBanner } from "../../src/components/share/WrappedBanner";
 import { isWrappedSeason, wrappedYearFor } from "../../src/lib/wrapped";
-import { GoldUpsellSheet } from "../../src/components/GoldUpsellSheet";
 
 const FIRST_FEED_KEY = "spawt:hasSeenFirstFeed";
 
@@ -108,7 +105,7 @@ export default function HomeD() {
   const ranked = useMemo(() => {
     const scored = rankPlaces(
       ctx,
-      places.filter(p => !outings.snapshot.dismissed.includes(p.id)).map((p) => ({ place: p, adn: p.adn, last_spawt_at: null })),
+      places.filter(p => !outings.snapshot.dismissed.includes(p.id)).map(toPlaceWithSignals),
     );
     // R20 — les lieux OUVERTS maintenant remontent en tête (l'ordre match est
     // préservé dans chaque groupe — tri stable, cf. opening-hours.ts).
@@ -190,32 +187,7 @@ export default function HomeD() {
     };
   }, [activityEnabled, places, contentRevision]);
 
-  // Phase 2 F14 — paywall géographique (nudge, flag OFF par défaut) :
-  // un lieu hors zone gratuite ouvre l'upsell Gold au lieu de la fiche.
-  const paywallEnabled = useFlag("paywall-geo");
-  const isGold = spawter ? isGoldSpawter(spawter) : false;
-  const [upsellVisible, setUpsellVisible] = useState(false);
-
-  const isLocked = (item: PlaceWithScore) =>
-    isPlaceLocked({
-      paywallEnabled,
-      isGold,
-      positionSource: position.source,
-      spawterLat: position.lat,
-      spawterLng: position.lng,
-      placeLat: item.place.location.lat,
-      placeLng: item.place.location.lng,
-    });
-
   const onUnePress = (item: PlaceWithScore) => {
-    if (isLocked(item)) {
-      track({
-        name: "paywall_shown",
-        properties: { place_id: item.place.id, surface: "feed" },
-      });
-      setUpsellVisible(true);
-      return;
-    }
     navigate(() => {
       track({
         name: "feed_card_clicked",
@@ -448,10 +420,6 @@ export default function HomeD() {
             </View>
           ) : null,
       )}
-      <GoldUpsellSheet
-        visible={upsellVisible}
-        onClose={() => setUpsellVisible(false)}
-      />
     </SafeAreaView>
   );
 }

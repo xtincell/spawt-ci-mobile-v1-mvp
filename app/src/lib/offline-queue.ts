@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { SpawtCheckin } from "../types/spawt";
 import type { Spawter } from "../types/spawter";
+import type { UserPalais } from "../types/palais";
 import { notifyReviewChanged } from "./review-events";
 
 const STORAGE_KEY = "spawt:offline:queue";
@@ -54,12 +55,20 @@ export type QueueEntry = (
       enqueued_at: string;
       attempts: number;
       last_attempt_at: string | null;
+    }
+  | {
+      kind: "palais_upsert";
+      row: UserPalais;
+      enqueued_at: string;
+      attempts: number;
+      last_attempt_at: string | null;
     }) & { queue_id?: string };
 
 export type EnqueueInput =
   | { kind: "spawt_insert"; row: SpawtCheckin }
   | { kind: "spawt_update"; row_id: string; patch: Partial<SpawtCheckin> }
-  | { kind: "spawter_upsert"; row: Spawter };
+  | { kind: "spawter_upsert"; row: Spawter }
+  | { kind: "palais_upsert"; row: UserPalais };
 
 export interface FlushResult {
   ok: number;
@@ -94,14 +103,15 @@ async function loadQueue(): Promise<QueueEntry[]> {
   if (!Array.isArray(parsed) || parsed.some((e: unknown) => {
     if (!e || typeof e !== "object") return true;
     const v = e as Record<string, unknown>;
-    return !["spawt_insert", "spawt_update", "spawter_upsert"].includes(String(v.kind)) ||
+    return !["spawt_insert", "spawt_update", "spawter_upsert", "palais_upsert"].includes(String(v.kind)) ||
       typeof v.enqueued_at !== "string" || !Number.isFinite(Date.parse(v.enqueued_at)) ||
       typeof v.attempts !== "number" || !Number.isInteger(v.attempts) || v.attempts < 0 ||
       !(v.last_attempt_at === null || (typeof v.last_attempt_at === "string" && Number.isFinite(Date.parse(v.last_attempt_at)))) ||
       (v.queue_id !== undefined && (typeof v.queue_id !== "string" || !v.queue_id)) ||
       (v.kind === "spawt_update"
         ? typeof v.row_id !== "string" || !v.row_id || !v.patch || typeof v.patch !== "object" || Array.isArray(v.patch)
-        : !v.row || typeof v.row !== "object" || typeof (v.row as Record<string, unknown>).id !== "string");
+        : !v.row || typeof v.row !== "object" ||
+          typeof (v.row as Record<string, unknown>)[v.kind === "palais_upsert" ? "spawter_id" : "id"] !== "string");
   })) {
     throw new Error("offline_queue_invalid");
   }
@@ -121,32 +131,45 @@ async function persistQueue(entries: readonly QueueEntry[]): Promise<void> {
 
 /** Acquitte une mutation uniquement après sa persistance locale. */
 export async function enqueue(input: EnqueueInput): Promise<void> {
+  await enqueueMany([input]);
+}
+
+/** L'avis et son Palais deviennent durables dans la même écriture de la file. */
+export async function enqueueMany(inputs: readonly EnqueueInput[]): Promise<void> {
   await withStorage(async () => {
     const queue = await loadQueue();
-    // Une visite en attente ne doit jamais écraser plus tard son avis publié.
-    // Une nouvelle identité protège aussi contre l'ACK d'un ancien snapshot.
-    if (input.kind === "spawt_insert") {
-      const idx = queue.findIndex(e => e.kind === "spawt_insert" && e.row.id === input.row.id);
-      if (idx >= 0) {
-        queue[idx] = { ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
-          attempts: 0, last_attempt_at: null };
-        await persistQueue(queue);
-        return;
+    for (const input of inputs) {
+      // Une visite en attente ne doit jamais écraser plus tard son avis publié.
+      // Une nouvelle identité protège aussi contre l'ACK d'un ancien snapshot.
+      if (input.kind === "spawt_insert") {
+        const idx = queue.findIndex(e => e.kind === "spawt_insert" && e.row.id === input.row.id);
+        if (idx >= 0) {
+          queue[idx] = { ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
+            attempts: 0, last_attempt_at: null };
+          continue;
+        }
       }
-    }
-    if (input.kind === "spawt_update") {
-      const idx = queue.findIndex(e => e.kind === "spawt_insert" && e.row.id === input.row_id);
-      const pending = queue[idx];
-      if (pending?.kind === "spawt_insert") {
-        queue[idx] = { ...pending, row: { ...pending.row, ...input.patch }, queue_id: nextQueueId(),
-          enqueued_at: new Date().toISOString(), attempts: 0, last_attempt_at: null };
-        await persistQueue(queue);
-        return;
+      if (input.kind === "spawt_update") {
+        const idx = queue.findIndex(e => e.kind === "spawt_insert" && e.row.id === input.row_id);
+        const pending = queue[idx];
+        if (pending?.kind === "spawt_insert") {
+          queue[idx] = { ...pending, row: { ...pending.row, ...input.patch }, queue_id: nextQueueId(),
+            enqueued_at: new Date().toISOString(), attempts: 0, last_attempt_at: null };
+          continue;
+        }
       }
+      if (input.kind === "palais_upsert") {
+        const idx = queue.findIndex(e => e.kind === "palais_upsert" && e.row.spawter_id === input.row.spawter_id);
+        if (idx >= 0) {
+          queue[idx] = { ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
+            attempts: 0, last_attempt_at: null };
+          continue;
+        }
+      }
+      if (queue.length >= MAX_QUEUE_SIZE) throw new Error("offline_queue_full");
+      queue.push({ ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
+        attempts: 0, last_attempt_at: null });
     }
-    if (queue.length >= MAX_QUEUE_SIZE) throw new Error("offline_queue_full");
-    queue.push({ ...input, queue_id: nextQueueId(), enqueued_at: new Date().toISOString(),
-                 attempts: 0, last_attempt_at: null });
     await persistQueue(queue);
   });
 }
@@ -168,6 +191,9 @@ export interface SyncBackend {
   updateSpawt: (row_id: string, patch: Partial<SpawtCheckin>) => Promise<boolean>;
   /** Upsert du compte spawter — idempotent (PK = id). */
   upsertSpawter: (row: Spawter) => Promise<boolean>;
+  upsertPalais?: (row: UserPalais) => Promise<boolean>;
+  /** La session SDK fait autorité; jamais le dernier profil affiché. */
+  currentOwner?: () => Promise<string | null>;
 }
 
 let backendRef: SyncBackend | null = null;
@@ -218,6 +244,14 @@ async function drainQueue(now: Date): Promise<FlushResult> {
   let failed = 0;
 
   for (const entry of queue) {
+    if (backend.currentOwner) {
+      let active: string | null = null;
+      try { active = await backend.currentOwner(); } catch { /* La file reste intacte. */ }
+      const owner = entry.kind === "spawter_upsert" ? entry.row.id
+        : entry.kind === "palais_upsert" || entry.kind === "spawt_insert" ? entry.row.spawter_id
+          : entry.patch.spawter_id;
+      if (!active || (owner && owner !== active)) continue;
+    }
     // Backoff — skip cette iteration si on n'a pas attendu assez.
     if (entry.last_attempt_at !== null) {
       const elapsed = now.getTime() - new Date(entry.last_attempt_at).getTime();
@@ -265,6 +299,9 @@ async function tryDrainEntry(
     }
     if (entry.kind === "spawter_upsert") {
       return await backend.upsertSpawter(entry.row);
+    }
+    if (entry.kind === "palais_upsert") {
+      return backend.upsertPalais ? await backend.upsertPalais(entry.row) : false;
     }
     return await backend.updateSpawt(entry.row_id, entry.patch);
   } catch (err) {
@@ -345,12 +382,22 @@ export async function saveSpawtToSupabaseOrEnqueue(
   }
   await enqueue(input);
   await flush();
-  const pending = await inspect();
-  const remains = pending.some(e => input.kind === "spawter_upsert"
-    ? e.kind === "spawter_upsert" && e.row.id === input.row.id
-    : e.kind === "spawt_insert" ? e.row.id === (input.kind === "spawt_insert" ? input.row.id : input.row_id)
-      : e.kind === "spawt_update" && e.row_id === (input.kind === "spawt_insert" ? input.row.id : input.row_id));
+  const remains = await hasPendingMutation(input);
   return { persisted: remains ? "queued" : "remote" };
+}
+
+export async function hasPendingMutation(input: EnqueueInput): Promise<boolean> {
+  const pending = await inspect();
+  if (input.kind === "palais_upsert") return pending.some(e => e.kind === "palais_upsert" && e.row.spawter_id === input.row.spawter_id);
+  if (input.kind === "spawter_upsert") return pending.some(e => e.kind === "spawter_upsert" && e.row.id === input.row.id);
+  const id = input.kind === "spawt_insert" ? input.row.id : input.row_id;
+  return pending.some(e => e.kind === "spawt_insert" ? e.row.id === id : e.kind === "spawt_update" && e.row_id === id);
+}
+
+/** Un snapshot encore en file prime sur une lecture serveur antérieure. */
+export async function pendingPalais(owner: string): Promise<UserPalais | null> {
+  const entry = (await inspect()).find(e => e.kind === "palais_upsert" && e.row.spawter_id === owner);
+  return entry?.kind === "palais_upsert" ? entry.row : null;
 }
 
 export const OFFLINE_QUEUE_MAX_SIZE = MAX_QUEUE_SIZE;

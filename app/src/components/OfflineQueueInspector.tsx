@@ -171,7 +171,7 @@ export function OfflineQueueInspector({ visible, onClose }: Props) {
                         place_id: item.row.place_id,
                         defaultValue: `Spawt ${item.row.place_id}`,
                       })
-                    : item.kind === "spawter_upsert"
+                    : item.kind === "spawter_upsert" || item.kind === "palais_upsert"
                       ? t("offline_queue.row_spawter")
                       : t("offline_queue.row_update", {
                           row_id: item.row_id,

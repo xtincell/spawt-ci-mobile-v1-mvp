@@ -27,7 +27,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.upgraders.spawt",
-      "buildNumber": "41",
+      "buildNumber": "42",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -41,7 +41,7 @@
     "android": {
       "package": "com.upgraders.spawt",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 41,
+      "versionCode": 42,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -138,7 +138,7 @@
       "eas": {
         "projectId": "15ac2301-e901-4caa-a8c8-864c6621bcd0"
       },
-      "buildDate": "2026-10-19"
+      "buildDate": "2026-10-30"
     },
     "owner": "xtincell",
     "androidStatusBar": {

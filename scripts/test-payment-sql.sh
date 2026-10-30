@@ -25,11 +25,20 @@ for migration in supabase/migrations/*.sql; do
   fi
 done
 checks() {
-  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback public_unrated_places public_collections place_contributions outing_presence; do
+  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback public_unrated_places public_collections place_contributions outing_presence public_place_recency; do
     sql -f "/repo/supabase/tests/$test.sql"
   done
 }
 checks
+sql -f /repo/supabase/migrations/0091_public_place_recency.down.sql
+sql -c "DO \$\$ BEGIN
+  IF to_regprocedure('public.last_spawt_at(public.places)') IS NOT NULL
+    OR to_regclass('public.spawt_checkin_verified_recency_idx') IS NOT NULL THEN
+    RAISE EXCEPTION 'Place recency rollback incomplete';
+  END IF;
+END \$\$;"
+sql -f /repo/supabase/migrations/0091_public_place_recency.sql
+sql -f /repo/supabase/tests/public_place_recency.sql
 sql -f /repo/supabase/migrations/0089_outing_engagement.down.sql
 sql -f /repo/supabase/migrations/0088_visit_presence.down.sql
 sql -f /repo/supabase/migrations/0087_guet_location_evidence.down.sql

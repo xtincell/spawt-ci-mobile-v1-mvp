@@ -216,18 +216,14 @@ features:
       - 0034
 
   - id: F14
-    name: "Feature 14 — Paywall géographique (3 km gratuit / Gold)"
+    name: "Feature 14 — Accès B2C gratuit (référentiel v2, octobre 2026)"
     tier: mvp
     files:
-      - app/src/lib/spawter-gold.ts
-      - app/src/components/GoldUpsellSheet.tsx
+      - app/src/components/SpawterCard.tsx
+      - app/__tests__/components/SpawterCardFaces.test.tsx
+      - app/__tests__/components/AccountProfileScreen.test.tsx
     symbols:
-      - app/src/lib/paywall-geo.ts#isPlaceLocked
-      - app/src/lib/paywall-geo.ts#FREE_RADIUS_KM
-    flags:
-      - paywall-geo
-    i18n:
-      - paywall.locked_badge
+      - app/src/lib/rapide-deck.ts#buildRapideDeck
 
   - id: F15
     name: "Feature 15 — Paiement Mobile Money (CinetPay via IPaymentProvider)"

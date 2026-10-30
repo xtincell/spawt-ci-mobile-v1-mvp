@@ -45,9 +45,6 @@ jest.mock("../../src/components/HomeEditorial", () => ({
 jest.mock("../../src/components/FeuilletonRow", () => ({
   FeuilletonRow: () => null,
 }));
-jest.mock("../../src/components/GoldUpsellSheet", () => ({
-  GoldUpsellSheet: () => null,
-}));
 jest.mock("../../src/components/EventsWeekRow", () => ({
   EventsWeekRow: () => null,
 }));

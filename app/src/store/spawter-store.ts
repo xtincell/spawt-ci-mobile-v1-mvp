@@ -25,6 +25,7 @@ import {
 import {
   saveSpawter,
   savePalais,
+  getPlace,
   isSupabaseConfigured,
   upsertProgression,
   insertTitre,
@@ -73,7 +74,7 @@ import {
   stadeTitleKeysBetween,
   type TitleSource,
 } from "../lib/titres-catalogue";
-import { enqueue } from "../lib/offline-queue";
+import { enqueue, enqueueMany, flush, inspect as inspectOfflineQueue, type QueueEntry } from "../lib/offline-queue";
 import { applyReviewToPalais } from "../lib/palais-signals";
 import { ageRangeFromDateOfBirth } from "../lib/age-range";
 import { recomputeAndPersistPlaceAdn } from "../lib/place-adn-update";
@@ -82,7 +83,7 @@ import { canResumeMissingPalais, readAuthenticatedAccount, requireAccountSession
 import { readAccountHistory } from "../lib/account-history";
 import { canPublishCachedAccount } from "../lib/cached-session";
 import { useFeatureFlagsStore } from "./feature-flags";
-import { dominantAxes } from "../lib/palais-engine";
+import { computeConfidence, dominantAxes } from "../lib/palais-engine";
 import { getStade, maxStade } from "../types/stade";
 import { EMPTY_PALAIS, SAMPLE_SPAWTER } from "../data/seed/sample-spawter";
 import { useOnboardingDraft } from "./onboarding-draft";
@@ -103,6 +104,7 @@ import * as Crypto from "expo-crypto";
 import { track } from "../lib/analytics";
 import { persistReviewSpawt, type ReviewPersistence } from "../lib/manual-review";
 import { readReviewRatings } from "../lib/review-ratings";
+import { loadReviewDraft, saveReviewPlaceSignals } from "../lib/review-drafts";
 
 let __idCounter = 0;
 function makeId(): string {
@@ -253,6 +255,8 @@ interface SpawterStore {
   updateAvatar: (avatar_url: string) => Promise<void>;
   finalizeOnboarding: (draft: OnboardingDraft) => Promise<void | "restored">;
   registerSpawt: (s: SpawtCheckin) => Promise<void>;
+  /** Réconcilie uniquement une visite déjà présente, à partir de sa ligne serveur. */
+  reconcileVerifiedSpawt: (s: SpawtCheckin) => Promise<void>;
   /**
    * Story 4.5 — Attache un avis structuré à un spawt existant (note + tags + texte + photos).
    * Local-first (AsyncStorage + state), fire-and-forget Supabase via offline-queue wrapper.
@@ -310,6 +314,42 @@ function withAccountStorage<T>(action: () => Promise<T>): Promise<T> {
   const result = accountStorageTail.then(action);
   accountStorageTail = result.catch(() => undefined);
   return result;
+}
+
+// Avis et swipes modifient le même snapshot : conserver leur ordre et empêcher
+// deux soumissions du même avis de compter deux fois son apprentissage.
+let palaisActionTail: Promise<unknown> = Promise.resolve();
+function withPalaisAction<T>(action: () => Promise<T>): Promise<T> {
+  const result = palaisActionTail.then(action);
+  palaisActionTail = result.catch(() => undefined);
+  return result;
+}
+
+async function persistPalaisSnapshot(palais: UserPalais): Promise<void> {
+  if (isSupabaseConfigured) await enqueue({ kind: "palais_upsert", row: palais });
+  await savePalaisLocal(palais);
+}
+
+function resumePalaisSync(): void {
+  if (isSupabaseConfigured) void flush().catch(err => {
+    if (__DEV__) console.warn("[spawter-store] Palais sync pending", err);
+  });
+}
+
+function mergePendingSpawts(owner: string, rows: readonly SpawtCheckin[], queue: readonly QueueEntry[]): SpawtCheckin[] {
+  const merged = rows.filter(row => row.spawter_id === owner);
+  for (const entry of queue) {
+    if (entry.kind === "spawt_insert" && entry.row.spawter_id === owner) {
+      const index = merged.findIndex(row => row.id === entry.row.id);
+      if (index >= 0) merged[index] = entry.row;
+      else merged.unshift(entry.row);
+    } else if (entry.kind === "spawt_update" && (!entry.patch.spawter_id || entry.patch.spawter_id === owner)) {
+      const index = merged.findIndex(row => row.id === entry.row_id);
+      const existing = merged[index];
+      if (existing) merged[index] = { ...existing, ...entry.patch };
+    }
+  }
+  return merged;
 }
 
 export const useSpawterStore = create<SpawterStore>((set, get) => ({
@@ -503,7 +543,12 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
         get().suspendSession(); return;
       }
     }
-    const palais = spawter && cachedPalais?.spawter_id === spawter.id ? cachedPalais : null;
+    const pending = isSupabaseConfigured && spawter ? await inspectOfflineQueue() : [];
+    if (generation !== sessionGeneration) return;
+    const queuedPalais = pending.find(entry => entry.kind === "palais_upsert" && entry.row.spawter_id === spawter?.id);
+    const palais = queuedPalais?.kind === "palais_upsert" ? queuedPalais.row
+      : (spawter && cachedPalais?.spawter_id === spawter.id ? cachedPalais : null);
+    const restoredSpawts = spawter ? mergePendingSpawts(spawter.id, spawts, pending) : [];
     let savedPlaceIds = new Set<string>();
     let savedUnavailable = false;
     try { savedPlaceIds = await loadSavedPlaces(spawter?.id ?? null); }
@@ -513,7 +558,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     }
     if (generation !== sessionGeneration) return;
     const isCurrent = () => generation === sessionGeneration && get().spawter?.id === spawter?.id;
-    set({ spawter, palais, spawts: spawts.filter((row) => row.spawter_id === spawter?.id), savedPlaceIds, savedUnavailable,
+    set({ spawter, palais, spawts: restoredSpawts, savedPlaceIds, savedUnavailable,
       collectionTitres: collectionTitres.filter((row) => row.spawter_id === spawter?.id), pendingMue, hydrating: false });
 
     // Sprint 2 Gold — cache local d'abord (offline-first : le badge doré ne
@@ -594,6 +639,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
 
   recoverAuthenticatedAccount: async (expectedOwner, signal) => {
     const initialGeneration = sessionGeneration;
+    if (isSupabaseConfigured) await flush();
     const account = await readAuthenticatedAccount(expectedOwner, signal);
     if (signal?.aborted || sessionGeneration !== initialGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
     if (account.kind === "new") return "new";
@@ -614,6 +660,14 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     }
     if (account.kind === "incomplete") throw new Error("ACCOUNT_INCOMPLETE");
     const history = await readAccountHistory(account.owner, signal);
+    // Le réseau peut revenir pour les lectures avant d'accepter les écritures.
+    // Garder les avis et le Palais durables de CE compte jusqu'à leur ACK.
+    if (isSupabaseConfigured) {
+      const pending = await inspectOfflineQueue();
+      const queuedPalais = pending.find(entry => entry.kind === "palais_upsert" && entry.row.spawter_id === account.owner);
+      if (queuedPalais?.kind === "palais_upsert") account.palais = queuedPalais.row;
+      history.spawts = mergePendingSpawts(account.owner, history.spawts, pending);
+    }
     // Le cache local d'une autre installation/personne n'est pas un héritage.
     // Le reset existant invalide aussi les réponses Gold, favoris et rôles tardives.
     await requireAccountSession(account.owner);
@@ -673,26 +727,33 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   isSaved: (place_id: string) => get().savedPlaceIds.has(place_id),
 
   applySwipeSignal: async (adn, direction) => {
-    const palais = get().palais;
-    const spawter = get().spawter;
-    if (!palais || !spawter) return;
-    // Import dynamique — le moteur swipe n'est chargé que si le Mode Rapide
-    // est réellement utilisé (flag `mode-rapide` OFF par défaut).
-    const { applySwipeToPalais } = await import("../lib/rapide-signals");
-    const { palais: next, didUpdate } = applySwipeToPalais({
-      current: palais,
-      unique_spots: spawter.unique_spots,
-      adn,
-      direction,
+    const owner = get().spawter?.id;
+    const generation = sessionGeneration;
+    return withPalaisAction(async () => {
+      const palais = get().palais;
+      const spawter = get().spawter;
+      if (!palais || !spawter) return;
+      const isCurrent = () => generation === sessionGeneration && get().spawter?.id === owner;
+      if (!isCurrent() || palais.spawter_id !== owner) return;
+      // Import dynamique — le moteur swipe n'est chargé que si le Mode Rapide
+      // est réellement utilisé (flag `mode-rapide` OFF par défaut).
+      const { applySwipeToPalais } = await import("../lib/rapide-signals");
+      const { palais: next, didUpdate } = applySwipeToPalais({
+        current: palais,
+        unique_spots: spawter.unique_spots,
+        adn,
+        direction,
+      });
+      if (!didUpdate) return;
+      // Local-first : commit AsyncStorage AVANT le state (même invariant que
+      // toggleSaved — pas de divergence state/disque au prochain hydrate).
+      await withAccountStorage(async () => {
+        if (!isCurrent()) return;
+        await persistPalaisSnapshot(next);
+        if (isCurrent()) set({ palais: next });
+      });
+      resumePalaisSync();
     });
-    if (!didUpdate) return;
-    // Local-first : commit AsyncStorage AVANT le state (même invariant que
-    // toggleSaved — pas de divergence state/disque au prochain hydrate).
-    await savePalaisLocal(next);
-    void savePalais(next).catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] savePalais swipe failed", err);
-    });
-    set({ palais: next });
   },
 
   recordConsent: async (kind, accepted) => {
@@ -926,7 +987,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       // pour éviter qu'un user en mode démo (DB seed avec is_verified=true) ne
       // franchisse des stades artificiellement. PRD §4.3 anti-fraude.
       const uniqueSpots = new Set(
-        list.filter((x) => x.is_verified && !x.is_seed).map((x) => x.place_id),
+        list.filter((x) => x.is_verified && !x.is_seed && !x.is_cancelled && x.check_in_type !== "passive" && x.checked_in_at !== null).map((x) => x.place_id),
       ).size;
       // PRD §5.2 — la maturité ne recule jamais. Si un check-in passe is_verified
       // false (rejet antifraude serveur), uniqueSpots peut chuter et getStade()
@@ -1042,157 +1103,159 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     }
   },
 
-  attachReviewToSpawt: async (spawt_id, patch) => {
-    const list = get().spawts;
-    const idx = list.findIndex((s) => s.id === spawt_id);
-    if (idx === -1) {
-      throw new Error("review_spawt_not_found");
-    }
-    const existing = list[idx]!;
-    const author = get().spawter;
-    if (!author || existing.spawter_id !== author.id || existing.is_seed || existing.is_cancelled) {
-      throw new Error("review_not_editable");
-    }
-    const ratings = readReviewRatings(patch);
-    const updated_at = new Date().toISOString();
-    const updatedRow: SpawtCheckin = {
-      ...existing,
-      note_etoiles: patch.note_etoiles,
-      note_cuisine: ratings?.note_cuisine ?? null,
-      note_cadre: ratings?.note_cadre ?? null,
-      note_service: ratings?.note_service ?? null,
-      texte_avis: patch.texte_avis,
-      tags: patch.tags,
-      photos: patch.photos,
-      updated_at,
-    };
-    // L'upsert complet assure l'existence de la visite avant l'avis. La file
-    // est durable AVANT d'annoncer que l'avis est enregistré.
-    const persistence = await persistReviewSpawt(updatedRow);
-    const updatedList = get().spawts.map(row => row.id === spawt_id ? updatedRow : row);
-    // Merge avec l'état courant : un autre spawt arrivé pendant le réseau est conservé.
-    const { default: AsyncStorageMod } = await import(
-      "@react-native-async-storage/async-storage"
-    );
-    await AsyncStorageMod.setItem("spawt:spawts", JSON.stringify(updatedList));
-    set({ spawts: updatedList });
-
-    // Story 4.6 — fire-and-forget Palais update.
-    const palaisState = get().palais;
-    const spawterState = get().spawter;
-    if (palaisState && spawterState && existing.note_etoiles === null) {
-      const { palais: newPalais, didUpdate } = applyReviewToPalais({
-        current: palaisState,
-        unique_spots: spawterState.unique_spots,
-        note: patch.note_etoiles,
-        tags: patch.tags,
-        place_signals: [], // TODO Story 4.6 — alimenter via lookup place
+  reconcileVerifiedSpawt: async (verified) => {
+    const owner = get().spawter?.id;
+    const generation = sessionGeneration;
+    return withPalaisAction(async () => {
+      const isCurrent = () => generation === sessionGeneration && get().spawter?.id === owner;
+      const spawter = get().spawter;
+      if (!isCurrent() || !spawter || verified.spawter_id !== owner || !verified.is_verified
+        || verified.is_seed || verified.is_cancelled || verified.checked_in_at === null || verified.check_in_type === "passive") return;
+      const existing = get().spawts.find(row => row.id === verified.id && row.spawter_id === owner);
+      if (!existing || existing.is_cancelled || existing.is_seed || existing.place_id !== verified.place_id) return;
+      // Un avis local en cours d'envoi reste plus récent que la relecture présence.
+      const row: SpawtCheckin = existing.note_etoiles !== null ? {
+        ...verified, note_etoiles: existing.note_etoiles, texte_avis: existing.texte_avis,
+        note_cuisine: existing.note_cuisine ?? null, note_cadre: existing.note_cadre ?? null, note_service: existing.note_service ?? null,
+        tags: existing.tags, photos: existing.photos,
+      } : verified;
+      const spawts = get().spawts.map(item => item.id === row.id ? row : item);
+      const uniqueSpots = new Set(spawts.filter(item => item.is_verified && !item.is_seed && !item.is_cancelled
+        && item.check_in_type !== "passive" && item.checked_in_at !== null).map(item => item.place_id)).size;
+      const updated: Spawter = { ...spawter, unique_spots: uniqueSpots,
+        stade: maxStade(spawter.stade, getStade(uniqueSpots)), updated_at: new Date().toISOString() };
+      const currentPalais = get().palais;
+      const palais = currentPalais?.spawter_id === owner ? { ...currentPalais,
+        confidence_score: computeConfidence(uniqueSpots), total_spawts: updated.total_spawts,
+        stade: updated.stade, updated_at: new Date().toISOString() } : null;
+      await withAccountStorage(async () => {
+        if (!isCurrent()) return;
+        if (isSupabaseConfigured) await enqueueMany([
+          { kind: "spawter_upsert", row: updated },
+          ...(palais ? [{ kind: "palais_upsert" as const, row: palais }] : []),
+        ]);
+        await AsyncStorage.setItem("spawt:spawts", JSON.stringify(spawts));
+        await saveSpawterLocal(updated);
+        if (palais) await savePalaisLocal(palais);
+        if (isCurrent()) set({ spawts, spawter: updated, ...(palais ? { palais } : {}) });
       });
-      if (didUpdate) {
-        await savePalaisLocal(newPalais).catch(err => { if (__DEV__) console.warn("[spawter-store] local Palais update failed", err); });
-        void savePalais(newPalais).catch((err) => {
-          if (__DEV__) console.warn("[spawter-store] savePalais review update failed", err);
-        });
-        set({ palais: newPalais });
+      if (!isCurrent()) return;
+      resumePalaisSync();
+      if (!existing.is_verified) void notifySpawtVerified(updated.id);
+    });
+  },
 
-        // Chantier 13 archétypes — recalcul post-mise-à-jour du Palais
-        // (spawt vérifié + avis = seul flux qui bouge les axes). Règle
-        // d'inertie PRD §5.5 : le candidat doit rester identique sur
-        // MUE_STABILITY_THRESHOLD recalculs consécutifs ET différer de
-        // l'actuel avant de muer. Fire-and-forget — jamais bloquant pour
-        // l'UX de l'avis.
-        void (async () => {
+  attachReviewToSpawt: async (spawt_id, patch) => {
+    const owner = get().spawter?.id;
+    const generation = sessionGeneration;
+    return withPalaisAction(async () => {
+      const isCurrent = () => generation === sessionGeneration && get().spawter?.id === owner;
+      const guard = () => { if (!isCurrent()) throw new Error("ACCOUNT_SESSION_CHANGED"); };
+      guard();
+      const existing = get().spawts.find(row => row.id === spawt_id);
+      if (!existing) throw new Error("review_spawt_not_found");
+      const author = get().spawter;
+      if (!author || existing.spawter_id !== author.id || existing.is_seed || existing.is_cancelled) {
+        throw new Error("review_not_editable");
+      }
+      const ratings = readReviewRatings(patch);
+      const updatedRow: SpawtCheckin = {
+        ...existing, note_etoiles: patch.note_etoiles,
+        note_cuisine: ratings?.note_cuisine ?? null,
+        note_cadre: ratings?.note_cadre ?? null,
+        note_service: ratings?.note_service ?? null,
+        texte_avis: patch.texte_avis, tags: patch.tags, photos: patch.photos,
+        updated_at: new Date().toISOString(),
+      };
+      const palaisState = get().palais;
+      let newPalais: UserPalais | null = null;
+      if (palaisState?.spawter_id === author.id && existing.note_etoiles === null) {
+        const draft = await loadReviewDraft(author.id, existing.id);
+        guard();
+        let signals = draft?.placeSignals;
+        if (!signals) {
+          // Les nouveaux parcours gardent ce contexte dans le brouillon. Un
+          // ancien brouillon attend une vraie lecture, jamais des signaux inventés.
+          const place = await getPlace(existing.place_id);
+          guard();
+          if (!place) throw new Error("review_place_unavailable");
+          signals = [...place.signals];
+          await saveReviewPlaceSignals(author.id, existing.id, signals);
+          guard();
+        }
+        const result = applyReviewToPalais({ current: palaisState, unique_spots: author.unique_spots,
+          note: patch.note_etoiles, tags: patch.tags, place_signals: signals });
+        if (result.didUpdate) newPalais = result.palais;
+      }
+      // Une écriture durable contient l'avis ET son nouveau Palais avant tout ACK.
+      const persistence = await persistReviewSpawt(updatedRow, {
+        ...(newPalais ? { palais: newPalais } : {}),
+        commitLocal: () => withAccountStorage(async () => {
+          guard();
+          const spawts = get().spawts.map(row => row.id === spawt_id ? updatedRow : row);
+          await AsyncStorage.setItem("spawt:spawts", JSON.stringify(spawts));
+          if (newPalais) await savePalaisLocal(newPalais);
+          guard();
+          set({ spawts, ...(newPalais ? { palais: newPalais } : {}) });
+        }),
+      });
+      if (!isCurrent()) return persistence;
+
+      // Conserver le mécanisme de mue existant, dans le même ordre que les avis.
+      if (newPalais) {
+        try {
           const result = computeArchetypeFromPalais(newPalais);
-          const sp = get().spawter;
-          if (!sp) return;
+          const sp = get().spawter!;
           const current = isArchetypeKey(sp.quiz_archetype) ? sp.quiz_archetype : null;
           const streak = await loadMueStreak();
-          const transition = evaluateArchetypeTransition({
-            current,
-            candidate: result.key,
-            streak,
-          });
+          guard();
+          const transition = evaluateArchetypeTransition({ current, candidate: result.key, streak });
           if (transition.type === "none") {
-            await saveMueStreak(transition.streak);
-            return;
-          }
-          // "assign" (spawter legacy sans archétype) ou "mue" : même écriture
-          // locale + remote, seul le ton diffère (la mue a un constat Chat).
-          const to = transition.to;
-          const updatedSpawter: Spawter = {
-            ...sp,
-            quiz_archetype: to,
-            updated_at: new Date().toISOString(),
-          };
-          const palaisWithArchetype: UserPalais = {
-            ...(get().palais ?? newPalais),
-            archetype_id: to,
-          };
-          await Promise.all([
-            saveSpawterLocal(updatedSpawter),
-            savePalaisLocal(palaisWithArchetype),
-            saveMueStreak(null),
-          ]);
-          // UPDATE ciblé `spawters.quiz_archetype` (0033) — pas d'upsert row
-          // entier, pour ne clobber aucune colonne serveur.
-          void updateSpawterArchetype(sp.id, to).catch((err) => {
-            if (__DEV__) console.warn("[spawter-store] updateSpawterArchetype failed", err);
-          });
-          void savePalais(palaisWithArchetype).catch((err) => {
-            if (__DEV__) console.warn("[spawter-store] savePalais archetype failed", err);
-          });
-          if (transition.type === "mue") {
-            const pendingMue: PendingMue = { from: transition.from, to };
-            await savePendingMue(pendingMue);
-            set({ spawter: updatedSpawter, palais: palaisWithArchetype, pendingMue });
-            track({
-              name: "archetype_mue",
-              properties: { from: transition.from, to, runner_up: result.runnerUp },
-            });
+            await withAccountStorage(async () => { guard(); await saveMueStreak(transition.streak); });
           } else {
-            set({ spawter: updatedSpawter, palais: palaisWithArchetype });
-            track({
-              name: "archetype_assigned",
-              properties: { archetype: to, source: "recalc_legacy", runner_up: result.runnerUp },
+            const to = transition.to;
+            const updatedSpawter: Spawter = { ...get().spawter!, quiz_archetype: to, updated_at: new Date().toISOString() };
+            const palaisWithArchetype: UserPalais = { ...get().palais!, archetype_id: to };
+            await withAccountStorage(async () => {
+              guard();
+              await persistPalaisSnapshot(palaisWithArchetype);
+              await saveSpawterLocal(updatedSpawter);
+              await saveMueStreak(null);
+              guard();
+              if (transition.type === "mue") {
+                const pendingMue: PendingMue = { from: transition.from, to };
+                await savePendingMue(pendingMue);
+                guard();
+                set({ spawter: updatedSpawter, palais: palaisWithArchetype, pendingMue });
+              } else set({ spawter: updatedSpawter, palais: palaisWithArchetype });
             });
-          }
-          // Entrée dans la collection de titres (mémoire d'identité) —
-          // source='badge' (CHECK 0014), clé `title.archetype.<key>`.
-          void get()
-            .unlockTitle(ARCHETYPES[to].titleKey, "badge")
-            .catch((err) => {
+            guard();
+            resumePalaisSync();
+            void updateSpawterArchetype(sp.id, to).catch(err => {
+              if (__DEV__) console.warn("[spawter-store] archetype sync pending", err);
+            });
+            if (transition.type === "mue") track({ name: "archetype_mue", properties: { from: transition.from, to, runner_up: result.runnerUp } });
+            else track({ name: "archetype_assigned", properties: { archetype: to, source: "recalc_legacy", runner_up: result.runnerUp } });
+            void get().unlockTitle(ARCHETYPES[to].titleKey, "badge").catch(err => {
               if (__DEV__) console.warn("[spawter-store] unlockTitle mue failed", err);
             });
-        })().catch((err) => {
-          if (__DEV__) console.warn("[spawter-store] archetype recalc failed", err);
-        });
+          }
+        } catch (err) {
+          if (__DEV__) console.warn("[spawter-store] archetype recalc pending", err);
+        }
       }
-    }
-
-    // Story 4.7 — fire-and-forget ADN update (local state UI + remote recompute).
-    void recomputeAndPersistPlaceAdn({
-      place_id: existing.place_id,
-      review: {
-        note_etoiles: patch.note_etoiles,
-        tags: patch.tags,
-        spawter_stade: spawterState?.stade ?? "touriste",
-        is_seed: existing.is_seed,
-      },
-    }).catch((err) => {
-      if (__DEV__) console.warn("[spawter-store] recompute ADN failed", err);
-    });
-
-    track({
-      name: "review_submitted",
-      properties: {
-        place_id: existing.place_id,
-        note_etoiles: patch.note_etoiles,
-        tags_count: patch.tags.length,
-        text_length: (patch.texte_avis ?? "").length,
+      if (!isCurrent()) return persistence;
+      void recomputeAndPersistPlaceAdn({ place_id: existing.place_id,
+        review: { note_etoiles: patch.note_etoiles, tags: patch.tags,
+          spawter_stade: author.stade, is_seed: existing.is_seed },
+      }).catch(err => { if (__DEV__) console.warn("[spawter-store] recompute ADN failed", err); });
+      track({ name: "review_submitted", properties: {
+        place_id: existing.place_id, note_etoiles: patch.note_etoiles,
+        tags_count: patch.tags.length, text_length: (patch.texte_avis ?? "").length,
         photos_count: patch.photos.length,
-      },
+      } });
+      return persistence;
     });
-    return persistence;
   },
 
   observeAuthSession: (owner) => {

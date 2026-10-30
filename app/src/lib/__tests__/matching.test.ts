@@ -8,6 +8,7 @@ import {
   displayedScore,
   rankPlaces,
   haversineKm,
+  toPlaceWithSignals,
   type MatchingContext,
   type PlaceWithSignals,
 } from "../matching";
@@ -369,5 +370,17 @@ describe("haversineKm — helper exporté Story 3.3b", () => {
     const km = haversineKm(5.358, -3.97, 5.345, -4.029);
     expect(km).toBeGreaterThan(5);
     expect(km).toBeLessThan(10);
+  });
+});
+
+describe("toPlaceWithSignals — date serveur vérifiée", () => {
+  it("branche la date fournie par le lieu", () => {
+    const place = { ...makePlace({ last_spawt_at: NOW.toISOString() }), adn: makeAdn() };
+    expect(toPlaceWithSignals(place).last_spawt_at).toEqual(NOW);
+  });
+
+  it.each([undefined, null, "not-a-date"])("ne remplace jamais %s par created_at ou updated_at", (last_spawt_at) => {
+    const place = { ...makePlace(last_spawt_at === undefined ? {} : { last_spawt_at }), adn: makeAdn() };
+    expect(toPlaceWithSignals(place).last_spawt_at).toBeNull();
   });
 });

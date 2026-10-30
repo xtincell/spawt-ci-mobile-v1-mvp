@@ -66,7 +66,14 @@ const spawter = {
   avatar_url: null,
 } as unknown as Spawter;
 
-const palais = { confidence_score: 0.5 } as unknown as UserPalais;
+const palais = {
+  confidence_score: 0.5,
+  axe_racines_horizons: -0.4,
+  axe_taniere_nomade: 0.2,
+  axe_exigeant_enthousiaste: -0.1,
+  axe_foule_secret: 0.3,
+  axe_maquis_table: -0.2,
+} as unknown as UserPalais;
 
 interface Noeud {
   type: unknown;
@@ -79,15 +86,14 @@ interface RendererLike {
   };
 }
 
-function rendre(onAvatarPress?: () => void) {
+function rendre(onAvatarPress?: () => void, currentPalais: UserPalais = palais) {
   let rendu!: RendererLike;
   TestRenderer.act(() => {
     rendu = TestRenderer.create(
       <SpawterCard
         spawter={spawter}
-        palais={palais}
+        palais={currentPalais}
         displayedTitleKey="titre.touriste"
-        isGold={false}
         spawtsCount={0}
         savedCount={0}
         {...(onAvatarPress ? { onAvatarPress } : {})}
@@ -96,6 +102,24 @@ function rendre(onAvatarPress?: () => void) {
   });
   return rendu;
 }
+
+describe("le Palais reste accessible sans abonnement", () => {
+  it("montre les cinq axes sur le verso sans proposition Gold", () => {
+    const rendu = rendre();
+    for (const axis of ["racines", "taniere", "exigeant", "foule", "maquis"]) {
+      expect(rendu.root.findAllByProps({ children: `axis.${axis}` }).length).toBeGreaterThan(0);
+    }
+    expect(rendu.root.findAllByProps({ children: "profile.palais_gold_teaser" })).toHaveLength(0);
+    expect(rendu.root.findAllByProps({ children: "palais.underConstruction" })).toHaveLength(0);
+  });
+
+  it("garde la mention en construction quand le Palais est encore peu fiable", () => {
+    const rendu = rendre(undefined, { ...palais, confidence_score: 0.1 });
+    expect(rendu.root.findAllByProps({ children: "palais.underConstruction" }).length).toBeGreaterThan(0);
+    expect(rendu.root.findAllByProps({ children: "axis.exigeant" }).length).toBeGreaterThan(0);
+    expect(rendu.root.findAllByProps({ children: "profile.palais_gold_teaser" })).toHaveLength(0);
+  });
+});
 
 /** Les deux faces : ce sont les seules vues `position: absolute, inset: 0`. */
 function faces(rendu: RendererLike): Array<string | undefined> {

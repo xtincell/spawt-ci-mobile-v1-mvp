@@ -71,6 +71,7 @@ export const PlaceSchema = z.object({
   is_published: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
+  last_spawt_at: z.string().datetime({ offset: true }).nullable().default(null).catch(null),
 });
 
 export const PlaceAdnSchema = z.object({

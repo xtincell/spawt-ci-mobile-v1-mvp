@@ -35,7 +35,7 @@ import {
   type ExploreCollectionDetail,
   type ExploreItem,
 } from "../../src/lib/data-source";
-import { rankPlaces } from "../../src/lib/matching";
+import { rankPlaces, toPlaceWithSignals } from "../../src/lib/matching";
 import { track } from "../../src/lib/analytics";
 import { useSpawterPosition } from "../../src/lib/use-spawter-position";
 import { useSpawterStore } from "../../src/store/spawter-store";
@@ -112,11 +112,7 @@ export default function ExploreCollectionScreen() {
         saved_place_ids: savedPlaceIds,
         now: new Date(),
       },
-      detail.items.map((i) => ({
-        place: i.place,
-        adn: i.place.adn,
-        last_spawt_at: null,
-      })),
+      detail.items.map((i) => toPlaceWithSignals(i.place)),
     );
     for (const s of scored) {
       map.set(s.place.id, {

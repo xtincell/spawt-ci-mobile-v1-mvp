@@ -1,6 +1,6 @@
 // Tests Mode Rapide — buildRapideDeck (deck de swipe).
-// Couvre : exclusion des favoris, exclusion paywall (flag actif + GPS),
-// bypass Gold / fallback / flag off, ordre = ranking matching canonique.
+// Couvre : exclusion des favoris, accès gratuit quelle que soit la distance,
+// fraîcheur réelle et ordre du matching canonique.
 
 import { buildRapideDeck } from "../rapide-deck";
 import type { MatchingContext } from "../matching";
@@ -93,13 +93,7 @@ function makeCtx(overrides: Partial<MatchingContext> = {}): MatchingContext {
   };
 }
 
-const PAYWALL_OFF = {
-  enabled: false,
-  isGold: false,
-  positionSource: "gps" as const,
-};
-
-// Un lieu à ~5.5 km du point de référence (hors rayon gratuit 3 km).
+// Un lieu à environ 5,5 km du point de référence.
 const FAR_LAT = 5.408;
 const FAR_LNG = -3.97;
 
@@ -109,82 +103,24 @@ describe("buildRapideDeck — exclusions", () => {
     const deck = buildRapideDeck(
       places,
       makeCtx({ saved_place_ids: new Set(["b"]) }),
-      PAYWALL_OFF,
     );
     expect(deck.map((d) => d.place.id).sort()).toEqual(["a", "c"]);
   });
 
-  it("exclut les lieux verrouillés paywall (flag actif, GPS, non-Gold, > 3 km)", () => {
+  it("conserve les lieux éloignés dans le deck gratuit", () => {
     const near = makePlace("near");
     const far = makePlace("far", {
       location: {
-        lat: FAR_LAT,
-        lng: FAR_LNG,
-        descriptive_address: "Loin",
-        neighborhood: "Abobo",
-        city: "Abidjan",
+        lat: FAR_LAT, lng: FAR_LNG,
+        descriptive_address: "Loin", neighborhood: "Abobo", city: "Abidjan",
       },
     });
-    const deck = buildRapideDeck([near, far], makeCtx(), {
-      enabled: true,
-      isGold: false,
-      positionSource: "gps",
-    });
-    expect(deck.map((d) => d.place.id)).toEqual(["near"]);
-  });
-
-  it("paywall flag OFF → aucun lieu exclu même hors zone", () => {
-    const far = makePlace("far", {
-      location: {
-        lat: FAR_LAT,
-        lng: FAR_LNG,
-        descriptive_address: "Loin",
-        neighborhood: "Abobo",
-        city: "Abidjan",
-      },
-    });
-    const deck = buildRapideDeck([far], makeCtx(), PAYWALL_OFF);
-    expect(deck).toHaveLength(1);
-  });
-
-  it("spawter Gold → jamais verrouillé, deck complet", () => {
-    const far = makePlace("far", {
-      location: {
-        lat: FAR_LAT,
-        lng: FAR_LNG,
-        descriptive_address: "Loin",
-        neighborhood: "Abobo",
-        city: "Abidjan",
-      },
-    });
-    const deck = buildRapideDeck([far], makeCtx(), {
-      enabled: true,
-      isGold: true,
-      positionSource: "gps",
-    });
-    expect(deck).toHaveLength(1);
-  });
-
-  it("position fallback (permission refusée) → pas de verrouillage", () => {
-    const far = makePlace("far", {
-      location: {
-        lat: FAR_LAT,
-        lng: FAR_LNG,
-        descriptive_address: "Loin",
-        neighborhood: "Abobo",
-        city: "Abidjan",
-      },
-    });
-    const deck = buildRapideDeck([far], makeCtx(), {
-      enabled: true,
-      isGold: false,
-      positionSource: "fallback",
-    });
-    expect(deck).toHaveLength(1);
+    const deck = buildRapideDeck([near, far], makeCtx());
+    expect(deck.map((d) => d.place.id)).toEqual(["near", "far"]);
   });
 
   it("liste vide → deck vide (total, no throw)", () => {
-    expect(buildRapideDeck([], makeCtx(), PAYWALL_OFF)).toEqual([]);
+    expect(buildRapideDeck([], makeCtx())).toEqual([]);
   });
 
   it("tous favoris → deck vide", () => {
@@ -192,7 +128,6 @@ describe("buildRapideDeck — exclusions", () => {
     const deck = buildRapideDeck(
       places,
       makeCtx({ saved_place_ids: new Set(["a", "b"]) }),
-      PAYWALL_OFF,
     );
     expect(deck).toEqual([]);
   });
@@ -203,13 +138,25 @@ describe("buildRapideDeck — ordre de matching canonique", () => {
     // `low` a une note pondérée faible → score plus bas que `high`.
     const high = makePlace("high", { adn: { weighted_rating: 5 } });
     const low = makePlace("low", { adn: { weighted_rating: 1 } });
-    const deck = buildRapideDeck([low, high], makeCtx(), PAYWALL_OFF);
+    const deck = buildRapideDeck([low, high], makeCtx());
     expect(deck.map((d) => d.place.id)).toEqual(["high", "low"]);
     expect(deck[0]!.match_score).toBeGreaterThan(deck[1]!.match_score);
   });
 
+  it("raccorde la dernière visite vérifiée et ignore la date de la fiche", () => {
+    const recent = makePlace("z-recent", { last_spawt_at: NOW.toISOString() });
+    const old = makePlace("a-old", { last_spawt_at: "2026-01-01T00:00:00Z" });
+    const documentary = makePlace("b-documentary", { last_spawt_at: null });
+    const deck = buildRapideDeck([documentary, old, recent], makeCtx());
+    expect(deck[0]?.place.id).toBe("z-recent");
+    const recentScore = deck.find(d => d.place.id === recent.id)!.raw_score;
+    const documentaryScore = deck.find(d => d.place.id === documentary.id)!.raw_score;
+    expect(recentScore - documentaryScore).toBeCloseTo(0.1);
+    expect(deck.find(d => d.place.id === old.id)!.raw_score).toBe(documentaryScore);
+  });
+
   it("expose match_score borné [50, 99] et distance_km (réutilisable par la carte)", () => {
-    const deck = buildRapideDeck([makePlace("a")], makeCtx(), PAYWALL_OFF);
+    const deck = buildRapideDeck([makePlace("a")], makeCtx());
     expect(deck[0]!.match_score).toBeGreaterThanOrEqual(50);
     expect(deck[0]!.match_score).toBeLessThanOrEqual(99);
     expect(deck[0]!.distance_km).toBeCloseTo(0, 3);
@@ -218,7 +165,7 @@ describe("buildRapideDeck — ordre de matching canonique", () => {
   it("ne mute pas la liste d'entrée", () => {
     const places = [makePlace("b"), makePlace("a")];
     const snapshot = places.map((p) => p.id);
-    buildRapideDeck(places, makeCtx(), PAYWALL_OFF);
+    buildRapideDeck(places, makeCtx());
     expect(places.map((p) => p.id)).toEqual(snapshot);
   });
 });

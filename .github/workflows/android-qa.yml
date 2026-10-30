@@ -5,7 +5,7 @@ permissions:
 on:
   push:
     tags: ['qa-android-*']
-    branches: ['codex/editorial-research-admin']
+    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements']
     paths: ['documentation/android-qa.json']
   workflow_dispatch:
     inputs:
@@ -15,6 +15,7 @@ on:
         type: string
 jobs:
   native:
+    if: "github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: verify Android build 42'"
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
@@ -145,8 +146,20 @@ jobs:
           adb shell settings put global animator_duration_scale 0
           adb shell settings put secure show_ime_with_hard_keyboard 1
           if [ "$(python3 -c 'import json;print(json.load(open("documentation/android-qa.json"))["build"])')" -ge 41 ]; then
-            curl -fsSL 'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-40/spawt-1.1.1-build40.apk' -o previous.apk
-            echo 'f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648  previous.apk' | sha256sum -c -
+            python3 - <<'PYCODE'
+          import hashlib,json,pathlib,urllib.request
+          c=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+          previous=c.get('previousBuild',40)
+          references={
+              40:('2026-10-19','f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648'),
+              41:('2026-10-22','62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9'),
+          }
+          if previous!=c['build']-1 or previous not in references: raise RuntimeError('Version précédente non reçue')
+          date,digest=references[previous]
+          url=f'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-{date}-{previous}/spawt-1.1.1-build{previous}.apk'
+          urllib.request.urlretrieve(url,'previous.apk')
+          assert hashlib.sha256(pathlib.Path('previous.apk').read_bytes()).hexdigest()==digest
+          PYCODE
             adb install previous.apk
             adb shell dumpsys package com.upgraders.spawt > android-proof/previous-package.txt
           fi
@@ -157,9 +170,11 @@ jobs:
           if c['build']>=41:
               before=pathlib.Path('android-proof/previous-package.txt').read_text()
               after=subprocess.check_output(['adb','shell','dumpsys','package','com.upgraders.spawt'],text=True)
-              assert 'versionCode=40 ' in before and 'versionCode='+str(c['build'])+' ' in after
+              previous=c.get('previousBuild',40)
+              assert previous==c['build']-1
+              assert 'versionCode='+str(previous)+' ' in before and 'versionCode='+str(c['build'])+' ' in after
               assert 'android.permission.ACCESS_BACKGROUND_LOCATION' in after
-              pathlib.Path('android-proof/upgrade-install.json').write_text(json.dumps({'from':40,'to':c['build'],'installedOverPrevious':True,'backgroundLocationDeclared':True}))
+              pathlib.Path('android-proof/upgrade-install.json').write_text(json.dumps({'from':previous,'to':c['build'],'installedOverPrevious':True,'backgroundLocationDeclared':True}))
           PYCODE
       - name: Recette native
         if: steps.apk.outputs.ready == 'true'

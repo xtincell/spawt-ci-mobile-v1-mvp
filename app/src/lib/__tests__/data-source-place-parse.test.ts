@@ -72,6 +72,27 @@ function validAdn(): Record<string, unknown> {
 }
 
 describe("getPlaceFromSupabase — R22 rows sans place_adn / relation array", () => {
+  it("conserve la date de visite vérifiée distincte de la date de la fiche", async () => {
+    mockResponse = {
+      data: baseRow({ last_spawt_at: "2026-09-12T18:30:00+00:00", updated_at: "2026-10-30T12:00:00Z" }),
+      error: null,
+    };
+    const place = await getPlaceFromSupabase(PLACE_ID);
+    expect(place?.last_spawt_at).toBe("2026-09-12T18:30:00+00:00");
+  });
+
+  it.each([undefined, null, "not-a-date"])("ne fabrique aucune fraîcheur pour %s", async (last_spawt_at) => {
+    mockResponse = { data: baseRow({ last_spawt_at }), error: null };
+    const place = await getPlaceFromSupabase(PLACE_ID);
+    expect(place).not.toBeNull();
+    expect(place?.last_spawt_at).toBeNull();
+  });
+
+  it("signale un agrégat serveur indisponible au lieu de montrer un score incomplet", async () => {
+    mockResponse = { data: null, error: { message: "last_spawt_at is unavailable" } };
+    await expect(getPlaceFromSupabase(PLACE_ID)).rejects.toThrow();
+  });
+
   it("synthétise un ADN neutre quand place_adn manque (row gardée)", async () => {
     mockResponse = { data: baseRow({ place_adn: null }), error: null };
     const place = await getPlaceFromSupabase(PLACE_ID);

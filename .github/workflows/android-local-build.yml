@@ -2,20 +2,21 @@ name: Android preview local build
 on:
   push:
     tags: ['local-build-android-*']
-    branches: ['codex/editorial-research-admin']
-    paths: ['documentation/android-build41.json']
+    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements']
+    paths: ['documentation/android-build41.json', 'documentation/android-build42.json']
   workflow_dispatch:
     inputs:
       recipe:
         description: Recette de compilation déjà contrôlée
         type: string
-        default: documentation/android-build41.json
+        default: documentation/android-build42.json
         required: true
 permissions:
   contents: read
   actions: read
 jobs:
   build:
+    if: "github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: compile Android build 42'"
     runs-on: ubuntu-latest
     timeout-minutes: 55
     env:
@@ -23,7 +24,7 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
-      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build41.json' }}
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build42.json' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,6 +57,10 @@ jobs:
           if(!run || run.status!=='completed' || run.conclusion!=='success') throw new Error('La dernière CI source doit être terminée et verte avant compilation');
           const jobs=await read('/actions/runs/'+run.id+'/jobs?per_page=100');
           if(!['app','admin'].every(name=>jobs.jobs.some(j=>j.name===name && j.status==='completed' && j.conclusion==='success'))) throw new Error('Contrôles mobile/console incomplets');
+          if(recipe.build>=42) {
+            const sqlRun=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/payment-checks.yml').sort((a,b)=>b.id-a.id)[0];
+            if(!sqlRun || sqlRun.status!=='completed' || sqlRun.conclusion!=='success') throw new Error('Les migrations et leurs tests SQL doivent être reçus sur la même source avant compilation');
+          }
           fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'spawt-build-recipe.json'),rawRecipe);
           fs.appendFileSync(process.env.GITHUB_ENV,Object.entries({SPAWT_APK_SOURCE:recipe.sourceCommit,SPAWT_PREVIOUS_SOURCE:recipe.previousSourceCommit,SPAWT_APK_VERSION:recipe.version,SPAWT_APK_BUILD:recipe.build,SPAWT_APK_DATE:recipe.buildDate,SPAWT_SOURCE_CI_RUN:run.id}).map(([k,v])=>k+'='+v+'\n').join(''));
           console.log(JSON.stringify({recipe:recipePath,source:recipe.sourceCommit,build:recipe.build,sourceCiRun:run.id}));

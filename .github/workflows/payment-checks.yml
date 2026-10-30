@@ -6,7 +6,7 @@ on:
       - 'scripts/test-payment-sql.sh'
       - '.github/workflows/payment-checks.yml'
   push:
-    branches: ['main', 'codex/audit-admin-commentaires', 'codex/finalisation-tarifs']
+    branches: ['main', 'codex/audit-admin-commentaires', 'codex/finalisation-tarifs', 'codex/build42-raccordements']
 permissions:
   contents: read
 jobs:

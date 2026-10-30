@@ -2,6 +2,8 @@ name: Publish verified Android APK
 on:
   push:
     tags: ['publish-android-*']
+    branches: ['codex/build42-raccordements']
+    paths: ['documentation/android-release.json']
 permissions:
   contents: write
   actions: read
@@ -10,6 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: "github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: publish verified Android build 42'"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -67,7 +70,7 @@ jobs:
           if(firebase.defaultAppInitialized!==true) throw new Error('Firebase native initialization was not verified');
           if(c.build>=41) {
             const upgrade=JSON.parse(fs.readFileSync('native-proof/upgrade-install.json'));
-            if(upgrade.from!==40 || upgrade.to!==c.build || upgrade.installedOverPrevious!==true || upgrade.backgroundLocationDeclared!==true) throw new Error('Native upgrade receipt missing');
+            if(upgrade.from!==c.build-1 || upgrade.to!==c.build || upgrade.installedOverPrevious!==true || upgrade.backgroundLocationDeclared!==true) throw new Error('Native upgrade receipt missing');
             const outing=JSON.parse(fs.readFileSync('native-proof/outing-data.json'));
             const required=['menuRead','dishSearch','saveReceipt','namedListRead','shareReadInBrowser','revokedLinkRefused','chooseReceipt','feedbackReceipt','sevenContentChecks','appLinkOpened','offlineSaveResumed','crossAccountIsolation'];
             if(outing.build!==c.build || outing.sha256!==m.sha256 || outing.apiOrigin!=='https://api.spawt.online' || !required.every(k=>outing[k]===true)) throw new Error('Live native outing/list/web proof missing');

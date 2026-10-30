@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { clearReviewDraft, loadReviewDraft, saveReviewDraft, type ReviewDraft } from "../review-drafts";
+import { clearReviewDraft, loadReviewDraft, saveReviewDraft, saveReviewPlaceSignals, type ReviewDraft } from "../review-drafts";
 const draft: ReviewDraft = { note_cuisine: 5, note_cadre: 4, note_service: 4, tags: ["copieux"], text: "Brouillon", photoUris: ["file:///documents/review-drafts/photo.jpg"] };
 beforeEach(() => AsyncStorage.clear());
 test("reprend notes, texte et photos après remount et reste isolé par compte", async () => {
@@ -12,4 +12,13 @@ test("reprend notes, texte et photos après remount et reste isolé par compte",
 test("le dernier état gagne malgré des sauvegardes successives", async () => {
   await Promise.all([saveReviewDraft("alex", "visit", draft), saveReviewDraft("alex", "visit", { ...draft, text: "Dernier état" })]);
   expect((await loadReviewDraft("alex", "visit"))?.text).toBe("Dernier état");
+});
+test("les écritures du formulaire conservent les signaux du lieu dans le même brouillon", async () => {
+  await saveReviewPlaceSignals("alex", "visit", ["institution"]);
+  await Promise.all([
+    saveReviewDraft("alex", "visit", draft),
+    saveReviewDraft("alex", "visit", { ...draft, text: "Dernier état" }),
+  ]);
+  expect(await loadReviewDraft("alex", "visit")).toEqual({ ...draft, text: "Dernier état", placeSignals: ["institution"] });
+  expect(await loadReviewDraft("another", "visit")).toBeNull();
 });
