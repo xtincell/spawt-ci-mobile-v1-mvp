@@ -36,7 +36,7 @@ Les exécutions déclenchées par la PR sont également reçues sur cette source
 
 La tentative 2 a terminé la compilation EAS à 19:33:47 UTC, puis a échoué avant les contrôles finaux : l'ancienne référence build 25 hébergée chez Expo renvoyait HTTP 404. L'APK brute est conservée comme artefact non reçu ; ce workflow n'est pas déclaré réussi. Le contrôle utilise désormais l'APK 41 livrée et son reçu, tous deux épinglés par SHA-256. Le reçu 41 atteste sa conformité à la signature 25 ; la nouvelle comparaison vérifie donc la chaîne 42 → 41 → 25. Les contrôles d'identité, de backend, de Firebase, de CRC et de signature restent bloquants. Une nouvelle exécution doit recevoir l'ensemble de ces contrôles.
 
-Contrôle indépendant de cette première APK : **19 vérifications statiques réussies**, dont signature identique à la référence 41, identité/version, Firebase, backend et CRC. Empreinte des octets contrôlés : `61683457befed4b9028d87680e3af051a3bfc88163d39b19a635af0ed9b3e415`. Le rapport `android-build42-initial-static-check.json` porte explicitement `isCiReceipt=false` et `nativeExecutionPerformed=false`. La nouvelle exécution complète est `41117097867`, depuis le workflow `360d181c9c15c6378b06ec41893afeb6a653f120`, avec la même source applicative ; ses résultats et son APK doivent être reçus séparément.
+Contrôle indépendant de cette première APK : **19 vérifications statiques réussies**, dont signature identique à la référence 41, identité/version, Firebase, backend et CRC. Empreinte des octets contrôlés : `61683457befed4b9028d87680e3af051a3bfc88163d39b19a635af0ed9b3e415`. Le rapport `android-build42-initial-static-check.json` porte explicitement `isCiReceipt=false` et `nativeExecutionPerformed=false`. La nouvelle exécution complète est `41117097867`, depuis le workflow `360d181c9c15c6378b06ec41893afeb6a653f120`, avec la même source applicative ; ses résultats et son APK ont été reçus séparément, ci-dessous.
 
 Le nouveau binaire et son reçu ont été récupérés depuis l'artefact `13008287974` après réussite des étapes de compilation, de vérification et d'archivage. Les empreintes de l'archive puis de l'APK ont été contrôlées. Le binaire mesure **162 537 663 octets**, SHA-256 `2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7`. Son reçu propre, `android-build42-artifact.json`, confirme la source, l'identité native, la signature, Firebase, le backend et le CRC. Il s'agit de nouveaux octets ; les 19 contrôles indépendants du premier binaire ne leur sont pas attribués. La recette native cible exclusivement cette nouvelle APK et exige la conclusion globale `success` du run de compilation avant de démarrer.
 
@@ -54,7 +54,7 @@ Avant intervention, `guet-proximity-v2` était désactivé dans les quatre scope
 
 Le drapeau global a été **activé dans les scopes internal, alpha, beta et prod à 17:52:33 UTC le 30 octobre 2026**. Les quatre lignes mises à jour ont été relues via l'API publique : `enabled=true`, sans expiration. Les consentements, les choix individuels et les autorisations des appareils n'ont pas été modifiés. Reçu : `documentation/android-build42-server-receipt.json`.
 
-La relecture publique du 30 octobre à **20:11:35 UTC** confirme à nouveau les quatre scopes activés, zéro lieu Guet éligible et HTTP 200 pour les 155 lieux avec leur champ de fraîcheur.
+Les relectures publiques du 30 octobre à **20:11:35 UTC**, puis à **20:41:30 UTC**, confirment les quatre scopes activés, zéro lieu Guet éligible et HTTP 200 pour les 155 lieux avec leur champ de fraîcheur. La console de production confirme également ces états à 20:21:12 UTC.
 
 Les quatre contributions de localisation approuvées ont été examinées. Leurs commentaires et décisions de modération attestent des positions simulées pour les recettes antérieures, sans nouveau relevé terrain. Elles ne constituent pas une preuve GPS admissible. Aucun enregistrement de validation n'a été créé à partir de ces simulations.
 
@@ -77,8 +77,23 @@ Ces étapes sont en attente. La recette `raccordements` sur émulateur produit s
 
 La compilation complète `41117097867` est reçue `success` à 20:16:31 UTC. La première recette native `41121907854`, sur Android 35, est reçue `success` à 20:25:55 UTC : installation 41 → 42, 29 assertions automatiques, Firebase et animation d'ouverture réussis. L'examen de la capture confirme les cinq barres du Palais. Il révèle toutefois que le critère de fin de défilement du profil acceptait un nœud « Réglages » réduit à trois pixels, sans son texte visible. Cette assertion ne constitue donc pas une preuve de visibilité du lien. La révision 2 de la recette exige une zone tactile d'au moins 44 dp et son libellé visible dans le ScrollView réel ; elle reprend le même binaire, sans modification applicative.
 
+**Réception finale du candidat :** la révision 2, [run `41123847019`](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/41123847019), est reçue `success` à **20:40:58 UTC**, depuis le commit de recette `80672cc4b2b2ba5457ef40ee2151df3e3a074abf`. Les **31 assertions** sont réussies. Les contrôles App et SQL, push et PR, sont également verts sur ce commit. Le reçu complet est `android-build42-native-receipt.json`.
+
+| Contrôle du binaire livré | Résultat reçu |
+|---|---|
+| Installation Android 35 | Mise à jour 41 → 42 sans désinstallation, permission de localisation en arrière-plan déclarée |
+| Identité et configuration | APK SHA-256 conforme au reçu, version 1.1.1, build 42, Firebase initialisé |
+| Ouverture | Animation détectée, mouvement et clin d'œil reçus, zéro image de surface noire |
+| Sorties | Menu structuré et recherche de plat, sauvegarde hors connexion reprise, liste nommée, choix explicite sans visite |
+| Partage | Lecture réelle dans un navigateur anonyme, App Link Android, révocation effective, isolation entre comptes |
+| Lectures de l'application | Accueil, recherche et fiche sans erreur de lecture constatée |
+| Palais et profil | Cinq barres vues sur la capture ; parcours jusqu'au lien Réglages entièrement visible et au badge `v1.1.1 — build 42 (2026-10-30)` |
+| Réception complète et Guet physique | Toujours non reçus ; ces preuves ne sont pas déduites de l'émulateur |
+
+Les archives de la révision 2 sont `android-proof` (`13009692791`) et `android-preview` (`13010361832`). Leurs empreintes, celles des reçus et celles des captures examinées sont consignées dans le reçu natif. La révision 1 est conservée comme historique et ne remplace pas cette réception corrigée.
+
 Le libellé « Nomade » passe sur deux lignes dans la capture reçue. Le code de rendu `AxisBar` et ses styles sont identiques à la source du build 41 ; l'observation de ce retour à la ligne est documentée, sans prétendre disposer ici d'une capture comparative du build 41.
 
-Numéro Android 42 et numéro iOS 42, version 1.1.1, date 2026-10-30. Signature EAS existante. La recette d’installation doit partir de l’APK 41 reçue, dont l’empreinte est épinglée, puis vérifier l’installation par-dessus sans désinstallation.
+Numéro Android 42 et numéro iOS 42 dans la configuration source, version 1.1.1, date 2026-10-30. Seule l'APK Android a été compilée et reçue ici. Signature EAS existante. La recette d’installation est partie de l’APK 41 reçue, dont l’empreinte est épinglée, puis a réussi l’installation par-dessus sans désinstallation.
 
-Les actions de compilation, de recette et de publication sont déclenchées séparément depuis la branche de travail, avec leurs recettes et preuves épinglées. Le canal public n’avance qu’après les contrôles existants. Les identifiants de runs, empreintes et résultats effectifs seront ajoutés à réception. Le drapeau Guet actif ne constitue pas, à lui seul, une réception terrain.
+L'APK candidate 42 est remise avec son empreinte et ses reçus. Les actions de compilation, de recette et de publication restent distinctes. Le canal public relu reste sur le **build 41** ; aucune publication officielle ni fusion de cette PR n'a été effectuée. La réception console complète et la réception physique du Guet restent à compléter pour la publication. Le drapeau Guet actif ne constitue pas, à lui seul, une réception terrain.

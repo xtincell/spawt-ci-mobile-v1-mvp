@@ -1,0 +1,324 @@
+{
+  "kind": "candidate-native-raccordements-receipt",
+  "receivedAt": "2026-10-30T20:42:52.575218+00:00",
+  "build": 42,
+  "version": "1.1.1",
+  "sourceCommit": "8cf7ea89ef7610b69c28f7608218f4e005dbdc30",
+  "apkSha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+  "apkBytes": 162537663,
+  "compilation": {
+    "runId": 41117097867,
+    "workflowCommit": "360d181c9c15c6378b06ec41893afeb6a653f120",
+    "conclusion": "success",
+    "closedAt": "2026-10-30T20:16:31Z"
+  },
+  "nativeQa": {
+    "runId": 41123847019,
+    "jobId": 124297152585,
+    "recipeCommit": "80672cc4b2b2ba5457ef40ee2151df3e3a074abf",
+    "receiptRevision": 2,
+    "mode": "raccordements",
+    "androidApi": 35,
+    "status": "completed",
+    "conclusion": "success",
+    "closedAt": "2026-10-30T20:40:58Z",
+    "dataCheckedAt": "2026-10-30T20:39:07Z"
+  },
+  "checksOnRecipeCommit": [
+    {
+      "id": 41123847133,
+      "path": ".github/workflows/app-checks.yml",
+      "event": "push",
+      "headSha": "80672cc4b2b2ba5457ef40ee2151df3e3a074abf",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/41123847133"
+    },
+    {
+      "id": 41123855169,
+      "path": ".github/workflows/app-checks.yml",
+      "event": "pull_request",
+      "headSha": "80672cc4b2b2ba5457ef40ee2151df3e3a074abf",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/41123855169"
+    },
+    {
+      "id": 41123847060,
+      "path": ".github/workflows/payment-checks.yml",
+      "event": "push",
+      "headSha": "80672cc4b2b2ba5457ef40ee2151df3e3a074abf",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/41123847060"
+    },
+    {
+      "id": 41123855214,
+      "path": ".github/workflows/payment-checks.yml",
+      "event": "pull_request",
+      "headSha": "80672cc4b2b2ba5457ef40ee2151df3e3a074abf",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/41123855214"
+    },
+    {
+      "id": 41123847019,
+      "path": ".github/workflows/android-qa.yml",
+      "event": "push",
+      "headSha": "80672cc4b2b2ba5457ef40ee2151df3e3a074abf",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/41123847019"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13010361832,
+      "name": "android-preview",
+      "bytes": 1214733,
+      "digest": "sha256:2e192d5df908bfddcaa588500193dd4647ede4c26ff0327532b516ff9a89279b",
+      "expiresAt": "2026-11-13T20:39:17Z"
+    },
+    {
+      "id": 13009692791,
+      "name": "android-proof",
+      "bytes": 9105826,
+      "digest": "sha256:9d4419dfd7e12eb475efdf35aef0be8c7bc6d529824c238c760fa7a3fe969c7c",
+      "expiresAt": "2026-11-13T20:39:13Z"
+    }
+  ],
+  "assertions": {
+    "passed": 31,
+    "failed": 0,
+    "items": [
+      {
+        "check": "cold animated launch keeps SPAWT in foreground",
+        "passed": true
+      },
+      {
+        "check": "published real dish has source date and observed price",
+        "passed": true
+      },
+      {
+        "check": "native place reads published structured menu",
+        "passed": true
+      },
+      {
+        "check": "native alias search reaches published dish",
+        "passed": true
+      },
+      {
+        "check": "offline dish save persists and reaches owning server account",
+        "passed": true
+      },
+      {
+        "check": "native named occasion list and dish received by server",
+        "passed": true
+      },
+      {
+        "check": "native explicit choice receives a new server receipt without visit",
+        "passed": true
+      },
+      {
+        "check": "share action is settled, visible and enabled",
+        "passed": true
+      },
+      {
+        "check": "native shared list is readable in anonymous real browser",
+        "passed": true
+      },
+      {
+        "check": "Android verifies official website App Link",
+        "passed": true
+      },
+      {
+        "check": "public HTTPS list opens the installed native package",
+        "passed": true
+      },
+      {
+        "check": "native revoke immediately removes public browser access",
+        "passed": true
+      },
+      {
+        "check": "other account does not receive private list",
+        "passed": true
+      },
+      {
+        "check": "cross-owner snapshot rejected",
+        "passed": true
+      },
+      {
+        "check": "raccordements-home: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-home: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "raccordements-search: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-search: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "raccordements-place: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-place: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-recto: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-recto: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-verso: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-verso: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-scroll-0: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-scroll-0: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-scroll-1: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-scroll-1: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-scroll-2: no data read error",
+        "passed": true
+      },
+      {
+        "check": "raccordements-profile-scroll-2: no retired Gold teaser",
+        "passed": true
+      },
+      {
+        "check": "native profile inspected from card through its settings link",
+        "passed": true
+      }
+    ]
+  },
+  "upgradeInstall": {
+    "from": 41,
+    "to": 42,
+    "installedOverPrevious": true,
+    "backgroundLocationDeclared": true
+  },
+  "firebaseRuntime": {
+    "defaultAppInitialized": true
+  },
+  "openingVisibility": {
+    "passed": true,
+    "captureWidth": 392,
+    "captureHeight": 800,
+    "visibleFrames": 46,
+    "longestVisibleSeconds": 1.533,
+    "winkPassed": true,
+    "blackSurfaceFrames": 0
+  },
+  "outings": {
+    "menuRead": true,
+    "dishSearch": true,
+    "saveReceipt": true,
+    "namedListRead": true,
+    "shareReadInBrowser": true,
+    "revokedLinkRefused": true,
+    "chooseReceipt": true,
+    "appLinkOpened": true,
+    "offlineSaveResumed": true,
+    "crossAccountIsolation": true,
+    "guetEnabled": true,
+    "physicalGuetReceipt": false
+  },
+  "profile": {
+    "homeCatalogueRead": true,
+    "placeSearchRead": true,
+    "placeOpenedFromSearch": true,
+    "legacyGoldCopyAbsent": true,
+    "settingsLabelVisible": true,
+    "settingsBounds": [
+      72,
+      1467,
+      1107,
+      1632
+    ],
+    "settingsCapture": "raccordements-profile-scroll-2.png",
+    "versoCapture": "raccordements-profile-verso.png"
+  },
+  "visualReview": {
+    "method": "Inspection visuelle des captures natives archivées; contrôle indépendant concordant.",
+    "fiveAxisPairsVisible": [
+      [
+        "Racines",
+        "Horizons"
+      ],
+      [
+        "Tanière",
+        "Nomade"
+      ],
+      [
+        "Exigeant",
+        "Enthousiaste"
+      ],
+      [
+        "Foule",
+        "Secret"
+      ],
+      [
+        "Maquis",
+        "Table"
+      ]
+    ],
+    "settingsRowFullyVisible": true,
+    "buildBadgeVisible": "v1.1.1 — build 42 (2026-10-30)",
+    "goldTeaserOrLockVisible": false,
+    "underConstructionStateVisible": true,
+    "nomadeLineWrapObserved": true,
+    "nomadeLineWrapNote": "Le dernier E revient à la ligne, sans superposition. Le code AxisBar et ses styles ne changent pas entre les sources 41 et 42; aucune comparaison de captures 41 n’est affirmée.",
+    "scope": "Verso du Palais et bas du profil jusqu’à Réglages et À propos; aucune ouverture de Réglages n’est déduite de ces captures."
+  },
+  "fingerprints": {
+    "apk-metadata.json": "e1e35f72578244bdc54e847f45a7682e7aed0fa06ee8805f1500b2b9666a4344",
+    "assertions.json": "0405c978f589bee21d1b13beb2e9b247cde5f723e95c9c820637126da8c379c3",
+    "raccordements-data.json": "dc6b15a6cd8cc79fb4d95af3bae6cc0df21dafc04f3ce2518bec7320ea6ea642",
+    "upgrade-install.json": "619a5b16de2c259ab6494bd0739218cc80eb2a109dd189ad86aaf7c76575f869",
+    "firebase-runtime.json": "20b42ead0992422d5f84a798d76cfc6a5821a5ea1e9c1ac7f49e2baf726feb36",
+    "opening-visibility.json": "c22f93b5eb4fefabcadb1197f2646df981fc459476ab8af378df02148abc9a5e",
+    "raccordements-profile-verso.png": "282405f7eaa1fe9185b27eb6fda286aceda365a243cacc91f345f2b725a6a20f",
+    "raccordements-profile-scroll-2.png": "38598f81b837168b976f44b1be1cadd0029a50f7ffbdf5de710092023cb14200"
+  },
+  "priorQaRevision": {
+    "runId": 41121907854,
+    "automaticConclusion": "success",
+    "automaticAssertions": 29,
+    "superseded": true,
+    "reason": "Le premier garde de défilement acceptait un nœud Réglages limité à 3 pixels; la révision 2 exige la cible et son texte réellement visibles."
+  },
+  "fullLiveReceipt": false,
+  "consoleModerationReceipt": false,
+  "physicalGuetReceipt": false,
+  "publication": {
+    "performed": false,
+    "observedPublicBuild": 41,
+    "fullConsoleAndPhysicalGuetReceptionStillRequired": true
+  }
+}
