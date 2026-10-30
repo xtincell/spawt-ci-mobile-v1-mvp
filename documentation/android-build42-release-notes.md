@@ -9,4 +9,10 @@ Raccordements au référentiel SPAWT v2, sans changement de design :
 - Fraîcheur du classement raccordée aux dernières visites vérifiées, avec les poids existants.
 - Cycle du Guet raccordé aux changements de flag, permissions et compte.
 
-Installation prévue par-dessus le build 41 avec la même signature. La migration serveur 0091, la réception native et la mise en service effective du Guet doivent être consignées dans le dossier de réception avant la publication de ces notes.
+Installation prévue par-dessus le build 41 avec la même signature.
+
+## État du candidat
+
+La migration de fraîcheur 0091 est déployée. Le drapeau Guet est activé depuis le 30 octobre 2026 à 17:52:33 UTC. Aucun lieu ne possède encore de preuve GPS terrain admissible : le Guet n'a donc actuellement aucune zone à surveiller.
+
+La recette native ciblée du candidat est distincte de la réception complète avec la console et du test physique du Guet. Le canal de téléchargement public reste sur le build 41 jusqu'à réception des contrôles de publication existants. Les résultats effectifs de compilation et d'installation sont consignés dans `BUILD42_RACCORDEMENTS_2026-10-30.md`.

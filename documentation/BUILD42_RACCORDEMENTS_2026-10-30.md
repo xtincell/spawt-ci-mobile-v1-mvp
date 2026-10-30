@@ -32,6 +32,10 @@ Base : `main` à `9641c461333e5dc4343a6b5fc9bff5674a9162f2`, descendant du code 
 
 Source candidate : `8cf7ea89ef7610b69c28f7608218f4e005dbdc30`, [PR 23](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/pull/23). CI mobile/console `41100508359` terminée avec succès à 17:51:29 UTC ; CI SQL `41100508369` terminée avec succès à 17:54:20 UTC. Les deux contrôles portent sur cette source exacte.
 
+Les exécutions déclenchées par la PR sont également reçues sur cette source : mobile/console `41100560372` et SQL `41100560407`. La première tentative de compilation `41102493944` a correctement refusé de commencer tant que la dernière CI PR n'était pas terminée. La même recette a été relancée après réception de tous les contrôles, sans modification de source ni de seuil.
+
+La tentative 2 a terminé la compilation EAS à 19:33:47 UTC, puis a échoué avant les contrôles finaux : l'ancienne référence build 25 hébergée chez Expo renvoyait HTTP 404. L'APK brute est conservée comme artefact non reçu ; ce workflow n'est pas déclaré réussi. Le contrôle utilise désormais l'APK 41 livrée et son reçu, tous deux épinglés par SHA-256. Le reçu 41 atteste sa conformité à la signature 25 ; la nouvelle comparaison vérifie donc la chaîne 42 → 41 → 25. Les contrôles d'identité, de backend, de Firebase, de CRC et de signature restent bloquants. Une nouvelle exécution doit recevoir l'ensemble de ces contrôles.
+
 ## Déploiement serveur
 
 La migration appariée **0091_public_place_recency** a été appliquée en production le 30 octobre 2026 avant la réception native. Sauvegarde PostgreSQL au format custom réalisée et catalogue de restauration vérifié ; fichier SQL téléchargé depuis la source exacte, empreinte SHA-256 vérifiée avant exécution. Application dans une transaction unique avec verrou du migrateur et enregistrement dans `schema_migrations`.
@@ -51,6 +55,17 @@ Les quatre contributions de localisation approuvées ont été examinées. Leurs
 Le catalogue Guet reste donc à **zéro lieu éligible** : le drapeau est actif, mais aucune région native ne peut encore être armée. La réception terrain doit porter sur un lieu réellement validé : permissions, entrée dans la zone, rappel après le délai existant, sortie anticipée, désactivation et changement de compte. Une proximité ne crée jamais une visite.
 
 La réception physique du Guet n’est pas déduite d’un test unitaire ou d’un émulateur. Le contrôle de publication existant qui réclame cette preuve lorsque le Guet est activé reste en place.
+
+La recette historique `live` demandait l'approbation d'une position simulée pour tester l'affichage d'une récompense. Depuis la migration 0087, toute nouvelle approbation de localisation crée automatiquement une preuve de coordonnées pour le Guet. Ce scénario ne doit donc plus être approuvé en production. Une vraie contribution recevable reste nécessaire à la réception positive de la récompense. Aucun menu photo déjà publié n'était disponible pour une retransmission technique fidèle lors de la vérification.
+
+### Réception terrain à compléter
+
+1. Utiliser le binaire 42 reçu et noter son empreinte, le modèle de téléphone et la version Android. Aucun numéro de série n'est nécessaire.
+2. Faire valider un lieu publié à partir d'un vrai relevé, avec sa source et sa précision constatées. Vérifier sa présence dans `public_guet_places`.
+3. Avec un compte consentant et les autorisations nécessaires, constater l'entrée réelle dans le rayon existant de 150 mètres et le rappel programmé après 120 secondes. Relever les horaires effectivement observés.
+4. Recevoir aussi la sortie avant le rappel, la désactivation et le changement de compte. Vérifier qu'une simple proximité n'a créé ni visite ni avis.
+
+Ces étapes sont en attente. La recette `raccordements` sur émulateur produit son propre reçu, avec `fullLiveReceipt=false` et `physicalGuetReceipt=false`. Elle ne produit pas le reçu `live-data.json` requis pour la publication.
 
 ## Livraison
 

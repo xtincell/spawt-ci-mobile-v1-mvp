@@ -44,6 +44,7 @@ jobs:
           if(!/^\d+\.\d+\.\d+$/.test(recipe.version) || !Number.isSafeInteger(recipe.build) || recipe.build<1 || recipe.build>2147483647 || !/^\d{4}-\d{2}-\d{2}$/.test(recipe.buildDate) || !/^[a-f0-9]{40}$/.test(recipe.sourceCommit)) throw new Error('Recette invalide');
           if(new Date(recipe.buildDate).toISOString().slice(0,10)!==recipe.buildDate) throw new Error('Date de recette invalide');
           if(!Number.isSafeInteger(recipe.previousBuild) || recipe.previousBuild>=recipe.build || !/^[a-f0-9]{40}$/.test(recipe.previousSourceCommit) || !Number.isSafeInteger(recipe.previousBuildRun)) throw new Error('Lignée précédente absente ou invalide');
+          if(recipe.build>=42 && recipe.signatureReferenceBuild!==41) throw new Error('Référence de signature reçue attendue : build 41');
           const refs=execFileSync('git',['ls-remote','--refs','--tags','origin'],{encoding:'utf8'}).trim().split('\n');
           const occupied=refs.map(line=>line.split(/\s+/)[1]).filter(ref=>ref && ref!==process.env.GITHUB_REF).map(ref=>({ref,match:ref.match(/(?:local-build-android|build-android(?:-prod)?)-\d{4}-\d{2}-\d{2}-(\d+)$/)})).filter(x=>x.match && Number(x.match[1])>=recipe.build);
           if(occupied.length) throw new Error('Numéro natif déjà occupé par un autre tag ; sélectionner le prochain numéro après rapprochement des livraisons');
@@ -123,15 +124,30 @@ jobs:
         run: eas build --platform android --profile preview --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-${SPAWT_APK_VERSION}-build${SPAWT_APK_BUILD}.apk"
       - name: Vérifier la signature et tracer l'APK
         run: |
-          curl -fsSL 'https://expo.dev/artifacts/eas/nRbb5bhMV3ExylApZjfy6vJlwaSfq1dF83XcBoHLNTA.apk' -o reference25.apk
-          echo '25599e852085a983004e939d7d40f967e8c0cebcdab466910c244f12c5ddc5c0 reference25.apk' | sha256sum -c -
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs reference25.apk > reference-cert.txt
+          if [ "$SPAWT_APK_BUILD" -ge 42 ]; then
+            # The received build 41 matched build 25 before its Expo URL expired.
+            # Pin both that APK and its receipt before extending the signing chain.
+            curl -fsSL 'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-22-41/apk-metadata.json' -o reference-metadata.json
+            echo '6cc49e18784e46fb4a9762091e1fc8a4b7ac12e4999f49951872aa141b4f246d reference-metadata.json' | sha256sum -c -
+            curl -fsSL 'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-22-41/spawt-1.1.1-build41.apk' -o reference.apk
+            echo '62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9 reference.apk' | sha256sum -c -
+          else
+            curl -fsSL 'https://expo.dev/artifacts/eas/nRbb5bhMV3ExylApZjfy6vJlwaSfq1dF83XcBoHLNTA.apk' -o reference.apk
+            echo '25599e852085a983004e939d7d40f967e8c0cebcdab466910c244f12c5ddc5c0 reference.apk' | sha256sum -c -
+          fi
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs reference.apk > reference-cert.txt
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "spawt-${SPAWT_APK_VERSION}-build${SPAWT_APK_BUILD}.apk" > apk-cert.txt
           diff <(sed -n '/Signer #1 certificate SHA-256 digest:/p' reference-cert.txt) <(sed -n '/Signer #1 certificate SHA-256 digest:/p' apk-cert.txt)
           python3 - <<'PY'
           import hashlib,json,os,pathlib,zipfile,subprocess,re
           version=os.environ['SPAWT_APK_VERSION'];build=int(os.environ['SPAWT_APK_BUILD'])
           path=pathlib.Path('spawt-'+version+'-build'+str(build)+'.apk')
+          if build>=42:
+              reference=json.loads(pathlib.Path('reference-metadata.json').read_text())
+              assert reference['build']==41 and reference['runId']==39711862127 and reference['sourceCommit']=='e38c8f3ee5c6287e179ef70927ca4ea618ed1878','Provenance de la référence de signature incorrecte'
+              assert reference['sha256']=='62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9' and reference.get('signatureMatchesBuild25') is True,'Chaîne de signature 41 vers 25 non reçue'
+          else:
+              reference={'build':25,'sha256':'25599e852085a983004e939d7d40f967e8c0cebcdab466910c244f12c5ddc5c0','signatureMatchesBuild25':True}
           tools=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/36.0.0'
           badging=subprocess.check_output([str(tools/'aapt'),'dump','badging',str(path)],text=True)
           package=re.search(r"package: name='([^']+)' versionCode='([0-9]+)' versionName='([^']+)'",badging)
@@ -150,7 +166,9 @@ jobs:
           extra=config.get('extra',config.get('expo',{}).get('extra',{}))
           assert extra.get('supabaseUrl')==expected['supabaseUrl'] and extra.get('supabaseAnonKey')==expected['supabaseAnonKey'],'Backend embarqué différent de la recette'
           recipe=pathlib.Path(os.environ['RUNNER_TEMP'])/'spawt-build-recipe.json'
-          data={'version':version,'build':build,'buildDate':os.environ['SPAWT_APK_DATE'],'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sourceCiRun':int(os.environ['SPAWT_SOURCE_CI_RUN']),'recipeSha256':hashlib.sha256(recipe.read_bytes()).hexdigest(),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':True,'zipCrcPassed':True,'nativePackageVerified':True,'compiledBackendConfigVerified':True,'backendUrl':extra['supabaseUrl'],'backendKeySha256':hashlib.sha256(extra['supabaseAnonKey'].encode()).hexdigest(),'runId':int(os.environ['GITHUB_RUN_ID'])}
+          data={'version':version,'build':build,'buildDate':os.environ['SPAWT_APK_DATE'],'sourceCommit':os.environ['SPAWT_APK_SOURCE'],'sourceCiRun':int(os.environ['SPAWT_SOURCE_CI_RUN']),'recipeSha256':hashlib.sha256(recipe.read_bytes()).hexdigest(),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,'signatureMatchesBuild25':reference['signatureMatchesBuild25'],'zipCrcPassed':True,'nativePackageVerified':True,'compiledBackendConfigVerified':True,'backendUrl':extra['supabaseUrl'],'backendKeySha256':hashlib.sha256(extra['supabaseAnonKey'].encode()).hexdigest(),'runId':int(os.environ['GITHUB_RUN_ID'])}
+          data.update({'signatureReferenceBuild':reference['build'],'signatureReferenceSha256':reference['sha256']})
+          if build>=42: data['signatureReferenceReceiptSha256']=hashlib.sha256(pathlib.Path('reference-metadata.json').read_bytes()).hexdigest()
           data.update({'compiledFirebaseConfigVerified':True,'firebaseProjectId':firebase['project_info']['project_id'],'firebaseAndroidAppId':client['client_info']['mobilesdk_app_id']})
           pathlib.Path('apk-metadata.json').write_text(json.dumps(data,indent=2)+'\n')
           print(json.dumps(data))
