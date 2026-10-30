@@ -36,6 +36,10 @@ Les exécutions déclenchées par la PR sont également reçues sur cette source
 
 La tentative 2 a terminé la compilation EAS à 19:33:47 UTC, puis a échoué avant les contrôles finaux : l'ancienne référence build 25 hébergée chez Expo renvoyait HTTP 404. L'APK brute est conservée comme artefact non reçu ; ce workflow n'est pas déclaré réussi. Le contrôle utilise désormais l'APK 41 livrée et son reçu, tous deux épinglés par SHA-256. Le reçu 41 atteste sa conformité à la signature 25 ; la nouvelle comparaison vérifie donc la chaîne 42 → 41 → 25. Les contrôles d'identité, de backend, de Firebase, de CRC et de signature restent bloquants. Une nouvelle exécution doit recevoir l'ensemble de ces contrôles.
 
+Contrôle indépendant de cette première APK : **19 vérifications statiques réussies**, dont signature identique à la référence 41, identité/version, Firebase, backend et CRC. Empreinte des octets contrôlés : `61683457befed4b9028d87680e3af051a3bfc88163d39b19a635af0ed9b3e415`. Le rapport `android-build42-initial-static-check.json` porte explicitement `isCiReceipt=false` et `nativeExecutionPerformed=false`. La nouvelle exécution complète est `41117097867`, depuis le workflow `360d181c9c15c6378b06ec41893afeb6a653f120`, avec la même source applicative ; ses résultats et son APK doivent être reçus séparément.
+
+Le nouveau binaire et son reçu ont été récupérés depuis l'artefact `13008287974` après réussite des étapes de compilation, de vérification et d'archivage. Les empreintes de l'archive puis de l'APK ont été contrôlées. Le binaire mesure **162 537 663 octets**, SHA-256 `2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7`. Son reçu propre, `android-build42-artifact.json`, confirme la source, l'identité native, la signature, Firebase, le backend et le CRC. Il s'agit de nouveaux octets ; les 19 contrôles indépendants du premier binaire ne leur sont pas attribués. La recette native cible exclusivement cette nouvelle APK et exige la conclusion globale `success` du run de compilation avant de démarrer.
+
 ## Déploiement serveur
 
 La migration appariée **0091_public_place_recency** a été appliquée en production le 30 octobre 2026 avant la réception native. Sauvegarde PostgreSQL au format custom réalisée et catalogue de restauration vérifié ; fichier SQL téléchargé depuis la source exacte, empreinte SHA-256 vérifiée avant exécution. Application dans une transaction unique avec verrou du migrateur et enregistrement dans `schema_migrations`.
@@ -49,6 +53,8 @@ Le runner `scripts/test-payment-sql.sh` couvre les migrations existantes, les no
 Avant intervention, `guet-proximity-v2` était désactivé dans les quatre scopes et `public_guet_places` contenait **zéro** lieu. L'accès API Coolify refusé a été remplacé par une connexion opérateur authentifiée au terminal du service existant.
 
 Le drapeau global a été **activé dans les scopes internal, alpha, beta et prod à 17:52:33 UTC le 30 octobre 2026**. Les quatre lignes mises à jour ont été relues via l'API publique : `enabled=true`, sans expiration. Les consentements, les choix individuels et les autorisations des appareils n'ont pas été modifiés. Reçu : `documentation/android-build42-server-receipt.json`.
+
+La relecture publique du 30 octobre à **20:11:35 UTC** confirme à nouveau les quatre scopes activés, zéro lieu Guet éligible et HTTP 200 pour les 155 lieux avec leur champ de fraîcheur.
 
 Les quatre contributions de localisation approuvées ont été examinées. Leurs commentaires et décisions de modération attestent des positions simulées pour les recettes antérieures, sans nouveau relevé terrain. Elles ne constituent pas une preuve GPS admissible. Aucun enregistrement de validation n'a été créé à partir de ces simulations.
 

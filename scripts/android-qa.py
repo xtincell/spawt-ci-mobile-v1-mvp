@@ -221,6 +221,62 @@ def photo_and_network_cases():
     for key in ['window_animation_scale','transition_animation_scale','animator_duration_scale']:
         adb('shell','settings','put','global',key,0)
 
+def raccordements_cases():
+    """Candidate receipt only; console moderation and physical Guet stay unreceived."""
+    from android_outing_qa import run_outing_cases
+    outing=run_outing_cases(globals())
+    fr=json.loads(pathlib.Path('app/src/i18n/fr.json').read_text())
+    retired_gold=('+3 axes débloqués avec Spawter Gold (bientôt)',
+                  'Spawter Gold actif','Gérer mon abonnement','profile-gold-indicator')
+    def inspect(name):
+        tree=snap(name)
+        text='\n'.join(label(n).casefold() for n in tree.iter('node'))
+        check(name+': no data read error',fr['common']['data_read_error'].casefold() not in text)
+        check(name+': no retired Gold teaser',not any(term.casefold() in text for term in retired_gold))
+        return tree
+
+    geometry(393,1); home(); tap('home-mode-suggestions')
+    scroll_find('home-personalized-feed',attempts=16); inspect('raccordements-home')
+    deep('search'); tree,_=nodes()
+    # The earlier outings case searched for a dish. Clear any retained query.
+    if any(fr['common']['clear']==n.get(k,'') for n in tree.iter('node') for k in ('text','content-desc')):
+        tap(fr['common']['clear'],exact=True)
+    find('Cherche un spawt')
+    tree,_=nodes(); field=next(n for n in tree.iter('node') if n.get('class')=='android.widget.EditText')
+    tap_node(field)
+    adb('shell','input','text','Grande'); back(); find('La Grande République')
+    inspect('raccordements-search')
+    tap('La Grande République'); find('place-start-review'); find('La Grande République')
+    inspect('raccordements-place')
+
+    home(); tap('Palais',exact=True); card=bounds(scroll_find('spawtercard'))
+    inspect('raccordements-profile-recto')
+    # The avatar owns the centre of the recto. Flip below it, using live bounds.
+    adb('shell','input','tap',(card[0]+card[2])//2,card[3]-48); time.sleep(.8)
+    verso=inspect('raccordements-profile-verso')
+    poles=[fr['axis'][key] for key in ('racines','horizons','taniere','nomade',
+          'exigeant','enthousiaste','foule','secret','maquis','table')]
+    exposed=[pole for pole in poles if any(pole.casefold()==n.get(k,'').strip().casefold()
+             for n in verso.iter('node') for k in ('text','content-desc'))]
+    # Both card faces stay mounted, and Android may group their accessibility.
+    # XML labels alone do not prove the five bars are visibly on the verso.
+    for page in range(12):
+        tree=inspect('raccordements-profile-scroll-'+str(page))
+        settings_bounds=[bounds(n) for n in tree.iter('node') if any(
+            fr['profile']['link_settings']==n.get(k,'') for k in ('text','content-desc'))]
+        if any(len(b)==4 and b[2]>b[0] and 72<=b[1]<b[3]<=2320 for b in settings_bounds): break
+        scroll()
+    else: raise AssertionError('Profile inspection did not reach the settings link')
+    check('native profile inspected from card through its settings link',True)
+    receipt={'mode':'raccordements','fullLiveReceipt':False,'outings':outing,
+             'homeCatalogueRead':True,'placeSearchRead':True,'placeOpenedFromSearch':True,
+             'profileLegacyGoldCopyAbsent':True,'profileAxisLabelsExposed':exposed,
+             'profileVersoCapture':'raccordements-profile-verso.png',
+             'axesRequireVisualReview':True,'consoleModerationReceipt':False,
+             'physicalGuetReceipt':False,
+             'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+    (OUT/'raccordements-data.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2))
+
 def live_content_cases():
     """Read actual public records, exercise native network failure, receive private feedback."""
     cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
@@ -311,6 +367,10 @@ def live_content_cases():
             except AssertionError: time.sleep(3)
         else: raise AssertionError('Native private menu moderation was not received from panel')
         snap('live-menu-contribution-rejected'); check('native menu photo reached private staff review and reasoned rejection',True)
+        if build>=42:
+            # 0087 turns every approved location contribution into Guet evidence.
+            # A simulated position must never be submitted for that approval.
+            raise AssertionError('Full live receipt blocked: migration 0087 converts location approval into Guet evidence; a genuine admissible contribution is required to receive approval and the +5 Paws allocation')
         # Technical observation uses exactly the published position. The external
         # staff recipe preserves it; no invented field observation or visit is added.
         place=next(p for p in inventory if p['id']==PLACE)
@@ -388,6 +448,9 @@ try:
         raise SystemExit(0)  # finally conserve les assertions et l'état final.
     login(PHONE)
     snap('signed-in')
+    if MODE=='raccordements':
+        raccordements_cases()
+        raise SystemExit(0)  # Separate candidate receipt; no live-data.json.
     if MODE=='live':
         # Receive the new journey first so its diagnostics do not require
         # repeating the already received editorial/moderation journey first.
