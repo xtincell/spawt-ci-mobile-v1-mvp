@@ -16,19 +16,21 @@ export function GuetPage() {
   e.preventDefault(); if (busy || !place || place.lat == null || place.lng == null) return;
   setBusy(true); setMessage("");
   try {
-   const { error } = await db.rpc("validate_place_location", { p_place_id: id, p_source: source.trim(), p_accuracy: Number(accuracy), p_expected_lat: place.lat, p_expected_lng: place.lng });
+   const { error } = await db.rpc("validate_place_location", { p_place_id: id, p_source: source.trim(), p_accuracy: accuracy.trim() === "" ? null : Number(accuracy), p_expected_lat: place.lat, p_expected_lng: place.lng });
    if (error) throw error;
-   await load(); setMessage("Coordonnées validées et journalisées. Le Guet reste soumis à sa réception sur téléphone et à son interrupteur de publication.");
+   await load(); setMessage("Coordonnées validées et journalisées. Les rappels dépendent de l’activation du Guet et des autorisations du téléphone.");
   } catch { setMessage("La validation n’a pas été confirmée. Réessaie après avoir vérifié les coordonnées."); }
   finally { setBusy(false); }
  }
- return <main className="editorial-workspace"><h1>Le Guet — coordonnées</h1><p>Seules les coordonnées contrôlées peuvent déclencher un rappel. Une localisation de quartier ou une estimation ne suffit pas. Les contributions GPS approuvées alimentent aussi cette liste.</p>
+ return <main className="editorial-workspace"><h1>Le Guet — coordonnées</h1><p>Un point précis provenant d’une carte, de la fiche de l’établissement ou d’un relevé sur place peut déclencher un rappel. Une localisation de quartier ou une estimation ne suffit pas. Les contributions GPS approuvées alimentent aussi cette liste.</p>
   <p>{checked.size} lieux éligibles sur {places.length} publiés. Une modification ultérieure des coordonnées retire automatiquement l’éligibilité jusqu’à un nouveau contrôle.</p>
   <form onSubmit={e => void validate(e)} className="panel" style={{ display: "grid", gap: 12, maxWidth: 700 }}>
    <label>Lieu<select aria-label="Lieu" required value={id} onChange={e => setId(e.target.value)}><option value="">Choisir un lieu</option>{places.map(p => <option key={p.id} value={p.id}>{p.name}{checked.has(p.id) ? " — contrôlé" : ""}</option>)}</select></label>
    {place ? <p>Latitude : {place.lat ?? "inconnue"} · Longitude : {place.lng ?? "inconnue"}. <a href={`/lieux/edit/${place.id}`}>Corriger la fiche</a></p> : null}
-   <label>Preuve du contrôle sur place<input required maxLength={2000} value={source} onChange={e => setSource(e.target.value)} /></label>
-   <label>Précision du relevé, en mètres<input required type="number" min="0" max="100" step="any" value={accuracy} onChange={e => setAccuracy(e.target.value)} /></label>
+   <label>Source de localisation<input required maxLength={2000} value={source} onChange={e => setSource(e.target.value)} aria-describedby="location-source-help" /></label>
+   <p id="location-source-help">Pour un point cartographique, colle le lien exact de l’établissement ou de sa bonne succursale : Google Maps, OpenStreetMap, Yango, Glovo ou autre fiche précise.</p>
+   <label>Précision du relevé, si connue, en mètres<input type="number" min="0" max="100" step="any" value={accuracy} onChange={e => setAccuracy(e.target.value)} aria-describedby="location-accuracy-help" /></label>
+   <p id="location-accuracy-help">Laisse ce champ vide si la source cartographique ne fournit pas de précision. Aucun passage sur place n’est nécessaire pour un point déjà cartographié.</p>
    <button disabled={busy || !place || place.lat == null || place.lng == null}>Valider les coordonnées affichées</button>
   </form><p role="status">{message}</p><a href="/fonctionnalites">Interrupteurs de publication</a>
  </main>;
