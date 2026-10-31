@@ -1,13 +1,15 @@
 {
   "version": "1.1.1",
-  "build": 41,
-  "buildDate": "2026-10-22",
-  "sourceCommit": "e38c8f3ee5c6287e179ef70927ca4ea618ed1878",
-  "sha256": "62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9",
-  "bytes": 162536491,
-  "tag": "local-build-android-2026-10-22-41",
-  "buildRun": 39711862127,
-  "buildWorkflowCommit": "2d7f58c28e805ad5a82817b45109c05f7ecf0d9c",
-  "qaRun": 39718577857,
-  "qaWorkflowCommit": "93691f47af50a6ced5909bb61a8004c1127b6ac1"
+  "build": 42,
+  "buildDate": "2026-10-30",
+  "tag": "local-build-android-2026-10-30-42",
+  "sourceCommit": "8cf7ea89ef7610b69c28f7608218f4e005dbdc30",
+  "sha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+  "bytes": 162537663,
+  "buildRun": 41117097867,
+  "buildWorkflowCommit": "360d181c9c15c6378b06ec41893afeb6a653f120",
+  "qaRun": 41123847019,
+  "qaWorkflowCommit": "80672cc4b2b2ba5457ef40ee2151df3e3a074abf",
+  "publicationProfile": "raccordements",
+  "publicationDecision": "owner-approved-build42-with-pending-receipts"
 }
