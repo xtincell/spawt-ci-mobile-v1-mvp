@@ -58,7 +58,9 @@ Les relectures publiques du 30 octobre à **20:11:35 UTC**, puis à **20:41:30 U
 
 Les quatre contributions de localisation approuvées ont été examinées. Leurs commentaires et décisions de modération attestent des positions simulées pour les recettes antérieures, sans nouveau relevé terrain. Elles ne constituent pas une preuve GPS admissible. Aucun enregistrement de validation n'a été créé à partir de ces simulations.
 
-Le catalogue Guet reste donc à **zéro lieu éligible** : le drapeau est actif, mais aucune région native ne peut encore être armée. La réception terrain doit porter sur un lieu réellement validé : permissions, entrée dans la zone, rappel après le délai existant, sortie anticipée, désactivation et changement de compte. Une proximité ne crée jamais une visite.
+Au terme du contrôle du 30 octobre, le catalogue Guet contenait **zéro lieu éligible** : le drapeau était actif, mais aucune région native ne pouvait être armée. Une proximité ne crée jamais une visite.
+
+**Rectificatif du 31 octobre :** exiger une preuve GPS sur place pour chaque lieu était trop restrictif. Le référentiel accepte une position cartographique contrôlée, notamment via Google Maps. La recette sur téléphone vérifie le mécanisme du Guet ; elle ne constitue pas une condition d’admission de chaque restaurant au catalogue. La relecture des sources permet de préparer 100 lieux : 98 points confirmés et deux corrections documentées. Voir `GUET_CARTOGRAPHIE_2026-10-31.md` pour le correctif, les preuves et le statut effectif de son application.
 
 La réception physique du Guet n’est pas déduite d’un test unitaire ou d’un émulateur. Le contrôle de publication existant qui réclame cette preuve lorsque le Guet est activé reste en place.
 

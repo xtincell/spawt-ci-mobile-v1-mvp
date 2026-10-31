@@ -25,7 +25,7 @@ for migration in supabase/migrations/*.sql; do
   fi
 done
 checks() {
-  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback public_unrated_places public_collections place_contributions outing_presence public_place_recency guet_cartographic_locations; do
+  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback public_unrated_places public_collections place_contributions outing_presence public_place_recency guet_cartographic_locations guet_cartographic_batch; do
     sql -f "/repo/supabase/tests/$test.sql"
   done
 }
