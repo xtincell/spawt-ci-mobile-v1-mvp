@@ -1,12 +1,12 @@
 {
   "kind": "guet-cartographic-raccordement",
   "date": "2026-10-31",
-  "status": "prepared_not_deployed",
+  "status": "public_catalogue_and_admin_bundle_verified",
   "apk_build": 42,
   "apk_rebuild_required": false,
   "physical_device_receipt": false,
   "migration": "0092_guet_cartographic_locations",
-  "implementation_commit": "30ac2353a3a78a49acbc8c866ad9406312bcf77a",
+  "implementation_commit": "1775cc7449b0f8a08357462988a4de02fabe4503",
   "source_manifest": {
     "path": "editorial/documentation-2026-10-18/places.json",
     "sha256": "a1f3cff6bbfe0049632d90b64f8ac8e37322feeb5ed4dab6e468a917312054ed"
@@ -27,7 +27,11 @@
     "closed_place_excluded": 1,
     "prepared_guet_targets": 100,
     "places_without_coordinates": 44,
-    "old_neighborhood_estimates_excluded": 10
+    "old_neighborhood_estimates_excluded": 10,
+    "published_places_after": 155,
+    "eligible_guet_places_after": 100,
+    "applied_guet_targets": 100,
+    "applied_coordinate_corrections": 2
   },
   "confirmed_locations": [
     {
@@ -1684,17 +1688,171 @@
     }
   ],
   "checks": {
-    "sql_push": 41210959758,
-    "sql_pr": 41210963922,
-    "app_push": 41210959756,
-    "app_pr": 41210963789,
+    "implementation_commit": "1775cc7449b0f8a08357462988a4de02fabe4503",
+    "sql_push": 41211729862,
+    "sql_pr": 41211733865,
+    "app_push": 41211729846,
+    "app_pr": 41211733903,
     "all_four_conclusions": "success",
+    "deno_contracts": 92,
     "admin_tests": 234,
     "app_tests_passed": 1146,
-    "app_tests_skipped_preexisting": 4
+    "app_tests_skipped_preexisting": 4,
+    "batch_first_run_and_replay_passed": true,
+    "compatible_measured_location_preserved": true,
+    "migration_rollback_and_reapply_passed": true
   },
   "deployment": {
-    "performed": false,
-    "reason": "Prepared correction; authenticated server session required for application."
+    "status": "public_catalogue_verified",
+    "migration": {
+      "version": "0092",
+      "name": "0092_guet_cartographic_locations",
+      "sql_file": "supabase/migrations/0092_guet_cartographic_locations.sql",
+      "sql_sha256": "4885bd201f1604ae2521afe7b6d2c2b84bebd3e715cef9f3218b321a27173b99",
+      "rollback_sql_file": "supabase/migrations/0092_guet_cartographic_locations.down.sql",
+      "rollback_sql_sha256": "eca366157a942c1b1f466f7c7f9f110c1c8123e8e71902a40e498bf2013ae05f"
+    },
+    "batch_file": "supabase/seed/guet_cartographic_locations_2026_10_31.sql",
+    "batch_file_sha256": "4a5fc7b77b3d6879724181918202c5c0d5b0a77399d944204f35d276f0e0c7bb",
+    "public_before": {
+      "checked_at": "2026-10-31T14:33:39.324788+00:00",
+      "published_places": 155,
+      "eligible_guet_places": 0,
+      "enabled_global_scopes": 4
+    },
+    "public_after": {
+      "checked_at": "2026-10-31T14:58:44.362559+00:00",
+      "checks": {
+        "guet_places": {
+          "status": 200,
+          "content_range": "0-99/100",
+          "rows": 100
+        },
+        "places": {
+          "status": 200,
+          "content_range": "0-154/155",
+          "rows": 155
+        },
+        "flags": {
+          "status": 200,
+          "content_range": "0-3/4",
+          "rows": 4
+        }
+      },
+      "verification": {
+        "expected_guet_ids_match": true,
+        "eligible_guet_places": 100,
+        "changed_places": [
+          {
+            "id": "9d54bcb5-b581-564f-bc31-b2cf597197c8",
+            "name": "Chez Hao",
+            "before": [
+              5.283084,
+              -3.981285
+            ],
+            "after": [
+              5.288414,
+              -3.976364
+            ]
+          },
+          {
+            "id": "702d29d0-3fd6-502d-9f0f-8f0ff6175ba8",
+            "name": "Le Montmorency",
+            "before": [
+              5.3167,
+              -4.0667
+            ],
+            "after": [
+              5.3415041,
+              -4.0773175
+            ]
+          }
+        ],
+        "other_place_coordinates_preserved": true,
+        "published_places": 155,
+        "closed_place_excluded": true,
+        "dated_places": 0,
+        "all_four_guet_scopes_enabled": true
+      },
+      "guet_flags": [
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "alpha",
+          "enabled": true,
+          "expires_at": null
+        },
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "beta",
+          "enabled": true,
+          "expires_at": null
+        },
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "internal",
+          "enabled": true,
+          "expires_at": null
+        },
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "prod",
+          "enabled": true,
+          "expires_at": null
+        }
+      ]
+    }
+  },
+  "initial_implementation_commit": "30ac2353a3a78a49acbc8c866ad9406312bcf77a",
+  "apk_source_commit": "8cf7ea89ef7610b69c28f7608218f4e005dbdc30",
+  "apk_changed": false,
+  "previous_checks": [
+    {
+      "implementation_commit": "30ac2353a3a78a49acbc8c866ad9406312bcf77a",
+      "sql_push": 41210959758,
+      "sql_pr": 41210963922,
+      "app_push": 41210959756,
+      "app_pr": 41210963789,
+      "all_four_conclusions": "success",
+      "admin_tests": 234,
+      "app_tests_passed": 1146,
+      "app_tests_skipped_preexisting": 4
+    }
+  ],
+  "admin_deployment": {
+    "status": "public_bundle_verified",
+    "source_commit": "1775cc7449b0f8a08357462988a4de02fabe4503",
+    "public_checked_at": "2026-10-31T15:08:15.803997+00:00",
+    "public_receipt": {
+      "kind": "public-admin-cartography-bundle-receipt",
+      "checkedAt": "2026-10-31T15:08:15.803997+00:00",
+      "sourceCommit": "1775cc7449b0f8a08357462988a4de02fabe4503",
+      "html": {
+        "url": "https://admin.spawt.online/",
+        "status": 200
+      },
+      "asset": {
+        "url": "https://admin.spawt.online/assets/index-BSrIKRxy.js",
+        "status": 200,
+        "bytes": 1579893,
+        "sha256": "1c332614c774bbeddc955614a8d9fb9acdc84a4902809a5633c6cc2f7b06cd6a"
+      },
+      "checks": {
+        "newSourceLabel": true,
+        "cartographicHelp": true,
+        "optionalAccuracyHelp": true,
+        "noVisitRequiredHelp": true,
+        "emptyAccuracySentAsNull": true,
+        "oldOnsiteProofLabelAbsent": true
+      },
+      "authenticatedFormExercised": false,
+      "scope": "Public HTML and deployed JavaScript asset only; no login or authenticated form exercised."
+    },
+    "authenticated_form_exercised": false
+  },
+  "publication": {
+    "official_android_build": 41,
+    "android_42_published": false,
+    "apk_42_recompiled": false,
+    "physical_device_guet_receipt": false
   }
 }

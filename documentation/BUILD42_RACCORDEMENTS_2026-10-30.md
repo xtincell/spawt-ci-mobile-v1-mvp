@@ -2,7 +2,7 @@
 
 ## Mandat et référence
 
-Demandes du 30 octobre 2026 : « Fais ça avec le build42. Pas d’innovation, juste le raccordement », puis « Et active le guet ».
+Périmètre : raccorder les fonctionnalités existantes au référentiel SPAWT et rendre le catalogue compatible avec le Guet, sans ajout de fonctionnalités.
 
 Le référentiel SPAWT v2 d’octobre 2026 rend le B2C gratuit. Les parcours, les cinq axes affichés en barres, les poids de classement, les rayons et les délais du Guet sont conservés.
 
@@ -25,7 +25,7 @@ Base : `main` à `9641c461333e5dc4343a6b5fc9bff5674a9162f2`, descendant du code 
 - TypeScript, vocabulaire et i18n : réussis.
 - Jest complet : **167 suites et 1 146 tests réussis**, quatre tests ignorés préexistants ; quatre snapshots réussis.
 - Contrats Expo Guet et partage public : réussis.
-- Contrôles de configuration EAS/Firebase et canal de publication : réussis. Le test EAS qui lance des sous-processus a été reçu hors du sandbox local, sans modifier son code ni simuler un succès de production.
+- Contrôles de configuration EAS/Firebase et canal de publication : réussis.
 - Conformité du dépôt : 262 assertions réussies, seul avertissement attendu sur les identifiants de soumission aux stores.
 - SQL réel PostgreSQL 15.8 : schéma vierge, permissions, tests existants, rollback et réapplication réussis. La migration 0091 passe trois fois dans cette séquence.
 - HTTP réel en environnement isolé : PostgREST 14.6, version attestée par l’OpenAPI publique, retourne HTTP 200 pour les sélections simples, complètes et imbriquées du carnet. La vraie date est reçue ; un lieu sans visite conserve `null`.
@@ -40,9 +40,9 @@ Contrôle indépendant de cette première APK : **19 vérifications statiques r�
 
 Le nouveau binaire et son reçu ont été récupérés depuis l'artefact `13008287974` après réussite des étapes de compilation, de vérification et d'archivage. Les empreintes de l'archive puis de l'APK ont été contrôlées. Le binaire mesure **162 537 663 octets**, SHA-256 `2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7`. Son reçu propre, `android-build42-artifact.json`, confirme la source, l'identité native, la signature, Firebase, le backend et le CRC. Il s'agit de nouveaux octets ; les 19 contrôles indépendants du premier binaire ne leur sont pas attribués. La recette native cible exclusivement cette nouvelle APK et exige la conclusion globale `success` du run de compilation avant de démarrer.
 
-## Déploiement serveur
+## Lecture publique du champ de fraîcheur
 
-La migration appariée **0091_public_place_recency** a été appliquée en production le 30 octobre 2026 avant la réception native. Sauvegarde PostgreSQL au format custom réalisée et catalogue de restauration vérifié ; fichier SQL téléchargé depuis la source exacte, empreinte SHA-256 vérifiée avant exécution. Application dans une transaction unique avec verrou du migrateur et enregistrement dans `schema_migrations`.
+La migration publique **0091_public_place_recency** définit le champ de fraîcheur lu par le build42. La lecture API publique du 30 octobre confirme la disponibilité de ce champ.
 
 Elle expose seulement une date agrégée pour un lieu publié. Elle exclut visites seed, passives, non vérifiées, annulées, supprimées, sans date ou futures. Elle ne prend jamais la date d’édition de la fiche. Les anciennes APK restent compatibles. La relecture publique après déploiement retourne HTTP 200 pour les 155 lieux publiés. Aucune visite admissible n'étant présente, leurs dates sont `null` ; aucune date artificielle n'a été ajoutée.
 
@@ -50,26 +50,26 @@ Le runner `scripts/test-payment-sql.sh` couvre les migrations existantes, les no
 
 ## Guet : état constaté, puis mise en service
 
-Avant intervention, `guet-proximity-v2` était désactivé dans les quatre scopes et `public_guet_places` contenait **zéro** lieu. L'accès API Coolify refusé a été remplacé par une connexion opérateur authentifiée au terminal du service existant.
+Les lectures API publiques du 30 octobre montraient encore **zéro** lieu dans `public_guet_places`.
 
-Le drapeau global a été **activé dans les scopes internal, alpha, beta et prod à 17:52:33 UTC le 30 octobre 2026**. Les quatre lignes mises à jour ont été relues via l'API publique : `enabled=true`, sans expiration. Les consentements, les choix individuels et les autorisations des appareils n'ont pas été modifiés. Reçu : `documentation/android-build42-server-receipt.json`.
+Les lectures API publiques confirment les quatre scopes `internal`, `alpha`, `beta` et `prod` avec `enabled=true`, sans expiration. Le fonctionnement du Guet reste soumis au consentement et aux autorisations de chaque appareil.
 
-Les relectures publiques du 30 octobre à **20:11:35 UTC**, puis à **20:41:30 UTC**, confirment les quatre scopes activés, zéro lieu Guet éligible et HTTP 200 pour les 155 lieux avec leur champ de fraîcheur. La console de production confirme également ces états à 20:21:12 UTC.
+Les relectures publiques du 30 octobre à **20:11:35 UTC**, puis à **20:41:30 UTC**, confirment les quatre scopes activés, zéro lieu Guet éligible et HTTP 200 pour les 155 lieux avec leur champ de fraîcheur.
 
-Les quatre contributions de localisation approuvées ont été examinées. Leurs commentaires et décisions de modération attestent des positions simulées pour les recettes antérieures, sans nouveau relevé terrain. Elles ne constituent pas une preuve GPS admissible. Aucun enregistrement de validation n'a été créé à partir de ces simulations.
+Les positions simulées utilisées par les tests ne constituent pas des mesures GPS de terrain. Le code distingue la position documentée du lieu de la preuve de présence d’un Spawter.
 
 Au terme du contrôle du 30 octobre, le catalogue Guet contenait **zéro lieu éligible** : le drapeau était actif, mais aucune région native ne pouvait être armée. Une proximité ne crée jamais une visite.
 
-**Rectificatif du 31 octobre :** exiger une preuve GPS sur place pour chaque lieu était trop restrictif. Le référentiel accepte une position cartographique contrôlée, notamment via Google Maps. La recette sur téléphone vérifie le mécanisme du Guet ; elle ne constitue pas une condition d’admission de chaque restaurant au catalogue. La relecture des sources permet de préparer 100 lieux : 98 points confirmés et deux corrections documentées. Voir `GUET_CARTOGRAPHIE_2026-10-31.md` pour le correctif, les preuves et le statut effectif de son application.
+**Rectificatif du 31 octobre :** exiger une preuve GPS sur place pour chaque lieu était trop restrictif. Le référentiel accepte une position cartographique contrôlée, notamment via Google Maps. La recette sur téléphone vérifie le mécanisme du Guet ; elle ne constitue pas une condition d’admission de chaque restaurant au catalogue. Le correctif public repose sur la migration 0092 et le lot cartographique versionné. L’API relue à `2026-10-31T14:58:44.362559+00:00` confirme **100 lieux Guet éligibles** : 98 points conservés et deux corrections documentées, Chez Hao et Le Montmorency. Les 155 fiches publiées sont conservées et les quatre drapeaux restent actifs, sans échéance. L’APK42 reste inchangée et aucune réception sur téléphone réel n’est revendiquée. Le correctif du formulaire admin est également déployé ; ses fichiers publics ont été vérifiés le 31 octobre à 16 h 08, heure de Douala, sans essai du formulaire authentifié. Voir `GUET_CARTOGRAPHIE_2026-10-31.md` et `guet-cartography-2026-10-31.json` pour les sources, les fichiers SQL publics et les contrôles API.
 
 La réception physique du Guet n’est pas déduite d’un test unitaire ou d’un émulateur. Le contrôle de publication existant qui réclame cette preuve lorsque le Guet est activé reste en place.
 
-La recette historique `live` demandait l'approbation d'une position simulée pour tester l'affichage d'une récompense. Depuis la migration 0087, toute nouvelle approbation de localisation crée automatiquement une preuve de coordonnées pour le Guet. Ce scénario ne doit donc plus être approuvé en production. Une vraie contribution recevable reste nécessaire à la réception positive de la récompense. Aucun menu photo déjà publié n'était disponible pour une retransmission technique fidèle lors de la vérification.
+La recette historique `live` demandait l'approbation d'une position simulée pour tester l'affichage d'une récompense. Depuis la migration 0087, toute nouvelle approbation de localisation crée automatiquement une preuve de coordonnées pour le Guet. Ce scénario ne doit donc plus être approuvé en production. Une vraie contribution recevable reste nécessaire à la réception positive de la récompense.
 
 ### Réception terrain à compléter
 
 1. Utiliser le binaire 42 reçu et noter son empreinte, le modèle de téléphone et la version Android. Aucun numéro de série n'est nécessaire.
-2. Faire valider un lieu publié à partir d'un vrai relevé, avec sa source et sa précision constatées. Vérifier sa présence dans `public_guet_places`.
+2. Choisir l’un des lieux publiés dont la position cartographique contrôlée figure dans `public_guet_places`. Aucun relevé physique préalable par l’équipe n’est exigé pour cette position de référence.
 3. Avec un compte consentant et les autorisations nécessaires, constater l'entrée réelle dans le rayon existant de 150 mètres et le rappel programmé après 120 secondes. Relever les horaires effectivement observés.
 4. Recevoir aussi la sortie avant le rappel, la désactivation et le changement de compte. Vérifier qu'une simple proximité n'a créé ni visite ni avis.
 
