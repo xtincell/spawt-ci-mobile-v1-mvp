@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "kind": "spawt-android-build42-distribution-receipt",
+  "completedAt": "2026-11-01T01:03:01.040280+00:00",
+  "release": {
+    "id": 430283547,
+    "name": "SPAWT Android 1.1.1 — build 42",
+    "tag": "local-build-android-2026-10-30-42",
+    "draft": false,
+    "prerelease": true,
+    "publishedAt": "2026-11-01T00:58:02Z",
+    "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-30-42",
+    "assets": [
+      {
+        "name": "apk-metadata.json",
+        "size": 1028,
+        "state": "uploaded",
+        "digest": "sha256:e1e35f72578244bdc54e847f45a7682e7aed0fa06ee8805f1500b2b9666a4344",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/apk-metadata.json"
+      },
+      {
+        "name": "firebase-runtime-proof.json",
+        "size": 31,
+        "state": "uploaded",
+        "digest": "sha256:20b42ead0992422d5f84a798d76cfc6a5821a5ea1e9c1ac7f49e2baf726feb36",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/firebase-runtime-proof.json"
+      },
+      {
+        "name": "native-assertions.json",
+        "size": 2898,
+        "state": "uploaded",
+        "digest": "sha256:0405c978f589bee21d1b13beb2e9b247cde5f723e95c9c820637126da8c379c3",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/native-assertions.json"
+      },
+      {
+        "name": "opening-visibility-proof.json",
+        "size": 10984,
+        "state": "uploaded",
+        "digest": "sha256:c22f93b5eb4fefabcadb1197f2646df981fc459476ab8af378df02148abc9a5e",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/opening-visibility-proof.json"
+      },
+      {
+        "name": "raccordements-profile-scroll-2.png",
+        "size": 131420,
+        "state": "uploaded",
+        "digest": "sha256:38598f81b837168b976f44b1be1cadd0029a50f7ffbdf5de710092023cb14200",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/raccordements-profile-scroll-2.png"
+      },
+      {
+        "name": "raccordements-profile-verso.png",
+        "size": 90501,
+        "state": "uploaded",
+        "digest": "sha256:282405f7eaa1fe9185b27eb6fda286aceda365a243cacc91f345f2b725a6a20f",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/raccordements-profile-verso.png"
+      },
+      {
+        "name": "release-qualification.json",
+        "size": 2249,
+        "state": "uploaded",
+        "digest": "sha256:b3237e2f1336ac55132f9479bdb32f7b14bd80f1550215d328645b12ec04e84d",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/release-qualification.json"
+      },
+      {
+        "name": "spawt-1.1.1-build42.apk",
+        "size": 162537663,
+        "state": "uploaded",
+        "digest": "sha256:2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/spawt-1.1.1-build42.apk"
+      },
+      {
+        "name": "spawt-1.1.1-build42.apk.sha256",
+        "size": 90,
+        "state": "uploaded",
+        "digest": "sha256:d87217c7a665d2482c0fe0fa8ce97708889b7c7a8f530f8f7fe8632e3f60f219",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/spawt-1.1.1-build42.apk.sha256"
+      },
+      {
+        "name": "upgrade-install-proof.json",
+        "size": 89,
+        "state": "uploaded",
+        "digest": "sha256:619a5b16de2c259ab6494bd0739218cc80eb2a109dd189ad86aaf7c76575f869",
+        "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/upgrade-install-proof.json"
+      }
+    ]
+  },
+  "tagTargetCommit": "360d181c9c15c6378b06ec41893afeb6a653f120",
+  "publicationWorkflow": {
+    "id": 41219261126,
+    "runAttempt": 2,
+    "status": "completed",
+    "conclusion": "success",
+    "headSha": "1858d00bb6fafc16db2dc53b61da8a6195be6a60",
+    "htmlUrl": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/41219261126",
+    "updatedAt": "2026-11-01T00:58:44Z"
+  },
+  "officialManifest": {
+    "schemaVersion": 1,
+    "packageName": "com.upgraders.spawt",
+    "version": "1.1.1",
+    "build": 42,
+    "buildDate": "2026-10-30",
+    "fileName": "spawt-1.1.1-build42.apk",
+    "url": "https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-30-42/spawt-1.1.1-build42.apk",
+    "sha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+    "bytes": 162537663,
+    "sourceCommit": "8cf7ea89ef7610b69c28f7608218f4e005dbdc30",
+    "publishedAt": "2026-11-01T00:58:02Z",
+    "verification": {
+      "buildRun": 41117097867,
+      "qaRun": 41123847019
+    }
+  },
+  "portal": {
+    "repository": "xtincell/project_spawt_mobile_ci",
+    "branch": "codex/build42-downloads",
+    "commit": "9399cf191f1be95eef85fa3f899d56ee83df4c0c",
+    "ciRun": 41219751999,
+    "ciConclusion": "success",
+    "deploymentStatus": "finished",
+    "healthyAt": "2026-11-01T01:01:59Z",
+    "rollingUpdateCompletedAt": "2026-11-01T01:02:05Z"
+  },
+  "publicUi": {
+    "statusUrl": "https://spawt.online/statut",
+    "statusCheckedAt": "2026-11-01T01:02:55Z",
+    "homepageUrl": "https://spawt.online/",
+    "version": "1.1.1",
+    "build": 42,
+    "homepageAndroidButtonCount": 2,
+    "downloadUrl": "https://spawt.online/downloads/spawt-1.1.1-build42.apk",
+    "publishedPlaces": 155,
+    "guetEligibleLocations": 100,
+    "screenshot": {
+      "fileName": "android-build42-distribution-2026-11-01.jpg",
+      "bytes": 59393,
+      "sha256": "b2ff89b51fd95a8715f5129d08122654bd7179632f1977e36e0a8ccbba1c3467"
+    }
+  },
+  "downloadReceipt": {
+    "kind": "public-android-download-receipt",
+    "checkedAt": "2026-11-01T01:02:42.697956+00:00",
+    "build": 42,
+    "fileName": "spawt-1.1.1-build42.apk",
+    "expectedBytes": 162537663,
+    "expectedSha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+    "transport": {
+      "tlsCertificateVerificationRequired": true,
+      "tlsHostnameVerificationRequired": true,
+      "applicationAuthenticationUsed": false,
+      "cookiesUsed": false
+    },
+    "head": {
+      "status": 200,
+      "url": "https://spawt.online/downloads/spawt-1.1.1-build42.apk",
+      "redirects": [],
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "162537663",
+        "content-disposition": "attachment",
+        "accept-ranges": "bytes",
+        "etag": "\"6ae68f44-9b020bf\"",
+        "last-modified": "Sun, 01 Nov 2026 01:00:52 GMT",
+        "cache-control": "public, max-age=31536000, immutable",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      }
+    },
+    "checksumFile": {
+      "status": 200,
+      "sha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+      "fileName": "spawt-1.1.1-build42.apk",
+      "url": "https://spawt.online/downloads/spawt-1.1.1-build42.apk.sha256",
+      "redirects": []
+    },
+    "resume": {
+      "status": 206,
+      "url": "https://spawt.online/downloads/spawt-1.1.1-build42.apk",
+      "redirects": [],
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "154149055",
+        "content-disposition": "attachment",
+        "content-range": "bytes 8388608-162537662/162537663",
+        "etag": "\"6ae68f44-9b020bf\"",
+        "last-modified": "Sun, 01 Nov 2026 01:00:52 GMT",
+        "cache-control": "public, max-age=31536000, immutable",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      }
+    },
+    "completedDownload": {
+      "bytes": 162537663,
+      "sha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+      "deliberatelyInterruptedAfterBytes": 8388608,
+      "resumedSuccessfully": true,
+      "seconds": 13.598
+    },
+    "stableLink": {
+      "status": 200,
+      "url": "https://spawt.online/downloads/spawt-1.1.1-build42.apk",
+      "redirects": [
+        {
+          "status": 307,
+          "from": "https://spawt.online/downloads/spawt-latest.apk",
+          "to": "https://spawt.online/downloads/spawt-1.1.1-build42.apk",
+          "cacheControl": "no-store"
+        }
+      ],
+      "headers": {
+        "content-type": "application/vnd.android.package-archive",
+        "content-length": "162537663",
+        "content-disposition": "attachment",
+        "accept-ranges": "bytes",
+        "etag": "\"6ae68f44-9b020bf\"",
+        "last-modified": "Sun, 01 Nov 2026 01:00:52 GMT",
+        "cache-control": "public, max-age=31536000, immutable",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      }
+    },
+    "stableChecksum": {
+      "status": 200,
+      "sha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+      "fileName": "spawt-1.1.1-build42.apk",
+      "url": "https://spawt.online/downloads/spawt-1.1.1-build42.apk.sha256",
+      "redirects": [
+        {
+          "status": 307,
+          "from": "https://spawt.online/downloads/spawt-latest.apk.sha256",
+          "to": "https://spawt.online/downloads/spawt-1.1.1-build42.apk.sha256",
+          "cacheControl": "no-store"
+        }
+      ]
+    },
+    "alternateHosts": [
+      {
+        "status": 200,
+        "url": "https://spawt.online/downloads/spawt-1.1.1-build42.apk",
+        "redirects": [
+          {
+            "status": 307,
+            "from": "https://www.spawt.online/downloads/spawt-1.1.1-build42.apk",
+            "to": "https://spawt.online/downloads/spawt-1.1.1-build42.apk",
+            "cacheControl": null
+          }
+        ],
+        "headers": {
+          "content-type": "application/vnd.android.package-archive",
+          "content-length": "162537663",
+          "content-disposition": "attachment",
+          "accept-ranges": "bytes",
+          "etag": "\"6ae68f44-9b020bf\"",
+          "last-modified": "Sun, 01 Nov 2026 01:00:52 GMT",
+          "cache-control": "public, max-age=31536000, immutable",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "DENY"
+        }
+      },
+      {
+        "status": 200,
+        "url": "https://portail.spawt.online/downloads/spawt-1.1.1-build42.apk",
+        "redirects": [],
+        "headers": {
+          "content-type": "application/vnd.android.package-archive",
+          "content-length": "162537663",
+          "content-disposition": "attachment",
+          "accept-ranges": "bytes",
+          "etag": "\"6ae68f44-9b020bf\"",
+          "last-modified": "Sun, 01 Nov 2026 01:00:52 GMT",
+          "cache-control": "public, max-age=31536000, immutable",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "DENY"
+        }
+      }
+    ],
+    "retainedBuild41": {
+      "head": {
+        "status": 200,
+        "url": "https://spawt.online/downloads/spawt-1.1.1-build41.apk",
+        "redirects": [],
+        "headers": {
+          "content-type": "application/vnd.android.package-archive",
+          "content-length": "162536491",
+          "content-disposition": "attachment",
+          "accept-ranges": "bytes",
+          "etag": "\"6ae68f48-9b01c2b\"",
+          "last-modified": "Sun, 01 Nov 2026 01:00:56 GMT",
+          "cache-control": "public, max-age=31536000, immutable",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "DENY"
+        }
+      },
+      "fullFileHashVerified": false,
+      "checksumFile": {
+        "status": 200,
+        "sha256": "62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9",
+        "fileName": "spawt-1.1.1-build41.apk",
+        "url": "https://spawt.online/downloads/spawt-1.1.1-build41.apk.sha256",
+        "redirects": []
+      },
+      "range": {
+        "status": 206,
+        "url": "https://spawt.online/downloads/spawt-1.1.1-build41.apk",
+        "redirects": [],
+        "headers": {
+          "content-type": "application/vnd.android.package-archive",
+          "content-length": "1024",
+          "content-disposition": "attachment",
+          "content-range": "bytes 0-1023/162536491",
+          "etag": "\"6ae68f48-9b01c2b\"",
+          "last-modified": "Sun, 01 Nov 2026 01:00:56 GMT",
+          "cache-control": "public, max-age=31536000, immutable",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "DENY"
+        },
+        "sampleBytes": 1024,
+        "zipMagicVerified": true
+      }
+    },
+    "unknownVersionStatus": 404,
+    "passed": true,
+    "completedAt": "2026-11-01T01:03:01.040280+00:00"
+  },
+  "qualification": {
+    "publicationProfile": "raccordements",
+    "fullLiveReceipt": false,
+    "consoleModerationReceipt": false,
+    "physicalGuetReceipt": false
+  },
+  "scope": "Full official build42 download and intentional interruption/resume verified under the recorded network conditions. Build41 retained and checked by HEAD, checksum file and 1024-byte range; its complete hash was not recomputed in this receipt. This is not a penetration test or a guarantee for every user network."
+}
+
