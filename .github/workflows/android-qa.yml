@@ -25,6 +25,30 @@ jobs:
       ANDROID_AVD_HOME: /tmp/spawt-android-user/avd
     steps:
       - uses: actions/checkout@v4
+      - name: Déterminer la politique de sortie avant toute recette
+        id: capture_policy
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, sys
+          try:
+              config=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+              mode=config.get('mode')
+              raw_modes={'observe','opening','community','raccordements','live','photos','matrix','full'}
+              if not isinstance(mode,str) or mode not in raw_modes|{'pitch'}:
+                  raise ValueError('Unknown capture policy')
+              if mode=='pitch':
+                  phone=config.get('phone')
+                  if not isinstance(phone,str) or not phone.startswith('+225') or not phone[1:].isdigit():
+                      raise ValueError('Invalid capture account')
+                  print('::add-mask::'+phone,flush=True)
+              with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+                  output.write('mode='+mode+'\nraw_allowed='+('true' if mode in raw_modes else 'false')+'\n')
+              with open(os.environ['GITHUB_ENV'],'a') as output:
+                  output.write('SPAWT_QA_MODE='+mode+'\n')
+          except Exception:
+              print('Capture policy unavailable; raw artifact uploads are disabled.',file=sys.stderr)
+              raise SystemExit(1)
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -36,6 +60,10 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          mkdir -p android-proof
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/apk-resolution.log 2>&1
+          fi
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           import crypto from 'node:crypto';
@@ -124,6 +152,10 @@ jobs:
       - name: Démarrer Android 35 avec KVM
         if: steps.apk.outputs.ready == 'true'
         run: |
+          mkdir -p android-proof
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/emulator-setup.log 2>&1
+          fi
           sudo chmod 666 /dev/kvm
           mkdir -p "$ANDROID_AVD_HOME"
           avdmanager create avd -n spawt-qa -k 'system-images;android-35;google_apis;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/spawt-qa.avd" --force
@@ -179,6 +211,9 @@ jobs:
       - name: Recette native
         if: steps.apk.outputs.ready == 'true'
         run: |
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/native-runner.log 2>&1
+          fi
           python3 -m pip install --quiet playwright
           test -x /usr/bin/google-chrome
           python3 scripts/android-qa.py
@@ -186,6 +221,9 @@ jobs:
         if: always() && steps.apk.outputs.ready == 'true'
         run: |
           mkdir -p android-proof
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/diagnostic-runner.log 2>&1
+          fi
           timeout 20s adb logcat -d -s AndroidRuntime ReactNativeJS libc DEBUG > android-proof/logcat.txt || true
           timeout 20s adb shell dumpsys package com.upgraders.spawt > android-proof/package.txt || true
           SPAWT_PID=$(adb shell pidof com.upgraders.spawt | tr -d '\r')
@@ -207,21 +245,53 @@ jobs:
       - name: Vérifier la présence visible de l'animation fournie
         if: always() && steps.apk.outputs.ready == 'true'
         run: |
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/opening-proof-runner.log 2>&1
+          fi
           python3 -m pip install --quiet pillow imageio-ffmpeg
           python3 scripts/android-opening-proof.py
+      - name: Sceller les captures pitch pour le destinataire local
+        id: seal
+        if: always() && steps.capture_policy.outputs.mode == 'pitch'
+        run: |
+          mkdir -p android-proof
+          if [ -f emulator.log ]; then
+            cp emulator.log android-proof/emulator.log
+          fi
+          if ! python3 -m pip install --quiet 'cryptography==50.0.0' > android-proof/sealing-install.log 2>&1; then
+            echo 'Pitch encryption dependency unavailable; no evidence artifact will be uploaded.'
+            exit 1
+          fi
+          python3 scripts/android-pitch-seal.py \
+            --input-dir android-proof \
+            --recipient documentation/android-pitch-recipient.pem \
+            --recipient-sha256 c5845e5c55ff5945b52a4c3d88720845d94896636f7872c7ccf90f4944c9972d \
+            --output-dir android-pitch-sealed
+          test -s android-pitch-sealed/android-pitch.bin
+          test -s android-pitch-sealed/android-pitch.json
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.capture_policy.outputs.mode == 'pitch' && steps.seal.outcome == 'success' && steps.seal.outputs.ready == 'true'
+        with:
+          name: android-pitch-sealed
+          path: |
+            android-pitch-sealed/android-pitch.json
+            android-pitch-sealed/android-pitch.bin
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.capture_policy.outputs.raw_allowed == 'true'
         with:
           name: android-proof
           path: android-proof
           retention-days: 14
       - name: Préparer les aperçus de recette
-        if: always() && steps.apk.outputs.ready == 'true'
+        if: always() && steps.capture_policy.outputs.raw_allowed == 'true' && steps.apk.outputs.ready == 'true'
         run: |
           python3 -m pip install --quiet pillow
           python3 scripts/android-proof-preview.py
       - uses: actions/upload-artifact@v4
-        if: always() && steps.apk.outputs.ready == 'true'
+        if: always() && steps.capture_policy.outputs.raw_allowed == 'true' && steps.apk.outputs.ready == 'true'
         with:
           name: android-preview
           path: android-preview

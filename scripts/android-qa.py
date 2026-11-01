@@ -2,10 +2,26 @@
 """Recette ADB sur deux comptes synthétiques alpha ; captures, XML et assertions.
 Le SDK doit être prêt et l'APK installée. Aucune clé serveur ni session n'est journalisée.
 """
-import os, re, json, time, pathlib, subprocess, xml.etree.ElementTree as ET, urllib.request
+import os, re, json, time, pathlib, subprocess, sys, xml.etree.ElementTree as ET, urllib.request
+MODE=os.environ.get('SPAWT_QA_MODE','observe')
+if MODE=='pitch':
+    # Install before reading account/configuration values. An uncaught error
+    # (including bootstrap or finally) must not expose its command, URL, UI
+    # anchor or traceback in public CI logs. The workflow seals these files.
+    def pitch_exception_hook(kind,value,tb):
+        try:
+            import traceback
+            diagnostic=pathlib.Path('android-proof/pitch-exception.txt')
+            diagnostic.parent.mkdir(exist_ok=True)
+            diagnostic.write_text(''.join(traceback.format_exception(kind,value,tb)))
+        except BaseException: pass
+        try: print('PITCH execution: erreur',file=sys.stderr,flush=True)
+        except BaseException: pass
+    sys.excepthook=pitch_exception_hook
+    sys.unraisablehook=lambda event:pitch_exception_hook(event.exc_type,event.exc_value,event.exc_traceback)
 OUT=pathlib.Path('android-proof'); OUT.mkdir(exist_ok=True)
 PACKAGE='com.upgraders.spawt'; PLACE='a1000000-0000-4000-8000-000000000004'
-PHONE=os.environ['SPAWT_QA_PHONE']; MODE=os.environ.get('SPAWT_QA_MODE','observe')
+PHONE=os.environ['SPAWT_QA_PHONE']
 OWNER={'+2250000000101':'fc8bc9b3-0bbb-447f-85a3-fe4bc0d4ed05','+2250000000193':'d7ea30bc-fb7f-440d-bac6-4bbd306f1e42','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
 RESULTS=[]
 RUN=os.environ.get('GITHUB_RUN_ID',str(int(time.time())))
@@ -25,7 +41,7 @@ def nodes():
             return ET.fromstring(raw),raw
         (OUT/'ui-dump-error.txt').write_text(dump+'\n'+raw)
         time.sleep(.6)
-    raise RuntimeError('Android UI hierarchy unavailable: '+raw[:250])
+    raise RuntimeError('Android UI hierarchy unavailable' if MODE=='pitch' else 'Android UI hierarchy unavailable: '+raw[:250])
 
 def label(n): return n.get('text','')+' '+n.get('content-desc','')+' '+n.get('resource-id','')
 
@@ -39,7 +55,7 @@ def find(value, timeout=25, exact=False, enabled=False):
                 b=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
                 if len(b)==4 and b[2]>b[0] and b[3]>b[1]: return n
         time.sleep(.4)
-    raise AssertionError('Native control not found: '+value)
+    raise AssertionError('Native control not found' if MODE=='pitch' else 'Native control not found: '+value)
 
 def tap_node(n):
     b=list(map(int,re.findall(r'\d+',n.get('bounds','')))); assert len(b)==4
@@ -62,7 +78,10 @@ def snap(name):
     (OUT/(name+'.png')).write_bytes(adb('exec-out','screencap','-p',binary=True))
     tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
     texts=[n.get('text') or n.get('content-desc') for n in tree.iter('node') if n.get('text') or n.get('content-desc')]
-    print(name+': '+ ' | '.join(texts)[:1200],flush=True)
+    if MODE=='pitch':
+        public_id=name if name in ('cold-opening','signed-in','last-state','pitch-00-onboarding','pitch-00-phone') else 'snapshot'
+        print('PITCH '+public_id+': capturé',flush=True)
+    else: print(name+': '+ ' | '.join(texts)[:1200],flush=True)
     if MODE in ('full','matrix','photos'):
         check(name+': labels translated',not any('a11y.stars' in text or 'review.section_photos' in text.casefold() for text in texts))
     return tree
@@ -77,8 +96,16 @@ def public_reviews(owner=OWNER):
 
 def check(name, ok):
     RESULTS.append({'check':name,'passed':bool(ok)})
-    print('ASSERT '+name+': '+('PASS' if ok else 'FAIL'),flush=True)
-    assert ok,name
+    public_name=name
+    if MODE=='pitch' and name not in (
+            'pitch: original build42 provenance','pitch: existing synthetic account',
+            'pitch: published APK42 SHA256','pitch: installed version42',
+            'pitch: background location not granted',
+            'cold animated launch keeps SPAWT in foreground',
+            'pitch: authenticated native home available'):
+        public_name='pitch: check-'+str(len(RESULTS))
+    print('ASSERT '+public_name+': '+('PASS' if ok else 'FAIL'),flush=True)
+    assert ok,public_name
 
 def geometry(width,scale,pixel_ratio=3):
     adb('shell','wm','size',f'{width*pixel_ratio}x{800*pixel_ratio}'); adb('shell','wm','density',str(160*pixel_ratio))
@@ -113,7 +140,7 @@ def scroll_find(value, attempts=6):
             if bounds(candidate)[3] <= limit-8: return candidate
         except AssertionError: pass
         scroll()
-    raise AssertionError('Native control absent after scroll: '+value)
+    raise AssertionError('Native control absent after scroll' if MODE=='pitch' else 'Native control absent after scroll: '+value)
 
 def scroll_tap(value): tap_node(scroll_find(value))
 
@@ -418,10 +445,331 @@ def live_content_cases():
         enrichment={'nativeMenuPhotoReceivedAndModerated':True,'contributionReceiptReceived':True,'contributionModerationRead':True,'contributionRewardRead':True,'contributionDidNotCreateVisit':True,'pawsBalanceDelta':5,'contributionMarker':'Recette enrichissement natif '+RUN,'positionSimulatedForTechnicalTest':True}
     (OUT/'live-data.json').write_text(json.dumps({'build':build,'apiOrigin':cfg['EXPO_PUBLIC_SUPABASE_URL'],'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'nativeAuthenticated':True,'announcementsRead':True,'editorialTextMatched':True,'collectionRead':True,'fiveContentChecksPassed':True,'offlineFailureAndRecovery':True,'feedbackReceiptReceived':True,'feedbackReplyRead':True,'publicPlaceCount':len(inventory),'mappedPlaceCount':mapped,'personalExplorationChecked':True,'unratedDocumentaryRead':True,'feedbackMarker':MARKER,**enrichment},ensure_ascii=False,indent=2))
 
+def pitch_preflight():
+    """Fail closed before authentication: capture the published APK42 only."""
+    import hashlib
+    config=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+    expected={'build':42,'previousBuild':41,'localBuildRun':41117097867,
+              'sourceCommit':'8cf7ea89ef7610b69c28f7608218f4e005dbdc30',
+              'buildWorkflowCommit':'360d181c9c15c6378b06ec41893afeb6a653f120'}
+    check('pitch: original build42 provenance',all(config.get(k)==v for k,v in expected.items()))
+    check('pitch: existing synthetic account',PHONE==config['phone'] and PHONE in ('+2250000000193','+2250000000194'))
+    digest=hashlib.sha256()
+    with pathlib.Path('spawt.apk').open('rb') as apk:
+        for chunk in iter(lambda:apk.read(1024*1024),b''): digest.update(chunk)
+    check('pitch: published APK42 SHA256',digest.hexdigest()=='2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7')
+    package=adb('shell','dumpsys','package',PACKAGE)
+    check('pitch: installed version42',bool(re.search(r'\bversionCode=42\b',package)) and 'versionName=1.1.1' in package)
+    # This fresh emulator must not create simulated Guet events. No GPS fix,
+    # background permission grant, app flag or server setting is changed.
+    adb('shell','pm','revoke',PACKAGE,'android.permission.ACCESS_BACKGROUND_LOCATION')
+    package=adb('shell','dumpsys','package',PACKAGE)
+    check('pitch: background location not granted',not re.search(r'android\.permission\.ACCESS_BACKGROUND_LOCATION:\s*granted=true',package))
+    # Remove emulator touch overlays, without altering the app or its images.
+    for setting in ('show_touches','pointer_location'):
+        adb('shell','settings','put','system',setting,'0')
+
+def pitch_anonymous_cases():
+    """Optional anonymous views before the unchanged synthetic login."""
+    import hashlib
+    entries=[]
+    cases=[('00-onboarding','Ouverture · Rejoindre la bande',None,
+            ['Plus jamais goumin de restaurant.','Rejoindre la bande']),
+           ('00-phone','Connexion · Téléphone sans saisie','phone',['phone-input','phone-send'])]
+    for key,title,path,anchors in cases:
+        entry={'id':key,'label':title,'state':'manquant','requiresPrivacyReview':True,'privacyNotes':[]}
+        entries.append(entry)
+        try:
+            if path: deep(path)
+            for anchor in anchors: find(anchor,timeout=8)
+            # Wait through the final reveal and recheck the same real controls.
+            time.sleep(1)
+            for anchor in anchors: find(anchor,timeout=2)
+            name='pitch-'+key; snap(name)
+            png=(OUT/(name+'.png')).read_bytes()
+            entry.update(state='capturé',reason='Ancrages présents avant et après une pause de stabilité.',
+                         file=name+'.png',xml=name+'.xml',sha256=hashlib.sha256(png).hexdigest(),
+                         anchors=anchors,width=1179,height=2400)
+        except AssertionError:
+            entry.update(state='manquant',reason='Écran anonyme ou ancrage attendu absent ; collecte facultative.')
+        except Exception:
+            entry.update(state='erreur',reason='Échec technique facultatif de la capture anonyme.')
+        finally:
+            (OUT/'pitch-anonymous.json').write_text(json.dumps(entries,ensure_ascii=False,indent=2))
+            print('PITCH '+key+': '+entry['state'],flush=True)
+    return entries
+
+def pitch_cases():
+    """Native product views, with no business submission or invented activity.
+
+    Normal app telemetry remains enabled. Raw captures are internal material:
+    review identifiers, QA labels and private history before public delivery.
+    Missing optional surfaces are recorded, never replaced by a different page.
+    """
+    import hashlib, unicodedata
+    fr=json.loads(pathlib.Path('app/src/i18n/fr.json').read_text())
+    config=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+    manifest={'mode':'pitch','build':42,'version':'1.1.1','runId':RUN,
+              'sourceCommit':config['sourceCommit'],'buildRun':config['localBuildRun'],
+              'apkSha256':'2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7',
+              'nativeAuthenticated':True,'businessActionsSubmitted':False,
+              'normalNavigationTelemetryMayBeWritten':True,
+              'backgroundLocationGranted':False,'simulatedPositionInjected':False,
+              'visibility':'internal-review-only','publicDeliveryRequiresPrivacyReview':True,
+              'fullLiveReceipt':False,'consoleModerationReceipt':False,'physicalGuetReceipt':False,
+              'publicReads':[],'captures':list(globals().get('PITCH_ANONYMOUS',[]))}
+    seen={}
+    class MissingView(Exception): pass
+    class SessionLost(Exception): pass
+
+    def save_manifest():
+        manifest['updatedAt']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+        manifest['counts']={state:sum(c['state']==state for c in manifest['captures'])
+                            for state in ('capturé','manquant','erreur')}
+        (OUT/'pitch-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2))
+
+    def translated(key):
+        value=fr
+        for part in key.split('.'):
+            if not isinstance(value,dict) or part not in value: return key
+            value=value[part]
+        return value if isinstance(value,str) else key
+
+    def present(tree,value):
+        return any(value.casefold() in label(n).casefold() and len(bounds(n))==4
+                   and bounds(n)[2]>bounds(n)[0] and 0<=bounds(n)[1]<bounds(n)[3]<=2400
+                   for n in tree.iter('node'))
+
+    def stable(required,timeout=24):
+        previous=None; equal=0; deadline=time.monotonic()+timeout
+        while time.monotonic()<deadline:
+            tree,raw=nodes()
+            if present(tree,'phone-input') or present(tree,'otp-cell-0'):
+                raise SessionLost('La session synthétique n’est plus authentifiée.')
+            app_nodes=[n for n in tree.iter('node') if n.get('package')==PACKAGE]
+            unavailable=[fr['rapide']['unavailable'],fr['carte']['unavailable_title'],
+                         fr['carte']['module_unavailable'],fr['home']['collections_unavailable']]
+            if any(present(tree,value) for value in unavailable):
+                raise MissingView('La surface affiche son indisponibilité ; aucun flag activé pour la capture.')
+            loading=any(n.get('class')=='android.widget.ProgressBar' for n in app_nodes)
+            failed=present(tree,fr['common']['data_read_error'])
+            signature=tuple(tuple(n.get(k,'') for k in
+                            ('resource-id','text','content-desc','bounds','checked','selected')) for n in app_nodes)
+            ready=bool(app_nodes) and all(present(tree,value) for value in required) and not loading and not failed
+            equal=equal+1 if ready and signature==previous else 0
+            if equal>=2: return tree,raw
+            previous=signature if ready else None
+            time.sleep(.8)
+        raise MissingView('État stable ou ancrage attendu absent ; aucune image de remplacement.')
+
+    def capture(key,title,prepare,required,privacy=()):
+        entry={'id':key,'label':title,'state':'manquant','reason':'Vue non atteinte.',
+               'requiresPrivacyReview':True,'privacyNotes':list(privacy)}
+        manifest['captures'].append(entry); save_manifest()
+        try:
+            prepare(); time.sleep(1.5)
+            tree,raw=stable(required)
+            png=adb('exec-out','screencap','-p',binary=True)
+            if not png.startswith(b'\x89PNG\r\n\x1a\n'): raise RuntimeError('Capture Android non PNG.')
+            digest=hashlib.sha256(png).hexdigest()
+            if digest in seen:
+                raise MissingView('Image identique à '+seen[digest]+' ; doublon non livré.')
+            name='pitch-'+key
+            (OUT/(name+'.png')).write_bytes(png)
+            (OUT/(name+'.xml')).write_text(raw)
+            seen[digest]=key
+            # Report only the presence of potentially private strings, not their values.
+            visible=' '.join(n.get('text','')+' '+n.get('content-desc','') for n in tree.iter('node'))
+            if re.search(r'\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b|\+225\d{8,}',visible,re.I):
+                entry['privacyNotes'].append('Identifiant ou numéro visible : revue requise avant diffusion.')
+            entry.update(state='capturé',reason='Ancrages présents ; hiérarchie stable sur trois lectures.',
+                         file=name+'.png',xml=name+'.xml',sha256=digest,anchors=list(required),
+                         width=1179,height=2400)
+        except SessionLost:
+            entry.update(state='erreur',reason='Authentification perdue : arrêt bloquant du parcours.')
+            raise
+        except (MissingView,AssertionError) as exc:
+            entry.update(state='manquant',reason=str(exc)[:220])
+            # A missing route anchor must not disguise a lost login as an
+            # optional screen. Authentication remains a blocking condition.
+            try: current,_=nodes()
+            except Exception: current=None
+            if current is not None and (present(current,'phone-input') or present(current,'otp-cell-0')):
+                entry.update(state='erreur',reason='Authentification perdue : arrêt bloquant du parcours.')
+                raise SessionLost(entry['reason'])
+        except Exception as exc:
+            entry.update(state='erreur',reason='Échec technique de la vue : '+type(exc).__name__)
+        finally:
+            save_manifest()
+            print('PITCH '+key+': '+entry['state'],flush=True)
+
+    def omit(key,title,reason):
+        manifest['captures'].append({'id':key,'label':title,'state':'manquant','reason':reason})
+        save_manifest()
+
+    def public_read(name,path):
+        # Anon GET only; neither credentials nor full response bodies enter the manifest.
+        try:
+            cfg=json.loads(pathlib.Path('app/eas.json').read_text())['build']['preview']['env']
+            request=urllib.request.Request(cfg['EXPO_PUBLIC_SUPABASE_URL']+'/rest/v1/'+path,
+                       headers={'apikey':cfg['EXPO_PUBLIC_SUPABASE_ANON_KEY']},method='GET')
+            with urllib.request.urlopen(request,timeout=20) as response: rows=json.load(response)
+            if not isinstance(rows,list): raise ValueError('Expected public list')
+            manifest['publicReads'].append({'resource':name,'state':'lu','count':len(rows)})
+            return rows
+        except Exception as exc:
+            manifest['publicReads'].append({'resource':name,'state':'erreur','reason':type(exc).__name__})
+            return []
+
+    def route(path,*anchors):
+        deep(path)
+        for anchor in anchors: find(anchor,timeout=12)
+
+    def top():
+        for _ in range(5):
+            adb('shell','input','swipe','550','650','550','1850','220'); time.sleep(.2)
+
+    def home_panel(mode):
+        home(); tap('home-mode-'+mode,timeout=10); find('home-panel-'+mode,timeout=12)
+
+    def search(query=''):
+        # A modal from a previous optional capture may still be open.
+        tree,_=nodes()
+        if present(tree,fr['search']['filters_open']): back()
+        deep('search')
+        # Existing searches may retain their query, which hides the placeholder.
+        # Wait for the actual field rather than assuming an empty form.
+        deadline=time.monotonic()+12
+        while time.monotonic()<deadline:
+            tree,_=nodes()
+            if present(tree,'phone-input') or present(tree,'otp-cell-0'):
+                raise SessionLost('La session synthétique n’est plus authentifiée.')
+            if any(n.get('package')==PACKAGE and n.get('class')=='android.widget.EditText' for n in tree.iter('node')): break
+            time.sleep(.4)
+        else: raise MissingView('Le champ de recherche natif est absent.')
+        if any(n.get('content-desc')==fr['common']['clear'] for n in tree.iter('node')):
+            tap(fr['common']['clear'],exact=True)
+        if query:
+            if not re.fullmatch(r'[A-Za-z0-9 ]+',query): raise MissingView('Terme de recherche non sûr pour ADB.')
+            tree,_=nodes(); field=next(n for n in tree.iter('node') if n.get('class')=='android.widget.EditText')
+            tap_node(field); adb('shell','input','text',query.replace(' ','%s'))
+        # Hide only the keyboard, without backing out of the page.
+        tree,_=nodes()
+        keyboard=any('inputmethod' in n.get('package','') for n in tree.iter('node'))
+        if keyboard or 'mInputShown=true' in adb('shell','dumpsys','input_method'): back()
+
+    def map_view(filter_name,list_mode=False):
+        route('carte','carte-inventory-count'); tap('carte-filter-'+filter_name)
+        tree,_=nodes()
+        if present(tree,fr['carte']['unavailable_title']): raise MissingView('Module carte indisponible dans l’APK ; aucun fallback présenté comme une carte.')
+        toggle=find('carte-view-toggle',timeout=8)
+        current_list=fr['carte']['show_map'].casefold() in label(toggle).casefold()
+        # Text is sometimes exposed by the child rather than the Pressable.
+        if not current_list: current_list=present(tree,fr['carte']['show_map'])
+        if current_list!=list_mode: tap_node(toggle)
+        time.sleep(3)
+
+    def place_tab(place_id,tab):
+        route('place/'+place_id,'place-start-review')
+        scroll_tap(fr['place']['tab_'+tab]); time.sleep(1)
+
+    def profile_start():
+        home(); tap('Palais',exact=True); top(); find('spawtercard',timeout=15)
+
+    def flip_card():
+        card=bounds(find('spawtercard'))
+        # Below the avatar, on the same live-bounds target as the received QA.
+        adb('shell','input','tap',(card[0]+card[2])//2,card[3]-48); time.sleep(1)
+
+    def community(filter_name):
+        route('meute','community-feed')
+        try: tap('community-filter-'+filter_name,timeout=3)
+        except AssertionError:
+            b=bounds(find('community-filters'))
+            x1,x2=(b[2]-20,b[0]+20) if filter_name=='coup' else (b[0]+20,b[2]-20)
+            adb('shell','input','swipe',x1,(b[1]+b[3])//2,x2,(b[1]+b[3])//2,300)
+            tap('community-filter-'+filter_name,timeout=8)
+
+    def contribution(kind):
+        route('contribute/'+PLACE,'contribution-kind-menu'); tap('contribution-kind-'+kind)
+
+    def content_checks():
+        route('support','support-check'); tap('support-check'); find('support-check-sync',timeout=30)
+
+    geometry(393,1)
+    check('pitch: authenticated native home available',find('Accueil',timeout=15,exact=True) is not None)
+    places=public_read('places','places?select=id,name&is_published=eq.true&limit=1000')
+    menus=public_read('menus','public_menu_items?select=id,place_id,name&order=id&limit=20')
+    editorials=public_read('editorials','public_editorial_reviews?select=place_id,body&limit=1')
+    collections=public_read('collections','explore_collections?select=slug,title_key&is_published=eq.true&audience=eq.general&order=sort_order&limit=2')
+    announcements=public_read('announcements','public_announcements?select=id,title&order=starts_at.desc&limit=2')
+    save_manifest()
+
+    capture('01-home','Accueil · Suggestions',lambda:home_panel('suggestions'),['home-panel-suggestions'])
+    capture('02-home-personalized','Accueil · Pour ton Palais',lambda:scroll_find('home-personalized-feed',attempts=16),['home-personalized-feed'])
+    for number,mode,title in [(3,'rapide','Rapide'),(4,'selections','Les sélections'),(5,'duo','En duo'),(6,'spots','Les spots')]:
+        capture(f'{number:02d}-home-{mode}','Accueil · '+title,lambda m=mode:home_panel(m),['home-panel-'+mode])
+    capture('07-rapide','Rapide · Choisir vite',lambda:route('rapide',fr['rapide']['subtitle']),[fr['rapide']['subtitle']])
+    capture('08-search','Recherche · Découverte',search,[fr['search']['empty_cuisines_title']])
+    capture('09-search-filters','Recherche · Filtres',lambda:(search(),tap('+ '+fr['search']['filters_button'],exact=True)),[fr['search']['filters_open'],fr['search']['filters_section_budget']])
+    capture('10-search-place','Recherche · Adresse',lambda:search('Grande'),['La Grande République'])
+    if menus:
+        dish=menus[0]
+        words=re.findall(r'[A-Za-z]{4,}',unicodedata.normalize('NFKD',dish['name']).encode('ascii','ignore').decode())
+        if words:
+            capture('11-search-dish','Recherche · Plat du menu publié',lambda:search(words[0]),[fr['outings']['dishes'],dish['name']])
+        else: omit('11-search-dish','Recherche · Plat','Nom publié sans terme saisissable via ADB.')
+    else: omit('11-search-dish','Recherche · Plat','Aucun plat publié reçu par la lecture publique.')
+    capture('12-map','Carte · Tous les lieux',lambda:map_view('all'),['carte-inventory-count','carte-mapview'])
+    capture('13-map-unexplored','Carte · À explorer',lambda:map_view('unexplored'),['carte-inventory-count','carte-mapview'])
+    capture('14-map-list','Carte · Liste des lieux',lambda:map_view('all',True),['carte-inventory-count',fr['carte']['show_map']])
+    capture('15-place','Fiche · La Grande République',lambda:route('place/'+PLACE,'La Grande République'),['La Grande République','place-start-review'])
+    capture('16-place-media','Fiche · Médias',lambda:place_tab(PLACE,'media'),[fr['place']['tab_media'],fr['place']['tab_menu']])
+    if menus and re.fullmatch(r'[0-9a-f-]{36}',menus[0]['place_id']):
+        dish=menus[0]
+        capture('17-place-menu','Fiche · Menu et plats publiés',lambda:(place_tab(dish['place_id'],'menu'),scroll_find(dish['name'],attempts=8)),[dish['name']])
+    else: omit('17-place-menu','Fiche · Menu et plats','Aucun menu public exploitable reçu.')
+    capture('18-place-reviews','Fiche · Avis des spawters',lambda:place_tab(PLACE,'reviews'),[fr['place']['tab_reviews']])
+    capture('19-place-all-reviews','Fiche · Tous les avis',lambda:route('place/'+PLACE+'/reviews','Tous les avis'),['Tous les avis'])
+    if editorials and re.fullmatch(r'[0-9a-f-]{36}',editorials[0]['place_id']) and editorials[0].get('body'):
+        editorial=editorials[0]; excerpt=editorial['body'][:60]
+        capture('20-place-editorial','Fiche · Avis éditorial publié',lambda:(route('place/'+editorial['place_id'],'place-start-review'),scroll_find(excerpt,attempts=22)),[excerpt])
+    else: omit('20-place-editorial','Fiche · Avis éditorial','Aucun avis éditorial public reçu.')
+    capture('21-collections','Carnets · Sélections publiées',lambda:route('explore','explore-collections'),['explore-collections'])
+    for number,collection in enumerate(collections[:2],22):
+        if not re.fullmatch(r'[A-Za-z0-9_-]+',collection['slug']): continue
+        title=translated(collection['title_key'])
+        capture(f'{number}-collection','Carnet · '+title,lambda c=collection,t=title:route('explore/'+c['slug'],t),[title])
+    if not collections: omit('22-collection','Carnet · Détail','Aucun carnet public reçu ; aucun slug inventé.')
+    capture('24-announcements','Le fil du Chat',lambda:route('actualites','announcements'),['announcements'])
+    if announcements and re.fullmatch(r'[0-9a-f-]{36}',announcements[0]['id']):
+        announcement=announcements[0]
+        capture('25-announcement','Publication du Chat',lambda:route('actualites/'+announcement['id'],announcement['title']),[announcement['title']])
+    else: omit('25-announcement','Publication du Chat','Aucune publication publique reçue.')
+    for number,filter_name,title in [(26,'all','Tout'),(27,'review','Avis'),(28,'coup','Coups de cœur')]:
+        capture(f'{number}-community-{filter_name}','La Bande · '+title,lambda f=filter_name:community(f),['community-feed','community-filter-'+filter_name],['Contenus publics ; vérifier les noms visibles avant le pitch.'])
+    capture('29-profile-recto','Palais · Carte recto',profile_start,['spawtercard'],['Compte synthétique et identifiant de carte potentiellement visibles.'])
+    capture('30-profile-verso','Palais · Carte verso',flip_card,['spawtercard',fr['axis']['racines'],fr['axis']['horizons']],['Compte synthétique ; axes soumis à la revue visuelle.'])
+    capture('31-profile-archetype','Palais · Archétype et stade',lambda:(profile_start(),scroll_find(fr['profile']['archetype_section_title'],attempts=7)),[fr['profile']['archetype_section_title']])
+    capture('32-profile-titles','Palais · Titres existants',lambda:(profile_start(),scroll_find(fr['profile']['collection_title'],attempts=7)),[fr['profile']['collection_title']])
+    capture('33-profile-lists','Palais · Mes listes',lambda:(profile_start(),scroll_find(fr['profile']['link_settings'],attempts=9)),[fr['profile']['link_saved'],fr['profile']['link_settings']])
+    capture('34-saved','Mes envies · État existant du compte',lambda:route('saved',fr['outings']['title']),[fr['outings']['title']],['Les listes de recette peuvent contenir des libellés QA.'])
+    capture('35-coups-de-coeur','Mes Coups de Cœur · État existant',lambda:route('coups-de-coeur','Mes Coups de Cœur'),['Mes Coups de Cœur'])
+    capture('36-settings-guet','Réglages · Le Guet',lambda:route('settings','settings-guet-switch'),['settings-guet-switch',fr['settings']['section_guet']])
+    capture('37-support','Aide et retours',lambda:route('support','support-check'),['support-check',fr['support']['title']],['Ne pas diffuser un éventuel historique privé visible.'])
+    capture('38-support-checks','Aide · Disponibilité réelle des contenus',content_checks,['support-check-sync','support-check-guet'])
+    capture('39-contribution-menu','Compléter un lieu · Menu et prix',lambda:contribution('menu'),['contribution-kind-menu','contribution-gallery'],['Formulaire sans envoi ; vérifier qu’aucun historique privé n’est visible.'])
+    capture('40-contribution-location','Compléter un lieu · Position',lambda:contribution('location'),['contribution-kind-location','contribution-locate'],['Aucune position relevée ni envoyée.'])
+    capture('41-suggest-place','Suggérer un spot · Formulaire vide',lambda:route('suggest-place','suggest-name-input'),['suggest-name-input','suggest-landmark-input'])
+    omit('42-review-form','Donner un avis','Non ouvert : le bouton Spawt crée une entrée avant la soumission ; aucun faux spawt autorisé.')
+    omit('43-progression','Progression','Non ouvert : runBadgeCheck peut attribuer des badges au montage.')
+    manifest['completed']=True; save_manifest()
+
 try:
     # Garder le même format en dp, avec une surface 1x pour la vidéo : encoder
     # 2,8 millions de pixels concurrençait le lecteur sur l'émulateur logiciel.
     geometry(393,1,pixel_ratio=1)
+    if MODE=='pitch': pitch_preflight()
     # Le launcher Google peut rester occupé après le premier redimensionnement.
     # L'app est lancée directement ; un éventuel ANR SPAWT reste un échec.
     adb('shell','am','force-stop','com.google.android.apps.nexuslauncher')
@@ -463,8 +811,12 @@ try:
         snap('anonymous-phone-new-process')
         check('anonymous phone controls after process restart',True)
         raise SystemExit(0)  # finally conserve les assertions et l'état final.
+    if MODE=='pitch': PITCH_ANONYMOUS=pitch_anonymous_cases()
     login(PHONE)
     snap('signed-in')
+    if MODE=='pitch':
+        pitch_cases()
+        raise SystemExit(0)  # Capture-only branch must never fall through to mutation cases.
     if MODE=='raccordements':
         raccordements_cases()
         raise SystemExit(0)  # Separate candidate receipt; no live-data.json.
