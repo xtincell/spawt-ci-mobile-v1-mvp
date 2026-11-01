@@ -34,9 +34,7 @@ interface Props {
   palais: UserPalais;
   /** Clé i18n du titre affiché (Story 5.2). Fallback = titre du stade actuel. */
   displayedTitleKey: string;
-  /** Gate axes Gold (V1 = false par défaut, hook prêt pour V1.5 Gold). */
-  isGold: boolean;
-  /** R28 — « Spawts » = nombre de spawts de l'utilisateur (total_spawts). */
+  /** Q3 — « Spawts » = nombre de lieux distincts visités. */
   spawtsCount: number;
   /** Q3 — « Favoris » = nombre de lieux sauvegardés (saved_places). */
   savedCount: number;
@@ -103,7 +101,6 @@ export function SpawterCard({
   spawter,
   palais,
   displayedTitleKey,
-  isGold,
   spawtsCount,
   savedCount,
   onAvatarPress,
@@ -275,9 +272,8 @@ export function SpawterCard({
             </Text>
           </View>
 
-          {/* R28 (build 8) — le compteur « Avis » est supprimé, remplacé par
-              « Spawts » = nombre de spawts de l'utilisateur (total_spawts).
-              « Favoris » = lieux sauvegardés (Q3). */}
+          {/* Q3 — « Spawts » compte les lieux distincts visités ;
+              « Favoris » compte les lieux sauvegardés. */}
           <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
             <StatBlock label={t("profile.stat_spawts")} value={spawtsCount} theme={theme} />
             <StatBlock label={t("profile.stat_favoris")} value={savedCount} theme={theme} />
@@ -312,9 +308,8 @@ export function SpawterCard({
             justifyContent: "center",
           }}
         >
-          <PalaisAxesGated
+          <PalaisAxes
             palais={palais}
-            visibleAxesCount={isGold ? 5 : 2}
             underConstruction={!adnReady}
           />
         </View>
@@ -345,35 +340,27 @@ function StatBlock({
 }
 
 /**
- * CR finding D2 + R8 — Gate Gold sur le Palais (PRD §3.1 FR-008), rendu 100 %
- * en barres horizontales (le graphe radar est réservé à l'exploitation
- * interne, retour produit R8) :
- * - En construction (confidence < 0.3) : 2 axes de base estompés + mention.
- * - Free : 2 axes fondamentaux + teaser Gold.
- * - Gold : les 5 axes en barres.
+ * R8 — les cinq axes restent en barres horizontales ; le graphe radar
+ * est réservé à l'exploitation interne. La confiance garde son rôle :
+ * sous 0.3, les axes sont estompés et signalés en construction.
  */
-function PalaisAxesGated({
+function PalaisAxes({
   palais,
-  visibleAxesCount,
   underConstruction,
 }: {
   palais: UserPalais;
-  visibleAxesCount: 2 | 5;
   underConstruction: boolean;
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const baseAxes = [
+  const axes = [
     { value: palais.axe_racines_horizons, negLabel: t("axis.racines"), posLabel: t("axis.horizons") },
     { value: palais.axe_taniere_nomade, negLabel: t("axis.taniere"), posLabel: t("axis.nomade") },
-  ];
-  const goldAxes = [
     { value: palais.axe_exigeant_enthousiaste, negLabel: t("axis.exigeant"), posLabel: t("axis.enthousiaste") },
     { value: palais.axe_foule_secret, negLabel: t("axis.foule"), posLabel: t("axis.secret") },
     { value: palais.axe_maquis_table, negLabel: t("axis.maquis"), posLabel: t("axis.table") },
   ];
-  const axes = visibleAxesCount === 5 ? [...baseAxes, ...goldAxes] : baseAxes;
 
   return (
     <View
@@ -401,27 +388,13 @@ function PalaisAxesGated({
           {t("palais.underConstruction")}
         </Text>
       ) : null}
-      {!underConstruction && visibleAxesCount === 2 ? (
-        <Text
-          style={{
-            marginTop: theme.spacing.xl,
-            ...theme.typography.preset.small,
-            color: theme.colors.text.tertiary,
-            textAlign: "center",
-            fontStyle: "italic",
-            opacity: 0.8,
-          }}
-        >
-          {t("profile.palais_gold_teaser")}
-        </Text>
-      ) : null}
     </View>
   );
 }
 
 /**
  * Barre horizontale -1..+1 avec label des deux pôles et marqueur central.
- * Honnête remplacement du radar quand seul 1 axe est exposé (gate free V1).
+ * Le Palais conserve ce rendu sans exposer de graphe radar.
  */
 function AxisBar({
   value,

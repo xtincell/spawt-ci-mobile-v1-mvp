@@ -116,9 +116,11 @@ def run_outing_cases(g):
     finally:req('/auth/v1/logout?scope=local',token=other['access_token'],method='POST')
     metadata=json.loads((out/'apk-metadata.json').read_text())
     upgrade=json.loads((out/'upgrade-install.json').read_text())
-    proof={'upgradeInstall':upgrade,'build':metadata['build'],'sha256':metadata['sha256'],'apiOrigin':origin,'menuRead':True,'dishSearch':True,'saveReceipt':True,'namedListRead':True,'shareReadInBrowser':True,'revokedLinkRefused':True,'chooseReceipt':True,'appLinkOpened':True,'guetEnabled':False,'physicalGuetReceipt':False,'offlineSaveResumed':True,'crossAccountIsolation':True,'placeId':place,'menuItemId':dish['id'],'listId':lid,'listTitle':title,'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
     flags=req('/rest/v1/feature_flags?select=enabled&flag_code=eq.guet-proximity-v2',token=token)
-    assert flags and not any(f['enabled'] for f in flags)
+    assert isinstance(flags,list) and flags and all(isinstance(f.get('enabled'),bool) for f in flags), 'Guet flag state is missing or malformed'
+    # This emulator receipt records the live flag; it cannot verify the
+    # physical Guet loop. Publication still requires that separate receipt.
+    proof={'upgradeInstall':upgrade,'build':metadata['build'],'sha256':metadata['sha256'],'apiOrigin':origin,'menuRead':True,'dishSearch':True,'saveReceipt':True,'namedListRead':True,'shareReadInBrowser':True,'revokedLinkRefused':True,'chooseReceipt':True,'appLinkOpened':True,'guetEnabled':any(f['enabled'] for f in flags),'physicalGuetReceipt':False,'offlineSaveResumed':True,'crossAccountIsolation':True,'placeId':place,'menuItemId':dish['id'],'listId':lid,'listTitle':title,'checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
     # Private QA artifacts are not public catalogue data or commercial activity.
     for action,payload in [('list_delete',{'list_id':lid}),('unsave',{'menu_item_id':dish['id']}),('unsave',{'place_id':place})]:
         req('/rest/v1/rpc/mutate_outing',{'p_id':str(uuid.uuid4()),'p_action':action,'p_payload':payload,'p_owner':g['OWNER']},token)

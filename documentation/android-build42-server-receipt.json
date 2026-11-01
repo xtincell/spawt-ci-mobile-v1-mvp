@@ -1,0 +1,155 @@
+{
+  "checkedAt": "2026-10-30T17:53:21.232186+00:00",
+  "endpoint": "https://api.spawt.online",
+  "migration": "0091_public_place_recency",
+  "migrationSha256": "8c0c0a9d7a24235a21116e305a465fb9ac4d0f7a5db526933293fa2dda5dfe3b",
+  "guetActivatedAt": "2026-10-30T17:52:33.606608+00:00",
+  "checks": {
+    "recency": {
+      "status": 200,
+      "contentRange": "0-154/155",
+      "rows": 155,
+      "datedPlaces": 0
+    },
+    "guet_flags": {
+      "status": 200,
+      "contentRange": "0-3/4",
+      "rows": 4,
+      "data": [
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "alpha",
+          "enabled": true,
+          "expires_at": null
+        },
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "beta",
+          "enabled": true,
+          "expires_at": null
+        },
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "internal",
+          "enabled": true,
+          "expires_at": null
+        },
+        {
+          "flag_code": "guet-proximity-v2",
+          "scope": "prod",
+          "enabled": true,
+          "expires_at": null
+        }
+      ]
+    },
+    "guet_places": {
+      "status": 200,
+      "contentRange": "*/0",
+      "rows": 0
+    }
+  },
+  "physicalGuetReceipt": false,
+  "physicalGuetBlocker": "Aucune preuve GPS terrain admissible; les 4 contributions approuvées sont des positions explicitement simulées pour la QA.",
+  "followUpRead": {
+    "checkedAt": "2026-10-30T20:41:30.823356+00:00",
+    "checks": {
+      "recency": {
+        "status": 200,
+        "contentRange": "0-154/155",
+        "rows": 155,
+        "datedPlaces": 0
+      },
+      "guet_flags": {
+        "status": 200,
+        "contentRange": "0-3/4",
+        "rows": 4,
+        "data": [
+          {
+            "flag_code": "guet-proximity-v2",
+            "scope": "alpha",
+            "enabled": true,
+            "expires_at": null
+          },
+          {
+            "flag_code": "guet-proximity-v2",
+            "scope": "beta",
+            "enabled": true,
+            "expires_at": null
+          },
+          {
+            "flag_code": "guet-proximity-v2",
+            "scope": "internal",
+            "enabled": true,
+            "expires_at": null
+          },
+          {
+            "flag_code": "guet-proximity-v2",
+            "scope": "prod",
+            "enabled": true,
+            "expires_at": null
+          }
+        ]
+      },
+      "guet_places": {
+        "status": 200,
+        "contentRange": "*/0",
+        "rows": 0
+      }
+    }
+  },
+  "previousFollowUpReads": [
+    {
+      "checkedAt": "2026-10-30T20:11:35.918218+00:00",
+      "checks": {
+        "recency": {
+          "status": 200,
+          "contentRange": "0-154/155",
+          "rows": 155,
+          "datedPlaces": 0
+        },
+        "guet_flags": {
+          "status": 200,
+          "contentRange": "0-3/4",
+          "rows": 4,
+          "data": [
+            {
+              "flag_code": "guet-proximity-v2",
+              "scope": "alpha",
+              "enabled": true,
+              "expires_at": null
+            },
+            {
+              "flag_code": "guet-proximity-v2",
+              "scope": "beta",
+              "enabled": true,
+              "expires_at": null
+            },
+            {
+              "flag_code": "guet-proximity-v2",
+              "scope": "internal",
+              "enabled": true,
+              "expires_at": null
+            },
+            {
+              "flag_code": "guet-proximity-v2",
+              "scope": "prod",
+              "enabled": true,
+              "expires_at": null
+            }
+          ]
+        },
+        "guet_places": {
+          "status": 200,
+          "contentRange": "*/0",
+          "rows": 0
+        }
+      }
+    }
+  ],
+  "consoleRead": {
+    "checkedAt": "2026-10-30T20:21:12.012601+00:00",
+    "globalScopesEnabled": 4,
+    "eligibleGuetPlaces": 0,
+    "migrationPresent": true
+  }
+}

@@ -39,6 +39,16 @@ export interface PlaceWithSignals {
   last_spawt_at: Date | null;
 }
 
+/** Raccorde la date vérifiée du serveur, sans emprunter la date de la fiche. */
+export function toPlaceWithSignals(place: Place & { adn: PlaceAdn }): PlaceWithSignals {
+  const date = place.last_spawt_at ? new Date(place.last_spawt_at) : null;
+  return {
+    place,
+    adn: place.adn,
+    last_spawt_at: date && Number.isFinite(date.getTime()) ? date : null,
+  };
+}
+
 export interface PlaceWithScore {
   place: Place;
   adn: PlaceAdn;

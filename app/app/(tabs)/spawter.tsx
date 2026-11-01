@@ -158,6 +158,7 @@ export default function SpawterTabScreen() {
         const row = await startManualReview({
           spawterId: spawter.id, placeId: item.place.id, lat: userLat, lng: userLng,
           verified: item.is_within_spawt_range, spawts, register: registerSpawt,
+          placeSignals: item.place.signals,
         });
         track({ name: "nearby_spawt_tapped", properties: { place_id: item.place.id, distance_m: Math.round(item.distance_km * 1000), is_within_range: item.is_within_spawt_range } });
         router.push({ pathname: "/review/[spawt_id]", params: { spawt_id: row.id, place_name: item.place.name } });

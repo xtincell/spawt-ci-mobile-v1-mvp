@@ -108,6 +108,8 @@ export interface Place {
   is_published: boolean;
   created_at: string;
   updated_at: string;
+  /** Dernier spawt vérifié réel, agrégé côté serveur. Une fiche seule ne donne aucune date. */
+  last_spawt_at?: string | null;
 }
 
 export type DayOfWeek = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";

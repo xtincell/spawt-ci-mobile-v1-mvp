@@ -6,6 +6,8 @@ import { REVIEW_TAGS, type ReviewTag } from "../types/spawt";
 
 export interface ReviewDraft {
   placeName?: string;
+  /** Signaux réels du lieu déjà chargé, conservés pour l'avis hors réseau. */
+  placeSignals?: string[];
   note_cuisine: StarRating | null;
   note_cadre: StarRating | null;
   note_service: StarRating | null;
@@ -26,14 +28,32 @@ export async function loadReviewDraft(owner: string, spawtId: string): Promise<R
       || typeof d.text !== "string" || !Array.isArray(d.tags) || !Array.isArray(d.photoUris)) {
     throw new Error("review_draft_invalid");
   }
-  return { ...d, text: d.text.slice(0, 500), tags: d.tags.filter(t => REVIEW_TAGS.includes(t)),
+  const { placeSignals, ...values } = d;
+  return { ...values, text: d.text.slice(0, 500), tags: d.tags.filter(t => REVIEW_TAGS.includes(t)),
+    ...(Array.isArray(placeSignals) && placeSignals.every(s => typeof s === "string") ? { placeSignals } : {}),
     photoUris: d.photoUris.filter(p => typeof p === "string").slice(0, 3) };
 }
 
 // Sérialisation : le dernier brouillon ne peut pas être remplacé par un ancien envoi.
 let draftTail: Promise<unknown> = Promise.resolve();
 export function saveReviewDraft(owner: string, spawtId: string, draft: ReviewDraft): Promise<void> {
-  const result = draftTail.then(() => AsyncStorage.setItem(draftKey(owner, spawtId), JSON.stringify(draft)));
+  const result = draftTail.then(async () => {
+    // Le formulaire écrit ses champs sans répéter le contexte du lieu.
+    const placeSignals = draft.placeSignals ?? (await loadReviewDraft(owner, spawtId))?.placeSignals;
+    await AsyncStorage.setItem(draftKey(owner, spawtId), JSON.stringify({
+      ...draft, ...(placeSignals === undefined ? {} : { placeSignals }),
+    }));
+  });
+  draftTail = result.catch(() => undefined);
+  return result;
+}
+
+export function saveReviewPlaceSignals(owner: string, spawtId: string, signals: readonly string[]): Promise<void> {
+  const result = draftTail.then(async () => {
+    const previous = await loadReviewDraft(owner, spawtId);
+    const draft: ReviewDraft = previous ?? { note_cuisine: null, note_cadre: null, note_service: null, tags: [], text: "", photoUris: [] };
+    await AsyncStorage.setItem(draftKey(owner, spawtId), JSON.stringify({ ...draft, placeSignals: [...signals] }));
+  });
   draftTail = result.catch(() => undefined);
   return result;
 }

@@ -22,7 +22,7 @@ export async function startAppActivity(spawterId: string): Promise<() => void> {
     busy = true;
     try {
       const queue = await inspect();
-      const ownPending = queue.filter(entry => entry.kind === "spawter_upsert" ? entry.row.id === spawterId : entry.kind === "spawt_insert" ? entry.row.spawter_id === spawterId : entry.patch.spawter_id === spawterId).length;
+      const ownPending = queue.filter(entry => entry.kind === "spawter_upsert" ? entry.row.id === spawterId : entry.kind === "spawt_insert" || entry.kind === "palais_upsert" ? entry.row.spawter_id === spawterId : entry.patch.spawter_id === spawterId).length;
       const { error } = await withReadTimeout("app_activity", signal => supabase.rpc("report_app_activity", {
         p_spawter_id: spawterId, p_installation_id: installationId,
         p_active: active, p_platform: Platform.OS,

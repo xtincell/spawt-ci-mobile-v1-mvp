@@ -32,7 +32,7 @@ import {
 } from "../lib/crew/crew-resolution";
 import { getPlace } from "../lib/data-source";
 import { DEMO_LAT, DEMO_LNG } from "../lib/demo-constants";
-import type { PlaceWithSignals } from "../lib/matching";
+import { toPlaceWithSignals, type PlaceWithSignals } from "../lib/matching";
 import type {
   CrewJoinResult,
   CrewMember,
@@ -120,7 +120,7 @@ async function buildHostTiebreak(
     for (const p of proposals) {
       const place = await getPlace(p.place_id);
       if (place) {
-        candidates.set(p.place_id, { place, adn: place.adn, last_spawt_at: null });
+        candidates.set(p.place_id, toPlaceWithSignals(place));
       }
     }
     return {

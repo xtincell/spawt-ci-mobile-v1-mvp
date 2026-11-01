@@ -1,6 +1,15 @@
-## v1.1.1 — candidat build 41 — préparation du 22 octobre 2026
+## v1.1.1 — build 42 — candidat du 2026-10-30
 
-**Non publié.** Envies, listes, plats, partage web, suivi des intentions et correction du Guet. Migrations 0086–0089 et déploiements coordonnés requis. Aucun bouton de téléchargement ne change pendant cette préparation. Voir [réception prévue](documentation/ENVIES_SORTIES_2026-10-22.md).
+Raccordements au référentiel v2 et activation du Guet demandés. Compilation, migration 0091, activation serveur et réception native à consigner avant publication. Le canal public reste sur la dernière APK reçue tant que ces étapes ne sont pas terminées.
+
+## v1.1.1 — build 41 — publié le 2026-10-22
+
+[APK publié et preuves](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/tag/local-build-android-2026-10-22-41).
+
+- Source compilée `e38c8f3ee5c6287e179ef70927ca4ea618ed1878` ; compilation `39711862127`, recette native `39718577857`, publication `39720143990`.
+- 162 536 491 octets ; SHA-256 `62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9`.
+- Envies, listes, plats et partage web reçus. 37 assertions natives sur Android 35 ; installation par-dessus le build 40 et signature conservée.
+- Le Guet restait désactivé dans la configuration publique ; aucune réception physique n'est attribuée à cette version.
 
 ## v1.1.1 — build 40 — publié le 2026-10-20
 

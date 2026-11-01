@@ -18,66 +18,121 @@ import { GUET_CONTEXT_KEY, clearGuetContext, handleNearbyEvent, serialGuet, type
 const OPTOUT = "spawt:guet:optout";
 let generation = 0; let owner: string | null = null; let lastArmAt = 0;
 let listener: { remove: () => void } | null = null; let stopResponses: (() => void) | null = null;
+let stopFlags: (() => void) | null = null;
+let stopAccount: (() => void) | null = null;
+let refreshingFlags = false;
+
+function isCurrent(epoch: number, id: string): boolean {
+  return epoch === generation && owner === id && useSpawterStore.getState().spawter?.id === id;
+}
+function isEnabledFor(id: string): boolean {
+  const flags = useFeatureFlagsStore.getState();
+  return flags.spawterId === id && Boolean(flags.flags["guet-proximity-v2"]);
+}
+
 export async function bootGuet(): Promise<void> {
   const current = useSpawterStore.getState().spawter;
-  if (!current || Platform.OS === "web" || dataSourceMode !== "supabase") return;
+  if (!current || Platform.OS === "web" || dataSourceMode !== "supabase") { await shutdownGuet(); return; }
   if (owner === current.id) return;
-  await shutdownGuet(); if (useSpawterStore.getState().spawter?.id !== current.id) return; const epoch = ++generation; owner = current.id;
+  // Claim this boot before awaiting native cleanup. A logout or another boot
+  // invalidates it immediately, including when the previous arm is still pending.
+  const stopping = shutdownGuet(); const epoch = generation; owner = current.id;
+  await stopping;
+  if (!isCurrent(epoch, current.id)) return;
   stopResponses = registerNotificationResponseHandler(handleNotifResponse);
   listener = AppState.addEventListener("change", state => { if (state === "active") void rearmGuet({ force: false }).catch(() => undefined); });
-  if (await isGuetOptedOut() || !current.geoloc_consent_at || epoch !== generation) return;
-  await useFeatureFlagsStore.getState().hydrate(current.id);
-  if (epoch !== generation || !useFeatureFlagsStore.getState().flags["guet-proximity-v2"]) return;
-  if (await ensureNotifPermissionPostOTP(true) !== "granted" || epoch !== generation) return;
+  stopFlags = useFeatureFlagsStore.subscribe((next, previous) => {
+    if (refreshingFlags) return; // The running rearm checks its own hydrate result.
+    if (next.spawterId !== previous.spawterId || next.flags["guet-proximity-v2"] !== previous.flags["guet-proximity-v2"]) {
+      void rearmGuet({ force: false }).catch(() => undefined);
+    }
+  });
+  stopAccount = useSpawterStore.subscribe((next, previous) => {
+    if (next.spawter?.id !== current.id) { void shutdownGuet().catch(() => undefined); return; }
+    if (next.spawter.geoloc_consent_at !== previous.spawter?.geoloc_consent_at) {
+      void rearmGuet({ force: false }).catch(() => undefined);
+    }
+  });
   // Discard old pending rows: a geofence was never a verified visit.
   await AsyncStorage.removeItem("spawt:guet:pending");
+  if (!isCurrent(epoch, current.id)) return;
   registerGeofenceCallback((type, place) => handleNearbyEvent(type, place.id));
   await rearmGuet({ force: true });
-  if (epoch !== generation) return;
 }
-export async function shutdownGuet(): Promise<void> {
+export function shutdownGuet(): Promise<void> {
   generation++; owner = null; lastArmAt = 0;
   listener?.remove(); listener = null; stopResponses?.(); stopResponses = null;
+  stopFlags?.(); stopFlags = null; stopAccount?.(); stopAccount = null;
   registerGeofenceCallback(null); setPlaceNameLookup(() => null);
   useGuetActive.getState().exit();
-  await clearGuetContext();
-  await serialGuet(async () => { await disarmGuet(); await cancelAllGuetNotifications().catch(() => undefined); });
+  const cleared = clearGuetContext().catch(() => undefined);
+  // Do not wait for a pending GPS fix or permission prompt to revoke native work.
+  // geofence's generation also invalidates any arm still awaiting permission.
+  const disarmed = disarmGuet().catch(() => undefined);
+  const cancelled = cancelAllGuetNotifications().catch(() => undefined);
+  // Queue teardown synchronously so a later account boot cannot overtake it.
+  return serialGuet(async () => { await cleared; await disarmed; await cancelled; await pauseGuet(); });
 }
 async function pauseGuet(): Promise<void> {
-  await clearGuetContext(); await disarmGuet(); await cancelAllGuetNotifications().catch(() => undefined);
+  lastArmAt = 0;
+  setPlaceNameLookup(() => null); useGuetActive.getState().exit();
+  // A storage failure must not skip native cancellation.
+  await clearGuetContext().catch(() => undefined);
+  await disarmGuet(); await cancelAllGuetNotifications().catch(() => undefined);
 }
 export function rearmGuet(options: { force: boolean }): Promise<void> {
-  return serialGuet(async () => { try { await rearmUnlocked(options); } catch (error) { await pauseGuet(); throw error; } });
+  const epoch = generation; const id = owner;
+  return serialGuet(async () => {
+    if (!id || !isCurrent(epoch, id)) return;
+    try { await rearmUnlocked(options, epoch, id); }
+    catch (error) { await pauseGuet(); throw error; }
+  });
 }
-async function rearmUnlocked({ force }: { force: boolean }): Promise<void> {
-  const epoch = generation; const current = useSpawterStore.getState().spawter;
-  if (!current || !current.geoloc_consent_at || await isGuetOptedOut()) { await pauseGuet(); return; }
-  if (!force && Date.now() - lastArmAt < 5 * 60_000) return;
-  await useFeatureFlagsStore.getState().hydrate(current.id);
-  if (epoch !== generation) return;
-  if (!useFeatureFlagsStore.getState().flags["guet-proximity-v2"]) { await pauseGuet(); return; }
-  if (await ensureNotifPermissionPostOTP(true) !== "granted" || epoch !== generation) { await pauseGuet(); return; }
-  const { data, error } = await withReadTimeout("guet_places", signal => supabase.from("public_guet_places").select("id,name,lat,lng").abortSignal(signal));
-  if (error) { await pauseGuet(); return; }
+async function rearmUnlocked({ force }: { force: boolean }, epoch: number, id: string): Promise<void> {
+  const canContinue = () => isCurrent(epoch, id) && Boolean(useSpawterStore.getState().spawter?.geoloc_consent_at) && isEnabledFor(id);
+  if (!useSpawterStore.getState().spawter?.geoloc_consent_at || await isGuetOptedOut()) { await pauseGuet(); return; }
+  if (!isCurrent(epoch, id)) { await pauseGuet(); return; }
+  // An already-disabled flag must not wait for another network read to stop.
+  if (!isEnabledFor(id)) await pauseGuet();
+  if (!isCurrent(epoch, id)) return;
+  refreshingFlags = true;
+  try { await useFeatureFlagsStore.getState().hydrate(id); }
+  finally { refreshingFlags = false; }
+  if (!canContinue()) { await pauseGuet(); return; }
+  const { data: session, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || session.session?.user.id !== id || !canContinue()) { await pauseGuet(); return; }
+  if (await ensureNotifPermissionPostOTP(true) !== "granted" || !canContinue()) { await pauseGuet(); return; }
   let fg = await Location.getForegroundPermissionsAsync();
+  if (!canContinue()) { await pauseGuet(); return; }
   if (fg.status !== "granted" && fg.canAskAgain) fg = await Location.requestForegroundPermissionsAsync();
-  if (fg.status !== "granted") { await pauseGuet(); return; }
+  if (fg.status !== "granted" || !canContinue()) { await pauseGuet(); return; }
+  const bg = await Location.getBackgroundPermissionsAsync();
+  if ((bg.status !== "granted" && !bg.canAskAgain) || !canContinue()) { await pauseGuet(); return; }
+  const armed = await isGuetArmed();
+  if (!canContinue()) { await pauseGuet(); return; }
+  // Throttle catalogue/position work only. Revocations must take effect on the
+  // next flag refresh or foreground, even just after a successful arm.
+  if (!force && bg.status === "granted" && armed && lastArmAt > 0 && Date.now() - lastArmAt < 5 * 60_000) return;
+  const { data, error } = await withReadTimeout("guet_places", signal => supabase.from("public_guet_places").select("id,name,lat,lng").abortSignal(signal));
+  if (error || !canContinue()) { await pauseGuet(); return; }
   let fix = await Location.getLastKnownPositionAsync({ maxAge: 5 * 60_000, requiredAccuracy: 100 });
+  if (!canContinue()) { await pauseGuet(); return; }
   if (!fix) fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-  if (!fix || epoch !== generation || useSpawterStore.getState().spawter?.id !== current.id) return;
-  const state = useSpawterStore.getState(); const saved = await localOutings(current.id);
+  if (!fix || !canContinue()) { await pauseGuet(); return; }
+  const saved = await localOutings(id);
+  if (!canContinue()) { await pauseGuet(); return; }
+  const state = useSpawterStore.getState();
   const places: NearbyPlace[] = (data ?? []).map(p => ({ ...p,
     saved: state.savedPlaceIds.has(p.id) || saved.snapshot.dishes.some(d => d.place_id === p.id),
-    visited: state.spawts.some(s => s.spawter_id === current.id && s.place_id === p.id && !s.is_seed && !s.is_cancelled && s.check_in_type !== "passive" && s.checked_in_at !== null),
+    visited: state.spawts.some(s => s.spawter_id === id && s.place_id === p.id && !s.is_seed && !s.is_cancelled && s.check_in_type !== "passive" && s.checked_in_at !== null),
   }));
-  if (epoch !== generation) return;
-  const context: GuetContext = { owner: current.id, expiresAt: Date.now() + 86400_000, places };
+  const context: GuetContext = { owner: id, expiresAt: Date.now() + 86400_000, places };
   await AsyncStorage.setItem(GUET_CONTEXT_KEY, JSON.stringify(context));
-  if (epoch !== generation) { await clearGuetContext(); return; }
+  if (!canContinue()) { await pauseGuet(); return; }
   setPlaceNameLookup(id => places.find(p => p.id === id)?.name ?? null);
   await armGuet(places, { hasGeolocConsent: true, spawter: { lat: fix.coords.latitude, lng: fix.coords.longitude } });
-  if (epoch !== generation) { await disarmGuet(); await clearGuetContext(); return; }
-  if (!(await isGuetArmed())) { await clearGuetContext(); return; }
+  if (!canContinue() || !(await isGuetArmed())) { await pauseGuet(); return; }
+  if (!canContinue()) { await pauseGuet(); return; }
   lastArmAt = Date.now();
 }
 export const handleGeofenceEvent = (type: "enter" | "exit", place: { id: string; name: string }): Promise<void> => handleNearbyEvent(type, place.id);
@@ -106,4 +161,8 @@ export async function setGuetOptOut(value: boolean): Promise<void> {
   if (value) { await AsyncStorage.setItem(OPTOUT, "1"); await shutdownGuet(); }
   else { await AsyncStorage.removeItem(OPTOUT); await shutdownGuet(); await bootGuet(); }
 }
-export function _resetOrchestratorForTest(): void { generation++; owner = null; lastArmAt = 0; listener?.remove(); listener = null; stopResponses?.(); stopResponses = null; }
+export function _resetOrchestratorForTest(): void {
+  generation++; owner = null; lastArmAt = 0;
+  listener?.remove(); listener = null; stopResponses?.(); stopResponses = null;
+  stopFlags?.(); stopFlags = null; stopAccount?.(); stopAccount = null;
+}

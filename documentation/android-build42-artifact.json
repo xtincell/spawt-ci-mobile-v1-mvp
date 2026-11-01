@@ -1,0 +1,23 @@
+{
+  "version": "1.1.1",
+  "build": 42,
+  "buildDate": "2026-10-30",
+  "sourceCommit": "8cf7ea89ef7610b69c28f7608218f4e005dbdc30",
+  "sourceCiRun": 41100560372,
+  "recipeSha256": "3faa41dcd93d6663f17774fb6c972d182c44dbe062d33a5cd64166cc0613572e",
+  "sha256": "2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7",
+  "bytes": 162537663,
+  "signatureMatchesBuild25": true,
+  "zipCrcPassed": true,
+  "nativePackageVerified": true,
+  "compiledBackendConfigVerified": true,
+  "backendUrl": "https://api.spawt.online",
+  "backendKeySha256": "7adfc35afaf81a6a954ef35a3941a9af8ef5cdc068df494643cadfe52e52076c",
+  "runId": 41117097867,
+  "signatureReferenceBuild": 41,
+  "signatureReferenceSha256": "62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9",
+  "signatureReferenceReceiptSha256": "6cc49e18784e46fb4a9762091e1fc8a4b7ac12e4999f49951872aa141b4f246d",
+  "compiledFirebaseConfigVerified": true,
+  "firebaseProjectId": "spawt-ci",
+  "firebaseAndroidAppId": "1:784936275475:android:3592fb2dc6cc9ffc0a39e6"
+}

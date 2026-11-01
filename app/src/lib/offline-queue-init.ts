@@ -5,7 +5,8 @@
 
 import { Platform } from "react-native";
 
-import { isSupabaseConfigured, upsertSpawt, updateSpawt, saveSpawter } from "./data-source";
+import { isSupabaseConfigured, upsertSpawt, updateSpawt, saveSpawter, savePalais } from "./data-source";
+import { supabase } from "./supabase";
 import {
   initOfflineQueue,
   setSyncBackend,
@@ -20,6 +21,11 @@ const backend: SyncBackend = {
   // `saveSpawter` ne renvoie rien : une résolution sans exception vaut succès,
   // un rejet est capté par `tryDrainEntry` et l'entrée sera retentée.
   upsertSpawter: (row) => saveSpawter(row).then(() => true),
+  upsertPalais: (row) => savePalais(row).then(() => true),
+  currentOwner: async () => {
+    const { data, error } = await supabase.auth.getSession();
+    return error ? null : data.session?.user.id ?? null;
+  },
 };
 
 /**

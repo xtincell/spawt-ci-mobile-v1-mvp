@@ -45,6 +45,7 @@ import {
   computeRawScore,
   displayedScore,
   haversineKm,
+  toPlaceWithSignals,
 } from "../../../src/lib/matching";
 import { useSpawterStore } from "../../../src/store/spawter-store";
 import { useFlag } from "../../../src/store/feature-flags";
@@ -198,7 +199,7 @@ export default function PlaceDetailScreen() {
         saved_place_ids: savedPlaceIds,
         now: new Date(),
       },
-      { place, adn: place.adn, last_spawt_at: null },
+      toPlaceWithSignals(place),
     );
     return displayedScore(raw);
   }, [place, palais, position, visited, savedPlaceIds]);
@@ -517,6 +518,7 @@ export default function PlaceDetailScreen() {
     setStartingReview(true);
     try {
       const row = await startManualReview({ spawterId: spawter.id, placeId: place.id,
+        placeSignals: place.signals,
         lat: position.source === "gps" ? position.lat : null,
         lng: position.source === "gps" ? position.lng : null,
         spawts, register: registerSpawt });

@@ -1,7 +1,7 @@
 // Story 5.3 — Profil spawter (refactor complet).
 // PRD §3.1 FR-008 + §20.1 — identité avant utilité. SpawterCard flip 3D au centre.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,6 @@ import { useSpawterStore } from "../../src/store/spawter-store";
 import { STADE_DESCRIPTORS } from "../../src/types/stade";
 import { resetAll } from "../../src/lib/storage";
 import { inspect } from "../../src/lib/offline-queue";
-import { isEntitlementCurrentlyActive, portalAccountUrl } from "../../src/lib/spawter-gold";
 import { compressAvatar, uploadAvatar } from "../../src/lib/storage-avatars";
 import {
   isSupabaseConfigured,
@@ -44,6 +43,17 @@ export default function ProfileScreen() {
   const spawter = useSpawterStore((s) => s.spawter);
   const palais = useSpawterStore((s) => s.palais);
   const spawts = useSpawterStore((s) => s.spawts);
+  // Q3 — plusieurs visites d'un même lieu ne font qu'un établissement.
+  // Un passage passif, annulé ou de démonstration n'est pas une visite déclarée.
+  const spawtedPlacesCount = useMemo(
+    () => new Set(
+      spawts
+        .filter((spawt) => !spawt.is_seed && !spawt.is_cancelled &&
+          spawt.check_in_type !== "passive" && spawt.checked_in_at !== null)
+        .map((spawt) => spawt.place_id),
+    ).size,
+    [spawts],
+  );
   const savedPlaceIds = useSpawterStore((s) => s.savedPlaceIds);
   const collectionTitres = useSpawterStore((s) => s.collectionTitres);
   const setDisplayedTitle = useSpawterStore((s) => s.setDisplayedTitle);
@@ -53,9 +63,6 @@ export default function ProfileScreen() {
   // Chantier 13 archétypes — constat de mue en attente (neutre, PRD §5.5).
   const pendingMue = useSpawterStore((s) => s.pendingMue);
   const consumePendingMue = useSpawterStore((s) => s.consumePendingMue);
-  // Sprint 2 — entitlement Gold réactif (revalidé par le store : hydratation,
-  // foreground, paywall). Hook AVANT le early-return (rules of hooks).
-  const goldEntitlement = useSpawterStore((s) => s.gold);
 
   // Progression — hooks AVANT le early-return (rules of hooks). Le teaser ne
   // se rend que si au moins un flag progression est actif.
@@ -131,8 +138,6 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
   }
-
-  const isGold = isEntitlementCurrentlyActive(goldEntitlement);
 
   // R27 — changement de photo de profil : galerie OU caméra (expo-image-picker),
   // crop carré natif (allowsEditing 1:1, affichage circulaire côté UI),
@@ -281,8 +286,7 @@ export default function ProfileScreen() {
           spawter={spawter}
           palais={palais}
           displayedTitleKey={displayedTitleKey}
-          isGold={isGold}
-          spawtsCount={spawter.total_spawts}
+          spawtsCount={spawtedPlacesCount}
           savedCount={savedPlaceIds.size}
           onAvatarPress={onAvatarPress}
         />
@@ -347,7 +351,7 @@ export default function ProfileScreen() {
 
         {/* Progression — teaser compact : badges affichés (max 3, invariant
             DB) + compteur + lien vers l'écran dédié. S'intègre SANS toucher
-            archétype/Pionnier/Gold — flags OFF par défaut = bloc absent. */}
+            archétype/Pionnier — flags OFF par défaut = bloc absent. */}
         {progressionEnabled ? (
           <View testID="profile-progression-teaser" style={{ gap: theme.spacing.sm }}>
             <Text
@@ -399,63 +403,6 @@ export default function ProfileScreen() {
               count={progressionBadges?.unlocked.length ?? 0}
               onPress={() => router.push("/progression" as never)}
             />
-          </View>
-        ) : null}
-
-        {/* Sprint 2 — indicateur Gold discret (tokens or uniquement) + lien de
-            gestion vers le portail /compte. Apple 3.1.3 : aucun achat in-app,
-            aucun prix — l'abonnement se gère sur spawt.online. */}
-        {isGold ? (
-          <View
-            testID="profile-gold-indicator"
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              paddingVertical: theme.spacing.sm,
-              paddingHorizontal: theme.spacing.base,
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.colors.brand.primary,
-            }}
-          >
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}
-            >
-              <View
-                style={{
-                  width: theme.spacing.sm,
-                  height: theme.spacing.sm,
-                  borderRadius: theme.radius.full,
-                  backgroundColor: theme.colors.brand.primary,
-                }}
-              />
-              <Text
-                style={{
-                  ...theme.typography.preset.small,
-                  color: theme.colors.brand.primary,
-                }}
-              >
-                {t("profile.gold_indicator")}
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("profile.gold_manage")}
-              onPress={() => {
-                void Linking.openURL(portalAccountUrl());
-              }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-            >
-              <Text
-                style={{
-                  ...theme.typography.preset.small,
-                  color: theme.colors.text.secondary,
-                }}
-              >
-                {t("profile.gold_manage")}
-              </Text>
-            </Pressable>
           </View>
         ) : null}
 
@@ -523,7 +470,7 @@ export default function ProfileScreen() {
           />
           <QuickLink
             label={t("profile.link_spawts")}
-            count={spawter.total_spawts}
+            count={spawtedPlacesCount}
             onPress={() => router.push("/spawts" as never)}
           />
           <QuickLink

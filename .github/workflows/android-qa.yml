@@ -5,7 +5,7 @@ permissions:
 on:
   push:
     tags: ['qa-android-*']
-    branches: ['codex/editorial-research-admin']
+    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements']
     paths: ['documentation/android-qa.json']
   workflow_dispatch:
     inputs:
@@ -15,6 +15,7 @@ on:
         type: string
 jobs:
   native:
+    if: "github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: verify Android build 42'"
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
@@ -24,6 +25,30 @@ jobs:
       ANDROID_AVD_HOME: /tmp/spawt-android-user/avd
     steps:
       - uses: actions/checkout@v4
+      - name: Déterminer la politique de sortie avant toute recette
+        id: capture_policy
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, sys
+          try:
+              config=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+              mode=config.get('mode')
+              raw_modes={'observe','opening','community','raccordements','live','photos','matrix','full'}
+              if not isinstance(mode,str) or mode not in raw_modes|{'pitch'}:
+                  raise ValueError('Unknown capture policy')
+              if mode=='pitch':
+                  phone=config.get('phone')
+                  if not isinstance(phone,str) or not phone.startswith('+225') or not phone[1:].isdigit():
+                      raise ValueError('Invalid capture account')
+                  print('::add-mask::'+phone,flush=True)
+              with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+                  output.write('mode='+mode+'\nraw_allowed='+('true' if mode in raw_modes else 'false')+'\n')
+              with open(os.environ['GITHUB_ENV'],'a') as output:
+                  output.write('SPAWT_QA_MODE='+mode+'\n')
+          except Exception:
+              print('Capture policy unavailable; raw artifact uploads are disabled.',file=sys.stderr)
+              raise SystemExit(1)
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -35,6 +60,10 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          mkdir -p android-proof
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/apk-resolution.log 2>&1
+          fi
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           import crypto from 'node:crypto';
@@ -123,6 +152,10 @@ jobs:
       - name: Démarrer Android 35 avec KVM
         if: steps.apk.outputs.ready == 'true'
         run: |
+          mkdir -p android-proof
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/emulator-setup.log 2>&1
+          fi
           sudo chmod 666 /dev/kvm
           mkdir -p "$ANDROID_AVD_HOME"
           avdmanager create avd -n spawt-qa -k 'system-images;android-35;google_apis;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/spawt-qa.avd" --force
@@ -145,8 +178,20 @@ jobs:
           adb shell settings put global animator_duration_scale 0
           adb shell settings put secure show_ime_with_hard_keyboard 1
           if [ "$(python3 -c 'import json;print(json.load(open("documentation/android-qa.json"))["build"])')" -ge 41 ]; then
-            curl -fsSL 'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-10-19-40/spawt-1.1.1-build40.apk' -o previous.apk
-            echo 'f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648  previous.apk' | sha256sum -c -
+            python3 - <<'PYCODE'
+          import hashlib,json,pathlib,urllib.request
+          c=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+          previous=c.get('previousBuild',40)
+          references={
+              40:('2026-10-19','f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648'),
+              41:('2026-10-22','62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9'),
+          }
+          if previous!=c['build']-1 or previous not in references: raise RuntimeError('Version précédente non reçue')
+          date,digest=references[previous]
+          url=f'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-{date}-{previous}/spawt-1.1.1-build{previous}.apk'
+          urllib.request.urlretrieve(url,'previous.apk')
+          assert hashlib.sha256(pathlib.Path('previous.apk').read_bytes()).hexdigest()==digest
+          PYCODE
             adb install previous.apk
             adb shell dumpsys package com.upgraders.spawt > android-proof/previous-package.txt
           fi
@@ -157,13 +202,18 @@ jobs:
           if c['build']>=41:
               before=pathlib.Path('android-proof/previous-package.txt').read_text()
               after=subprocess.check_output(['adb','shell','dumpsys','package','com.upgraders.spawt'],text=True)
-              assert 'versionCode=40 ' in before and 'versionCode='+str(c['build'])+' ' in after
+              previous=c.get('previousBuild',40)
+              assert previous==c['build']-1
+              assert 'versionCode='+str(previous)+' ' in before and 'versionCode='+str(c['build'])+' ' in after
               assert 'android.permission.ACCESS_BACKGROUND_LOCATION' in after
-              pathlib.Path('android-proof/upgrade-install.json').write_text(json.dumps({'from':40,'to':c['build'],'installedOverPrevious':True,'backgroundLocationDeclared':True}))
+              pathlib.Path('android-proof/upgrade-install.json').write_text(json.dumps({'from':previous,'to':c['build'],'installedOverPrevious':True,'backgroundLocationDeclared':True}))
           PYCODE
       - name: Recette native
         if: steps.apk.outputs.ready == 'true'
         run: |
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/native-runner.log 2>&1
+          fi
           python3 -m pip install --quiet playwright
           test -x /usr/bin/google-chrome
           python3 scripts/android-qa.py
@@ -171,7 +221,13 @@ jobs:
         if: always() && steps.apk.outputs.ready == 'true'
         run: |
           mkdir -p android-proof
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/diagnostic-runner.log 2>&1
+          fi
           timeout 20s adb logcat -d -s AndroidRuntime ReactNativeJS libc DEBUG > android-proof/logcat.txt || true
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            timeout 20s adb logcat -b main -b system -d -v threadtime -s ActivityManager InputDispatcher WindowManager > android-proof/anr-logcat.txt || true
+          fi
           timeout 20s adb shell dumpsys package com.upgraders.spawt > android-proof/package.txt || true
           SPAWT_PID=$(adb shell pidof com.upgraders.spawt | tr -d '\r')
           test -n "$SPAWT_PID"
@@ -192,21 +248,53 @@ jobs:
       - name: Vérifier la présence visible de l'animation fournie
         if: always() && steps.apk.outputs.ready == 'true'
         run: |
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            exec > android-proof/opening-proof-runner.log 2>&1
+          fi
           python3 -m pip install --quiet pillow imageio-ffmpeg
           python3 scripts/android-opening-proof.py
+      - name: Sceller les captures pitch pour le destinataire local
+        id: seal
+        if: always() && steps.capture_policy.outputs.mode == 'pitch'
+        run: |
+          mkdir -p android-proof
+          if [ -f emulator.log ]; then
+            cp emulator.log android-proof/emulator.log
+          fi
+          if ! python3 -m pip install --quiet 'cryptography==50.0.0' > android-proof/sealing-install.log 2>&1; then
+            echo 'Pitch encryption dependency unavailable; no evidence artifact will be uploaded.'
+            exit 1
+          fi
+          python3 scripts/android-pitch-seal.py \
+            --input-dir android-proof \
+            --recipient documentation/android-pitch-recipient.pem \
+            --recipient-sha256 c5845e5c55ff5945b52a4c3d88720845d94896636f7872c7ccf90f4944c9972d \
+            --output-dir android-pitch-sealed
+          test -s android-pitch-sealed/android-pitch.bin
+          test -s android-pitch-sealed/android-pitch.json
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.capture_policy.outputs.mode == 'pitch' && steps.seal.outcome == 'success' && steps.seal.outputs.ready == 'true'
+        with:
+          name: android-pitch-sealed
+          path: |
+            android-pitch-sealed/android-pitch.json
+            android-pitch-sealed/android-pitch.bin
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.capture_policy.outputs.raw_allowed == 'true'
         with:
           name: android-proof
           path: android-proof
           retention-days: 14
       - name: Préparer les aperçus de recette
-        if: always() && steps.apk.outputs.ready == 'true'
+        if: always() && steps.capture_policy.outputs.raw_allowed == 'true' && steps.apk.outputs.ready == 'true'
         run: |
           python3 -m pip install --quiet pillow
           python3 scripts/android-proof-preview.py
       - uses: actions/upload-artifact@v4
-        if: always() && steps.apk.outputs.ready == 'true'
+        if: always() && steps.capture_policy.outputs.raw_allowed == 'true' && steps.apk.outputs.ready == 'true'
         with:
           name: android-preview
           path: android-preview

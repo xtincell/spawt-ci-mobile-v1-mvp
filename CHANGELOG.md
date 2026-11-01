@@ -1,3 +1,13 @@
+## 2026-10-30 — Raccordements du build 42 (candidat)
+
+- Accès B2C gratuit conformément au référentiel v2 : cinq axes existants ouverts, retraits des interceptions Gold et des cartes masquées.
+- Compteur public des lieux distincts raccordé aux visites explicites ; favoris, amorçage, annulations et passages passifs séparés.
+- Signaux réels du lieu transmis à l'avis ; Palais et avis enregistrés dans la file durable existante, avec reprise et isolation par compte.
+- Retour de la vérification de présence relu depuis le serveur, puis répercuté dans l'historique et la progression.
+- Fraîcheur du classement raccordée à la dernière visite vérifiée (0091), sans changer la formule ni ses poids.
+- Guet : activation serveur demandée le 30 octobre ; transitions du drapeau, des permissions et du compte raccordées. Son activation en production et la réception physique restent à constater.
+- Version native 42 ; reprise de la lignée et de la signature du build 41. Aucun changement de design.
+
 ## 2026-10-22 — Envies de sortie (candidat 41, non déployé)
 
 - Plats sourcés, envies de lieux/plats, listes par occasion et partage révocable ; reprise hors ligne et séparation des comptes.

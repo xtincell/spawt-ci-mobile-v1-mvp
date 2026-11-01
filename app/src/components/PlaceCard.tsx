@@ -11,13 +11,9 @@ import { Ico } from "./primitives/Ico";
 import { MatchScore } from "./primitives/MatchScore";
 import { Stars } from "./primitives/Stars";
 import { useTheme } from "../theme/ThemeProvider";
-import { maskPlaceName } from "../lib/paywall-geo";
 import type { PlaceWithAdn } from "../lib/data-source";
 
 interface Props {
-  /** Phase 2 F14 — carte verrouillée par le paywall géographique (nom masqué,
-   *  visuel assombri, bandeau PREMIUM). Le onPress du parent ouvre l'upsell. */
-  locked?: boolean;
   place: PlaceWithAdn;
   matchScore: number; // 50-99 (PRD §8.3)
   distanceKm: number;
@@ -40,7 +36,7 @@ const PRICE_TIER_LABELS: Record<1 | 2 | 3, string> = {
   3: "₣₣₣",
 };
 
-export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = false }: Props) {
+export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
   // Defensive gate : un place non publié ne doit pas être rendu, même si
@@ -55,7 +51,6 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
   const safeDistance =
     Number.isFinite(distanceKm) && distanceKm >= 0 ? `${distanceKm.toFixed(1)} km` : "—";
   const showCover = Boolean(place.cover_photo_url) && !coverFailed;
-  const displayName = locked ? maskPlaceName(place.name) : place.name;
 
   return (
     <Pressable
@@ -69,13 +64,12 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
         marginBottom: theme.spacing.base,
       })}
       accessibilityRole="button"
-      accessibilityLabel={locked ? t("paywall.locked_badge") : `${place.name}, score ${matchScore}%`}
+      accessibilityLabel={`${place.name}, score ${matchScore}%`}
     >
       {showCover ? (
         <Image
           source={{ uri: place.cover_photo_url ?? undefined }}
           style={{
-            opacity: locked ? 0.35 : 1,
             width: "100%",
             aspectRatio: 16 / 9,
             borderTopLeftRadius: theme.radius.lg,
@@ -110,7 +104,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
             }}
             numberOfLines={2}
           >
-            {displayName}
+            {place.name}
           </Text>
           <Text
             style={{
@@ -120,9 +114,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress, locked = fal
             }}
             numberOfLines={2}
           >
-            {locked
-              ? t("paywall.locked_hint")
-              : `${place.location.neighborhood}${cuisineLabel}`}
+            {`${place.location.neighborhood}${cuisineLabel}`}
           </Text>
           <View
             style={{

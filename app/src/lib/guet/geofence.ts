@@ -3,9 +3,7 @@
 // API publique : armGuet, disarmGuet, isGuetArmed, selectClosestPlaces (pure helper exposé pour tests).
 //
 // Garde-fous V1 (NFR-GEO + cahier Sprint 1 §5.8) :
-//   - Mode démo (fallback / Expo Go) → no-op silencieux.
-//   - Consent géoloc absent (`spawter.geoloc_consent_at === null`) → no-op + warn.
-//   - Feature flag `guet-proximity-v2` désactivé → no-op + log.
+//   - Mode démo, consent absent ou flag désactivé → désarmement.
 //   - Cap MAX_ACTIVE_GEOFENCES = 20 (limite iOS CLLocationManager + battery Android).
 //
 // Permissions runtime demandées lazy au moment de `armGuet` — pas au boot
@@ -33,6 +31,14 @@ export interface SpawterLocation {
 }
 
 let armedPlaceIds: Set<string> = new Set();
+let generation = 0;
+let nativeTail: Promise<void> = Promise.resolve();
+
+function serialNative(operation: () => Promise<void>): Promise<void> {
+  const next = nativeTail.then(operation);
+  nativeTail = next.catch(() => undefined);
+  return next;
+}
 
 /**
  * Sélectionne les N lieux les plus proches d'une position spawter via haversine.
@@ -55,7 +61,7 @@ export function selectClosestPlaces<T extends ArmablePlace>(
 /**
  * Arme N geofences (150m radius) sur les lieux fournis. Idempotent : re-arme = reset.
  *
- * No-op si :
+ * Désarme aussi les anciennes régions si :
  *  - mode démo (`dataSourceMode === "fallback"`)
  *  - consent géoloc non posé (`hasGeolocConsent === false`)
  *  - feature flag `guet-proximity-v2` désactivé
@@ -67,36 +73,43 @@ export async function armGuet(
   places: ReadonlyArray<ArmablePlace>,
   options: { spawter?: SpawterLocation; hasGeolocConsent: boolean } = { hasGeolocConsent: false },
 ): Promise<void> {
+  const epoch = ++generation;
   if (dataSourceMode === "fallback") {
     if (__DEV__) console.info("[guet] armGuet skipped — mode démo");
-    return;
+    await disarmGuet(); return;
   }
   if (!options.hasGeolocConsent) {
     if (__DEV__) console.warn("[guet] armGuet skipped — geoloc consent absent");
-    return;
+    await disarmGuet(); return;
   }
   if (!isGuetFlagEnabled()) {
     if (__DEV__) console.info("[guet] armGuet skipped — flag guet-proximity-v2 disabled");
-    return;
+    await disarmGuet(); return;
   }
   if (places.length === 0 || !options.spawter) { await disarmGuet(); return; }
 
   // Permission foreground d'abord — sans elle, on ne peut rien armer.
   try {
-    const fg = await Location.requestForegroundPermissionsAsync();
+    let fg = await Location.getForegroundPermissionsAsync();
+    if (epoch !== generation) return;
+    if (fg.status !== "granted" && fg.canAskAgain) fg = await Location.requestForegroundPermissionsAsync();
+    if (epoch !== generation) return;
     if (fg.status !== "granted") {
       if (__DEV__) console.warn("[guet] armGuet aborted — foreground permission denied");
-      return;
+      await disarmGuet(); return;
     }
     // Une permission de premier plan seule ne permet pas les geofences natives.
-    if (typeof Location.requestBackgroundPermissionsAsync === "function") {
-      const bg = await Location.requestBackgroundPermissionsAsync();
-      if (bg.status !== "granted") { await disarmGuet(); return; }
-    }
+    let bg = await Location.getBackgroundPermissionsAsync();
+    if (epoch !== generation) return;
+    if (bg.status !== "granted" && bg.canAskAgain) bg = await Location.requestBackgroundPermissionsAsync();
+    if (epoch !== generation) return;
+    if (bg.status !== "granted") { await disarmGuet(); return; }
   } catch (err) {
     if (__DEV__) console.warn("[guet] permission request failed", err);
+    if (epoch === generation) await disarmGuet();
     return;
   }
+  if (!isGuetFlagEnabled()) { await disarmGuet(); return; }
 
   // Cap 20 — si > MAX, garder les plus proches du spawter.
   const target = options.spawter
@@ -117,21 +130,32 @@ export async function armGuet(
     notifyOnExit: true,
   }));
 
-  try {
-    await Location.startGeofencingAsync(GUET_TASK, regions);
-    armedPlaceIds = new Set(target.map((p) => p.id));
-  } catch (err) {
-    if (__DEV__) console.warn("[guet] startGeofencingAsync failed", err);
-  }
+  await serialNative(async () => {
+    if (epoch !== generation) return;
+    try {
+      await Location.startGeofencingAsync(GUET_TASK, regions);
+      if (epoch !== generation || !isGuetFlagEnabled()) { await stopNative(); return; }
+      armedPlaceIds = new Set(target.map((p) => p.id));
+    } catch (err) {
+      if (__DEV__) console.warn("[guet] startGeofencingAsync failed", err);
+      await stopNative();
+    }
+  });
 }
 
 /** Désarme toutes les geofences (logout, opt-out géoloc, reset). */
-export async function disarmGuet(): Promise<void> {
+export function disarmGuet(): Promise<void> {
+  generation++;
+  return serialNative(stopNative);
+}
+
+async function stopNative(): Promise<void> {
   try {
-    const isRegistered =
-      typeof Location.hasStartedGeofencingAsync === "function"
-        ? await Location.hasStartedGeofencingAsync(GUET_TASK)
-        : armedPlaceIds.size > 0;
+    let isRegistered = armedPlaceIds.size > 0;
+    if (typeof Location.hasStartedGeofencingAsync === "function") {
+      try { isRegistered = await Location.hasStartedGeofencingAsync(GUET_TASK); }
+      catch { isRegistered = true; } // A failed status read is not proof of a stop.
+    }
     if (isRegistered) {
       await Location.stopGeofencingAsync(GUET_TASK);
     }
@@ -161,6 +185,7 @@ export function getArmedPlaceIds(): ReadonlySet<string> {
 
 /** Test-only : reset l'état armé. */
 export function _resetArmedForTest(): void {
+  generation++;
   armedPlaceIds = new Set();
 }
 

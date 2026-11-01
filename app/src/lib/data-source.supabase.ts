@@ -34,7 +34,7 @@ export async function listPlacesFromSupabase(): Promise<PlaceWithAdn[]> {
     // Multi-villes (0041) — seuls les lieux de la ville active remontent.
     let { data: rows, error } = await supabase
       .from("places")
-      .select("*, place_adn(*)")
+      .select("*, last_spawt_at, place_adn(*)")
       .eq("is_published", true)
       .eq("city_code", getActiveCity().code)
       .abortSignal(signal);
@@ -44,7 +44,7 @@ export async function listPlacesFromSupabase(): Promise<PlaceWithAdn[]> {
     if (error && error.code === "42703") {
       ({ data: rows, error } = await supabase
         .from("places")
-        .select("*, place_adn(*)")
+        .select("*, last_spawt_at, place_adn(*)")
         .eq("is_published", true)
         .abortSignal(signal));
     }
@@ -61,7 +61,7 @@ export async function listPlacesFromSupabase(): Promise<PlaceWithAdn[]> {
 export async function getPlaceFromSupabase(id: string): Promise<PlaceWithAdn | null> {
   const { data, error } = await withReadTimeout("place", (signal) => supabase
     .from("places")
-    .select("*, place_adn(*)")
+    .select("*, last_spawt_at, place_adn(*)")
     .eq("id", id)
     .abortSignal(signal)
     .maybeSingle());
@@ -160,6 +160,7 @@ function parseRows(rows: readonly unknown[]): PlaceWithAdn[] {
       is_published: r.is_published,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      last_spawt_at: r.last_spawt_at ?? null,
       adn,
       rating_display: (adn.weighted_rating as number | undefined) ?? 0,
       total_spawts: (r.total_spawts as number | undefined) ?? 0,
@@ -1153,7 +1154,7 @@ export async function getExploreCollectionFromSupabase(
     .from("explore_collections")
     .select(
       "id, slug, title_key, subtitle_key, cover_url, sort_order, city_code, " +
-        "explore_items(id, editorial_text, sort_order, places(*, place_adn(*)))",
+        "explore_items(id, editorial_text, sort_order, places(*, last_spawt_at, place_adn(*)))",
     )
     .eq("slug", slug)
     .eq("is_published", true)
