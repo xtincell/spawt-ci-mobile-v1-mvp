@@ -3,6 +3,15 @@
   "previousBuild": 41,
   "sourceCommit": "8cf7ea89ef7610b69c28f7608218f4e005dbdc30",
   "mode": "pitch",
+  "captureRevision": 2,
+  "skipPitchIds": [
+    "00-phone",
+    "01-home",
+    "02-home-personalized",
+    "03-home-rapide",
+    "04-home-selections",
+    "05-home-duo"
+  ],
   "receiptRevision": 2,
   "phone": "+2250000000193",
   "localBuildRun": 41117097867,

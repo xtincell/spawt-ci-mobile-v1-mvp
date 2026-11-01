@@ -31,6 +31,39 @@ def adb(*args, binary=False):
     r=subprocess.run(['adb','-s',os.environ.get('SPAWT_QA_SERIAL','emulator-5554'),*map(str,args)],capture_output=True,check=True,timeout=40)
     return r.stdout if binary else r.stdout.decode(errors='replace')
 
+class PitchNativeANR(RuntimeError):
+    def __init__(self,diagnostic):
+        self.diagnostic=diagnostic
+        super().__init__('Android reports a SPAWT application-not-responding dialog')
+
+class PitchSessionLost(RuntimeError): pass
+
+def pitch_anr_guard(tree,raw):
+    """Recognize the system dialog, retaining evidence only in the sealed folder."""
+    system=[n for n in tree.iter('node') if n.get('package')=='android']
+    if not (any(n.get('resource-id')=='android:id/aerr_wait' for n in system)
+            and any('spawt' in (n.get('text','')+' '+n.get('content-desc','')).casefold() for n in system)):
+        return
+    sequence=globals().get('PITCH_ANR_SEQUENCE',0)+1
+    globals()['PITCH_ANR_SEQUENCE']=sequence
+    name='diagnostic-anr-'+str(sequence).zfill(2)
+    (OUT/(name+'.xml')).write_text(raw)
+    diagnostic={'kind':'android-anr','app':'SPAWT','xml':name+'.xml',
+                'detectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+    try:
+        (OUT/(name+'.png')).write_bytes(adb('exec-out','screencap','-p',binary=True))
+        diagnostic['image']=name+'.png'
+    except Exception: diagnostic['imageUnavailable']=True
+    (OUT/(name+'.json')).write_text(json.dumps(diagnostic,ensure_ascii=False,indent=2))
+    raise PitchNativeANR(name)
+
+def pitch_png_dimensions(png):
+    if len(png)<24 or png[:8]!=b'\x89PNG\r\n\x1a\n' or png[12:16]!=b'IHDR':
+        raise RuntimeError('Capture Android non PNG.')
+    width=int.from_bytes(png[16:20],'big'); height=int.from_bytes(png[20:24],'big')
+    if width<=0 or height<=0: raise RuntimeError('Dimensions PNG invalides.')
+    return {'width':width,'height':height}
+
 def nodes():
     raw=''
     for _ in range(3):
@@ -38,7 +71,9 @@ def nodes():
         dump=adb('shell','uiautomator','dump','/sdcard/window.xml')
         raw=adb('exec-out','cat','/sdcard/window.xml')
         if raw.lstrip().startswith('<?xml'):
-            return ET.fromstring(raw),raw
+            tree=ET.fromstring(raw)
+            if MODE=='pitch': pitch_anr_guard(tree,raw)
+            return tree,raw
         (OUT/'ui-dump-error.txt').write_text(dump+'\n'+raw)
         time.sleep(.6)
     raise RuntimeError('Android UI hierarchy unavailable' if MODE=='pitch' else 'Android UI hierarchy unavailable: '+raw[:250])
@@ -74,6 +109,29 @@ def restart():
     adb('shell','am','force-stop',PACKAGE)
     adb('shell','am','start','-W','-n',PACKAGE+'/.MainActivity')
     find('Accueil',timeout=40,exact=True)
+
+def pitch_relaunch(authenticated=False):
+    """Recreate native surfaces after density changes without changing app data."""
+    adb('shell','am','force-stop',PACKAGE)
+    deep('')  # Root route, not the previous possibly stalled map task.
+    deadline=time.monotonic()+40
+    while time.monotonic()<deadline:
+        tree,_=nodes()
+        app=[n for n in tree.iter('node') if n.get('package')==PACKAGE]
+        opening=any(n.get('resource-id','').startswith('app-opening') for n in app)
+        if app and not opening:
+            identifiers={n.get('resource-id') for n in app}
+            if authenticated:
+                if 'phone-input' in identifiers or 'otp-cell-0' in identifiers:
+                    raise PitchSessionLost('La session synthétique n’est plus authentifiée.')
+                if 'home-mode-suggestions' in identifiers and any(
+                        n.get('text','').casefold()=='accueil' or n.get('content-desc','').casefold()=='accueil' for n in app):
+                    return
+            elif identifiers.intersection(('splash-start','home-mode-suggestions','phone-input')):
+                return
+        time.sleep(.8)
+    raise RuntimeError('Native opening or session restoration unavailable')
+
 def snap(name):
     (OUT/(name+'.png')).write_bytes(adb('exec-out','screencap','-p',binary=True))
     tree,raw=nodes(); (OUT/(name+'.xml')).write_text(raw)
@@ -110,6 +168,7 @@ def check(name, ok):
 def geometry(width,scale,pixel_ratio=3):
     adb('shell','wm','size',f'{width*pixel_ratio}x{800*pixel_ratio}'); adb('shell','wm','density',str(160*pixel_ratio))
     adb('shell','settings','put','system','font_scale',scale); time.sleep(1)
+    if MODE=='pitch': globals()['PITCH_VIEWPORT_HEIGHT']=800*pixel_ratio
 
 def login(phone):
     deep('phone'); tap('phone-input'); adb('shell','input','text',phone.removeprefix('+225'))
@@ -472,6 +531,7 @@ def pitch_preflight():
 def pitch_anonymous_cases():
     """Optional anonymous views before the unchanged synthetic login."""
     import hashlib
+    skip=set(json.loads(pathlib.Path('documentation/android-qa.json').read_text()).get('skipPitchIds',[]))
     entries=[]
     cases=[('00-onboarding','Ouverture · Rejoindre la bande',None,
             ['Plus jamais goumin de restaurant.','Rejoindre la bande']),
@@ -480,6 +540,9 @@ def pitch_anonymous_cases():
         entry={'id':key,'label':title,'state':'manquant','requiresPrivacyReview':True,'privacyNotes':[]}
         entries.append(entry)
         try:
+            if key in skip:
+                entry.update(reason='Déjà reçu dans la première session de pitch.',alreadyReceived=True)
+                continue
             if path: deep(path)
             for anchor in anchors: find(anchor,timeout=8)
             # Wait through the final reveal and recheck the same real controls.
@@ -489,7 +552,7 @@ def pitch_anonymous_cases():
             png=(OUT/(name+'.png')).read_bytes()
             entry.update(state='capturé',reason='Ancrages présents avant et après une pause de stabilité.',
                          file=name+'.png',xml=name+'.xml',sha256=hashlib.sha256(png).hexdigest(),
-                         anchors=anchors,width=1179,height=2400)
+                         anchors=anchors,**pitch_png_dimensions(png))
         except AssertionError:
             entry.update(state='manquant',reason='Écran anonyme ou ancrage attendu absent ; collecte facultative.')
         except Exception:
@@ -509,7 +572,9 @@ def pitch_cases():
     import hashlib, unicodedata
     fr=json.loads(pathlib.Path('app/src/i18n/fr.json').read_text())
     config=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
+    skip=set(config.get('skipPitchIds',[]))
     manifest={'mode':'pitch','build':42,'version':'1.1.1','runId':RUN,
+              'captureRevision':config.get('captureRevision',1),
               'sourceCommit':config['sourceCommit'],'buildRun':config['localBuildRun'],
               'apkSha256':'2fba5164863e446c8a4087c48954e67a790073865c9cd94c31a3a9a9003160f7',
               'nativeAuthenticated':True,'businessActionsSubmitted':False,
@@ -517,10 +582,11 @@ def pitch_cases():
               'backgroundLocationGranted':False,'simulatedPositionInjected':False,
               'visibility':'internal-review-only','publicDeliveryRequiresPrivacyReview':True,
               'fullLiveReceipt':False,'consoleModerationReceipt':False,'physicalGuetReceipt':False,
-              'publicReads':[],'captures':list(globals().get('PITCH_ANONYMOUS',[]))}
-    seen={}
+              'publicReads':[],'anrRecoveryLimit':3,'anrRecoveries':[],
+              'captures':list(globals().get('PITCH_ANONYMOUS',[]))}
+    seen={}; maps_prepared=False
     class MissingView(Exception): pass
-    class SessionLost(Exception): pass
+    SessionLost=PitchSessionLost
 
     def save_manifest():
         manifest['updatedAt']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
@@ -537,8 +603,48 @@ def pitch_cases():
 
     def present(tree,value):
         return any(value.casefold() in label(n).casefold() and len(bounds(n))==4
-                   and bounds(n)[2]>bounds(n)[0] and 0<=bounds(n)[1]<bounds(n)[3]<=2400
+                   and bounds(n)[2]>bounds(n)[0] and 0<=bounds(n)[1]<bounds(n)[3]<=globals().get('PITCH_VIEWPORT_HEIGHT',2400)
                    for n in tree.iter('node'))
+
+    def recover_anr(entry,error):
+        # The failed surface stays failed. Restore the same session on Home
+        # for the next independent view; never clear data or request another OTP.
+        entry.update(state='erreur',reason='ANR Android SPAWT détecté ; cette vue n’est pas une capture valide.')
+        entry.setdefault('anrDiagnostics',[]).append(error.diagnostic)
+        while len(manifest['anrRecoveries'])<manifest['anrRecoveryLimit']:
+            recovery={'captureId':entry['id'],'attempt':len(manifest['anrRecoveries'])+1,'state':'en cours'}
+            manifest['anrRecoveries'].append(recovery); save_manifest()
+            try:
+                pitch_relaunch(authenticated=True)
+                recovery['state']='session restaurée'
+                entry['recoveredBeforeNextView']=True
+                save_manifest()
+                print('PITCH recovery-'+str(recovery['attempt'])+': restauré',flush=True)
+                return
+            except SessionLost:
+                recovery['state']='authentification perdue'
+                entry['reason']='ANR suivi d’une perte d’authentification : arrêt bloquant.'
+                raise
+            except PitchNativeANR as nested:
+                recovery['state']='nouvel ANR'
+                entry['anrDiagnostics'].append(nested.diagnostic)
+            except Exception:
+                recovery['state']='restauration indisponible'
+            finally: save_manifest()
+        manifest['abortedReason']='Limite de trois reprises du processus atteinte après ANR.'
+        save_manifest()
+        raise RuntimeError('Pitch ANR recovery limit reached')
+
+    def inspect_failed_view(entry):
+        # ADB can time out before the first UI dump. Inspect the current state
+        # before labelling the next forty screens as merely missing anchors.
+        try: current,_=nodes()
+        except PitchNativeANR as error:
+            recover_anr(entry,error); return
+        except Exception: return
+        if present(current,'phone-input') or present(current,'otp-cell-0'):
+            entry.update(state='erreur',reason='Authentification perdue : arrêt bloquant du parcours.')
+            raise SessionLost(entry['reason'])
 
     def stable(required,timeout=24):
         previous=None; equal=0; deadline=time.monotonic()+timeout
@@ -552,10 +658,11 @@ def pitch_cases():
             if any(present(tree,value) for value in unavailable):
                 raise MissingView('La surface affiche son indisponibilité ; aucun flag activé pour la capture.')
             loading=any(n.get('class')=='android.widget.ProgressBar' for n in app_nodes)
+            opening=any(n.get('resource-id','').startswith('app-opening') for n in app_nodes)
             failed=present(tree,fr['common']['data_read_error'])
             signature=tuple(tuple(n.get(k,'') for k in
                             ('resource-id','text','content-desc','bounds','checked','selected')) for n in app_nodes)
-            ready=bool(app_nodes) and all(present(tree,value) for value in required) and not loading and not failed
+            ready=bool(app_nodes) and all(present(tree,value) for value in required) and not loading and not opening and not failed
             equal=equal+1 if ready and signature==previous else 0
             if equal>=2: return tree,raw
             previous=signature if ready else None
@@ -567,10 +674,19 @@ def pitch_cases():
                'requiresPrivacyReview':True,'privacyNotes':list(privacy)}
         manifest['captures'].append(entry); save_manifest()
         try:
+            if key in skip:
+                entry.update(reason='Déjà reçu dans la première session de pitch.',alreadyReceived=True)
+                return
             prepare(); time.sleep(1.5)
             tree,raw=stable(required)
             png=adb('exec-out','screencap','-p',binary=True)
-            if not png.startswith(b'\x89PNG\r\n\x1a\n'): raise RuntimeError('Capture Android non PNG.')
+            dimensions=pitch_png_dimensions(png)
+            # An ANR appearing during screencap must never be delivered as a
+            # successful product view. Check again before writing its PNG.
+            current,_=nodes()
+            if (not all(present(current,value) for value in required)
+                    or any(n.get('resource-id','').startswith('app-opening') for n in current.iter('node'))):
+                raise MissingView('L’état visible a changé pendant la capture ; image non retenue.')
             digest=hashlib.sha256(png).hexdigest()
             if digest in seen:
                 raise MissingView('Image identique à '+seen[digest]+' ; doublon non livré.')
@@ -584,21 +700,18 @@ def pitch_cases():
                 entry['privacyNotes'].append('Identifiant ou numéro visible : revue requise avant diffusion.')
             entry.update(state='capturé',reason='Ancrages présents ; hiérarchie stable sur trois lectures.',
                          file=name+'.png',xml=name+'.xml',sha256=digest,anchors=list(required),
-                         width=1179,height=2400)
+                         **dimensions)
+        except PitchNativeANR as error:
+            recover_anr(entry,error)
         except SessionLost:
             entry.update(state='erreur',reason='Authentification perdue : arrêt bloquant du parcours.')
             raise
         except (MissingView,AssertionError) as exc:
             entry.update(state='manquant',reason=str(exc)[:220])
-            # A missing route anchor must not disguise a lost login as an
-            # optional screen. Authentication remains a blocking condition.
-            try: current,_=nodes()
-            except Exception: current=None
-            if current is not None and (present(current,'phone-input') or present(current,'otp-cell-0')):
-                entry.update(state='erreur',reason='Authentification perdue : arrêt bloquant du parcours.')
-                raise SessionLost(entry['reason'])
+            inspect_failed_view(entry)
         except Exception as exc:
             entry.update(state='erreur',reason='Échec technique de la vue : '+type(exc).__name__)
+            inspect_failed_view(entry)
         finally:
             save_manifest()
             print('PITCH '+key+': '+entry['state'],flush=True)
@@ -658,7 +771,15 @@ def pitch_cases():
         keyboard=any('inputmethod' in n.get('package','') for n in tree.iter('node'))
         if keyboard or 'mInputShown=true' in adb('shell','dumpsys','input_method'): back()
 
+    def prepare_maps():
+        nonlocal maps_prepared
+        if maps_prepared: return
+        geometry(393,1,pixel_ratio=1)
+        pitch_relaunch(authenticated=True)
+        maps_prepared=True
+
     def map_view(filter_name,list_mode=False):
+        prepare_maps()
         route('carte','carte-inventory-count'); tap('carte-filter-'+filter_name)
         tree,_=nodes()
         if present(tree,fr['carte']['unavailable_title']): raise MissingView('Module carte indisponible dans l’APK ; aucun fallback présenté comme une carte.')
@@ -696,7 +817,6 @@ def pitch_cases():
     def content_checks():
         route('support','support-check'); tap('support-check'); find('support-check-sync',timeout=30)
 
-    geometry(393,1)
     check('pitch: authenticated native home available',find('Accueil',timeout=15,exact=True) is not None)
     places=public_read('places','places?select=id,name&is_published=eq.true&limit=1000')
     menus=public_read('menus','public_menu_items?select=id,place_id,name&order=id&limit=20')
@@ -707,7 +827,7 @@ def pitch_cases():
 
     capture('01-home','Accueil · Suggestions',lambda:home_panel('suggestions'),['home-panel-suggestions'])
     capture('02-home-personalized','Accueil · Pour ton Palais',lambda:scroll_find('home-personalized-feed',attempts=16),['home-personalized-feed'])
-    for number,mode,title in [(3,'rapide','Rapide'),(4,'selections','Les sélections'),(5,'duo','En duo'),(6,'spots','Les spots')]:
+    for number,mode,title in [(3,'rapide','Rapide'),(4,'selections','Les sélections'),(5,'duo','En duo')]:
         capture(f'{number:02d}-home-{mode}','Accueil · '+title,lambda m=mode:home_panel(m),['home-panel-'+mode])
     capture('07-rapide','Rapide · Choisir vite',lambda:route('rapide',fr['rapide']['subtitle']),[fr['rapide']['subtitle']])
     capture('08-search','Recherche · Découverte',search,[fr['search']['empty_cuisines_title']])
@@ -720,9 +840,6 @@ def pitch_cases():
             capture('11-search-dish','Recherche · Plat du menu publié',lambda:search(words[0]),[fr['outings']['dishes'],dish['name']])
         else: omit('11-search-dish','Recherche · Plat','Nom publié sans terme saisissable via ADB.')
     else: omit('11-search-dish','Recherche · Plat','Aucun plat publié reçu par la lecture publique.')
-    capture('12-map','Carte · Tous les lieux',lambda:map_view('all'),['carte-inventory-count','carte-mapview'])
-    capture('13-map-unexplored','Carte · À explorer',lambda:map_view('unexplored'),['carte-inventory-count','carte-mapview'])
-    capture('14-map-list','Carte · Liste des lieux',lambda:map_view('all',True),['carte-inventory-count',fr['carte']['show_map']])
     capture('15-place','Fiche · La Grande République',lambda:route('place/'+PLACE,'La Grande République'),['La Grande République','place-start-review'])
     capture('16-place-media','Fiche · Médias',lambda:place_tab(PLACE,'media'),[fr['place']['tab_media'],fr['place']['tab_menu']])
     if menus and re.fullmatch(r'[0-9a-f-]{36}',menus[0]['place_id']):
@@ -749,7 +866,7 @@ def pitch_cases():
     for number,filter_name,title in [(26,'all','Tout'),(27,'review','Avis'),(28,'coup','Coups de cœur')]:
         capture(f'{number}-community-{filter_name}','La Bande · '+title,lambda f=filter_name:community(f),['community-feed','community-filter-'+filter_name],['Contenus publics ; vérifier les noms visibles avant le pitch.'])
     capture('29-profile-recto','Palais · Carte recto',profile_start,['spawtercard'],['Compte synthétique et identifiant de carte potentiellement visibles.'])
-    capture('30-profile-verso','Palais · Carte verso',flip_card,['spawtercard',fr['axis']['racines'],fr['axis']['horizons']],['Compte synthétique ; axes soumis à la revue visuelle.'])
+    capture('30-profile-verso','Palais · Carte verso',lambda:(profile_start(),flip_card()),['spawtercard',fr['axis']['racines'],fr['axis']['horizons']],['Compte synthétique ; axes soumis à la revue visuelle.'])
     capture('31-profile-archetype','Palais · Archétype et stade',lambda:(profile_start(),scroll_find(fr['profile']['archetype_section_title'],attempts=7)),[fr['profile']['archetype_section_title']])
     capture('32-profile-titles','Palais · Titres existants',lambda:(profile_start(),scroll_find(fr['profile']['collection_title'],attempts=7)),[fr['profile']['collection_title']])
     capture('33-profile-lists','Palais · Mes listes',lambda:(profile_start(),scroll_find(fr['profile']['link_settings'],attempts=9)),[fr['profile']['link_saved'],fr['profile']['link_settings']])
@@ -763,6 +880,12 @@ def pitch_cases():
     capture('41-suggest-place','Suggérer un spot · Formulaire vide',lambda:route('suggest-place','suggest-name-input'),['suggest-name-input','suggest-landmark-input'])
     omit('42-review-form','Donner un avis','Non ouvert : le bouton Spawt crée une entrée avant la soumission ; aucun faux spawt autorisé.')
     omit('43-progression','Progression','Non ouvert : runBadgeCheck peut attribuer des badges au montage.')
+    # Receive the whole catalogue first. Native maps are last and mounted only
+    # after reducing the software-rendered surface from 3x to its real 1x size.
+    capture('12-map','Carte · Tous les lieux',lambda:map_view('all'),['carte-inventory-count','carte-mapview'])
+    capture('13-map-unexplored','Carte · À explorer',lambda:map_view('unexplored'),['carte-inventory-count','carte-mapview'])
+    capture('14-map-list','Carte · Liste des lieux',lambda:map_view('all',True),['carte-inventory-count',fr['carte']['show_map']])
+    capture('06-home-spots','Accueil · Les spots',lambda:(prepare_maps(),home_panel('spots')),['home-panel-spots'])
     manifest['completed']=True; save_manifest()
 
 try:
@@ -787,6 +910,7 @@ try:
     (OUT/'opening-logcat.txt').write_text(adb('logcat','-d','-v','threadtime'))
     # La matrice et les parcours tactiles gardent les captures 3x habituelles.
     geometry(393,1)
+    if MODE=='pitch': pitch_relaunch()
     tree,_=nodes()
     if any("Pixel Launcher isn't responding" in label(n) for n in tree.iter('node')):
         tap('Close app',exact=True)

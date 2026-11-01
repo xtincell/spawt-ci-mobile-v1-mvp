@@ -225,6 +225,9 @@ jobs:
             exec > android-proof/diagnostic-runner.log 2>&1
           fi
           timeout 20s adb logcat -d -s AndroidRuntime ReactNativeJS libc DEBUG > android-proof/logcat.txt || true
+          if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
+            timeout 20s adb logcat -b main -b system -d -v threadtime -s ActivityManager InputDispatcher WindowManager > android-proof/anr-logcat.txt || true
+          fi
           timeout 20s adb shell dumpsys package com.upgraders.spawt > android-proof/package.txt || true
           SPAWT_PID=$(adb shell pidof com.upgraders.spawt | tr -d '\r')
           test -n "$SPAWT_PID"
