@@ -1,4 +1,5 @@
 import { PilotReturn } from "../src/components/PilotReturn";
+import { recordColdOpen } from "../src/lib/pilot-journey";
 import { startContentSync } from "../src/lib/content-sync";
 import { startAppActivity } from "../src/lib/app-activity";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -89,6 +90,9 @@ export default function RootLayout() {
   // Tous les hooks doivent rester au-dessus du early-return `null` (rules of
   // hooks) — ne pas insérer d'effet side-effect ici sans déplacer le guard.
   const hydrate = useSpawterStore((s) => s.hydrate);
+  useEffect(() => {
+    if (Platform.OS === "android" && isSupabaseConfigured) void recordColdOpen().catch(() => undefined);
+  }, []);
   const { fontsLoaded, fontError } = useAppFonts();
 
   const { t } = useTranslation();

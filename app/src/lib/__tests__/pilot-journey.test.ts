@@ -1,4 +1,5 @@
 const mockStorage = new Map<string,string>();
+jest.mock("react-native", () => ({ Platform: { OS: "android" } }));
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: async (k:string) => mockStorage.get(k) ?? null,
   setItem: async (k:string,v:string) => { mockStorage.set(k,v); },
@@ -50,6 +51,8 @@ it("retains the original open across process restarts; a late claim only offers 
   const opens=calls("pilot_app_open");
   expect(opens).toHaveLength(2);
   expect(opens[0].p_first_open_at).toEqual(opens[0].p_opened_at);
+  expect(opens[0].p_installed_at).toBe("2026-11-25T10:00:00.000Z");
+  expect(opens[0].p_existing_install).toBe(false);
   expect(opens[1].p_first_open_at).toEqual(opens[0].p_first_open_at);
   expect(opens[1].p_install_key).toEqual(opens[0].p_install_key);
   expect(opens[1].p_event_key).not.toEqual(opens[0].p_event_key);
