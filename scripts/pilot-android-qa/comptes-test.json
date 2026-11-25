@@ -1,0 +1,26 @@
+[
+  {
+    "id": "bca00447-1056-4bf0-a9e0-202600000001",
+    "phone": "+2250700000101",
+    "name": "Recette Facebook",
+    "demo": false
+  },
+  {
+    "id": "bca00447-1056-4bf0-a9e0-202600000002",
+    "phone": "+2250700000102",
+    "name": "Recette Instagram",
+    "demo": false
+  },
+  {
+    "id": "bca00447-1056-4bf0-a9e0-202600000003",
+    "phone": "+2250700000103",
+    "name": "Recette mise à jour",
+    "demo": false
+  },
+  {
+    "id": "bca00447-1056-4bf0-a9e0-202600000004",
+    "phone": "+2250700000104",
+    "name": "Palais Démo",
+    "demo": true
+  }
+]
