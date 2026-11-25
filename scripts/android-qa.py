@@ -25,7 +25,7 @@ PHONE=os.environ['SPAWT_QA_PHONE']
 OWNER={'+2250000000101':'fc8bc9b3-0bbb-447f-85a3-fe4bc0d4ed05','+2250000000193':'d7ea30bc-fb7f-440d-bac6-4bbd306f1e42','+2250000000194':'dca6b8a2-0c57-4adb-8858-93736370d3ed'}[PHONE]
 RESULTS=[]
 RUN=os.environ.get('GITHUB_RUN_ID',str(int(time.time())))
-MARKER='Recette native SPAWT 1.1.1 '+RUN
+MARKER='Recette native SPAWT '+json.loads(pathlib.Path('documentation/android-qa.json').read_text()).get('version','1.1.1')+' '+RUN
 
 def adb(*args, binary=False):
     r=subprocess.run(['adb','-s',os.environ.get('SPAWT_QA_SERIAL','emulator-5554'),*map(str,args)],capture_output=True,check=True,timeout=40)
