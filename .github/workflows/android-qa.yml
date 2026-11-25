@@ -5,7 +5,7 @@ permissions:
 on:
   push:
     tags: ['qa-android-*']
-    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements']
+    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204']
     paths: ['documentation/android-qa.json']
   workflow_dispatch:
     inputs:
@@ -91,9 +91,10 @@ jobs:
             if(!response.ok) throw new Error('Artifact download HTTP '+response.status);
             fs.writeFileSync('local-build.zip',Buffer.from(await response.arrayBuffer()));
             const metadata=JSON.parse(execFileSync('unzip',['-p','local-build.zip','apk-metadata.json'],{encoding:'utf8'}));
-            if(metadata.build!==config.build || metadata.version!=='1.1.1' || metadata.sourceCommit!==config.sourceCommit || metadata.runId!==config.localBuildRun || !metadata.signatureMatchesBuild25 || !metadata.zipCrcPassed) throw new Error('Métadonnées APK incohérentes');
+            const version=config.version || '1.1.1';
+            if(!/^\d+\.\d+\.\d+$/.test(version) || metadata.build!==config.build || metadata.version!==version || metadata.sourceCommit!==config.sourceCommit || metadata.runId!==config.localBuildRun || !metadata.signatureMatchesBuild25 || !metadata.zipCrcPassed) throw new Error('Métadonnées APK incohérentes');
             const out=fs.openSync('spawt.apk','w');
-            try {execFileSync('unzip',['-p','local-build.zip','spawt-1.1.1-build'+config.build+'.apk'],{stdio:['ignore',out,'inherit']});} finally {fs.closeSync(out);}
+            try {execFileSync('unzip',['-p','local-build.zip','spawt-'+version+'-build'+config.build+'.apk'],{stdio:['ignore',out,'inherit']});} finally {fs.closeSync(out);}
             const apk=fs.readFileSync('spawt.apk');
             if(apk.length!==metadata.bytes || crypto.createHash('sha256').update(apk).digest('hex')!==metadata.sha256) throw new Error('Empreinte APK incorrecte');
             fs.writeFileSync('android-proof/apk-metadata.json',JSON.stringify(metadata,null,2)+'\n');
@@ -151,6 +152,8 @@ jobs:
           key: spawt-android-35-google-x86-v1
       - name: Démarrer Android 35 avec KVM
         if: steps.apk.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p android-proof
           if [ "$SPAWT_QA_MODE" = 'pitch' ]; then
@@ -179,17 +182,24 @@ jobs:
           adb shell settings put secure show_ime_with_hard_keyboard 1
           if [ "$(python3 -c 'import json;print(json.load(open("documentation/android-qa.json"))["build"])')" -ge 41 ]; then
             python3 - <<'PYCODE'
-          import hashlib,json,pathlib,urllib.request
+          import hashlib,json,os,pathlib,shutil,subprocess,urllib.request
           c=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
           previous=c.get('previousBuild',40)
           references={
               40:('2026-10-19','f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648'),
               41:('2026-10-22','62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9'),
+              44:(None,'f839b7758f5eec35a0dfd98e0f6115cbdbad6c1e9efd15104a8d5ce1968e419f'),
           }
           if previous!=c['build']-1 or previous not in references: raise RuntimeError('Version précédente non reçue')
           date,digest=references[previous]
-          url=f'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-{date}-{previous}/spawt-1.1.1-build{previous}.apk'
-          urllib.request.urlretrieve(url,'previous.apk')
+          if previous == 44:
+              # This signed predecessor was received as a candidate; it never occupied the public channel.
+              dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'qa-previous-44'
+              subprocess.run(['gh','run','download','45685227649','--name','android-apk','--dir',str(dest)],check=True)
+              shutil.copyfile(dest/'spawt-1.1.3-build44.apk','previous.apk')
+          else:
+              url=f'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-{date}-{previous}/spawt-1.1.1-build{previous}.apk'
+              urllib.request.urlretrieve(url,'previous.apk')
           assert hashlib.sha256(pathlib.Path('previous.apk').read_bytes()).hexdigest()==digest
           PYCODE
             adb install previous.apk
