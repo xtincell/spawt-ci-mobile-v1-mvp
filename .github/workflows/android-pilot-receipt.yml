@@ -19,6 +19,7 @@ jobs:
       EXPO_NO_TELEMETRY: 1
       ANDROID_USER_HOME: /tmp/spawt-pilot-android
       ANDROID_AVD_HOME: /tmp/spawt-pilot-android/avd
+      ADB_VENDOR_KEYS: /tmp/spawt-pilot-android/adbkey
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,6 +66,11 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platform-tools' 'emulator' 'system-images;android-35;google_apis_playstore;x86_64' >/dev/null
           df -h .
           mkdir -p "$ANDROID_AVD_HOME"
+          mkdir -p "$HOME/.android"
+          "$ANDROID_HOME/platform-tools/adb" keygen "$ANDROID_USER_HOME/adbkey" >/dev/null
+          install -m 600 "$ANDROID_USER_HOME/adbkey" "$HOME/.android/adbkey"
+          install -m 644 "$ANDROID_USER_HOME/adbkey.pub" "$HOME/.android/adbkey.pub"
+          "$ANDROID_HOME/platform-tools/adb" start-server
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n pilot -k 'system-images;android-35;google_apis_playstore;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/pilot.avd" --force
           test -s "$ANDROID_AVD_HOME/pilot.ini"
           echo "disk.dataPartition.size=2048M" >> "$ANDROID_AVD_HOME/pilot.avd/config.ini"
