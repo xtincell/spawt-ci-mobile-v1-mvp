@@ -70,7 +70,24 @@ def run_outing_cases(g):
     adb('shell','cmd','connectivity','airplane-mode','disable');adb('shell','svc','wifi','enable');adb('shell','svc','data','enable');time.sleep(4)
     restart();deep('saved');until(lambda:any(d['id']==dish['id'] for d in state()['dishes']));check('offline dish save persists and reaches owning server account',True)
     title='Brunch recette '+run
-    deep('saved?addDish='+dish['id']);tap('Créer une liste');tap('Le nom de ta liste');adb('shell','input','text',title.replace(' ','%s'));back();tap('Brunch',exact=True);tap('Enregistrer',exact=True)
+    deep('saved?addDish='+dish['id']);tap('Créer une liste');tap('Le nom de ta liste')
+    # React Native's controlled TextInput can lag behind fast emulator keyboard events.
+    # Read the actual field before submitting, and complete its missing suffix.
+    for attempt in range(4):
+        fields, _ = g['nodes']()
+        name = next(n for n in fields.iter('node') if n.get('class') == 'android.widget.EditText').get('text', '')
+        if name == title:
+            break
+        if not title.startswith(name):
+            adb('shell', 'input', 'keycombination', '113', '29')
+            adb('shell', 'input', 'keyevent', '67')
+            name = ''
+        for part in title[len(name):]:
+            adb('shell', 'input', 'text', '%s' if part == ' ' else part)
+            time.sleep(.08)
+    else:
+        raise AssertionError('Native list test name was not entered faithfully')
+    back();tap('Brunch',exact=True);tap('Enregistrer',exact=True)
     entry=until(lambda:next((l for l in state()['lists'] if l['title']==title),None));lid=entry['id']
     until(lambda:any(i['list_id']==lid and i['menu_item_id']==dish['id'] for i in state()['items']))
     snap('outing-named-list');check('native named occasion list and dish received by server',True)
