@@ -1,0 +1,85 @@
+name: Android map comparison
+on:
+  push:
+    branches: ['codex/pilote-abidjan-20261204']
+    paths: ['.github/workflows/android-pilot-map.yml', 'scripts/pilot-map-probe.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: 43
+            source: ff4864e76e84f8448d102ed35bfb48684b347b94
+            artifact: 45673678941
+          - build: 44
+            source: c0bd42f81ff097565557d48b0a0ea3f2f46d312f
+            artifact: 45684004062
+    env:
+      GH_TOKEN: ${{ github.token }}
+      QA_VERSION: ${{ matrix.build }}
+      EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_spawt_abidjan_local_recette
+      EXPO_NO_TELEMETRY: 1
+      ANDROID_USER_HOME: /tmp/spawt-pilot-android
+      ANDROID_AVD_HOME: /tmp/spawt-pilot-android/avd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Receive native client and source
+        run: |
+          git fetch --depth 1 origin ${{ matrix.source }}
+          git checkout ${{ matrix.source }} -- app
+          gh run download ${{ matrix.artifact }} -n emulator-debug-${{ matrix.build }}-x86_64 -D "$RUNNER_TEMP/pilot"
+          apk=$(find "$RUNNER_TEMP/pilot" -name app-debug.apk)
+          test -n "$apk" && echo "PILOT_APK=$apk" >> "$GITHUB_ENV"
+          bash scripts/pilot-android-qa/start-ci.sh "$GITHUB_WORKSPACE"
+      - name: Start real map with the public catalog in a disposable route
+        run: |
+          node scripts/pilot-android-qa/seed-carte.mjs | docker exec -i "$PILOT_DB_CONTAINER" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d pilot_http
+          printf '%s\n' 'export { SpotsMap as default } from "../src/components/SpotsMap";' > app/app/diagnostic-carte.tsx
+          cd app
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          CI=1 EXPO_OFFLINE=1 NODE_OPTIONS=--dns-result-order=ipv4first nohup npx expo start --lan --port 8081 --no-dev --minify > "$RUNNER_TEMP/metro-map.log" 2>&1 &
+          for i in {1..60}; do if curl -fsS http://127.0.0.1:8081/status > /dev/null 2>&1; then break; fi; sleep 2; done
+          curl -fsS http://127.0.0.1:8081/status
+      - name: Start Android 15
+        run: |
+          sudo chmod 666 /dev/kvm
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64' >/dev/null
+          df -h .
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n pilot -k 'system-images;android-35;google_apis;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/pilot.avd" --force
+          test -s "$ANDROID_AVD_HOME/pilot.ini"
+          echo "disk.dataPartition.size=2048M" >> "$ANDROID_AVD_HOME/pilot.avd/config.ini"
+          nohup "$ANDROID_HOME/emulator/emulator" -avd pilot -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu software -memory 3072 -cores 2 > "$RUNNER_TEMP/pilot-emulator.log" 2>&1 &
+          emulator_pid=$!
+          sleep 5
+          tail -c 7000 "$RUNNER_TEMP/pilot-emulator.log"
+          kill -0 "$emulator_pid"
+          if ! timeout 240s "$ANDROID_HOME/platform-tools/adb" wait-for-device; then tail -c 12000 "$RUNNER_TEMP/pilot-emulator.log"; exit 1; fi
+          for i in {1..90}; do if [ "$("$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then break; fi; sleep 2; done
+          "$ANDROID_HOME/platform-tools/adb" shell input keyevent 82
+      - name: Exercise first render, list and resume
+        run: |
+          adb reverse tcp:54321 tcp:54321
+          adb reverse tcp:8081 tcp:8081
+          adb install "$PILOT_APK"
+          python3 scripts/pilot-map-probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: map-reception-${{ matrix.build }}
+          path: map-proof
+          retention-days: 14
