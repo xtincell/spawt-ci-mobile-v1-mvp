@@ -1,0 +1,50 @@
+name: Android pilot legacy upgrade client
+on:
+  push:
+    branches: ['codex/pilote-abidjan-20261204']
+    paths: ['.github/workflows/android-pilot-legacy.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  emulator-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 8cf7ea89ef7610b69c28f7608218f4e005dbdc30
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare native client for loopback QA
+        working-directory: app
+        run: |
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          npx expo prebuild --platform android --no-install
+      - name: Compile x86_64 debug client for Metro
+        working-directory: app/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4096m
+        run: bash gradlew :app:assembleDebug -PreactNativeArchitectures=x86_64 --max-workers=2 --no-daemon
+      - name: Receive emulator package
+        run: |
+          apk=app/android/app/build/outputs/apk/debug/app-debug.apk
+          "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "$apk" > badging.txt
+          head -n1 badging.txt > client-identite.txt
+          grep -F "name='com.upgraders.spawt' versionCode='42' versionName='1.1.1'" client-identite.txt
+          sha256sum "$apk" > client-sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emulator-debug-42-x86_64
+          retention-days: 7
+          path: |
+            app/android/app/build/outputs/apk/debug/app-debug.apk
+            client-identite.txt
+            client-sha256.txt
