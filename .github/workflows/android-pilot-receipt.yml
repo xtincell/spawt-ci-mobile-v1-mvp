@@ -38,7 +38,11 @@ jobs:
           bash scripts/pilot-android-qa/start-ci.sh "$GITHUB_WORKSPACE"
           npm ci --prefix app --legacy-peer-deps --no-audit --no-fund
           cd app
-          CI=1 nohup npx expo start --localhost --port 8081 --offline --no-dev --minify > "$RUNNER_TEMP/pilot-metro.log" 2>&1 &
+          CI=1 EXPO_OFFLINE=1 nohup npx expo start --localhost --port 8081 --no-dev --minify > "$RUNNER_TEMP/pilot-metro.log" 2>&1 &
+          for i in {1..60}; do if curl -fsS http://127.0.0.1:8081/status >/dev/null 2>&1; then break; fi; sleep 2; done
+          if ! curl -fsS http://127.0.0.1:8081/status; then tail -60 "$RUNNER_TEMP/pilot-metro.log"; exit 1; fi
+      - name: Load the public map inventory into the isolated database
+        run: node scripts/pilot-android-qa/seed-carte.mjs | docker exec -i "$PILOT_DB_CONTAINER" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d pilot_http
       - name: Start Android 15
         run: |
           sudo chmod 666 /dev/kvm

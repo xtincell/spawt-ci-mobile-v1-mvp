@@ -142,7 +142,39 @@ def scenario(source,account,mode):
         subprocess.run(["ffmpeg","-v","error","-i",str(OUT/"Jean-Claude-demo-Android.mp4"),
                         "-f","null","-"],check=True)
 
+def map_probe():
+    account=FIXTURES[2]
+    subprocess.run(["adb","uninstall",PACKAGE],capture_output=True)
+    adb("install","-r",APK,timeout=180)
+    adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
+    login(account);find("Accueil")
+    initial=adb("shell","pidof",PACKAGE).strip()
+    adb("logcat","-c")
+    result={"entered_utc":now(),"catalogue":155,"markers":111,"source":"debug x86_64"}
+    try:
+        adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d","spawt://carte","-p",PACKAGE)
+        find("carte-view-toggle",40)
+        time.sleep(12)
+        result["same_process"]=adb("shell","pidof",PACKAGE).strip()==initial
+        result["controls"]=True
+        with (OUT/"carte-155-lieux.png").open("wb") as screen:
+            subprocess.run(["adb","exec-out","screencap","-p"],stdout=screen,check=True)
+        tap("carte-view-toggle");find("carte-view-toggle");tap("carte-view-toggle")
+        time.sleep(5)
+        result["remount_same_process"]=adb("shell","pidof",PACKAGE).strip()==initial
+        assert result["same_process"] and result["remount_same_process"]
+    finally:
+        logs=adb("logcat","-b","crash","-d")
+        native=adb("logcat","-d","-s","MapLibre","Mbgl","ReactNativeJS","AndroidRuntime","libc","DEBUG")
+        diagnostic=[line for line in (logs+"\n"+native).splitlines() if
+                    re.search(r"FATAL|Fatal signal|Abort message|backtrace|#[0-9]{2} pc|Exception|MapLibre|maplibre|OutOfMemory",line)]
+        (OUT/"carte-diagnostic.txt").write_text("\n".join(re.sub(r"https?://\S+","[URL]",line)[:600] for line in diagnostic[-180:]))
+        result["crash_buffer"]=bool(re.search(r"FATAL EXCEPTION|Fatal signal|Abort message",logs))
+        (OUT/"carte-processus.json").write_text(json.dumps(result,indent=2))
+
 errors=[]
+try:map_probe()
+except Exception as error:errors.append("carte : "+str(error))
 for source,account,mode in [("facebook",FIXTURES[0],"facebook"),("instagram",FIXTURES[1],"instagram"),
                             ("facebook",FIXTURES[3],"demo")]:
     try:scenario(source,account,mode)

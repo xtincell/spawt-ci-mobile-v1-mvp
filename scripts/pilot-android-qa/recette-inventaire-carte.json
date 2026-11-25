@@ -1,0 +1,9 @@
+{
+  "read_at": "2026-11-25T18:52:36.8580871+00:00",
+  "source": "https://api.spawt.online/rest/v1/places",
+  "city": "abidjan",
+  "published": 155,
+  "with_coordinates": 111,
+  "without_coordinates": 44,
+  "unique_positions": 111
+}
