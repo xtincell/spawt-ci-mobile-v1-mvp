@@ -125,3 +125,34 @@ test('the default complete profile retains live, moderation and physical Guet re
   const partial = candidate(); delete partial.recipe.publicationProfile;
   assert.throws(() => validate(partial), /outing/);
 });
+
+test('a Guet attestation on its own authorizes neither a different APK nor missing native receipts', () => {
+  const fixture = complete();
+  fixture.recipe.publicationProfile = 'pilot45-alpha';
+  fixture.recipe.publicationDecision = 'owner-approved-build45-alpha-with-pending-receipts';
+  assert.throws(() => validate(fixture), /pinned to the verified build 45/);
+  const attestation = JSON.parse(fs.readFileSync(new URL('../../documentation/android-build45-team-guet.json', import.meta.url)));
+  Object.assign(fixture.recipe, attestation);
+  if (attestation.status !== 'received') {
+    assert.throws(() => validate(fixture), /pinned to the verified build 45/);
+    return;
+  }
+  Object.assign(fixture.metadata, { sourceCommit: attestation.sourceCommit, version: attestation.version, build: 45, runId: attestation.buildRun, sha256: attestation.sha256, bytes: attestation.bytes });
+  fixture.proof.qaMetadata.sha256 = attestation.sha256;
+  Object.assign(fixture.proof.upgrade, { from: 44, to: 45 });
+  delete fixture.proof.outing;
+  delete fixture.proof.live;
+  assert.throws(() => validate(fixture), /Native pilot receipts missing/);
+  fixture.proof.pilot = { signedUpgradeFromPublic42: true, domainVerified: true, deepLinkColdReviewRead: true, nativeMapAndListReceivedInEmulation: true };
+  fixture.proof.partialLiveVerified = true;
+  const qualification = validate(fixture).qualification;
+  assert.equal(qualification.physicalGuetReceipt, false);
+  assert.equal(qualification.guetValidatedOnMobileAccordingToTeam, true);
+  assert.equal(qualification.fullLiveReceipt, false);
+  assert.equal(qualification.consoleModerationReceipt, false);
+  fixture.proof.live = { feedbackReplyRead: true };
+  assert.throws(() => validate(fixture), /must remain explicit/);
+  delete fixture.proof.live;
+  fixture.proof.pilot.domainVerified = false;
+  assert.throws(() => validate(fixture), /Native pilot receipts missing/);
+});

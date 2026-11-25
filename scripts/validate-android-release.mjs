@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { receivePilot45Alpha } from './validate-pilot45-receipt.mjs';
 
 // The owner authorized this already-received candidate for the official alpha
 // channel on 2026-10-31, with the three missing receipts disclosed. This is an
@@ -40,7 +41,18 @@ const requireTrue = (record, keys) => record && keys.every(key => record[key] ==
 
 export function androidPublicationProfile(recipe) {
   const profile = recipe.publicationProfile ?? 'complete';
-  if (!['complete', 'raccordements'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (!['complete', 'raccordements', 'pilot45-alpha'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (profile === 'pilot45-alpha') {
+    const attestation = JSON.parse(fs.readFileSync(new URL('../documentation/android-build45-team-guet.json', import.meta.url), 'utf8'));
+    if (recipe.build !== 45 || recipe.sourceCommit !== 'c0381415c67722c41ee075b49358d65dcb35c466' || recipe.buildRun !== 45709291720
+      || recipe.sha256 !== 'b6a092e3935835de1f6a0b6384c953d96b0f37ed15eaeb5ba842527a95e63a90'
+      || recipe.publicationDecision !== 'owner-approved-build45-alpha-with-pending-receipts'
+      || attestation.status !== 'received' || attestation.teamStatement !== 'Guet validé sur mobile'
+      || !['version', 'build', 'buildDate', 'tag', 'sourceCommit', 'sha256', 'bytes', 'buildRun', 'buildWorkflowCommit', 'qaRun', 'qaWorkflowCommit', 'pilotRun', 'pilotWorkflowCommit', 'liveRun', 'liveWorkflowCommit']
+        .every(key => recipe[key] !== undefined && recipe[key] === attestation[key])) {
+      throw new Error('Team Guet attestation is pinned to the verified build 45 and its native receipts');
+    }
+  }
   if (profile === 'raccordements') {
     if (!Object.entries(BUILD42_RACCORDEMENTS).every(([key, value]) => recipe[key] === value)) throw new Error('Raccordements publication is pinned to the received build 42');
     if (recipe.publicationDecision !== 'owner-approved-build42-with-pending-receipts') throw new Error('Explicit build 42 publication decision missing');
@@ -59,6 +71,27 @@ export function validateAndroidReleaseProof(recipe, metadata, proof) {
   if (firebase?.defaultAppInitialized !== true) throw new Error('Firebase native initialization was not verified');
   if (recipe.build >= 41 && (upgrade?.from !== recipe.build - 1 || upgrade?.to !== recipe.build
     || upgrade?.installedOverPrevious !== true || upgrade?.backgroundLocationDeclared !== true)) throw new Error('Native upgrade receipt missing');
+
+  if (profile === 'pilot45-alpha') {
+    if (!proof.pilot?.signedUpgradeFromPublic42 || !proof.pilot.domainVerified || !proof.pilot.deepLinkColdReviewRead
+      || !proof.pilot.nativeMapAndListReceivedInEmulation || proof.partialLiveVerified !== true) throw new Error('Native pilot receipts missing');
+    if (proof.live !== undefined || proof.outing !== undefined) throw new Error('Incomplete alpha receipts must remain explicit');
+    return { profile, copies: [
+      ['assertions.json', 'native-opening-assertions.json'], ['upgrade-install.json', 'upgrade-install-proof.json'],
+      ['firebase-runtime.json', 'firebase-runtime-proof.json'], ['opening-visibility.json', 'opening-visibility-proof.json'],
+    ], qualification: {
+      schemaVersion: 1, publicationProfile: profile, qualification: 'alpha', publicationDecision: recipe.publicationDecision,
+      version: recipe.version, build: recipe.build, sourceCommit: recipe.sourceCommit, sha256: recipe.sha256, bytes: recipe.bytes,
+      buildRun: recipe.buildRun, qaRun: recipe.qaRun, pilotRun: recipe.pilotRun, liveRun: recipe.liveRun,
+      upgradeFrom44Verified: true, signedOpeningAssertionsPassed: assertions.length, firebaseInitialized: true,
+      liveAttempt: { conclusion: 'failure', publishedMenuRead: true, dishSearchRead: true, offlineDishSaveSynced: true,
+        stoppedAt: 'Le nom de liste saisi sur l’émulateur a perdu son dernier chiffre.' },
+      fullLiveReceipt: false, consoleModerationReceipt: false, physicalGuetReceipt: false,
+      guetValidatedOnMobileAccordingToTeam: true, teamStatement: 'Guet validé sur mobile',
+      pilot: proof.pilot, attributionAndLegacyFavoriteVerifiedOnSignedBinary: false,
+      scope: 'Alpha publiée sur décision du propriétaire. Le support et la modération en production, la conservation du favori 42 et le parcours complet d’attribution restent à recevoir. L’équipe atteste le Guet sur mobile. Aucun nouveau reçu terrain pour cet APK.',
+    } };
+  }
 
   // R2 stores its real outing receipt inside raccordements-data.json. There is
   // deliberately no outing-data.json or live-data.json in that artifact.
@@ -124,7 +157,7 @@ export function validateAndroidReleaseProof(recipe, metadata, proof) {
   return { profile, copies };
 }
 
-export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'release-apk', proofDirectory = 'native-proof' } = {}) {
+export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'release-apk', proofDirectory = 'native-proof', pilotDirectory = 'pilot-native-proof', liveDirectory = 'partial-live-proof' } = {}) {
   const profile = androidPublicationProfile(recipe);
   const read = name => JSON.parse(fs.readFileSync(path.join(proofDirectory, name), 'utf8'));
   const metadata = JSON.parse(fs.readFileSync(path.join(artifactDirectory, 'apk-metadata.json'), 'utf8'));
@@ -134,6 +167,11 @@ export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'releas
     proof.raccordements = read('raccordements-data.json');
     if (fs.existsSync(path.join(proofDirectory, 'live-data.json'))) throw new Error('Pending receipts must remain explicitly unverified');
     proof.fingerprints = Object.fromEntries(Object.keys(BUILD42_PROOF_SHA256).map(name => [name, createHash('sha256').update(fs.readFileSync(path.join(proofDirectory, name))).digest('hex')]));
+  } else if (profile === 'pilot45-alpha') {
+    proof.pilot = receivePilot45Alpha(pilotDirectory);
+    const actual = createHash('sha256').update(fs.readFileSync(path.join(liveDirectory, 'assertions.json'))).digest('hex');
+    const liveMetadata = JSON.parse(fs.readFileSync(path.join(liveDirectory, 'apk-metadata.json'), 'utf8'));
+    proof.partialLiveVerified = actual === '64ce4fdc2fa7769186d10b6a28c43fcea0368f8b533b0b4e56561de4c434f3b6' && liveMetadata.sha256 === recipe.sha256;
   } else {
     if (recipe.build >= 41) proof.outing = read('outing-data.json');
     if (recipe.build >= 37) proof.live = read('live-data.json');
