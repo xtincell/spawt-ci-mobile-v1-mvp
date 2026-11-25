@@ -1,13 +1,30 @@
 import TestRenderer, { act } from "react-test-renderer";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { SpotsMap } from "../../src/components/SpotsMap";
 import CarteScreen from "../../app/(tabs)/carte";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
 const mockPush = jest.fn();
 const mockTrack = jest.fn();
+const mockCanRender = jest.fn();
+let mockFocused = true;
+let mockPosition = { lat: 5.35, lng: -4, source: "fallback" };
+jest.mock("expo", () => {
+  const expo = jest.requireActual("expo");
+  return {
+    ...expo,
+    requireOptionalNativeModule: (name: string) =>
+      name === "SpawtMapCapabilities"
+        ? { canRenderAsync: () => mockCanRender() }
+        : expo.requireOptionalNativeModule(name),
+  };
+});
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
-  useFocusEffect: (fn: () => void) => require("react").useEffect(fn, [fn]),
+  useFocusEffect: (fn: () => void) =>
+    require("react").useEffect(
+      () => (mockFocused ? fn() : undefined),
+      [fn, mockFocused],
+    ),
 }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: require("react-native").View,
@@ -42,22 +59,31 @@ jest.mock("../../src/lib/use-places", () => ({
   }),
 }));
 jest.mock("../../src/lib/use-spawter-position", () => ({
-  useSpawterPosition: () => ({ lat: 5.35, lng: -4, source: "fallback" }),
+  useSpawterPosition: () => mockPosition,
 }));
 jest.mock("@maplibre/maplibre-react-native", () => ({
   Map: "Map",
   Camera: "Camera",
-  Marker: "Marker",
+  GeoJSONSource: "GeoJSONSource",
+  Layer: "Layer",
 }));
 let tree: TestRenderer.ReactTestRenderer;
 afterEach(() => {
   if (tree) act(() => tree.unmount());
+  jest.restoreAllMocks();
 });
 beforeEach(() => {
   jest.clearAllMocks();
   Platform.OS = "android";
+  AppState.currentState = "active";
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockReturnValue({ remove: jest.fn() });
   mockFailed = false;
   mockLoading = false;
+  mockFocused = true;
+  mockCanRender.mockResolvedValue(true);
+  mockPosition = { lat: 5.35, lng: -4, source: "fallback" };
   mockPlaces = mockPlaces.filter((place) => place.id === "published");
 });
 it("shares the native map with Carte and retains the city fallback when GPS permission is absent", async () => {
@@ -70,17 +96,16 @@ it("shares the native map with Carte and retains the city fallback when GPS perm
   });
   expect(tree.root.findAllByType(SpotsMap)).toHaveLength(1);
   expect(JSON.stringify(tree.toJSON())).toContain("carte.city_fallback");
-  const marker = tree.root.find((n) => n.type === ("Marker" as any));
-  expect(marker.props.lngLat).toEqual([-3.98, 5.35]);
-  const button = marker.find(
-    (n) =>
-      n.props.accessibilityRole === "button" &&
-      typeof n.props.onPress === "function",
-  );
-  expect(button.props.style.minHeight).toBeGreaterThanOrEqual(44);
+  const map = tree.root.findByType("Map" as any);
+  expect(map.props.androidView).toBe("texture");
+  expect(tree.root.findAllByType("GeoJSONSource" as any)).toHaveLength(0);
+  act(() => map.props.onDidFinishLoadingStyle());
+  const source = tree.root.findByType("GeoJSONSource" as any);
+  const feature = source.props.data.features[0];
+  expect(feature.geometry.coordinates).toEqual([-3.98, 5.35]);
   act(() => {
-    marker.props.onPress();
-    button.props.onPress();
+    source.props.onPress({ nativeEvent: { features: [feature] } });
+    source.props.onPress({ nativeEvent: { features: [feature] } });
   });
   expect(mockPush).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledWith("/place/published");
@@ -115,6 +140,100 @@ it("offers retry when inventory fails", async () => {
   )[0]!;
   act(() => retry.props.onPress());
   expect(mockReload).toHaveBeenCalledTimes(1);
+});
+
+const mapScreen = () => (
+  <ThemeProvider>
+    <CarteScreen />
+  </ThemeProvider>
+);
+
+it("keeps a complete inventory with a single source and excludes invalid coordinates from the renderer", async () => {
+  const first = mockPlaces[0]!;
+  const supported = Array.from({ length: 154 }, (_, index) => ({
+    ...first,
+    id: "point-" + index,
+  }));
+  mockPlaces.push(...supported);
+  for (const [lat, lng] of [
+    [91, 20],
+    [10, -182],
+    [0, 0],
+    [Infinity, 5],
+    [5, NaN],
+  ] as const) {
+    mockPlaces.push({
+      ...first,
+      id: "bad-" + mockPlaces.length,
+      location: { ...first.location, lat, lng },
+    });
+  }
+  mockPosition = { lat: 100, lng: NaN, source: "gps" };
+  await act(async () => {
+    tree = TestRenderer.create(mapScreen());
+  });
+  expect(
+    tree.root.findByType("Camera" as any).props.initialViewState.center,
+  ).toEqual([-4.0267, 5.3364]);
+  act(() => tree.root.findByType("Map" as any).props.onDidFinishLoadingStyle());
+  const source = tree.root.findByType("GeoJSONSource" as any);
+  expect(source.props.data.features).toHaveLength(155);
+  expect(tree.root.findAllByType("Layer" as any)).toHaveLength(2);
+  expect(tree.root.findAllByType("Marker" as any)).toHaveLength(0);
+  act(() =>
+    source.props.onPress({
+      nativeEvent: { features: [{ properties: { placeId: "inactive" } }] },
+    }),
+  );
+  expect(mockPush).not.toHaveBeenCalled();
+});
+
+it("shows real places without mounting MapLibre on an Android without the necessary graphics", async () => {
+  mockCanRender.mockResolvedValue(false);
+  await act(async () => {
+    tree = TestRenderer.create(mapScreen());
+  });
+  expect(tree.root.findAllByType("Map" as any)).toHaveLength(0);
+  expect(tree.root.findAllByProps({children: "Lieu publié"}).length).toBeGreaterThan(0);
+});
+
+it("returns to the list on style failure and lets the visitor retry the map", async () => {
+  await act(async () => {
+    tree = TestRenderer.create(mapScreen());
+  });
+  act(() => tree.root.findByType("Map" as any).props.onDidFailLoadingMap());
+  expect(tree.root.findAllByType("Map" as any)).toHaveLength(0);
+  expect(tree.root.findAllByProps({children: "Lieu publié"}).length).toBeGreaterThan(0);
+  act(() =>
+    tree.root
+      .findAllByProps({ testID: "carte-view-toggle" })[0]!
+      .props.onPress(),
+  );
+  expect(tree.root.findAllByType("Map" as any)).toHaveLength(1);
+});
+
+it("releases the native surface on loss of focus and on Android backgrounding", async () => {
+  const subscription = jest.spyOn(AppState, "addEventListener");
+  try {
+    await act(async () => {
+      tree = TestRenderer.create(mapScreen());
+    });
+    const change = subscription.mock.calls.find(
+      ([name]) => name === "change",
+    )![1] as (state: string) => void;
+    act(() => change("background"));
+    expect(tree.root.findAllByType("Map" as any)).toHaveLength(0);
+    act(() => change("active"));
+    expect(tree.root.findAllByType("Map" as any)).toHaveLength(1);
+    mockFocused = false;
+    act(() => tree.update(mapScreen()));
+    expect(tree.root.findAllByType("Map" as any)).toHaveLength(0);
+    mockFocused = true;
+    act(() => tree.update(mapScreen()));
+    expect(tree.root.findAllByType("Map" as any)).toHaveLength(1);
+  } finally {
+    subscription.mockRestore();
+  }
 });
 
 it("keeps real published places usable when the native map is unavailable", async () => {

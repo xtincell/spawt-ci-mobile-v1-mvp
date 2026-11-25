@@ -1,4 +1,4 @@
 {
   "platforms": ["android"],
-  "android": { "modules": ["expo.modules.spawtopening.SpawtOpeningModule"] }
+  "android": { "modules": ["expo.modules.spawtopening.SpawtOpeningModule", "expo.modules.spawtopening.SpawtMapCapabilitiesModule"] }
 }

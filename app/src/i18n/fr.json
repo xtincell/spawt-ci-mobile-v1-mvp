@@ -1020,6 +1020,7 @@
   },
   "carte": {
     "module_unavailable": "La carte interactive n’est pas disponible dans cette version. Vous pouvez consulter les fiches des spots.",
+    "style_unavailable": "Le fond de carte n’a pas pu se charger. Les fiches restent accessibles ci-dessous.",
     "city_fallback": "Position indisponible : carte centrée sur la ville.",
     "empty": "Aucun lieu publié à afficher sur la carte.",
     "loading": "Chargement de la carte…",

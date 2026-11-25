@@ -333,7 +333,7 @@ export default function HomeD() {
                   <ExploreCollections active={selectedMode === mode} />
                 ) : null}
                 {mode === "duo" ? <DuoEditorial /> : null}
-                {mode === "spots" ? <SpotsMap embedded /> : null}
+                {mode === "spots" && selectedMode === "spots" ? <SpotsMap embedded /> : null}
                 {mode === "suggestions" ? (
                   <>
                     <DataLoadNotice
