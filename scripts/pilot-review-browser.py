@@ -8,10 +8,12 @@ import re
 import subprocess
 import threading
 import time
+from urllib.parse import quote
 import xml.etree.ElementTree as ET
 
 APP="com.upgraders.spawt"
 URL="https://spawt.online/ouvrir/avis/le-cha-alexandre"
+ANDROID_CTA="intent://spawt.online/ouvrir/avis/le-cha-alexandre#Intent;scheme=https;package="+APP+";S.browser_fallback_url="+quote(URL+"#installer",safe="")+";end"
 OUT=pathlib.Path("pilot-proof/le-cha");OUT.mkdir(parents=True,exist_ok=True)
 REVIEW=json.loads(pathlib.Path("app/src/data/le-cha-review.json").read_text())
 def adb(*args):
@@ -26,10 +28,26 @@ def click(n):
     adb("shell","input","tap",str((x+a)//2),str((y+b)//2))
 def shot(name):
     with (OUT/(name+".png")).open("wb") as f:subprocess.run(["adb","exec-out","screencap","-p"],stdout=f,check=True)
+def control(value, timeout=45):
+    end=time.monotonic()+timeout
+    while time.monotonic()<end:
+        for node in tree().iter("node"):
+            if node.get("package")==APP and value in labels(node) and node.get("enabled")!="false":
+                return node
+        time.sleep(.5)
+    raise RuntimeError("Contrôle natif attendu absent")
+def signed_in():
+    # Existing authorized QA account. It is used only to receive its own real session.
+    adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d","spawt://phone","-p",APP)
+    click(control("phone-input"));adb("shell","input","text","0000000193")
+    adb("shell","input","keyevent","4");click(control("phone-send"))
+    for i,digit in enumerate("123456"):
+        click(control("otp-cell-"+str(i)));adb("shell","input","text",digit)
+    control("Accueil")
 class Entry(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         raw=('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recette SPAWT</title>'
-             '<a style="font:24px sans-serif;display:block;padding:40px" href="'+URL+'">Lire le commentaire Le Cha</a>').encode()
+             '<a style="font:24px sans-serif;display:block;padding:40px" href="'+ANDROID_CTA+'">Lire le commentaire Le Cha</a>').encode()
         self.send_response(200);self.send_header("Content-Type","text/html; charset=utf-8");self.send_header("Content-Length",len(raw));self.end_headers();self.wfile.write(raw)
     def log_message(self,*args):pass
 server=http.server.ThreadingHTTPServer(("127.0.0.1",8765),Entry)
@@ -38,7 +56,7 @@ adb("reverse","tcp:8765","tcp:8765")
 plain="http://127.0.0.1:8765/"
 browser=adb("shell","cmd","package","resolve-activity","--brief","-a","android.intent.action.VIEW","-c","android.intent.category.BROWSABLE","-d",plain).strip().splitlines()[-1].split("/")[0]
 if not re.match("[a-z][a-z0-9_.]+$",browser) or browser in (APP,"android"):raise RuntimeError("No default Android browser")
-record={"build":45,"source":"lien HTTPS réel depuis une page de recette du navigateur Android","os":adb("shell","getprop","ro.build.version.release").strip(),"browser":browser,"url":URL,"checks":[]}
+record={"build":45,"source":"bouton Android de production depuis une page de recette Chrome","href":ANDROID_CTA,"os":adb("shell","getprop","ro.build.version.release").strip(),"browser":browser,"url":URL,"checks":[]}
 m=re.search(r"versionName=(\S+)",adb("shell","dumpsys","package",browser))
 record["browser_version"]=m.group(1) if m else None
 def enter(kind):
@@ -46,10 +64,18 @@ def enter(kind):
     before=subprocess.run(["adb","shell","pidof",APP],capture_output=True,text=True).stdout.strip()
     adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d",plain+kind,"-p",browser)
     deadline=time.monotonic()+100
+    visible_since=None
     while time.monotonic()<deadline:
         surface=tree()
         button=next((n for n in surface.iter("node") if "Lire le commentaire Le Cha" in labels(n)),None)
-        if button is not None:click(button);break
+        if button is not None:
+            if visible_since is None:
+                visible_since=time.monotonic()
+                time.sleep(1)
+                continue
+            if time.monotonic()-visible_since > 1:
+                click(button)
+                break
         onboarding=("Use without an account","Use Chrome without an account","Continue without an account","No thanks","Accept & continue","Got it","Not now","Continue")
         action=next((n for name in onboarding for n in surface.iter("node") if name in labels(n)),None)
         if action is not None:click(action)
@@ -57,8 +83,13 @@ def enter(kind):
     else:raise RuntimeError("Le lien de recette n’est pas accessible dans "+browser)
     target={"title":"le-cha-review-title","quote":"le-cha-review-comment","photo":"le-cha-review-photo"}
     observed={};notes=set();top=False
-    for _ in range(24):
+    for attempt in range(24):
         surface=tree()
+        link=next((n for n in surface.iter("node") if n.get("package")==browser and "Lire le commentaire Le Cha" in labels(n)),None)
+        if link is not None and attempt in (2,6):
+            click(link)
+            time.sleep(1)
+            continue
         if any("le-cha-review-title" in labels(n) for n in surface.iter("node")):
             if not top:shot(kind+"-commentaire");top=True
         for n in surface.iter("node"):
@@ -77,10 +108,15 @@ def enter(kind):
     after=adb("shell","pidof",APP).strip()
     assert after and ((not before) if kind=="cold" else before==after)
     return {"state":kind,"at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),"title":REVIEW["name"],"quote":True,"photo":True,"ratings":sorted(notes),"process_verified":True}
+safe_to_capture=True
 try:
-    for kind in ("cold","warm"):
-        record["checks"].append(enter(kind))
+    record["checks"].append(enter("cold"))
+    safe_to_capture=False
+    signed_in()
+    safe_to_capture=True
+    record["signedInBeforeWarm"]=True
+    record["checks"].append(enter("warm"))
 finally:
     (OUT/"recu-navigation.json").write_text(json.dumps(record,ensure_ascii=False,indent=2))
-    shot("dernier-ecran")
+    if safe_to_capture:shot("dernier-ecran")
     (OUT/"ids-interface.txt").write_text("\n".join(sorted(set(n.get("resource-id","") for n in tree().iter("node")))))

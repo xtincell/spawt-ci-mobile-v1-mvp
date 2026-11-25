@@ -14,7 +14,11 @@ DO $$ BEGIN IF left(current_database(),6)<>'pilot_' THEN RAISE EXCEPTION 'This r
 CREATE TEMP TABLE local_accounts AS SELECT * FROM jsonb_to_recordset(${asJson(accounts)}) AS a(id uuid,phone text,name text,demo boolean);
 INSERT INTO auth.users(id) SELECT id FROM local_accounts ON CONFLICT DO NOTHING;
 INSERT INTO public.internal_phone_allowlist(phone_e164,note) SELECT phone,'Compte synthétique de recette locale' FROM local_accounts ON CONFLICT DO NOTHING;
-INSERT INTO public.spawters(id,phone_e164,display_name,is_internal,is_demo) SELECT id,phone,name,true,demo FROM local_accounts ON CONFLICT(id) DO NOTHING;
+-- These four synthetic records model returning users with a previously accepted account.
+-- The app restores its consent from the account after native OTP authentication.
+INSERT INTO public.spawters(id,phone_e164,display_name,is_internal,is_demo,cgv_accepted_at,geoloc_consent_at)
+SELECT id,phone,name,true,demo,transaction_timestamp(),transaction_timestamp() FROM local_accounts
+ON CONFLICT(id) DO NOTHING;
 INSERT INTO public.user_palais(spawter_id) SELECT id FROM local_accounts ON CONFLICT(spawter_id) DO NOTHING;
 ${insert('places','id',place)}
 ${insert('place_adn','place_id',adn)}

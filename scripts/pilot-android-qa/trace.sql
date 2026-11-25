@@ -24,4 +24,7 @@ reports AS (
  FROM scenarios s JOIN pilot_private.people p ON p.person=s.person AND p.population IN ('interne','demo')
 )
 SELECT jsonb_pretty(jsonb_build_object('scope','isolated synthetic accounts','export_utc',clock_timestamp(),
+ 'unclaimed_journeys',(SELECT count(*) FROM pilot_private.journeys WHERE person IS NULL),
+ 'unbound_installations',(SELECT count(*) FROM pilot_private.installs i WHERE NOT EXISTS(SELECT FROM pilot_private.bindings b WHERE b.install=i.id)),
+ 'server_opens',(SELECT count(*) FROM pilot_private.opens),
  'runs',coalesce(jsonb_agg(to_jsonb(r)-'uid' ORDER BY label),'[]'::jsonb))) FROM reports r;

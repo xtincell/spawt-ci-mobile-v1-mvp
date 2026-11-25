@@ -23,6 +23,8 @@ for(const account of accounts){
  assert.equal((await request('/auth/v1/user',opts)).id,account.id);
  const [me]=await request('/rest/v1/spawters?id=eq.'+account.id+'&select=*',opts);
  assert.equal(me.id,account.id);assert.equal(me.is_internal,true);assert.equal(me.is_demo,account.demo);
+ assert.ok(Number.isFinite(Date.parse(me.cgv_accepted_at)), 'Returning fixture must have accepted the terms');
+ assert.ok(Number.isFinite(Date.parse(me.geoloc_consent_at)), 'Returning fixture must have a consent timestamp');
  const [palais]=await request('/rest/v1/user_palais?spawter_id=eq.'+account.id+'&select=*',opts);
  assert.equal(palais.spawter_id,account.id);assert.equal(palais.stade,'touriste');
  const renew=await request('/auth/v1/token?grant_type=refresh_token',{method:'POST',json:{refresh_token:auth.refresh_token}});

@@ -202,11 +202,16 @@ def check_upgrade():
         def place():
             adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d","spawt://place/"+BRUNCH,"-p",PACKAGE)
             find("IN’ Concept Store")
-        place();tap("Sauvegarde pour plus tard");find("Sauvegardé")
         expected=f"select count(*) from public.saved_places where spawter_id='{account['id']}' and place_id='{BRUNCH}'"
         def count():
             return subprocess.check_output(["docker","exec",os.environ["PILOT_DB_CONTAINER"],"psql","-XAtq",
                 "-U","postgres","-d","pilot_http","-c",expected],text=True).strip()
+        assert count()=="0", "The legacy favorite scenario requires an untouched synthetic persona"
+        outcome["before_legacy_save"]=now()
+        place()
+        tap("Sauvegarde pour plus tard")
+        find("Sauvegardé")
+        outcome["legacy_ui_gesture_confirmed"]=now()
         for _ in range(30):
             if count()=="1":break
             time.sleep(1)
