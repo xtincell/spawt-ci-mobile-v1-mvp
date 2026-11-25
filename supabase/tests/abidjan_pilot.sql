@@ -26,12 +26,16 @@ SELECT pg_temp.ok((:'click'::jsonb->>'resume_code')~'^[A-F0-9]{12}$','code de se
 SELECT pg_temp.ok(:'click'::jsonb = public.pilot_campaign_touch(pg_temp.id(40),'download_click','instagram','paid_social','abidjan_beta_20261204','pancakes_v2'),'double clic immuable');
 SELECT public.pilot_campaign_touch(pg_temp.id(41),'download_click','instagram','paid_social','abidjan_beta_20261204','pancakes_v2') AS insta \gset
 SELECT public.pilot_campaign_touch(pg_temp.id(42),'download_click','facebook','paid_social','abidjan_beta_20261204','pancakes_v2') AS expired \gset
+SELECT public.pilot_campaign_touch(pg_temp.id(43),'download_click','instagram','paid_social','abidjan_beta_20261204','pancakes_v2') AS preinstalled \gset
+SELECT public.pilot_campaign_touch(pg_temp.id(44),'download_click','instagram','paid_social','abidjan_beta_20261204','pancakes_v2') AS missing_time \gset
 SELECT clock_timestamp() AS first_ts \gset
 SELECT public.pilot_app_open(pg_temp.id(31),pg_temp.id(51),:'first_ts',:'first_ts',false,:'first_ts');
 SELECT public.pilot_app_open(pg_temp.id(31),pg_temp.id(51),:'first_ts',:'first_ts',false,:'first_ts');
 SELECT public.pilot_app_open(pg_temp.id(31),pg_temp.id(61),:'first_ts'::timestamptz+interval '1 second',:'first_ts'::timestamptz+interval '2 seconds',false);
 SELECT public.pilot_app_open(pg_temp.id(32),pg_temp.id(52),:'first_ts',:'first_ts',true);
 SELECT public.pilot_app_open(pg_temp.id(33),pg_temp.id(53),:'first_ts',:'first_ts',false);
+SELECT public.pilot_app_open(pg_temp.id(35),pg_temp.id(55),:'first_ts',:'first_ts',false,:'first_ts'::timestamptz-interval '2 days');
+SELECT public.pilot_app_open(pg_temp.id(36),pg_temp.id(56),:'first_ts',:'first_ts',false);
 RESET ROLE;
 UPDATE pilot_private.journeys SET expires_at=clock_timestamp()-interval '1 second' WHERE id=(:'expired'::jsonb->>'journey_id')::uuid;
 SET LOCAL ROLE authenticated;
@@ -46,7 +50,14 @@ SELECT pg_temp.ok(pg_temp.claim_fails(pg_temp.id(32),:'expired'::jsonb->>'resume
 SELECT pg_temp.ok(NOT (public.pilot_claim(pg_temp.id(32),:'insta'::jsonb->>'resume_code')->>'acquisition')::boolean,'réouverture par code appareil déjà équipé');
 SELECT public.pilot_bind_install(pg_temp.id(31));
 SELECT pg_temp.ok(pg_temp.claim_fails(pg_temp.id(31),:'click'::jsonb->>'resume_token'),'changement de compte');
+SELECT set_config('request.jwt.claim.sub',pg_temp.id(3)::text,true);
+SELECT public.pilot_bind_install(pg_temp.id(35));
+SELECT pg_temp.ok(NOT (public.pilot_claim(pg_temp.id(35),:'preinstalled'::jsonb->>'resume_code')->>'acquisition')::boolean,'installé avant clic mais ouvert pour la première fois après');
+SELECT set_config('request.jwt.claim.sub',pg_temp.id(4)::text,true);
+SELECT public.pilot_bind_install(pg_temp.id(36));
+SELECT pg_temp.ok(NOT (public.pilot_claim(pg_temp.id(36),:'missing_time'::jsonb->>'resume_code')->>'acquisition')::boolean,'date native absente');
 RESET ROLE;
+SELECT pg_temp.ok((SELECT acquired_installs=0 AND reopens=2 FROM pilot_private.funnel(:'first_ts'::timestamptz-interval '1 hour',:'first_ts'::timestamptz+interval '1 hour') WHERE origin='instagram'),'app déjà équipée avant le clic classée en réouverture, absence de preuve conservée inconnue');
 SELECT pg_temp.ok((SELECT first_open_at=:'first_ts' AND NOT existing FROM pilot_private.installs WHERE secret=pg_temp.id(31)),'heure initiale conservée');
 SELECT pg_temp.ok((SELECT count(*)=2 FROM pilot_private.opens o JOIN pilot_private.installs i ON i.id=o.install WHERE i.secret=pg_temp.id(31)),'replay ouverture');
 SELECT pg_temp.ok(NOT EXISTS(SELECT FROM pilot_private.journeys j JOIN pilot_private.installs i ON i.id=j.install WHERE i.secret=pg_temp.id(33)),'sans code = aucun raccord');
@@ -61,6 +72,7 @@ SELECT pg_temp.ok(NOT (public.pilot_saved_place(pg_temp.id(31),pg_temp.id(102),p
 SELECT pg_temp.ok(NOT (public.pilot_saved_place(pg_temp.id(31),pg_temp.id(104),pg_temp.id(20),'2020-11-28 00:00:00.001+00',true)->>'applied')::boolean,'geste en retard ignoré');
 SELECT pg_temp.ok(NOT EXISTS(SELECT FROM public.saved_places WHERE place_id=pg_temp.id(20)),'état durable du retrait');
 SELECT pg_temp.ok((SELECT count(*)=1 FROM pilot_private.usage WHERE event='saved_place_added'),'preuve de l’ajout maintenue');
+SELECT pg_temp.ok(NOT (public.pilot_saved_place(pg_temp.id(31),pg_temp.id(107),pg_temp.id(21),'2020-11-28 00:00:00.006+00',false)->>'applied')::boolean,'retrait seul');
 SELECT public.pilot_app_open(pg_temp.id(34),pg_temp.id(54),:'first_ts',:'first_ts',false);
 SELECT public.pilot_bind_install(pg_temp.id(34));
 SELECT public.pilot_place_view(pg_temp.id(34),pg_temp.id(105),pg_temp.id(21),'2020-11-29 08:01:00+00');

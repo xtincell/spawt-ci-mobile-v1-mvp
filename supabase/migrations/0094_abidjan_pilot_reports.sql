@@ -66,7 +66,8 @@ LANGUAGE sql STABLE SET search_path='' AS $$
  ), returns AS (
    SELECT CASE WHEN i.clicked_at<=o.opened_at THEN i.source ELSE 'unknown' END AS source,count(DISTINCT i.id) AS opens
    FROM eligible_installs i JOIN pilot_private.opens o ON o.install=i.id
-   WHERE (i.existing OR o.opened_at>i.first_open_at) AND o.opened_at>=start_at AND o.opened_at<end_at GROUP BY 1
+   WHERE (i.existing OR o.opened_at>i.first_open_at OR (i.installed_at<i.clicked_at AND o.opened_at>=i.clicked_at))
+     AND o.opened_at>=start_at AND o.opened_at<end_at GROUP BY 1
  ), activity AS (
    SELECT u.origin,count(DISTINCT u.person_id) FILTER(WHERE u.event='place_viewed') AS viewers,
     count(DISTINCT u.person_id) FILTER(WHERE u.event='saved_place_added') AS savers,
