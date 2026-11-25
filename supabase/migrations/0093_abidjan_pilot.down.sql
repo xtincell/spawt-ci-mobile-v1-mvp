@@ -1,0 +1,12 @@
+BEGIN;
+DROP FUNCTION public.pilot_saved_place(uuid,uuid,uuid,timestamptz,boolean);
+DROP FUNCTION public.pilot_place_view(uuid,uuid,uuid,timestamptz);
+DROP FUNCTION public.pilot_claim(uuid,text);
+DROP FUNCTION public.pilot_bind_install(uuid);
+DROP FUNCTION public.pilot_app_open(uuid,uuid,timestamptz,timestamptz,boolean,timestamptz);
+DROP FUNCTION public.pilot_campaign_touch(uuid,text,text,text,text,text);
+DROP FUNCTION pilot_private.bound_install(uuid,uuid);
+DROP TABLE pilot_private.journeys,pilot_private.actions,pilot_private.save_clock,pilot_private.opens,pilot_private.bindings,pilot_private.batch,pilot_private.installs;
+DROP SCHEMA pilot_private;
+NOTIFY pgrst,'reload schema';
+COMMIT;
