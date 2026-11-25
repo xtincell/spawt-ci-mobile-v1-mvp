@@ -17,6 +17,8 @@ jobs:
       EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_spawt_abidjan_local_recette
       EXPO_NO_TELEMETRY: 1
+      ANDROID_USER_HOME: /tmp/spawt-pilot-android
+      ANDROID_AVD_HOME: /tmp/spawt-pilot-android/avd
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,9 +44,17 @@ jobs:
           sudo chmod 666 /dev/kvm
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64' >/dev/null
-          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n pilot -k 'system-images;android-35;google_apis;x86_64' --device pixel_5 --force
+          df -h .
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n pilot -k 'system-images;android-35;google_apis;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/pilot.avd" --force
+          test -s "$ANDROID_AVD_HOME/pilot.ini"
+          echo "disk.dataPartition.size=2048M" >> "$ANDROID_AVD_HOME/pilot.avd/config.ini"
           nohup "$ANDROID_HOME/emulator/emulator" -avd pilot -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu software -memory 3072 -cores 2 > "$RUNNER_TEMP/pilot-emulator.log" 2>&1 &
-          timeout 180s "$ANDROID_HOME/platform-tools/adb" wait-for-device
+          emulator_pid=$!
+          sleep 5
+          tail -c 7000 "$RUNNER_TEMP/pilot-emulator.log"
+          kill -0 "$emulator_pid"
+          if ! timeout 240s "$ANDROID_HOME/platform-tools/adb" wait-for-device; then tail -c 12000 "$RUNNER_TEMP/pilot-emulator.log"; exit 1; fi
           for i in {1..90}; do if [ "$("$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then break; fi; sleep 2; done
           "$ANDROID_HOME/platform-tools/adb" shell input keyevent 82
       - name: Receive pinned binaries
