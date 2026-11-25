@@ -116,7 +116,7 @@ def durable_add(jid):
 
 def scenario(source,account,mode):
     receipt={"source":source,"browser":"fixture HTTP et intent Android ou saisie manuelle",
-             "build":44,"client":"debug x86_64 / même source, API isolée","os":"Android 15 API 35",
+             "build":45,"client":"debug x86_64 / même source, API isolée","os":"Android 15 API 35",
              "mode":mode,"started_at":now()}
     path=OUT/(mode+".json")
     def step(value):
@@ -193,7 +193,7 @@ def map_probe():
 def check_upgrade():
     account=FIXTURES[2]
     legacy=os.environ["PILOT_LEGACY_APK"]
-    outcome={"from":42,"to":44,"account":"interne","place":BRUNCH}
+    outcome={"from":42,"to":45,"account":"interne","place":BRUNCH}
     try:
         subprocess.run(["adb","uninstall",PACKAGE],capture_output=True)
         adb("reverse","tcp:8081","tcp:8082");adb("install",legacy,timeout=180)
