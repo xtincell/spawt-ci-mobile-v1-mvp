@@ -10,7 +10,7 @@
 
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
-import { Pressable, Text, StyleSheet, View } from "react-native";
+import { Platform, Pressable, Text, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { gradient } from "../src/theme/tokens";
@@ -104,6 +104,9 @@ export default function SplashScreen() {
             {t("splash.cta_start")}
           </Text>
         </Pressable>
+        {Platform.OS === "android" && <Pressable accessibilityRole="button" onPress={() => router.push("/reprendre")} testID="pilot-enter-code" style={{padding:12}}>
+          <Text style={{textAlign:"center",color:theme.colors.text.inverseSecondary}}>{t("pilot.title")}</Text>
+        </Pressable>}
       </View>
     </LinearGradient>
   );

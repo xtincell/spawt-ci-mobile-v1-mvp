@@ -5,7 +5,7 @@
 // HUMAN_TODO).
 
 import { useEffect, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -178,6 +178,7 @@ export default function SettingsScreen() {
           />
         ) : null}
 
+        {Platform.OS === "android" && <LinkRow theme={theme} label={t("pilot.title")} onPress={() => router.push("/reprendre")} />}
         <LinkRow theme={theme} label={t("support.title")} onPress={() => router.push("/support")} />
 
         {/* Compte */}

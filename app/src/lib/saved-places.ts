@@ -1,18 +1,21 @@
 // Favoris : cache et changements en attente dans UN document AsyncStorage.
 // Le serveur fait foi, sauf pour les choix locaux explicitement non acquittés.
 // Le réseau ne tient jamais le verrou des écritures locales.
+import { Platform } from "react-native";
+import { randomUUID } from "expo-crypto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const SAVED_PLACES_KEY = "spawt:saved_places";
-type Change = { place_id: string; saved: boolean; revision: string };
+type Change = { place_id: string; saved: boolean; revision: string; occurred_at?: string };
 type Document = { version: 1; spawter_id: string | null; ids: string[]; pending: Change[] };
+let sequence = 0;
 let tail: Promise<unknown> = Promise.resolve();
 function withStorage<T>(action: () => Promise<T>): Promise<T> {
   const result = tail.then(action);
   tail = result.catch(() => undefined);
   return result;
 }
-let sequence = 0;
+
 function empty(owner: string | null, ids: Iterable<string> = []): Document {
   return { version: 1, spawter_id: owner, ids: [...ids], pending: [] };
 }
@@ -37,7 +40,7 @@ async function readDocument(owner: string | null, fallback: Iterable<string> = [
       !Array.isArray(doc.ids) || doc.ids.some((id) => typeof id !== "string") ||
       !Array.isArray(doc.pending) || doc.pending.some((c) => !c || typeof c.place_id !== "string" ||
         typeof c.saved !== "boolean" || typeof c.revision !== "string" || !c.revision) ||
-      new Set(doc.pending.map((c) => c.place_id)).size !== doc.pending.length) {
+      new Set(doc.pending.map((c) => c.revision)).size !== doc.pending.length) {
     throw new Error("saved_places_invalid");
   }
   if (doc.spawter_id !== owner) throw new Error("saved_places_owner_mismatch");
@@ -70,10 +73,8 @@ export function toggleSavedPlace(
     const ids = new Set(doc.ids);
     const saved = !ids.has(place_id);
     if (saved) ids.add(place_id); else ids.delete(place_id);
-    const change: Change = { place_id, saved, revision: `${Date.now()}-${++sequence}` };
-    await write({ ...doc, ids: [...ids], pending: [
-      ...doc.pending.filter((c) => c.place_id !== place_id), change,
-    ] });
+    const change: Change = { place_id, saved, revision: Platform.OS === "android" ? randomUUID() : `${Date.now()}-${++sequence}`, occurred_at: new Date().toISOString() };
+    await write({ ...doc, ids: [...ids], pending: [...doc.pending, change] });
     if (!isCurrent()) throw new Error("saved_places_session_changed");
     publish(ids);
     return saved;
@@ -107,7 +108,7 @@ async function reconcile(owner: string, isCurrent: () => boolean, publish: (ids:
     if (isCurrent()) publish(new Set(doc.ids));
   });
   if (!isCurrent()) return;
-  const { listSavedPlaceIds, saveSavedPlace, deleteSavedPlace } = await import("./data-source");
+  const { isSupabaseConfigured, listSavedPlaceIds, saveSavedPlace, deleteSavedPlace } = await import("./data-source");
   if (!isCurrent()) return;
   const remote = await listSavedPlaceIds(owner);
   if (remote === null || !isCurrent()) return;
@@ -116,14 +117,21 @@ async function reconcile(owner: string, isCurrent: () => boolean, publish: (ids:
   for (const change of snapshot.pending) {
     if (!isCurrent()) return;
     try {
-      if (change.saved) await saveSavedPlace(owner, change.place_id);
-      else await deleteSavedPlace(owner, change.place_id);
+      if (isSupabaseConfigured && Platform.OS === "android" && change.occurred_at) {
+        const { mutatePilotSaved } = await import("./pilot-journey");
+        const saved = await mutatePilotSaved(owner, change.place_id, change.revision, change.occurred_at, change.saved);
+        if (saved) ids.add(change.place_id); else ids.delete(change.place_id);
+      } else {
+        // Pending gestures from earlier APKs have no reliable action timestamp.
+        if (change.saved) await saveSavedPlace(owner, change.place_id);
+        else await deleteSavedPlace(owner, change.place_id);
+        if (change.saved) ids.add(change.place_id); else ids.delete(change.place_id);
+      }
     } catch {
       // Aucune confirmation serveur : on conserve l'intention pour la reprise.
-      continue;
+      break;
     }
     if (!isCurrent()) return;
-    if (change.saved) ids.add(change.place_id); else ids.delete(change.place_id);
     await withStorage(async () => {
       if (!isCurrent()) return;
       const doc = await read(owner);

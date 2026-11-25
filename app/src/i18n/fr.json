@@ -1,4 +1,16 @@
 {
+  "pilot": {
+    "title": "Reprendre avec un code",
+    "code_help": "Saisis le code de 12 caractères affiché sur la page de téléchargement.",
+    "code_label": "Code de reprise",
+    "resume": "Retrouver le lieu",
+    "continue": "Continuer",
+    "code_invalid": "Entre les 12 caractères du code de reprise.",
+    "code_unavailable": "Ce code a expiré ou a déjà été utilisé.",
+    "place_name": "IN’ Concept Store",
+    "brunch_intro": "Tu as découvert ce lieu dans le film brunch. Veux-tu ouvrir sa fiche ?",
+    "open_place": "Ouvrir la fiche"
+  },
   "common": {
     "continue": "Continuer",
     "back": "Retour",

@@ -1,3 +1,4 @@
+import { PilotReturn } from "../src/components/PilotReturn";
 import { startContentSync } from "../src/lib/content-sync";
 import { startAppActivity } from "../src/lib/app-activity";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -384,6 +385,7 @@ export default function RootLayout() {
               options={{ presentation: "modal" }}
             />
           </Stack>
+          <PilotReturn />
           <BadgePremierSpawt
             visible={!hydrating && pendingBadge !== null}
             place_name={pendingBadge?.place_name}

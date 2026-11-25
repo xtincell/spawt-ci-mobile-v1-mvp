@@ -23,6 +23,7 @@ import {
   Alert,
   Image,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -39,7 +40,7 @@ import { MatchScore } from "../../../src/components/primitives/MatchScore";
 import { AdnTags } from "../../../src/components/AdnTags";
 import { PlaceReviews } from "../../../src/components/PlaceReviews";
 import { DataSourceBanner } from "../../../src/components/DataSourceBanner";
-import { getPlace, type PlaceWithAdn } from "../../../src/lib/data-source";
+import { getPlace, isSupabaseConfigured, type PlaceWithAdn } from "../../../src/lib/data-source";
 import { buildPlaceShareUrl } from "../../../src/lib/share-links";
 import {
   computeRawScore,
@@ -143,6 +144,7 @@ export default function PlaceDetailScreen() {
 
   const isSaved = id ? savedPlaceIds.has(id) : false;
   const placeViewedEmittedRef = useRef(false);
+  const pilotView = useRef<{ owner: string; place: string } | null>(null);
   const adnUnderConstructionEmittedRef = useRef(false);
 
   useEffect(() => {
@@ -213,6 +215,14 @@ export default function PlaceDetailScreen() {
       place.location.lng,
     );
   }, [place, position]);
+
+  const owner = spawter?.id;
+  useEffect(() => {
+    if (!isSupabaseConfigured || Platform.OS !== "android" || !owner || !id || place?.id !== id) return;
+    if (pilotView.current?.owner === owner && pilotView.current.place === id) return;
+    pilotView.current = {owner, place: id};
+    void import("../../../src/lib/pilot-journey").then(m => m.recordPilotView(owner, id)).catch(() => undefined);
+  }, [owner, id, place?.id]);
 
   // place_viewed — 1 émission par mount
   useEffect(() => {
