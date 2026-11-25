@@ -36,7 +36,11 @@ def find(label, timeout=70):
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         try:
-            for node in tree().iter("node"):
+            surface=tree()
+            skip=next((n for n in surface.iter("node") if match("app-opening-skip",n)),None)
+            if skip is not None:
+                touch(skip);time.sleep(1);continue
+            for node in surface.iter("node"):
                 if match(label, node) and node.get("enabled") != "false":
                     return node
         except (ET.ParseError, subprocess.SubprocessError):
@@ -45,13 +49,27 @@ def find(label, timeout=70):
     # Only known UI markers are logged. Never dump account details/screens from login.
     labels = ("splash-start", "consent-continue", "phone-input", "otp-cell-0", "pilot-open-place",
               "Accueil", "Prix à préciser", "Sauvegardé", "Reload", "Dismiss", "Continue", "Continue without an account")
-    present = [v for v in labels if any(match(v,n) for n in tree().iter("node"))]
+    surface=tree()
+    present = [v for v in labels if any(match(v,n) for n in surface.iter("node"))]
+    if "splash-start" in present and not any(n.get("class")=="android.widget.EditText" for n in surface.iter("node")):
+        with (OUT/"diagnostic-accueil-anonyme.png").open("wb") as screen:
+            subprocess.run(["adb","exec-out","screencap","-p"],stdout=screen,check=True)
     raise RuntimeError(f"Missing {label!r} ; observed UI markers {present!r}")
 
-def tap(label):
-    node=find(label)
+def touch(node):
     x1,y1,x2,y2=map(int,re.findall(r"-?\d+",node.attrib["bounds"]))
     adb("shell","input","tap",str((x1+x2)//2),str((y1+y2)//2))
+
+def tap(label):
+    touch(find(label))
+
+def advance(control, destination):
+    for attempt in range(4):
+        tap(control)
+        try:
+            find(destination,7);return
+        except RuntimeError:
+            if attempt==3:raise
 
 def journey(source):
     key=str(uuid.uuid4())
@@ -65,7 +83,7 @@ def journey(source):
     return result
 
 def login(account):
-    tap("splash-start"); tap("consent-cgv"); tap("consent-geoloc"); tap("consent-continue")
+    advance("splash-start","consent-cgv");tap("consent-cgv");tap("consent-geoloc");tap("consent-continue")
     tap("phone-input"); adb("shell","input","text",account["phone"].removeprefix("+225"))
     adb("shell","input","keyevent","4"); tap("phone-send")
     for i,digit in enumerate("123456"):
@@ -98,7 +116,7 @@ def durable_add(jid):
 
 def scenario(source,account,mode):
     receipt={"source":source,"browser":"fixture HTTP et intent Android ou saisie manuelle",
-             "build":43,"client":"debug x86_64 / même source, API isolée","os":"Android 15 API 35",
+             "build":44,"client":"debug x86_64 / même source, API isolée","os":"Android 15 API 35",
              "mode":mode,"started_at":now()}
     path=OUT/(mode+".json")
     def step(value):
@@ -113,7 +131,7 @@ def scenario(source,account,mode):
             "android.intent.category.BROWSABLE","-d","https://spawt.online/reprendre/"+j["resume_token"],"-p",PACKAGE)
     else:
         adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
-        tap("pilot-enter-code");tap("pilot-code-input");adb("shell","input","text",j["resume_code"])
+        advance("pilot-enter-code","pilot-code-input");tap("pilot-code-input");adb("shell","input","text",j["resume_code"])
         adb("shell","input","keyevent","4");tap("pilot-code-submit")
     step("consentement et identification synthétique");login(account)
     find("pilot-open-place")
@@ -172,9 +190,45 @@ def map_probe():
         result["crash_buffer"]=bool(re.search(r"FATAL EXCEPTION|Fatal signal|Abort message",logs))
         (OUT/"carte-processus.json").write_text(json.dumps(result,indent=2))
 
+def check_upgrade():
+    account=FIXTURES[2]
+    legacy=os.environ["PILOT_LEGACY_APK"]
+    outcome={"from":42,"to":44,"account":"interne","place":BRUNCH}
+    try:
+        subprocess.run(["adb","uninstall",PACKAGE],capture_output=True)
+        adb("reverse","tcp:8081","tcp:8082");adb("install",legacy,timeout=180)
+        adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
+        login(account);find("Accueil")
+        def place():
+            adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d","spawt://place/"+BRUNCH,"-p",PACKAGE)
+            find("IN’ Concept Store")
+        place();tap("Sauvegarde pour plus tard");find("Sauvegardé")
+        expected=f"select count(*) from public.saved_places where spawter_id='{account['id']}' and place_id='{BRUNCH}'"
+        def count():
+            return subprocess.check_output(["docker","exec",os.environ["PILOT_DB_CONTAINER"],"psql","-XAtq",
+                "-U","postgres","-d","pilot_http","-c",expected],text=True).strip()
+        for _ in range(30):
+            if count()=="1":break
+            time.sleep(1)
+        assert count()=="1";outcome["legacy_server_ack"]=now()
+        adb("shell","am","force-stop",PACKAGE);adb("reverse","tcp:8081","tcp:8081")
+        adb("install","-r",APK,timeout=180);place();find("Sauvegardé")
+        assert count()=="1";outcome["after_upgrade_favorite_visible"]=now()
+        j=journey("facebook")
+        adb("shell","am","start","-W","-a","android.intent.action.VIEW",
+            "-d","https://spawt.online/reprendre/"+j["resume_token"],"-p",PACKAGE)
+        find("pilot-open-place")
+        outcome["server"]=proof(j["journey_id"])
+        assert outcome["server"]["acquisition"] is False
+    finally:
+        adb("reverse","tcp:8081","tcp:8081")
+        (OUT/"favori-mise-a-jour.json").write_text(json.dumps(outcome,ensure_ascii=False,indent=2))
+
 errors=[]
 try:map_probe()
 except Exception as error:errors.append("carte : "+str(error))
+try:check_upgrade()
+except Exception as error:errors.append("mise à jour : "+str(error))
 for source,account,mode in [("facebook",FIXTURES[0],"facebook"),("instagram",FIXTURES[1],"instagram"),
                             ("facebook",FIXTURES[3],"demo")]:
     try:scenario(source,account,mode)
