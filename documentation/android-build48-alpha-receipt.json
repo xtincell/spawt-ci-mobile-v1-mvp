@@ -1,0 +1,21 @@
+{
+  "version": "1.1.7",
+  "build": 48,
+  "buildDate": "2026-11-26",
+  "tag": "local-build-android-2026-11-26-48",
+  "sourceCommit": "74d8b3b5bee649368d80b6adcfc6a35d5422d1de",
+  "sha256": "641e6d33818a69b1543fda5d6dee08cc6ef737780258ecbc0d7aee0ed8a32d0b",
+  "bytes": 162904823,
+  "buildRun": 45874192390,
+  "buildWorkflowCommit": "c48f2abd2cc35529d1203c60a1fea32e2996cd94",
+  "qaRun": 45879178816,
+  "qaWorkflowCommit": "57573a6f0a6b26a54d8763a2118056ce913c8ad8",
+  "publicationProfile": "dish48-alpha",
+  "publicationDecision": "owner-approved-build48-alpha-with-pending-receipts",
+  "receiptFiles": {
+    "dish-rating-48.json": "a1762377ab8d51f100f313658581ddb237f9665d4895bb6140c332701c524add",
+    "note-du-plat.png": "3164d9c035dcee0024c928ce17a79c48a4260c3cec7bdb7df3f3b4a330550149",
+    "envies-lieu-premier.png": "b5d5d6c9d6473120023f50d5b2235c4ae495e673c06804ee41a359e33c69d191",
+    "envies-favoris-plats.png": "662f399c15fef2e0da3165f5a94ccc0a78318edbc72e283848963fd9dd8a0a3b"
+  }
+}
