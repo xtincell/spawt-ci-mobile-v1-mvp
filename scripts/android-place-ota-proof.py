@@ -45,7 +45,7 @@ def swipe(up=True, fraction=.44):
     x=int(width*.5)
     top,bottom=.30,.30+fraction
     y1,y2=(bottom,top) if up else (top,bottom)
-    adb("shell","input","swipe",x,int(height*y1),x,int(height*y2),460)
+    adb("shell", "input", "swipe", str(x), str(int(height*y1)), str(x), str(int(height*y2)), "460")
     time.sleep(.75)
 
 def visible(identifier):
