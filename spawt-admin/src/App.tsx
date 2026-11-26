@@ -1,3 +1,4 @@
+import { StaffRecoveryRequest, StaffRecoveryReset } from "./pages/recovery";
 import { PilotPage } from "./pages/pilote";
 import { GuetPage } from "./pages/guet";
 import { ActualitesList } from "./pages/actualites";
@@ -143,6 +144,8 @@ export const App = () =>
     >
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/mot-de-passe-oublie" element={<StaffRecoveryRequest />} />
+        <Route path="/reinitialiser" element={<StaffRecoveryReset />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/" element={<Navigate to="/lieux" replace />} />
           <Route path="/lieux" element={<LieuxList />} />

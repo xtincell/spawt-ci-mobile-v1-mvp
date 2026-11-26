@@ -56,3 +56,10 @@ export const supabaseClient = createClient(
 );
 const sessionAuth: SessionAuth = supabaseClient.auth;
 export const getAuthenticatedStaff = () => recovery.getUser(() => supabaseClient.auth.getUser());
+
+/** A recovery link must not replace an existing staff session. */
+export const createStaffRecoveryClient = () => createClient(
+  clientUrl, supabaseConfigError ? "cle-anon-manquante" : SUPABASE_ANON_KEY!,
+  {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,
+    storageKey:"spawt-staff-password-recovery"}}
+);

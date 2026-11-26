@@ -1,3 +1,5 @@
+import { Link } from "react-router";
+import { staffRecoveryEnabled } from "../recovery";
 // Story 6.1 — Login email/password (provider Supabase Auth).
 // Le authProvider vérifie ensuite spawt_staff.is_active + log audit.
 
@@ -78,6 +80,7 @@ export const LoginPage = () => {
         <button type="submit" className="btn-primary" disabled={isPending} style={{ marginTop: 16, width: "100%" }}>
           {isPending ? "Connexion…" : "Se connecter"}
         </button>
+        {staffRecoveryEnabled && <p><Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link></p>}
       </form>
     </div>
   );

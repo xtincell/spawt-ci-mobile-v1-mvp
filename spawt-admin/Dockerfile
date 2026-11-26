@@ -7,6 +7,7 @@ COPY shared ./shared
 COPY spawt-admin ./spawt-admin
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_STAFF_RECOVERY_ENABLED=false
 RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" && npm run build --prefix spawt-admin
 
 FROM nginx:alpine
