@@ -54,10 +54,12 @@ jobs:
           test "$(stat -c %s "$apk")" = 162897383
           test "$(stat -c %s "$legacy")" = 162850779
           signer=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
-          "$signer" verify --print-certs "$legacy" > "$RUNNER_TEMP/signer45"
-          "$signer" verify --print-certs "$apk" > "$RUNNER_TEMP/signer47"
-          grep '^Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/signer45" > "$RUNNER_TEMP/cert45"
-          grep '^Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/signer47" > "$RUNNER_TEMP/cert47"
+          "$signer" verify --print-certs-pem "$legacy" > "$RUNNER_TEMP/signer45"
+          "$signer" verify --print-certs-pem "$apk" > "$RUNNER_TEMP/signer47"
+          sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p' "$RUNNER_TEMP/signer45" > "$RUNNER_TEMP/cert45"
+          sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p' "$RUNNER_TEMP/signer47" > "$RUNNER_TEMP/cert47"
+          openssl x509 -in "$RUNNER_TEMP/cert45" -noout -fingerprint -sha256
+          openssl x509 -in "$RUNNER_TEMP/cert47" -noout -fingerprint -sha256
           cmp "$RUNNER_TEMP/cert45" "$RUNNER_TEMP/cert47"
           echo "PILOT_DEBUG_APK=$apk" >> "$GITHUB_ENV"
           echo "PILOT_LEGACY_APK=$legacy" >> "$GITHUB_ENV"
