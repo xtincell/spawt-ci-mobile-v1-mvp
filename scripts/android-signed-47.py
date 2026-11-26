@@ -79,6 +79,9 @@ def capture_saved():
         same({"place_id":True,"menu_item_id":True})
         ui.results["serveur_apres_geste"]={"lieu":ui.BRUNCH,"at":ui.now()}
         ui.adb("shell","am","force-stop",ui.PACKAGE)
+        ui.adb("shell","am","start","-W","-n",ui.PACKAGE+"/.MainActivity")
+        ui.find("Accueil",timeout=90)
+        ui.results["redemarrage_authentifie"]=ui.now()
         ui.open_url("spawt://place/"+ui.BRUNCH)
         ui.find("IN’ Concept Store");ui.find("Sauvegardé")
         ui.results["favori_apres_redemarrage"]=ui.now()
