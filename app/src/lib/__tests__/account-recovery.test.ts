@@ -3,9 +3,14 @@ const mockSession = jest.fn();
 const mockRows = jest.fn();
 const mockFilter = jest.fn();
 const mockAbort = jest.fn();
+const mockUpdateConsent = jest.fn();
 jest.mock("../supabase", () => ({ supabase: {
   auth: { getSession: () => mockSession() },
-  from: (table: string) => ({ select: () => ({ eq: (column: string, owner: string) => {
+  from: (table: string) => ({ update: (patch: Record<string, string>) => ({
+    eq: (column: string, id: string) => ({ is: (key: string, value: null) => ({
+      abortSignal: (signal: AbortSignal) => mockUpdateConsent(table, patch, column, id, key, value, signal),
+    }) }),
+  }), select: () => ({ eq: (column: string, owner: string) => {
     mockFilter(table, column, owner);
     return { abortSignal: (signal: AbortSignal) => { mockAbort(signal); return { maybeSingle: () => mockRows(table, signal) }; } };
   } }) }),
@@ -24,6 +29,31 @@ beforeEach(() => {
 it("lit les deux lignes pour l'identité SDK et conserve exactement le Palais mûri", async () => {
   expect(await readAuthenticatedAccount(owner)).toEqual({ kind: "existing", owner, spawter: profile, palais });
   expect(mockFilter.mock.calls).toEqual([["spawters", "id", owner], ["user_palais", "spawter_id", owner]]);
+});
+const fresh = "2026-11-25T19:21:00.001Z";
+const historic = "2025-07-12T12:00:00.000Z";
+const recentDraft = { phone_e164: SAMPLE_SPAWTER.phone_e164, consent: { cgv_accepted_at: fresh, geoloc_consent_at: fresh } };
+it("récupère le consentement explicite du flux OTP uniquement pour un champ serveur vide", async () => {
+  profile = { ...SAMPLE_SPAWTER, cgv_accepted_at: null, geoloc_consent_at: historic };
+  mockUpdateConsent.mockImplementation(async (_table, patch) => {
+    profile = { ...SAMPLE_SPAWTER, geoloc_consent_at: historic, ...patch };
+    return { error: null };
+  });
+  const result = await readAuthenticatedAccount(owner, undefined, recentDraft);
+  expect(mockUpdateConsent).toHaveBeenCalledTimes(1);
+  expect(mockUpdateConsent).toHaveBeenCalledWith("spawters", { cgv_accepted_at: fresh }, "id", owner, "cgv_accepted_at", null, expect.anything());
+  expect(result).toMatchObject({ kind: "existing", spawter: { cgv_accepted_at: fresh, geoloc_consent_at: historic } });
+});
+it("un brouillon pour un autre téléphone ou sans geste explicite ne crée aucun consentement", async () => {
+  profile = { ...SAMPLE_SPAWTER, cgv_accepted_at: null, geoloc_consent_at: null };
+  await readAuthenticatedAccount(owner, undefined, { ...recentDraft, phone_e164: "+2250000000000" });
+  await readAuthenticatedAccount(owner, undefined, { ...recentDraft, consent: { cgv_accepted_at: null, geoloc_consent_at: null } });
+  await readAuthenticatedAccount(undefined, undefined, recentDraft);
+  expect(mockUpdateConsent).not.toHaveBeenCalled();
+});
+it("une écriture rejetée ne se transforme pas en consentement local", async () => {
+  mockUpdateConsent.mockResolvedValue({ error: { code: "42501" } });
+  await expect(readAuthenticatedAccount(owner, undefined, recentDraft)).rejects.toThrow("ACCOUNT_READ_FAILED");
 });
 it("seules deux absences confirmées sont un nouveau compte", async () => {
   profile = palais = null;

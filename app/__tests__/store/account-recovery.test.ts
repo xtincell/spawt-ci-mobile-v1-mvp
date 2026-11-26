@@ -51,6 +51,14 @@ it("conserve les consentements d'origine et efface le brouillon pré-auth", asyn
   expect(await AsyncStorage.getItem("spawt:consent:geoloc")).toBeFalsy();
   expect(useOnboardingDraft.getState().draft.display_name).toBe("");
 });
+it("changer de numéro efface les accords du précédent parcours OTP", () => {
+  const draft = useOnboardingDraft.getState();
+  draft.setConsent("cgv", "2026-11-25T18:30:00Z");
+  draft.setField("phone_e164", SAMPLE_SPAWTER.phone_e164);
+  expect(useOnboardingDraft.getState().draft.consent.cgv_accepted_at).toBe("2026-11-25T18:30:00Z");
+  draft.setField("phone_e164", "+2250000000000");
+  expect(useOnboardingDraft.getState().draft.consent).toEqual({ cgv_accepted_at: null, geoloc_consent_at: null });
+});
 it("ne purgera pas un brouillon lorsque le compte est nouveau", async () => {
   mockRead.mockResolvedValue({ kind: "new", owner });
   useOnboardingDraft.getState().setField("display_name", "Mon premier Palais");

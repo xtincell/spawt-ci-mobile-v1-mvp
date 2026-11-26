@@ -1,7 +1,7 @@
 // La session SDK et les RLS existantes font autorité. Aucun upsert ici :
 // une panne ou un compte partiel ne doivent jamais devenir une inscription.
 import { supabase } from "./supabase";
-import type { Spawter } from "../types/spawter";
+import type { OnboardingDraft, Spawter } from "../types/spawter";
 import { PALAIS_AXES, type UserPalais } from "../types/palais";
 import { STADES } from "../types/stade";
 
@@ -44,7 +44,11 @@ export function validRecoveredAccount(spawter: Spawter, palais: UserPalais, owne
       && palais.dominant_axes.length === 2 && palais.dominant_axes.every((axis) => PALAIS_AXES.includes(axis))));
 }
 
-export async function readAuthenticatedAccount(expectedOwner?: string | null, signal?: AbortSignal): Promise<AccountRecovery> {
+export async function readAuthenticatedAccount(
+  expectedOwner?: string | null,
+  signal?: AbortSignal,
+  onboarding?: Pick<OnboardingDraft, "phone_e164" | "consent">,
+): Promise<AccountRecovery> {
   const owner = await requireAccountSession(expectedOwner);
   const abort = new AbortController();
   const cancel = () => abort.abort();
@@ -61,6 +65,31 @@ export async function readAuthenticatedAccount(expectedOwner?: string | null, si
     if (!profile.data && !taste.data) return { kind: "new", owner };
     if (!profile.data || !taste.data) return { kind: "incomplete", owner, spawter: profile.data, palais: taste.data };
     if (!validRecoveredAccount(profile.data, taste.data, owner)) throw new Error("ACCOUNT_INVALID");
+    // Only a current, explicit grant from the phone verified in this OTP flow
+    // can fill a missing timestamp. Other devices may have filled it meanwhile.
+    if (expectedOwner === owner && onboarding?.phone_e164 && onboarding.phone_e164 === profile.data.phone_e164) {
+      let wroteConsent = false;
+      for (const field of ["cgv_accepted_at", "geoloc_consent_at"] as const) {
+        const accepted = onboarding.consent[field];
+        if (profile.data[field] || !accepted || !Number.isFinite(Date.parse(accepted))) continue;
+        const result = await supabase.from("spawters").update({ [field]: accepted })
+          .eq("id", owner).is(field, null).abortSignal(abort.signal);
+        if (result.error || abort.signal.aborted) throw new Error("ACCOUNT_READ_FAILED");
+        wroteConsent = true;
+      }
+      if (wroteConsent) {
+        const confirmed = await supabase.from("spawters").select("cgv_accepted_at,geoloc_consent_at")
+          .eq("id", owner).abortSignal(abort.signal).maybeSingle<OnboardingDraft["consent"]>();
+        if (confirmed.error || !confirmed.data || abort.signal.aborted) throw new Error("ACCOUNT_READ_FAILED");
+        for (const field of ["cgv_accepted_at", "geoloc_consent_at"] as const) {
+          if (onboarding.consent[field] && !confirmed.data[field]) throw new Error("ACCOUNT_READ_FAILED");
+        }
+        await requireAccountSession(owner);
+        return { kind: "existing", owner, spawter: {
+          ...profile.data, cgv_accepted_at: confirmed.data.cgv_accepted_at, geoloc_consent_at: confirmed.data.geoloc_consent_at,
+        }, palais: taste.data };
+      }
+    }
     return { kind: "existing", owner, spawter: profile.data, palais: taste.data };
   } catch (error) {
     if (error instanceof Error && /^ACCOUNT_/.test(error.message)) throw error;

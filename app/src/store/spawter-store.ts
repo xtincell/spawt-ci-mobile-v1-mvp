@@ -640,7 +640,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
   recoverAuthenticatedAccount: async (expectedOwner, signal) => {
     const initialGeneration = sessionGeneration;
     if (isSupabaseConfigured) await flush();
-    const account = await readAuthenticatedAccount(expectedOwner, signal);
+    const account = await readAuthenticatedAccount(expectedOwner, signal, useOnboardingDraft.getState().draft);
     if (signal?.aborted || sessionGeneration !== initialGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
     if (account.kind === "new") return "new";
     if (canResumeMissingPalais(account)) {

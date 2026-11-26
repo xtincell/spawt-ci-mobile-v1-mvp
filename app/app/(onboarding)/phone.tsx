@@ -81,7 +81,12 @@ export default function PhoneScreen() {
     // P-18 — reset oauthError pour ne pas garder une erreur Google/Apple
     // périmée affichée pendant le flow OTP.
     setOauthError(null);
+    const previousPhone = useOnboardingDraft.getState().draft.phone_e164;
     setDraftField("phone_e164", phone);
+    if (previousPhone && previousPhone !== phone) {
+      router.replace("/(onboarding)/consent");
+      return;
+    }
 
     if (!isSupabaseConfigured) {
       // P-18 round 3 — gate via `sending` pour éviter le double-tap qui pousse

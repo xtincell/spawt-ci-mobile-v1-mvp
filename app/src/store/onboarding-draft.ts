@@ -46,7 +46,10 @@ interface DraftStore {
 
 export const useOnboardingDraft = create<DraftStore>((set) => ({
   draft: initial,
-  setField: (key, value) => set((s) => ({ draft: { ...s.draft, [key]: value } })),
+  setField: (key, value) => set((s) => {
+    const changedPhone = key === "phone_e164" && s.draft.phone_e164 && value !== s.draft.phone_e164;
+    return { draft: { ...s.draft, ...(changedPhone ? { consent: { ...initial.consent } } : {}), [key]: value } };
+  }),
   setCalibration: (axis, value) =>
     set((s) => ({
       draft: {
