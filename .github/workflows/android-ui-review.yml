@@ -2,7 +2,7 @@ name: Qualité visuelle Android
 on:
   push:
     branches: ['codex/pilote-abidjan-20261204']
-    paths: ['.github/workflows/android-ui-review.yml', 'scripts/android-ui-review.py']
+    paths: ['.github/workflows/android-ui-review.yml', 'scripts/android-ui-review.py', 'scripts/pilot-android-qa/menu-brunch.sql']
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,6 +33,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Prepare isolated fixture and Metro
         run: |
           bash scripts/pilot-android-qa/start-ci.sh "$GITHUB_WORKSPACE"
@@ -44,8 +47,11 @@ jobs:
           CI=1 EXPO_OFFLINE=1 NODE_OPTIONS=--dns-result-order=ipv4first nohup npx expo start --lan --port 8081 --no-dev --minify > "$RUNNER_TEMP/pilot-metro.log" 2>&1 &
           for i in {1..60}; do if curl -fsS http://127.0.0.1:8081/status >/dev/null 2>&1; then break; fi; sleep 2; done
           if ! curl -fsS http://127.0.0.1:8081/status; then ss -lnt; tail -60 "$RUNNER_TEMP/pilot-metro.log"; exit 1; fi
-      - name: Load the public map inventory into the isolated database
-        run: node scripts/pilot-android-qa/seed-carte.mjs | docker exec -i "$PILOT_DB_CONTAINER" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d pilot_http
+      - name: Load the public map and brunch into the isolated database
+        run: |
+          python3 -m pip install 'Pillow==11.3.0'
+          node scripts/pilot-android-qa/seed-carte.mjs | docker exec -i "$PILOT_DB_CONTAINER" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d pilot_http
+          docker exec -i "$PILOT_DB_CONTAINER" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d pilot_http < scripts/pilot-android-qa/menu-brunch.sql
       - name: Start Android 15
         run: |
           sudo chmod 666 /dev/kvm
