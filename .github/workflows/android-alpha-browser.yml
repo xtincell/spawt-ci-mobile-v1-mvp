@@ -1,0 +1,57 @@
+name: Android alpha review browser
+on:
+  push:
+    branches: ['codex/pilote-abidjan-20261204']
+    paths: ['.github/workflows/android-alpha-browser.yml', 'scripts/pilot-review-browser.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      ANDROID_USER_HOME: /tmp/spawt-pilot-android
+      ANDROID_AVD_HOME: /tmp/spawt-pilot-android/avd
+      ADB_VENDOR_KEYS: /tmp/spawt-pilot-android/adbkey
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Android 15
+        run: |
+          sudo chmod 666 /dev/kvm
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platform-tools' 'emulator' 'system-images;android-35;google_apis_playstore;x86_64' >/dev/null
+          df -h .
+          mkdir -p "$ANDROID_AVD_HOME"
+          mkdir -p "$HOME/.android"
+          "$ANDROID_HOME/platform-tools/adb" keygen "$ANDROID_USER_HOME/adbkey" >/dev/null
+          install -m 600 "$ANDROID_USER_HOME/adbkey" "$HOME/.android/adbkey"
+          install -m 644 "$ANDROID_USER_HOME/adbkey.pub" "$HOME/.android/adbkey.pub"
+          "$ANDROID_HOME/platform-tools/adb" start-server
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n pilot -k 'system-images;android-35;google_apis_playstore;x86_64' --device pixel_5 --path "$ANDROID_AVD_HOME/pilot.avd" --force
+          test -s "$ANDROID_AVD_HOME/pilot.ini"
+          echo "disk.dataPartition.size=2048M" >> "$ANDROID_AVD_HOME/pilot.avd/config.ini"
+          nohup "$ANDROID_HOME/emulator/emulator" -avd pilot -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu software -memory 3072 -cores 2 > "$RUNNER_TEMP/pilot-emulator.log" 2>&1 &
+          emulator_pid=$!
+          sleep 5
+          tail -c 7000 "$RUNNER_TEMP/pilot-emulator.log"
+          kill -0 "$emulator_pid"
+          if ! timeout 240s "$ANDROID_HOME/platform-tools/adb" wait-for-device; then tail -c 12000 "$RUNNER_TEMP/pilot-emulator.log"; exit 1; fi
+          for i in {1..90}; do if [ "$("$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then break; fi; sleep 2; done
+          "$ANDROID_HOME/platform-tools/adb" shell input keyevent 82
+      - name: Install the exact public alpha and verify the domain
+        run: |
+          curl -fsSL --retry 3 'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-2026-11-25-45/spawt-1.1.4-build45.apk' -o "$RUNNER_TEMP/alpha.apk"
+          echo 'b6a092e3935835de1f6a0b6384c953d96b0f37ed15eaeb5ba842527a95e63a90  '"$RUNNER_TEMP/alpha.apk" | sha256sum -c -
+          adb install "$RUNNER_TEMP/alpha.apk"
+          adb shell pm verify-app-links --re-verify com.upgraders.spawt
+          for i in {1..45}; do adb shell pm get-app-links com.upgraders.spawt | grep -q 'spawt.online: verified' && break; sleep 2; done
+          adb shell pm get-app-links com.upgraders.spawt | grep 'spawt.online: verified'
+      - name: Read the exact review after a real tap in Chrome cold and signed in warm
+        run: python3 scripts/pilot-review-browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chrome-android-45
+          path: pilot-proof/le-cha
+          retention-days: 14

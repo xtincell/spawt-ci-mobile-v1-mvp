@@ -19,8 +19,14 @@ REVIEW=json.loads(pathlib.Path("app/src/data/le-cha-review.json").read_text())
 def adb(*args):
     return subprocess.check_output(["adb",*args],timeout=90).decode(errors="replace")
 def tree():
-    adb("shell","uiautomator","dump","/sdcard/review-ui.xml")
-    return ET.fromstring(adb("exec-out","cat","/sdcard/review-ui.xml"))
+    for _ in range(10):
+        try:
+            adb("shell","uiautomator","dump","/sdcard/review-ui.xml")
+            serialized=adb("exec-out","cat","/sdcard/review-ui.xml").strip()
+            return ET.fromstring(serialized)
+        except (ET.ParseError,subprocess.SubprocessError):
+            time.sleep(.6)
+    raise RuntimeError("Android n'a pas fourni de hiérarchie d'accessibilité lisible")
 def labels(n):
     return [n.get(k,"") for k in ("text","content-desc","resource-id")]
 def click(n):
@@ -31,7 +37,11 @@ def shot(name):
 def control(value, timeout=45):
     end=time.monotonic()+timeout
     while time.monotonic()<end:
-        for node in tree().iter("node"):
+        surface=tree()
+        for node in surface.iter("node"):
+            if node.get("resource-id") in ("com.android.permissioncontroller:id/permission_allow_button","com.android.permissioncontroller:id/permission_allow_foreground_only_button"):
+                click(node)
+                break
             if node.get("package")==APP and value in labels(node) and node.get("enabled")!="false":
                 return node
         time.sleep(.5)
