@@ -90,3 +90,15 @@ test("a waiting sync cannot resume its queued writes after the account changes",
  expect((await localOutings("a")).pending).toBe(1);
  expect((await localOutings("b")).pending).toBe(0);
 });
+
+test("place and dish favorites stay independent through saves and removals", async () => {
+  const dish = { id: "d", place_id: "p", name: "Eggs", place_name: "IN'", price_xof: 7000, observed_on: "2026-11-01", photo_url: null, is_published: true };
+  await enqueueOuting("a", "save", {menu_item_id: "d"}, current, dish);
+  expect(await localOutings("a")).toMatchObject({pendingPlaces: {}, snapshot: {dishes: [dish]}});
+  await enqueueOuting("a", "save", {place_id: "p"}, current);
+  await enqueueOuting("a", "unsave", {menu_item_id: "d"}, current);
+  expect(await localOutings("a")).toMatchObject({pendingPlaces: {p: true}, snapshot: {dishes: []}});
+  await enqueueOuting("a", "save", {menu_item_id: "d"}, current, dish);
+  await enqueueOuting("a", "unsave", {place_id: "p"}, current);
+  expect(await localOutings("a")).toMatchObject({pendingPlaces: {p: false}, snapshot: {dishes: [dish]}});
+});

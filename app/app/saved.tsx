@@ -12,6 +12,7 @@ import { useCrewStore } from "../src/store/crew-store";
 import { useMenuItems } from "../src/lib/use-menu-items";
 import { listShareUrl, discardRejectedOutings, type Occasion } from "../src/lib/outings";
 import { DataLoadNotice } from "../src/components/DataLoadNotice";
+import { DishRatingButton } from "../src/components/DishRatingButton";
 import { OutingActions } from "../src/components/OutingActions";
 import { SavedItemRow } from "../src/components/SavedItemRow";
 import { EmptyState } from "../src/components/EmptyState";
@@ -108,6 +109,13 @@ export default function SavedScreen() {
         <EmptyState title={t(activeList ? "outings.empty_list" : "outings.empty")} body={t(activeList ? "outings.empty_list_hint" : "outings.empty_saved_hint")}
           cta={{label: t("outings.discover"), onPress: () => router.push("/search")}} />
       </View> : null}
+      {saved.length > 0 ? <Text accessibilityRole="header" style={sectionTitle}>{t("outings.saved_addresses")}</Text> : null}
+      {saved.map(place => <SavedItemRow key={place.id} testID={`saved-place-${place.id}`} kind="place"
+        title={place.name} context={place.location.neighborhood} photo={place.cover_photo_url}
+        open={() => router.push(`/place/${place.id}` as never)}>
+        <OutingActions placeId={place.id} full />
+        {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", {list_id: selected, place_id: place.id}))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
+      </SavedItemRow>)}
       {dishes.length > 0 ? <Text accessibilityRole="header" style={sectionTitle}>{t("outings.saved_dishes")}</Text> : null}
       {dishes.map(dish => <SavedItemRow key={dish.id} testID={`dish-${dish.id}`} kind="dish"
         title={dish.name} context={dish.place_name} photo={dish.photo_url}
@@ -116,14 +124,8 @@ export default function SavedScreen() {
         open={() => router.push({pathname: "/place/[id]", params: {id: dish.place_id, tab: "menu", dish: dish.id}} as never)}>
         {dish.is_published ? <OutingActions placeId={dish.place_id} dish={dish} /> :
           <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("unsave", {menu_item_id: dish.id}))}><Text style={ink}>{t("outings.remove_saved")}</Text></Pressable>}
+        {!dish.is_published && <DishRatingButton key={(owner?.id ?? "") + dish.id} owner={owner?.id} dishId={dish.id} name={dish.name} published={false} />}
         {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", {list_id: selected, menu_item_id: dish.id}))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
-      </SavedItemRow>)}
-      {saved.length > 0 ? <Text accessibilityRole="header" style={sectionTitle}>{t("outings.saved_addresses")}</Text> : null}
-      {saved.map(place => <SavedItemRow key={place.id} testID={`saved-place-${place.id}`} kind="place"
-        title={place.name} context={place.location.neighborhood} photo={place.cover_photo_url}
-        open={() => router.push(`/place/${place.id}` as never)}>
-        <OutingActions placeId={place.id} full />
-        {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", {list_id: selected, place_id: place.id}))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
       </SavedItemRow>)}
       {savedUnavailable ? <View><Text accessibilityRole="alert" style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("saved.unavailable")}</Text><Pressable accessibilityRole="button" accessibilityLabel={t("saved.retry")} style={button} onPress={() => void refreshSaved().catch(() => undefined)}><Text style={ink}>{t("saved.retry")}</Text></Pressable></View> : null}
       {outings.pending > 0 ? <View testID="saved-sync-status" style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}>

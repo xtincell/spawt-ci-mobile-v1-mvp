@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { useSpawterStore } from "../store/spawter-store";
 import { useOutingsStore } from "../store/outings-store";
+import { DishRatingButton } from "./DishRatingButton";
 import type { MenuItem } from "../lib/outings";
 
 export function OutingActions({ placeId, dish, full = false }: { placeId: string; dish?: MenuItem; full?: boolean }) {
@@ -17,6 +18,8 @@ export function OutingActions({ placeId, dish, full = false }: { placeId: string
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
   const saved = dish ? dishSaved : (pendingPlace ?? (placeSaved || listed));
+  const label = dish ? (saved ? "outings.dish_saved" : "outings.save_dish") : (saved ? "outings.place_saved" : "outings.save_place");
+  const removeLabel = dish ? "outings.remove_dish" : "outings.remove_place";
   const perform = useOutingsStore(s => s.perform);
   const run = async (fn: () => Promise<unknown>) => {
     if (inFlight.current) return; inFlight.current = true; setBusy(true);
@@ -24,14 +27,15 @@ export function OutingActions({ placeId, dish, full = false }: { placeId: string
   };
   const button = { minHeight: 44, paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.sm, justifyContent: "center" as const };
   return <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: theme.spacing.xs }}>
-    <Pressable testID={`save-intent-${dish?.id ?? placeId}`} accessibilityRole="button" accessibilityState={{ selected: saved, disabled: busy }} disabled={busy}
+    <Pressable testID={`save-intent-${dish?.id ?? placeId}`} accessibilityRole="button" accessibilityLabel={t(saved ? removeLabel : label)} accessibilityState={{ selected: saved, disabled: busy }} disabled={busy}
       onPress={() => void run(() => dish ? perform(saved ? "unsave" : "save", { menu_item_id: dish.id }, dish) : listed || pendingPlace !== undefined ? perform(saved ? "unsave" : "save", { place_id: placeId }) : useSpawterStore.getState().toggleSaved(placeId))}
       style={{ ...button, borderRadius: theme.radius.md, backgroundColor: saved ? theme.colors.surface.subtle : theme.colors.brand.primary }}>
-      <Text style={{ ...theme.typography.preset.small, color: saved ? theme.colors.text.primary : theme.colors.surface.base }}>{t(saved ? "outings.saved" : "outings.save")}</Text>
+      <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.onBrand }}>{t(label)}</Text>
     </Pressable>
     <Pressable accessibilityRole="button" style={button} onPress={() => router.push({ pathname: "/saved", params: dish ? { addDish: dish.id } : { addPlace: placeId } } as never)}>
       <Text style={{ ...theme.typography.preset.small, color: theme.colors.brand.accent }}>{t("outings.classify")}</Text>
     </Pressable>
+    {dish && <DishRatingButton key={(owner ?? "") + dish.id} owner={owner} dishId={dish.id} name={dish.name} published={dish.is_published} />}
     {full ? <Pressable accessibilityRole="button" style={button} disabled={busy} onPress={() => void run(async () => {
       await perform("choose", { place_id: placeId });
       const state = useOutingsStore.getState();
