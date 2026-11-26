@@ -27,14 +27,21 @@ def enter_search():
             from native import touch
             touch(editors[0])
             adb("shell", "input", "text", "Concept")
-            adb("shell", "input", "keyevent", "4")
-            find("IN’ Concept Store")
+            if "mInputShown=true" in adb("shell", "dumpsys", "input_method"):
+                adb("shell", "input", "keyevent", "4")
+            try:
+                find("IN’ Concept Store")
+            except RuntimeError:
+                with (OUT / "demo-search-diagnostic.png").open("wb") as screen:
+                    subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=screen, check=True)
+                raise
             return
         time.sleep(1)
     raise RuntimeError("The editable search surface did not become visible")
 
 subprocess.run(["adb", "uninstall", PACKAGE], capture_output=True)
 adb("install", APK, timeout=180)
+adb("shell", "pm", "grant", PACKAGE, "android.permission.POST_NOTIFICATIONS")
 adb("shell", "am", "start", "-W", "-n", PACKAGE + "/.MainActivity")
 login(account)
 find("Accueil", 65)
