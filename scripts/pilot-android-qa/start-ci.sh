@@ -38,7 +38,8 @@ for ((n=0;n<90;n++)); do
   sleep 1
 done
 curl -fsS http://127.0.0.1:55487/ >/dev/null
-PILOT_LOCAL_JWT="$jwt" nohup node "$here/gateway.mjs" >"$runtime/gateway.log" 2>&1 </dev/null &
+touch "$runtime/http-trace.jsonl"
+PILOT_LOCAL_JWT="$jwt" PILOT_HTTP_TRACE="$runtime/http-trace.jsonl" nohup node "$here/gateway.mjs" >"$runtime/gateway.log" 2>&1 </dev/null &
 gateway_pid=$!
 for ((n=0;n<30;n++)); do
   if curl -fsS http://127.0.0.1:54321/health >/dev/null 2>&1; then break; fi
@@ -46,6 +47,7 @@ for ((n=0;n<30;n++)); do
 done
 node "$here/check-stack.mjs"
 if [[ -n "${GITHUB_ENV:-}" ]]; then
+  echo "PILOT_HTTP_TRACE=$runtime/http-trace.jsonl" >> "$GITHUB_ENV"
   printf 'PILOT_DB_CONTAINER=%s\nPILOT_REST_CONTAINER=%s\nPILOT_NETWORK=%s\nPILOT_GATEWAY_PID=%s\n' "$db" "$rest" "$network" "$gateway_pid" >> "$GITHUB_ENV"
 fi
 printf 'Local API on 127.0.0.1:54321. DB container %s. Logs %s.\n' "$db" "$runtime"

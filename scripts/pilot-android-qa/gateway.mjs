@@ -1,6 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 
 export const anonKey = 'sb_publishable_spawt_abidjan_local_recette';
 const endpoint = new URL(process.env.PILOT_POSTGREST || 'http://127.0.0.1:55487');
@@ -8,6 +8,7 @@ const config = process.env.PILOT_PGRST_CONFIG;
 const secret = process.env.PILOT_LOCAL_JWT || (config && readFileSync(config,'utf8').match(/^jwt-secret\s*=\s*"([^"]+)"/m)?.[1]);
 if (!secret || !['127.0.0.1','localhost'].includes(endpoint.hostname)) throw Error('An isolated local PostgREST and JWT secret are required.');
 const accounts = JSON.parse(readFileSync(new URL('./comptes-test.json',import.meta.url),'utf8'));
+const diagnosticRoutes = new Set(['public_menu_items','places','saved_places','rpc/my_outings','rpc/mutate_outing']);
 const pending=new Map(), refresh=new Map();
 const sign = (claim) => {
   const part=[{alg:'HS256',typ:'JWT'},claim].map(v=>Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');
@@ -34,6 +35,17 @@ function getAccount(header) {
 }
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');
+  const routeName=url.pathname.startsWith('/rest/v1/') ? url.pathname.slice('/rest/v1/'.length) : '';
+  let errorCode;
+  if(process.env.PILOT_HTTP_TRACE && diagnosticRoutes.has(routeName)){
+    const started=Date.now();
+    const client=String(req.headers['x-client-info'] ?? '').includes('supabase') ? 'sdk' : 'http';
+    const role=getAccount(req.headers.authorization) ? 'fixture_user' : 'anonymous_or_invalid';
+    res.once('finish',()=>appendFileSync(process.env.PILOT_HTTP_TRACE,JSON.stringify({
+      at:new Date().toISOString(),route:routeName,method:req.method,client,role,
+      status:res.statusCode,elapsed_ms:Date.now()-started,...(errorCode ? {code:errorCode} : {})
+    })+'\n'));
+  }
   const origin=req.headers.origin;
   if(origin && /^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/.test(origin)){res.setHeader('access-control-allow-origin',origin);res.setHeader('vary','origin');}
   res.setHeader('access-control-allow-headers','authorization,apikey,content-type,prefer,accept,range,x-client-info,accept-profile,content-profile');
@@ -53,7 +65,11 @@ const server=createServer(async(req,res)=>{
       const route=url.pathname.slice('/rest/v1'.length)+url.search;
       const upstream=await fetch(endpoint.origin+route,{method:req.method,headers,body:bytes.length?bytes:undefined,redirect:'manual'});
       for(const name of ['content-type','content-range','preference-applied','location']){const value=upstream.headers.get(name);if(value)res.setHeader(name,value);}
-      res.statusCode=upstream.status;res.end(Buffer.from(await upstream.arrayBuffer()));return;
+      const response=Buffer.from(await upstream.arrayBuffer());
+      if(!upstream.ok && process.env.PILOT_HTTP_TRACE && diagnosticRoutes.has(routeName)){
+        try { const code=JSON.parse(response).code; if(/^(PGRST\d{3}|[0-9A-Z]{5})$/.test(code))errorCode=code; } catch {}
+      }
+      res.statusCode=upstream.status;res.end(response);return;
     }
     const body=bytes.length?JSON.parse(bytes):{};
     if(url.pathname==='/functions/v1/otp-send'&&req.method==='POST'){
