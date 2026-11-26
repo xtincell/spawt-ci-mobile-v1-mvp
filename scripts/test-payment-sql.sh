@@ -25,11 +25,12 @@ for migration in supabase/migrations/*.sql; do
   fi
 done
 checks() {
-  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback public_unrated_places public_collections place_contributions outing_presence public_place_recency guet_cartographic_locations guet_cartographic_batch abidjan_pilot; do
+  for test in gold_lieu_prix_final manual_payments admin_audit_actions provider_payment_atomic app_feedback public_unrated_places public_collections place_contributions outing_presence public_place_recency guet_cartographic_locations guet_cartographic_batch abidjan_pilot saved_catalogue_metrics; do
     sql -f "/repo/supabase/tests/$test.sql"
   done
 }
 checks
+sql -f /repo/supabase/migrations/0097_saved_catalogue_metrics.down.sql
 sql -f /repo/supabase/migrations/0094_abidjan_pilot_reports.down.sql
 sql -f /repo/supabase/migrations/0093_abidjan_pilot.down.sql
 sql -f /repo/supabase/migrations/0092_guet_cartographic_locations.down.sql
@@ -82,5 +83,6 @@ for version in 0079 0080 0081; do
 done
 sql -f /repo/supabase/migrations/0093_abidjan_pilot.sql
 sql -f /repo/supabase/migrations/0094_abidjan_pilot_reports.sql
+sql -f /repo/supabase/migrations/0097_saved_catalogue_metrics.sql
 checks
 echo 'Payment SQL: fresh schema, permissions, invoices, rollback and upgrade passed.'
