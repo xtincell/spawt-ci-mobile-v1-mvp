@@ -1,8 +1,8 @@
 name: Fiche publique sur APK signé après OTA
 on:
   push:
-    branches: ['codex/fiche-android-ota48']
-    paths: ['documentation/android-place-ota-proof.json']
+    branches: ['codex/recette-horaires-ota48']
+    paths: ['scripts/android-place-ota-proof.py', '.github/workflows/android-place-ota-proof.yml']
   workflow_dispatch:
 permissions:
   contents: read
