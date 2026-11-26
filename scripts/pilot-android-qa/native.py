@@ -328,14 +328,15 @@ def check_upgrade():
         select_metro(None)
         (OUT/"favori-mise-a-jour.json").write_text(json.dumps(outcome,ensure_ascii=False,indent=2))
 
-errors=[]
-try:map_probe()
-except Exception as error:errors.append("carte : "+str(error))
-try:check_upgrade()
-except Exception as error:errors.append("mise à jour : "+str(error))
-for source,account,mode in [("facebook",FIXTURES[0],"facebook"),("instagram",FIXTURES[1],"instagram"),
-                            ("facebook",FIXTURES[3],"demo")]:
-    try:scenario(source,account,mode)
-    except Exception as error:
-        errors.append(mode+": "+str(error))
-if errors:raise SystemExit("\n".join(errors))
+if __name__ == "__main__":
+    errors=[]
+    try:map_probe()
+    except Exception as error:errors.append("carte : "+str(error))
+    try:check_upgrade()
+    except Exception as error:errors.append("mise à jour : "+str(error))
+    for source,account,mode in [("facebook",FIXTURES[0],"facebook"),("instagram",FIXTURES[1],"instagram"),
+                                ("facebook",FIXTURES[3],"demo")]:
+        try:scenario(source,account,mode)
+        except Exception as error:
+            errors.append(mode+": "+str(error))
+    if errors:raise SystemExit("\n".join(errors))
