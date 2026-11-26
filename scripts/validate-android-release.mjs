@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { requirePilot47Recipe, readPilot47Receipt } from './validate-pilot47-receipt.mjs';
 import { loadUi46 } from './validate-ui46-receipt.mjs';
 import { receivePilot45Alpha } from './validate-pilot45-receipt.mjs';
 
@@ -42,7 +43,8 @@ const requireTrue = (record, keys) => record && keys.every(key => record[key] ==
 
 export function androidPublicationProfile(recipe) {
   const profile = recipe.publicationProfile ?? 'complete';
-  if (!['complete', 'raccordements', 'pilot45-alpha', 'ui46-alpha'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (!['complete', 'raccordements', 'pilot45-alpha', 'ui46-alpha', 'pilot47-signed'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (profile === 'pilot47-signed') requirePilot47Recipe(recipe);
   if (profile === 'ui46-alpha') {
     const pinned = JSON.parse(fs.readFileSync(new URL('../documentation/android-build46-alpha-receipt.json', import.meta.url), 'utf8'));
     const fields = ['version','build','buildDate','tag','sourceCommit','sha256','bytes','buildRun','buildWorkflowCommit','qaRun','qaWorkflowCommit','uiRun','uiWorkflowCommit'];
@@ -78,6 +80,20 @@ export function validateAndroidReleaseProof(recipe, metadata, proof) {
   if (firebase?.defaultAppInitialized !== true) throw new Error('Firebase native initialization was not verified');
   if (recipe.build >= 41 && (upgrade?.from !== recipe.build - 1 || upgrade?.to !== recipe.build
     || upgrade?.installedOverPrevious !== true || upgrade?.backgroundLocationDeclared !== true)) throw new Error('Native upgrade receipt missing');
+
+  if (profile === 'pilot47-signed') {
+    if (proof.pilot47?.initialStateRestored !== true || proof.pilot47.sha256 !== recipe.sha256
+      || proof.pilot47.source !== recipe.uiWorkflowCommit || proof.pilot47.favoriteReadAfterLauncherRestart !== true) throw new Error('Signed pilot 47 receipt missing');
+    return { profile, copies: [
+      ['assertions.json','native-opening-assertions.json'], ['upgrade-install.json','upgrade-install-proof.json'],
+      ['firebase-runtime.json','firebase-runtime-proof.json'], ['opening-visibility.json','opening-visibility-proof.json'],
+    ], qualification: {
+      schemaVersion:1, qualification:'alpha', publicationProfile:profile, version:recipe.version, build:recipe.build,
+      bytes:recipe.bytes, sha256:recipe.sha256, sourceCommit:recipe.sourceCommit, buildRun:recipe.buildRun, qaRun:recipe.qaRun,
+      native:proof.pilot47, campaignAttributionVerified:false, completeOnboardingVerified:false, physicalGuetReceipt:false,
+      fullLiveReceipt:false, consoleModerationReceipt:false,
+    } };
+  }
 
   if (profile === 'ui46-alpha') {
     if (proof.ui?.signedLeCha !== true || proof.ui?.mapPointAndNeighborhood !== true || proof.ui?.savedPlaceAndDish !== true) throw new Error('Signed or visual Android evidence missing');
@@ -190,6 +206,8 @@ export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'releas
     proof.raccordements = read('raccordements-data.json');
     if (fs.existsSync(path.join(proofDirectory, 'live-data.json'))) throw new Error('Pending receipts must remain explicitly unverified');
     proof.fingerprints = Object.fromEntries(Object.keys(BUILD42_PROOF_SHA256).map(name => [name, createHash('sha256').update(fs.readFileSync(path.join(proofDirectory, name))).digest('hex')]));
+  } else if (profile === 'pilot47-signed') {
+    proof.pilot47 = readPilot47Receipt(recipe, visualDirectory, proofDirectory);
   } else if (profile === 'ui46-alpha') {
     proof.ui = loadUi46(recipe, proofDirectory, visualDirectory);
   } else if (profile === 'pilot45-alpha') {
@@ -213,6 +231,11 @@ export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'releas
       fs.copyFileSync(path.join(visualDirectory,filename), destination);
       assets.push(destination);
     }
+  }
+  if (profile === 'pilot47-signed') {
+    const dest = path.join(artifactDirectory,'signed-pilot47-receipt.json');
+    fs.copyFileSync(path.join(visualDirectory,'recu.json'),dest);
+    assets.push(dest);
   }
   if (result.qualification) {
     const destination = path.join(artifactDirectory, 'release-qualification.json');
