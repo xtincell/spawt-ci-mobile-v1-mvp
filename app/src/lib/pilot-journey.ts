@@ -19,6 +19,7 @@ type Install = {
   bound: string[];
   opens: Open[];
   views: View[];
+  onboardings?: Record<string, string>;
   pending: Credential | null;
   offer: Offer | null;
   notice: string | null;
@@ -179,6 +180,18 @@ async function sendPending(owner: string | null) {
       }, true);
     }
   }
+  const completedAt = s.onboardings?.[owner];
+  if (completedAt) {
+    // A temporarily missing server-side Palais must not stop other pilot events.
+    try {
+      await rpc("pilot_onboarding_received", {
+        p_install_key: install, p_completed_at: completedAt,
+      }, owner);
+      await transaction(fresh => {
+        if (fresh.onboardings?.[owner] === completedAt) delete fresh.onboardings[owner];
+      });
+    } catch { /* Retain this account-bound receipt for the next sync. */ }
+  }
   for (const view of views) {
     await rpc("pilot_place_view", {
       p_install_key: install, p_event_key: view.id, p_place_id: view.place, p_occurred_at: view.at,
@@ -210,4 +223,11 @@ export async function mutatePilotSaved(owner: string, place: string, revision: s
   }, owner);
   if (typeof reply?.saved !== "boolean") throw new Error("pilot_saved_unconfirmed");
   return reply.saved;
+}
+
+export function queuePilotOnboarding(owner: string) {
+  return transaction(s => {
+    s.onboardings ??= {};
+    s.onboardings[owner] ??= new Date(Math.max(Date.now(),Date.parse(s.first))).toISOString();
+  });
 }

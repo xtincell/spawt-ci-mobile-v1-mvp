@@ -1,0 +1,10 @@
+BEGIN;
+DROP FUNCTION IF EXISTS public.admin_pilot_funnel(timestamptz,timestamptz);
+ALTER FUNCTION public.admin_pilot_funnel_base(timestamptz,timestamptz) RENAME TO admin_pilot_funnel;
+GRANT EXECUTE ON FUNCTION public.admin_pilot_funnel(timestamptz,timestamptz) TO authenticated;
+DROP FUNCTION IF EXISTS public.pilot_onboarding_received(uuid,timestamptz);
+DROP FUNCTION IF EXISTS public.pilot_download_received(uuid,integer,bigint);
+DROP TABLE IF EXISTS pilot_private.onboarding_receipts;
+DROP TABLE IF EXISTS pilot_private.download_receipts;
+NOTIFY pgrst,'reload schema';
+COMMIT;

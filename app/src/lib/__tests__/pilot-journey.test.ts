@@ -104,3 +104,22 @@ it("only publishes a favorite state explicitly confirmed for the current account
   await expect(app.mutatePilotSaved("account-one",app.brunchPlace,"event",at,true)).rejects.toThrow("pilot_session_changed");
   expect(calls("pilot_saved_place")).toHaveLength(2);
 });
+
+it("replays onboarding for the original account and install, after an unfinished server sync",async () => {
+  const app=start();
+  await app.queuePilotOnboarding(mockOwner);
+  await app.savePilotCredential("abcdef012345",mockOwner);
+  let attempts=0;
+  mockRpc.mockImplementation(name=>({data:null,error:name==="pilot_onboarding_received"&&++attempts===1?{message:"onboarding_not_ready"}:null}));
+  await app.syncPilot(mockOwner);
+  const names=mockRpc.mock.calls.map(([name])=>name);
+  expect(names.indexOf("pilot_claim")).toBeLessThan(names.indexOf("pilot_onboarding_received"));
+  mockOwner="account-two";
+  await app.syncPilot(mockOwner);
+  expect(calls("pilot_onboarding_received")).toHaveLength(1);
+  mockOwner="account-one";
+  await app.syncPilot(mockOwner);
+  await app.syncPilot(mockOwner);
+  expect(calls("pilot_onboarding_received")).toHaveLength(2);
+  expect(calls("pilot_onboarding_received")[1]).toEqual(calls("pilot_onboarding_received")[0]);
+});

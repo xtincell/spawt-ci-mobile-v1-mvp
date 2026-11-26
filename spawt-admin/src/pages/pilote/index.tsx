@@ -3,8 +3,8 @@ import { useGetIdentity } from "@refinedev/core";
 import { supabaseClient } from "../../utility/supabaseClient";
 import "./pilote.css";
 
-type Origin = { origin: string; arrivals: number; download_clicks: number; first_opens: number; acquired_installs: number; reopens: number; viewers: number; savers: number; active_people: number; spawters: number };
-type Report = { checked_at: string; onboarded: number; active: number; viewers: number; savers: number; origins: Origin[]; recent: { at_utc: string; origin: string; place: string; person_ref: string }[] };
+type Origin = { origin: string; arrivals: number; download_clicks: number; download_receipts?: number; onboarded?: number; first_opens: number; acquired_installs: number; reopens: number; viewers: number; savers: number; active_people: number; spawters: number };
+type Report = { download_receipts?: number; onboarding_campaigns?: {origin:string;campaign:string;n:number}[]; checked_at: string; onboarded: number; active: number; viewers: number; savers: number; origins: Origin[]; recent: { at_utc: string; origin: string; place: string; person_ref: string }[] };
 const labels: Record<string, string> = {facebook: "Facebook", instagram: "Instagram", whatsapp: "WhatsApp", other: "Autre", unknown: "Inconnu"};
 const originLabel = (key: string) => labels[key] ?? "Inconnu";
 const format = new Intl.NumberFormat("fr-FR");
@@ -57,13 +57,16 @@ export function PilotPage() {
     {data && <>
       <p>Actualisé le {dateTime.format(new Date(data.checked_at))} · Abidjan</p>
       <dl className="pilot-kpis">
-        {([["Arrivées sur le site",total("arrivals")],["Clics Télécharger",total("download_clicks")],["Premières ouvertures",total("first_opens")],["Installations attribuées",total("acquired_installs")],["Onboardings reçus",data.onboarded],["Personnes ayant ouvert une fiche",data.viewers],["Personnes ayant ajouté un favori",data.savers],["Personnes activées",data.active]] as const).map(([label,value])=><div className="panel" key={label}><dt>{label}</dt><dd>{format.format(value)}</dd></div>)}
+        {([["Arrivées sur le site",total("arrivals")],["Clics Télécharger",total("download_clicks")],["APK reçus dans le navigateur",data.download_receipts ?? null],["Premières ouvertures",total("first_opens")],["Installations attribuées",total("acquired_installs")],["Onboardings reçus",data.onboarded],["Personnes ayant ouvert une fiche",data.viewers],["Personnes ayant ajouté un favori",data.savers],["Personnes activées",data.active]] as const).map(([label,value])=><div className="panel" key={label}><dt>{label}</dt><dd>{value === null ? "Non mesuré" : format.format(value)}</dd></div>)}
       </dl>
-      <p>Le clic ne prouve pas que le fichier a été reçu en entier. Onboarding reçu = fin signalée par l’app avec un Palais présent en base, comptée à la réception serveur. Actif = fiche ouverte puis même lieu ajouté en favori pendant la période, une fois par personne.</p>
-      <section><h2>Par origine</h2><p>L’onboarding n’est pas ventilé par origine. « Inconnu » signifie qu’aucune origine n’est établie.</p>
-        <div className="pilot-table"><table><thead><tr>{["Origine","Arrivées","Clics APK","1res ouvertures","Installations attribuées","Réouvertures","Personnes ayant vu une fiche","Personnes ayant ajouté un favori","Actifs","Spawters"].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>
-        {data.origins.map(r=><tr key={r.origin}><th scope="row">{originLabel(r.origin)}</th>{[r.arrivals,r.download_clicks,r.first_opens,r.acquired_installs,r.reopens,r.viewers,r.savers,r.active_people,r.spawters].map((n,i)=><td key={i}>{format.format(n)}</td>)}</tr>)}
+      <p>Un APK reçu = transfert complet observé par la page, avant enregistrement du fichier. Les téléchargements directs et navigateurs non instrumentés ne sont pas mesurés. Onboarding reçu = fin signalée par l’app, avec un Palais présent en base. Actif = fiche ouverte puis même lieu ajouté en favori pendant la période, une fois par personne.</p>
+      <section><h2>Par origine</h2><p>« Inconnu » couvre les parcours sans raccord à une campagne, y compris les anciens onboardings sans preuve d’installation.</p>
+        <div className="pilot-table"><table><thead><tr>{["Origine","Arrivées","Clics APK","APK reçus","1res ouvertures","Installations attribuées","Réouvertures","Onboardings","Personnes ayant vu une fiche","Personnes ayant ajouté un favori","Actifs","Spawters"].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>
+        {data.origins.map(r=><tr key={r.origin}><th scope="row">{originLabel(r.origin)}</th>{[r.arrivals,r.download_clicks,r.download_receipts,r.first_opens,r.acquired_installs,r.reopens,r.onboarded,r.viewers,r.savers,r.active_people,r.spawters].map((n,i)=><td key={i}>{n === undefined ? "Non mesuré" : format.format(n)}</td>)}</tr>)}
         </tbody></table></div>
+      </section>
+      <section><h2>Onboardings par campagne</h2>
+        {data.onboarding_campaigns?.length ? <ul>{data.onboarding_campaigns.map(c=><li key={c.campaign+c.origin}>{c.campaign} · {originLabel(c.origin)} : {format.format(c.n)}</li>)}</ul> : <p>{data.onboarding_campaigns ? "Aucun onboarding relié à une campagne sur cette période." : "Ventilation non disponible."}</p>}
       </section>
       <section><h2>Derniers ajouts confirmés</h2><p>50 maximum. La référence est pseudonyme ; ni nom, ni numéro, ni e-mail.</p>
         {data.recent.length === 0 ? <p>Aucun ajout reçu sur cette période.</p> : <div className="pilot-table"><table><thead><tr>{["Heure à Abidjan","Lieu","Origine","Référence"].map(h=><th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>
