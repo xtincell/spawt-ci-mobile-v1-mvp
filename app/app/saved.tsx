@@ -12,9 +12,10 @@ import { useCrewStore } from "../src/store/crew-store";
 import { useMenuItems } from "../src/lib/use-menu-items";
 import { listShareUrl, discardRejectedOutings, type Occasion } from "../src/lib/outings";
 import { DataLoadNotice } from "../src/components/DataLoadNotice";
-import { MenuItemCard } from "../src/components/MenuItemCard";
 import { OutingActions } from "../src/components/OutingActions";
-import { PlaceCover } from "../src/components/PlaceCover";
+import { SavedItemRow } from "../src/components/SavedItemRow";
+import { EmptyState } from "../src/components/EmptyState";
+import { Ico } from "../src/components/primitives/Ico";
 
 const occasions: Occasion[] = ["date", "anniversaire", "vendredi", "brunch", "autre"];
 export default function SavedScreen() {
@@ -72,18 +73,32 @@ export default function SavedScreen() {
     }
     router.push(`/crew/${ref.session_id}` as never);
   }
-  return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
+  const sectionTitle = { ...theme.typography.preset.h2, color: theme.colors.text.primary };
+  const empty = !saved.length && !dishes.length && !loading && !outings.loading && !failed && !outings.failed && !savedUnavailable;
+  return <SafeAreaView testID="saved-screen" edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
     <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.base, paddingBottom: theme.spacing["2xl"] }}>
-      <Pressable accessibilityRole="button" style={button} onPress={() => router.canGoBack() ? router.back() : router.replace("/")}><Text style={ink}>{t("common.back")}</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")}
+        style={{ ...button, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}
+        onPress={() => router.canGoBack() ? router.back() : router.replace("/")}>
+        <Ico name="arrow-left" size={18} color={theme.colors.text.secondary} />
+        <Text style={{...theme.typography.preset.small, color: theme.colors.text.secondary}}>{t("common.back")}</Text>
+      </Pressable>
       <View style={{ gap: theme.spacing.xs }}><Text accessibilityRole="header" style={{ ...theme.typography.preset.h1, color: theme.colors.text.primary }}>{t("outings.title")}</Text><Text style={{ ...theme.typography.preset.body, color: theme.colors.text.secondary }}>{t("outings.subtitle")}</Text></View>
       <DataLoadNotice loading={loading || outings.loading} failed={failed || outings.failed} onRetry={() => { void reload(); void outings.refresh(); }} />
-      {savedUnavailable ? <View><Text style={ink}>{t("saved.unavailable")}</Text><Pressable accessibilityRole="button" accessibilityLabel={t("saved.retry")} style={button} onPress={() => void refreshSaved().catch(() => undefined)}><Text style={ink}>{t("saved.retry")}</Text></Pressable></View> : null}
-      {outings.pending > 0 ? <Text accessibilityLiveRegion="polite" style={ink}>{t("outings.pending")}</Text> : null}
+      {savedUnavailable ? <View><Text accessibilityRole="alert" style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("saved.unavailable")}</Text><Pressable accessibilityRole="button" accessibilityLabel={t("saved.retry")} style={button} onPress={() => void refreshSaved().catch(() => undefined)}><Text style={ink}>{t("saved.retry")}</Text></Pressable></View> : null}
+      {outings.pending > 0 ? <View testID="saved-sync-status" style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}>
+        <Ico name="clock" size={16} color={theme.colors.text.secondary} />
+        <Text accessibilityLiveRegion="polite" style={{...theme.typography.preset.small, flex: 1, color: theme.colors.text.secondary}}>{t("outings.pending")}</Text>
+      </View> : null}
       {outings.rejected > 0 ? <View><Text style={ink}>{t("outings.rejected")}</Text><Pressable accessibilityRole="button" style={button} onPress={() => void run(async () => { if (owner) await discardRejectedOutings(owner.id); await outings.refresh(); })}><Text style={ink}>{t("outings.dismiss_rejected")}</Text></Pressable></View> : null}
       {adding ? <Text style={{ ...theme.typography.preset.h3, color: theme.colors.text.primary }}>{t("outings.pick_list")}</Text> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs }}>
-        {[{ id: null, title: t("outings.all") }, ...outings.snapshot.lists].map(l => <Pressable key={l.id ?? "all"} accessibilityRole="button" accessibilityState={{ selected: selected === l.id, disabled: busy }} disabled={busy} onPress={() => void run(() => selectList(l.id))} style={{ ...button, borderRadius: theme.radius.md, backgroundColor: selected === l.id ? theme.colors.brand.primary : theme.colors.surface.subtle }}><Text style={{ ...theme.typography.preset.small, color: selected === l.id ? theme.colors.surface.base : theme.colors.text.primary }}>{l.title}</Text></Pressable>)}
-        <Pressable accessibilityRole="button" style={button} onPress={() => { setEditing(null); setTitle(""); setOccasion("autre"); setEditor(true); }}><Text style={ink}>{t("outings.new_list")}</Text></Pressable>
+        {[{ id: null, title: t("outings.all") }, ...outings.snapshot.lists].map(l => <Pressable key={l.id ?? "all"} accessibilityRole="button" accessibilityState={{ selected: selected === l.id, disabled: busy }} disabled={busy} onPress={() => void run(() => selectList(l.id))} style={{ ...button, borderRadius: theme.radius.md, backgroundColor: selected === l.id ? theme.colors.brand.primary : theme.colors.surface.subtle }}><Text style={{ ...theme.typography.preset.small, color: selected === l.id ? theme.colors.text.onBrand : theme.colors.text.primary }}>{l.title}</Text></Pressable>)}
+        <Pressable accessibilityRole="button" accessibilityLabel={t("outings.new_list")}
+          style={{ ...button, flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}
+          onPress={() => { setEditing(null); setTitle(""); setOccasion("autre"); setEditor(true); }}>
+          <Ico name="plus" size={16} color={theme.colors.brand.accent} /><Text style={ink}>{t("outings.new_list")}</Text>
+        </Pressable>
       </View>
       {activeList ? <View style={{ backgroundColor: theme.colors.surface.subtle, borderRadius: theme.radius.lg, padding: theme.spacing.base }}>
         <Text style={{ ...theme.typography.preset.h2, color: theme.colors.text.primary }}>{activeList.title}</Text>
@@ -94,16 +109,27 @@ export default function SavedScreen() {
           {activeList.share_token ? <Pressable accessibilityRole="button" disabled={busy} style={button} onPress={() => void run(() => outings.perform("list_share", { list_id: activeList.id, enabled: false }))}><Text style={ink}>{t("outings.revoke")}</Text></Pressable> : null}
         </View>
       </View> : null}
-      {!saved.length && !dishes.length && !loading && !outings.loading && !failed && !outings.failed && !savedUnavailable ? <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.secondary }}>{t("outings.empty")}</Text> : null}
-      {saved.map(p => <View key={p.id} style={{ gap: theme.spacing.sm }}>
-        <Pressable accessibilityRole="button" onPress={() => router.push(`/place/${p.id}` as never)}>
-          <PlaceCover uri={p.cover_photo_url} style={{ height: 170, borderRadius: theme.radius.lg }} />
-          <Text style={{ ...theme.typography.preset.h2, color: theme.colors.text.primary }}>{p.name}</Text>
-          <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{p.location.neighborhood}</Text>
-        </Pressable><OutingActions placeId={p.id} full />
-        {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", { list_id: selected, place_id: p.id }))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
-      </View>)}
-      {dishes.map(d => <View key={d.id}><MenuItemCard item={d} />{!d.is_published ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("unsave", { menu_item_id: d.id }))}><Text style={ink}>{t("outings.remove_saved")}</Text></Pressable> : null}{selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", { list_id: selected, menu_item_id: d.id }))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}</View>)}
+      {empty ? <View testID="saved-empty">
+        <EmptyState title={t(activeList ? "outings.empty_list" : "outings.empty")} body={t(activeList ? "outings.empty_list_hint" : "outings.empty_saved_hint")}
+          cta={{label: t("outings.discover"), onPress: () => router.push("/search")}} />
+      </View> : null}
+      {dishes.length > 0 ? <Text accessibilityRole="header" style={sectionTitle}>{t("outings.saved_dishes")}</Text> : null}
+      {dishes.map(dish => <SavedItemRow key={dish.id} testID={`dish-${dish.id}`} kind="dish"
+        title={dish.name} context={dish.place_name} photo={dish.photo_url}
+        price={dish.price_xof === null ? t("outings.price_unknown") : t("outings.price", {price: dish.price_xof.toLocaleString("fr-FR")})}
+        note={dish.is_published ? t("outings.observed", {date: dish.observed_on}) : t("outings.retired")}
+        open={() => router.push({pathname: "/place/[id]", params: {id: dish.place_id, tab: "menu", dish: dish.id}} as never)}>
+        {dish.is_published ? <OutingActions placeId={dish.place_id} dish={dish} /> :
+          <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("unsave", {menu_item_id: dish.id}))}><Text style={ink}>{t("outings.remove_saved")}</Text></Pressable>}
+        {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", {list_id: selected, menu_item_id: dish.id}))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
+      </SavedItemRow>)}
+      {saved.length > 0 ? <Text accessibilityRole="header" style={sectionTitle}>{t("outings.saved_addresses")}</Text> : null}
+      {saved.map(place => <SavedItemRow key={place.id} testID={`saved-place-${place.id}`} kind="place"
+        title={place.name} context={place.location.neighborhood} photo={place.cover_photo_url}
+        open={() => router.push(`/place/${place.id}` as never)}>
+        <OutingActions placeId={place.id} full />
+        {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", {list_id: selected, place_id: place.id}))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
+      </SavedItemRow>)}
       <Pressable accessibilityRole="button" style={button} onPress={() => router.push({ pathname: "/support", params: { context: activeList ? `liste:${activeList.id}` : "envies" } } as never)}><Text style={ink}>{t("outings.feedback")}</Text></Pressable>
     </ScrollView>
     <Modal visible={editor} animationType="slide" onRequestClose={() => setEditor(false)}>
