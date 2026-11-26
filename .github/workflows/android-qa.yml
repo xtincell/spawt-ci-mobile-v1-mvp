@@ -264,6 +264,16 @@ jobs:
           if [ "$(node -p "require('./documentation/android-qa.json').build")" = 46 ]; then
             python3 scripts/android-signed-review.py
           fi
+      - name: Vérifier les gestes lieu, plat et note indépendants du 47 signé
+        if: steps.apk.outputs.ready == 'true' && success()
+        env:
+          PILOT_DEBUG_APK: spawt.apk
+        run: |
+          if [ "$(node -p "require('./documentation/android-qa.json').build")" = 47 ]; then
+            adb shell pm grant com.upgraders.spawt android.permission.POST_NOTIFICATIONS
+            python3 -m pip install --quiet pillow
+            python3 scripts/android-dish-rating-proof.py
+          fi
       - name: Vérifier la présence visible de l'animation fournie
         if: always() && steps.apk.outputs.ready == 'true'
         run: |
