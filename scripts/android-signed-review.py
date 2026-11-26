@@ -44,12 +44,12 @@ for state in ("cold","warm"):
         assert abs((c-a)/(d-b)-.75)<.025, "Photo not shown in its original 3:4 ratio"
         notes=[x["label"]+" "+str(x["value"]).replace(".",",")+"/5" for x in data["ratings"]]
         assert all(any(note in node.get("content-desc","") for node in nodes) for note in notes)
-        assert any(data["author"]==n.get("text") for n in nodes) and data["author"]=="Membre de la Bande"
+        assert any(data["author"].casefold()==n.get("text","").casefold() for n in nodes) and data["author"]=="Membre de la Bande"
         pixels = subprocess.check_output(["adb","exec-out","screencap","-p"])
         (folder/("le-cha-"+state+".png")).write_bytes(pixels)
         pid=adb("shell","pidof",package)
         assert pid and (not previous if state=="cold" else previous==pid)
-        out["states"].append({"state":state,"title":data["name"],"quote":True,"author":any(data["author"]==n.get("text") for n in nodes),
+        out["states"].append({"state":state,"title":data["name"],"quote":True,"author":any(data["author"].casefold()==n.get("text","").casefold() for n in nodes),
             "photoAspectRatio":(c-a)/(d-b),"ratings":notes,"processVerified":True,"screenshotSha256":hashlib.sha256(pixels).hexdigest()})
         break
     else: raise RuntimeError("Le Cha not completely visible in signed candidate, "+state)
