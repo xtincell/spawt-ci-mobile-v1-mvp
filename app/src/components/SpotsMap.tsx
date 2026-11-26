@@ -1,13 +1,15 @@
 import { requireOptionalNativeModule } from "expo";
-import { PanelNotice } from "./ExploreCollections";
 import { useNavigationAction } from "../lib/use-navigation-action";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   AppState,
   FlatList,
   Image,
   Platform,
   Pressable,
+  ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -17,7 +19,6 @@ import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePlaces } from "../lib/use-places";
-import { DataLoadNotice } from "./DataLoadNotice";
 import { useTheme } from "../theme/ThemeProvider";
 import { DataSourceBanner } from "./DataSourceBanner";
 import { Ico } from "./primitives/Ico";
@@ -30,11 +31,11 @@ import {
   isMapCoordinate,
 } from "../lib/place-discovery";
 import { ABIDJAN_FALLBACK, getActiveCity } from "../lib/city";
+import { haversineKm } from "../lib/matching";
 import { useSpawterStore } from "../store/spawter-store";
 
-// Style sombre sans clé API — OpenFreeMap (tuiles OSM, usage libre).
-const DARK_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
-const DEFAULT_ZOOM = 12;
+const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+const DEFAULT_ZOOM = 11.5;
 
 type MapLibreModule = typeof import("@maplibre/maplibre-react-native");
 type PlacePoints = FeatureCollection<
@@ -84,6 +85,7 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
   );
   const [filter, setFilter] = useState<"all" | "unexplored" | "mine">("all");
   const [listMode, setListMode] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const visiblePlaces = useMemo(
     () =>
       places.filter(
@@ -100,6 +102,7 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
     () => visiblePlaces.filter(hasPlaceCoordinates),
     [visiblePlaces],
   );
+  const selected = locatedPlaces.find((place) => place.id === selectedId);
   const points = useMemo<PlacePoints>(
     () => ({
       type: "FeatureCollection",
@@ -167,154 +170,309 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
     [router, navigate],
   );
 
-  const hasPosition = isMapCoordinate(position.lat, position.lng);
+  const city = getActiveCity();
   const center = useMemo<[number, number]>(() => {
-    if (hasPosition) return [position.lng, position.lat];
-    const city = getActiveCity();
-    if (isMapCoordinate(city.default_lat, city.default_lng))
-      return [city.default_lng, city.default_lat];
-    return [ABIDJAN_FALLBACK.default_lng, ABIDJAN_FALLBACK.default_lat];
-  }, [hasPosition, position.lat, position.lng]);
+    const home = isMapCoordinate(city.default_lat, city.default_lng)
+      ? city
+      : ABIDJAN_FALLBACK;
+    // Keep the Abidjan catalogue in view when a visitor opens SPAWT from another city.
+    if (
+      position.source === "gps" &&
+      isMapCoordinate(position.lat, position.lng) &&
+      haversineKm(
+        home.default_lat,
+        home.default_lng,
+        position.lat,
+        position.lng,
+      ) < 35
+    ) {
+      return [position.lng, position.lat];
+    }
+    return [home.default_lng, home.default_lat];
+  }, [city, position.source, position.lat, position.lng]);
   const reportStyleFailure = useCallback(() => setStyleFailed(true), []);
+  const showList = moduleFailed || listMode || styleFailed;
   function toggleView() {
+    setSelectedId(null);
     if (styleFailed) {
       setStyleFailed(false);
       setListMode(false);
     } else setListMode((value) => !value);
   }
 
+  const { colors, spacing, radius, typography } = theme;
+  const loadingInventory = loading && !places.length;
+  const hasInventory = places.length > 0 || (!loading && !failed);
+  const noResults =
+    hasInventory && !loading && !failed && !visiblePlaces.length;
+  const noMappedPlaces =
+    !showList && visiblePlaces.length > 0 && !locatedPlaces.length;
   const controls = (
-    <View style={{ padding: theme.spacing.base, gap: theme.spacing.sm }}>
+    <View
+      style={{
+        backgroundColor: colors.surface.base,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.sm,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.border.strong,
+      }}
+    >
       <View
-        accessibilityRole="radiogroup"
         style={{
           flexDirection: "row",
-          flexWrap: "wrap",
-          gap: theme.spacing.base,
+          alignItems: "center",
+          gap: spacing.md,
+          paddingHorizontal: spacing.base,
         }}
       >
-        {(["all", "unexplored", "mine"] as const).map((value) => (
+        <Image
+          source={require("../../assets/brand/logo-map-icon.png")}
+          resizeMode="contain"
+          accessible={false}
+          style={{ width: 32, height: 42 }}
+        />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            accessibilityRole="header"
+            style={{ ...typography.preset.h1, color: colors.text.primary }}
+          >
+            {city.name}
+          </Text>
+          {hasInventory ? (
+            <Text
+              testID="carte-inventory-count"
+              style={{
+                ...typography.preset.small,
+                color: colors.text.secondary,
+              }}
+            >
+              {t("carte.inventory_count", {
+                total: visiblePlaces.length,
+                mapped: locatedPlaces.length,
+              })}
+            </Text>
+          ) : loadingInventory ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={{
+                ...typography.preset.small,
+                color: colors.text.secondary,
+              }}
+            >
+              {t("carte.loading_places")}
+            </Text>
+          ) : null}
+        </View>
+        {!moduleFailed && (
           <Pressable
-            key={value}
-            testID={`carte-filter-${value}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: filter === value }}
-            onPress={() => setFilter(value)}
+            testID="carte-view-toggle"
+            accessibilityRole="button"
+            accessibilityLabel={t(
+              showList ? "carte.show_map" : "carte.show_list",
+            )}
+            onPress={toggleView}
+            style={({ pressed }) => ({
+              minHeight: 44,
+              paddingHorizontal: spacing.md,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+              borderRadius: radius.full,
+              backgroundColor: colors.surface.editorial,
+              borderWidth: 1,
+              borderColor: colors.border.strong,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Ico
+              name={showList ? "map" : "compass"}
+              size={17}
+              color={colors.brand.accent}
+            />
+            <Text
+              style={{ ...typography.preset.small, color: colors.text.primary }}
+            >
+              {t(showList ? "carte.show_map" : "carte.show_list")}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, marginTop: spacing.xs }}
+        contentContainerStyle={{
+          gap: spacing.sm,
+          paddingHorizontal: spacing.base,
+        }}
+        accessibilityRole="radiogroup"
+      >
+        {(["all", "unexplored", "mine"] as const).map((value) => {
+          const active = filter === value;
+          return (
+            <Pressable
+              key={value}
+              testID={`carte-filter-${value}`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: active }}
+              onPress={() => {
+                setFilter(value);
+                setSelectedId(null);
+              }}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                justifyContent: "center",
+                opacity: pressed ? 0.75 : 1,
+              })}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.xs,
+                  borderRadius: radius.full,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm,
+                  backgroundColor: active
+                    ? colors.brand.accent
+                    : colors.surface.subtle,
+                }}
+              >
+                {active && (
+                  <Ico name="check" size={13} color={colors.text.inverse} />
+                )}
+                <Text
+                  style={{
+                    ...typography.preset.small,
+                    color: active ? colors.text.inverse : colors.text.primary,
+                  }}
+                >
+                  {t(`carte.filters.${value}`)}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+  const inventoryStatus =
+    failed || noResults || noMappedPlaces ? (
+      <View
+        style={{
+          marginHorizontal: spacing.base,
+          marginVertical: spacing.sm,
+          borderRadius: radius.lg,
+          paddingHorizontal: spacing.md,
+          backgroundColor: colors.surface.subtle,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: spacing.sm,
+        }}
+      >
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{
+            ...typography.preset.small,
+            flex: 1,
+            paddingVertical: spacing.md,
+            color: colors.text.secondary,
+          }}
+        >
+          {t(
+            failed
+              ? "carte.inventory_failed"
+              : noMappedPlaces
+                ? "carte.unmapped_selection"
+                : filter === "all"
+                  ? "carte.empty"
+                  : "carte.empty_filter",
+          )}
+        </Text>
+        {(failed || filter !== "all" || noMappedPlaces) && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t(
+              failed
+                ? "common.retry"
+                : noMappedPlaces
+                  ? "carte.show_list"
+                  : "carte.filters.all",
+            )}
+            onPress={
+              failed
+                ? () => void reload()
+                : noMappedPlaces
+                  ? toggleView
+                  : () => setFilter("all")
+            }
             style={{ minHeight: 44, justifyContent: "center" }}
           >
             <Text
-              style={{
-                ...theme.typography.preset.small,
-                fontFamily:
-                  filter === value
-                    ? theme.typography.preset.overline.fontFamily
-                    : theme.typography.family.body,
-                color: theme.colors.text.primary,
-              }}
+              style={{ ...typography.preset.small, color: colors.brand.accent }}
             >
-              {t(`carte.filters.${value}`)}
+              {t(
+                failed
+                  ? "common.retry"
+                  : noMappedPlaces
+                    ? "carte.show_list"
+                    : "carte.filters.all",
+              )}
             </Text>
           </Pressable>
-        ))}
+        )}
       </View>
-      <Text
-        testID="carte-inventory-count"
-        style={{
-          ...theme.typography.preset.small,
-          color: theme.colors.text.secondary,
-        }}
-      >
-        {t("carte.inventory_count", {
-          total: visiblePlaces.length,
-          mapped: locatedPlaces.length,
-        })}
-      </Text>
-      {visiblePlaces.length > locatedPlaces.length ? (
-        <Text
-          style={{
-            ...theme.typography.preset.small,
-            color: theme.colors.text.secondary,
-          }}
-        >
-          {t("carte.location_pending_hint")}
-        </Text>
-      ) : null}
-      {!moduleFailed ? (
-        <Pressable
-          testID="carte-view-toggle"
-          accessibilityRole="button"
-          onPress={toggleView}
-          style={{ minHeight: 44, justifyContent: "center" }}
-        >
-          <Text
-            style={{
-              ...theme.typography.preset.body,
-              color: theme.colors.brand.accent,
-            }}
-          >
-            {t(listMode || styleFailed ? "carte.show_map" : "carte.show_list")}
-          </Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
+    ) : null;
 
-  if (moduleFailed || listMode || styleFailed) {
-    const header = (
-      <>
-        {moduleFailed || styleFailed ? (
-          <PanelNotice
-            title={t("carte.unavailable_title")}
-            message={t(
-              styleFailed
-                ? "carte.style_unavailable"
-                : "carte.module_unavailable",
-            )}
-          />
-        ) : null}
-        <DataLoadNotice
-          loading={loading}
-          failed={failed}
-          onRetry={() => void reload()}
-        />
-        {visiblePlaces.length ? (
-          <Text
-            style={{
-              ...theme.typography.preset.h2,
-              color: theme.colors.text.primary,
-            }}
-          >
-            {t("carte.available_places")}
-          </Text>
-        ) : null}
-        {!loading && !failed && visiblePlaces.length === 0 ? (
-          <PanelNotice message={t("carte.empty")} />
-        ) : null}
-      </>
-    );
-    const listStyle = {
-      paddingHorizontal: theme.spacing.lg,
-      paddingBottom: theme.spacing.lg,
-      gap: 12,
-    };
-    const row = (place: PlaceWithAdn) => (
-      <PlaceLink
-        key={place.id}
-        place={place}
-        explored={explored.has(place.id)}
-        onPress={() => openPlace(place.id)}
-      />
-    );
-    return (
-      <Container
-        edges={["top"]}
-        style={{ flex: 1, backgroundColor: theme.colors.surface.subtle }}
-      >
-        {!embedded ? <DataSourceBanner /> : null}
-        {controls}
-        {embedded ? (
+  const listStyle = {
+    paddingHorizontal: spacing.base,
+    paddingBottom: spacing.lg,
+    gap: spacing.sm,
+  };
+  const row = (place: PlaceWithAdn) => (
+    <PlaceLink
+      key={place.id}
+      place={place}
+      explored={explored.has(place.id)}
+      onPress={() => openPlace(place.id)}
+    />
+  );
+  const listHint = moduleFailed
+    ? "carte.module_unavailable"
+    : styleFailed
+      ? "carte.style_unavailable"
+      : visiblePlaces.length > locatedPlaces.length
+        ? "carte.location_pending_hint"
+        : null;
+  const listHeader = listHint ? (
+    <Text
+      accessibilityLiveRegion="polite"
+      style={{
+        ...typography.preset.small,
+        paddingVertical: spacing.md,
+        color: colors.text.secondary,
+      }}
+    >
+      {t(listHint)}
+    </Text>
+  ) : null;
+  return (
+    <Container
+      edges={["top"]}
+      style={{
+        flex: 1,
+        minHeight: embedded ? 420 : undefined,
+        backgroundColor: colors.surface.base,
+      }}
+    >
+      {!embedded && <DataSourceBanner />}
+      {controls}
+      {inventoryStatus}
+      {showList ? (
+        embedded ? (
           <View style={listStyle}>
-            {header}
+            {listHeader}
             {visiblePlaces.map(row)}
           </View>
         ) : (
@@ -323,80 +481,144 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
             keyExtractor={(place) => place.id}
             renderItem={({ item }) => row(item)}
             extraData={explored}
-            ListHeaderComponent={header}
+            ListHeaderComponent={listHeader}
             contentContainerStyle={listStyle}
           />
-        )}
-      </Container>
-    );
-  }
-
-  if (!maplibre || !visible) {
-    // Native module loading is announced independently from inventory loading.
-    return (
-      <Container
-        edges={["top"]}
-        style={{
-          flex: 1,
-          minHeight: embedded ? 420 : undefined,
-          backgroundColor: theme.colors.surface.base,
-        }}
-      >
-        {!embedded ? <DataSourceBanner /> : null}
-        {controls}
-        <PanelNotice message={t("carte.loading")} />
-      </Container>
-    );
-  }
-
-  return (
-    <Container
-      edges={["top"]}
-      style={{
-        flex: 1,
-        minHeight: embedded ? 420 : undefined,
-        backgroundColor: theme.colors.surface.base,
-      }}
-    >
-      {!embedded ? <DataSourceBanner /> : null}
-      {controls}
-      <DataLoadNotice
-        loading={loading}
-        failed={failed}
-        onRetry={() => void reload()}
-      />
-      {position.source === "fallback" || !hasPosition ? (
-        <PanelNotice message={t("carte.city_fallback")} />
-      ) : null}
-      {!loading && !failed && places.length === 0 ? (
-        <PanelNotice message={t("carte.empty")} />
-      ) : null}
-      <PlaceMapSurface
-        library={maplibre}
-        center={center}
-        points={points}
-        onOpen={openPlace}
-        onStyleFailure={reportStyleFailure}
-      />
+        )
+      ) : (
+        <View
+          style={{
+            flex: 1,
+            minHeight: embedded ? 320 : undefined,
+            backgroundColor: colors.surface.subtle,
+          }}
+        >
+          {maplibre && visible ? (
+            <PlaceMapSurface
+              library={maplibre}
+              center={center}
+              points={points}
+              selectedId={selected?.id}
+              onSelect={setSelectedId}
+              onStyleFailure={reportStyleFailure}
+            />
+          ) : visible ? (
+            <View style={styles.mapLoading}>
+              <ActivityIndicator
+                accessibilityLabel={t("carte.loading")}
+                color={colors.brand.accent}
+              />
+            </View>
+          ) : null}
+          {selected && visible && (
+            <View
+              testID="carte-selected-place"
+              style={{
+                position: "absolute",
+                bottom: spacing.xl,
+                left: spacing.base,
+                right: spacing.base,
+                maxWidth: 460,
+                alignSelf: "center",
+                flexDirection: "row",
+                alignItems: "center",
+                paddingLeft: spacing.base,
+                paddingRight: spacing.xs,
+                borderWidth: 1,
+                borderColor: colors.border.strong,
+                borderRadius: radius.card,
+                backgroundColor: colors.surface.base,
+                elevation: 3,
+              }}
+            >
+              <Pressable
+                testID="carte-open-selected"
+                accessibilityRole="button"
+                accessibilityLabel={t("rapide.card_open_aria", {
+                  name: selected.name,
+                })}
+                onPress={() => openPlace(selected.id)}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  minHeight: 60,
+                }}
+              >
+                <Ico name="pin" filled color={colors.brand.primary} size={24} />
+                <View style={{ flex: 1, paddingVertical: spacing.sm }}>
+                  <Text
+                    numberOfLines={2}
+                    style={{
+                      ...typography.preset.h3,
+                      color: colors.text.primary,
+                    }}
+                  >
+                    {selected.name}
+                  </Text>
+                  {selected.location?.neighborhood && (
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        ...typography.preset.small,
+                        color: colors.text.secondary,
+                      }}
+                    >
+                      {selected.location.neighborhood}
+                    </Text>
+                  )}
+                </View>
+                <Ico
+                  name="chevron-right"
+                  color={colors.brand.accent}
+                  size={17}
+                />
+              </Pressable>
+              <Pressable
+                testID="carte-close-selected"
+                accessibilityRole="button"
+                accessibilityLabel={t("carte.dismiss_preview")}
+                onPress={() => setSelectedId(null)}
+                style={{
+                  width: 44,
+                  height: 44,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Ico name="close" color={colors.text.secondary} size={18} />
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
     </Container>
   );
 }
+
+const styles = StyleSheet.create({
+  mapLoading: { flex: 1, alignItems: "center", justifyContent: "center" },
+});
 
 function PlaceMapSurface({
   library,
   center,
   points,
-  onOpen,
+  selectedId,
+  onSelect,
   onStyleFailure,
 }: {
   library: MapLibreModule;
   center: [number, number];
   points: PlacePoints;
-  onOpen: (id: string) => void;
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
   onStyleFailure: () => void;
 }) {
   const { Map: NativeMap, Camera, GeoJSONSource, Layer } = library;
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [styleReady, setStyleReady] = useState(false);
   useEffect(() => {
     if (styleReady) return;
@@ -404,62 +626,91 @@ function PlaceMapSurface({
     return () => clearTimeout(timer);
   }, [styleReady, onStyleFailure]);
   return (
-    <NativeMap
-      style={{ flex: 1, minHeight: 340 }}
-      androidView="texture"
-      mapStyle={DARK_STYLE_URL}
-      testID="carte-mapview"
-      onDidFinishLoadingStyle={() => setStyleReady(true)}
-      onDidFailLoadingMap={onStyleFailure}
-    >
-      <Camera initialViewState={{ center, zoom: DEFAULT_ZOOM }} />
-      {styleReady && (
-        <GeoJSONSource
-          id="spawt-places"
-          data={points}
-          onPress={(event) => {
-            const id = event.nativeEvent.features[0]?.properties?.placeId;
-            if (
-              typeof id === "string" &&
-              points.features.some((point) => point.properties.placeId === id)
-            )
-              onOpen(id);
-          }}
+    <>
+      <NativeMap
+        style={StyleSheet.absoluteFill}
+        androidView="texture"
+        mapStyle={MAP_STYLE_URL}
+        tintColor={colors.brand.accent}
+        testID="carte-mapview"
+        onDidFinishLoadingStyle={() => setStyleReady(true)}
+        onDidFailLoadingMap={onStyleFailure}
+      >
+        <Camera initialViewState={{ center, zoom: DEFAULT_ZOOM }} />
+        {styleReady && (
+          <GeoJSONSource
+            id="spawt-places"
+            data={points}
+            onPress={(event) => {
+              const id = event.nativeEvent.features[0]?.properties?.placeId;
+              if (
+                typeof id === "string" &&
+                points.features.some((point) => point.properties.placeId === id)
+              )
+                onSelect(id);
+            }}
+          >
+            <Layer
+              id="spawt-pins"
+              type="circle"
+              paint={{
+                "circle-radius": [
+                  "interpolate",
+                  ["linear"],
+                  ["zoom"],
+                  10,
+                  5,
+                  13,
+                  8,
+                  16,
+                  11,
+                ],
+                "circle-stroke-width": [
+                  "case",
+                  ["==", ["get", "placeId"], selectedId ?? ""],
+                  4,
+                  2,
+                ],
+                "circle-stroke-color": colors.surface.inverse,
+                "circle-color": [
+                  "case",
+                  ["get", "explored"],
+                  colors.brand.accent,
+                  colors.brand.primary,
+                ],
+              }}
+            />
+            <Layer
+              id="spawt-names"
+              type="symbol"
+              minzoom={13}
+              layout={{
+                "text-field": ["get", "name"],
+                "text-size": 12,
+                "text-anchor": "top",
+                "text-offset": [0, 0.9],
+              }}
+              paint={{
+                "text-color": colors.text.primary,
+                "text-halo-color": colors.surface.base,
+                "text-halo-width": 1.4,
+              }}
+            />
+          </GeoJSONSource>
+        )}
+      </NativeMap>
+      {!styleReady && (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.mapLoading]}
         >
-          <Layer
-            id="spawt-pins"
-            type="circle"
-            paint={{
-              "circle-radius": 8,
-              "circle-stroke-width": 2,
-              "circle-stroke-color": colors.surface.base,
-              "circle-color": [
-                "case",
-                ["get", "explored"],
-                colors.brand.accent,
-                colors.brand.primary,
-              ],
-            }}
+          <ActivityIndicator
+            accessibilityLabel={t("carte.loading")}
+            color={colors.brand.accent}
           />
-          <Layer
-            id="spawt-names"
-            type="symbol"
-            minzoom={13}
-            layout={{
-              "text-field": ["get", "name"],
-              "text-size": 12,
-              "text-anchor": "top",
-              "text-offset": [0, 0.9],
-            }}
-            paint={{
-              "text-color": colors.text.inverse,
-              "text-halo-color": colors.surface.inverse,
-              "text-halo-width": 1.4,
-            }}
-          />
-        </GeoJSONSource>
+        </View>
       )}
-    </NativeMap>
+    </>
   );
 }
 

@@ -41,7 +41,7 @@ jest.mock("../../src/components/DataSourceBanner", () => ({
 let mockFailed = false;
 let mockLoading = false;
 const mockReload = jest.fn();
-let mockPlaces = [
+const mockPublishedPlaces = [
   {
     id: "published",
     name: "Lieu publié",
@@ -50,6 +50,7 @@ let mockPlaces = [
     location: { lat: 5.35, lng: -3.98, neighborhood: "Cocody" },
   },
 ];
+let mockPlaces = [...mockPublishedPlaces];
 jest.mock("../../src/lib/use-places", () => ({
   usePlaces: () => ({
     places: mockPlaces,
@@ -84,7 +85,7 @@ beforeEach(() => {
   mockFocused = true;
   mockCanRender.mockResolvedValue(true);
   mockPosition = { lat: 5.35, lng: -4, source: "fallback" };
-  mockPlaces = mockPlaces.filter((place) => place.id === "published");
+  mockPlaces = [...mockPublishedPlaces];
 });
 it("shares the native map with Carte and retains the city fallback when GPS permission is absent", async () => {
   await act(async () => {
@@ -95,9 +96,13 @@ it("shares the native map with Carte and retains the city fallback when GPS perm
     );
   });
   expect(tree.root.findAllByType(SpotsMap)).toHaveLength(1);
-  expect(JSON.stringify(tree.toJSON())).toContain("carte.city_fallback");
+  expect(JSON.stringify(tree.toJSON())).not.toContain("carte.city_fallback");
+  expect(
+    tree.root.findByType("Camera" as any).props.initialViewState.center,
+  ).toEqual([-4.0267, 5.3364]);
   const map = tree.root.findByType("Map" as any);
   expect(map.props.androidView).toBe("texture");
+  expect(map.props.mapStyle).toMatch(/positron$/);
   expect(tree.root.findAllByType("GeoJSONSource" as any)).toHaveLength(0);
   act(() => map.props.onDidFinishLoadingStyle());
   const source = tree.root.findByType("GeoJSONSource" as any);
@@ -106,6 +111,21 @@ it("shares the native map with Carte and retains the city fallback when GPS perm
   act(() => {
     source.props.onPress({ nativeEvent: { features: [feature] } });
     source.props.onPress({ nativeEvent: { features: [feature] } });
+  });
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(JSON.stringify(tree.toJSON())).toContain("Cocody");
+  const dismiss = tree.root.findAllByProps({
+    testID: "carte-close-selected",
+  })[0]!;
+  act(() => dismiss.props.onPress());
+  expect(
+    tree.root.findAllByProps({ testID: "carte-selected-place" }),
+  ).toHaveLength(0);
+  act(() => source.props.onPress({ nativeEvent: { features: [feature] } }));
+  const open = tree.root.findAllByProps({ testID: "carte-open-selected" })[0]!;
+  act(() => {
+    open.props.onPress();
+    open.props.onPress();
   });
   expect(mockPush).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledWith("/place/published");
@@ -147,6 +167,75 @@ const mapScreen = () => (
     <CarteScreen />
   </ThemeProvider>
 );
+
+it.each([
+  { latitude: 5.36, longitude: -3.99, expected: [-3.99, 5.36] },
+  { latitude: 37.42, longitude: -122.08, expected: [-4.0267, 5.3364] },
+])(
+  "opens on useful local coordinates when a GPS fix is available",
+  async ({ latitude, longitude, expected }) => {
+    mockPosition = { lat: latitude, lng: longitude, source: "gps" };
+    await act(async () => {
+      tree = TestRenderer.create(mapScreen());
+    });
+    expect(
+      tree.root.findByType("Camera" as any).props.initialViewState.center,
+    ).toEqual(expected);
+  },
+);
+
+it("distinguishes unknown inventory at startup from a confirmed empty selection", async () => {
+  mockPlaces = [];
+  mockLoading = true;
+  await act(async () => {
+    tree = TestRenderer.create(mapScreen());
+  });
+  expect(
+    tree.root.findAllByProps({ testID: "carte-inventory-count" }),
+  ).toHaveLength(0);
+  expect(JSON.stringify(tree.toJSON())).toContain("carte.loading_places");
+  expect(JSON.stringify(tree.toJSON())).not.toContain("carte.empty");
+  mockPlaces = [...mockPublishedPlaces];
+  act(() => tree.update(mapScreen()));
+  expect(
+    tree.root.findAllByProps({ testID: "carte-inventory-count" }).length,
+  ).toBeGreaterThan(0);
+  expect(JSON.stringify(tree.toJSON())).not.toContain("carte.loading_places");
+  mockLoading = false;
+  act(() =>
+    tree.root
+      .findAllByProps({ testID: "carte-filter-mine" })[0]!
+      .props.onPress(),
+  );
+  expect(JSON.stringify(tree.toJSON())).toContain("carte.empty_filter");
+  const all = tree.root.findAll(
+    (n) =>
+      n.props.accessibilityLabel === "carte.filters.all" &&
+      typeof n.props.onPress === "function",
+  )[0]!;
+  act(() => all.props.onPress());
+  expect(JSON.stringify(tree.toJSON())).not.toContain("carte.empty_filter");
+});
+
+it("makes published addresses without coordinates available directly in the list", async () => {
+  const place = mockPlaces[0]!;
+  mockPlaces = [{ ...place, location: { ...place.location, lat: 0, lng: 0 } }];
+  await act(async () => {
+    tree = TestRenderer.create(mapScreen());
+  });
+  expect(JSON.stringify(tree.toJSON())).toContain("carte.unmapped_selection");
+  act(() =>
+    tree.root
+      .findAllByProps({ testID: "carte-view-toggle" })[0]!
+      .props.onPress(),
+  );
+  expect(
+    tree.root.findAllByProps({ children: "Lieu publié" }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    tree.root.findAllByProps({ children: "carte.unmapped_selection" }),
+  ).toHaveLength(0);
+});
 
 it("keeps a complete inventory with a single source and excludes invalid coordinates from the renderer", async () => {
   const first = mockPlaces[0]!;
@@ -194,7 +283,9 @@ it("shows real places without mounting MapLibre on an Android without the necess
     tree = TestRenderer.create(mapScreen());
   });
   expect(tree.root.findAllByType("Map" as any)).toHaveLength(0);
-  expect(tree.root.findAllByProps({children: "Lieu publié"}).length).toBeGreaterThan(0);
+  expect(
+    tree.root.findAllByProps({ children: "Lieu publié" }).length,
+  ).toBeGreaterThan(0);
 });
 
 it("returns to the list on style failure and lets the visitor retry the map", async () => {
@@ -203,7 +294,9 @@ it("returns to the list on style failure and lets the visitor retry the map", as
   });
   act(() => tree.root.findByType("Map" as any).props.onDidFailLoadingMap());
   expect(tree.root.findAllByType("Map" as any)).toHaveLength(0);
-  expect(tree.root.findAllByProps({children: "Lieu publié"}).length).toBeGreaterThan(0);
+  expect(
+    tree.root.findAllByProps({ children: "Lieu publié" }).length,
+  ).toBeGreaterThan(0);
   act(() =>
     tree.root
       .findAllByProps({ testID: "carte-view-toggle" })[0]!
