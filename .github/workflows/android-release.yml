@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: "(github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: publish verified Android build 42') && (github.ref != 'refs/heads/codex/pilote-abidjan-20261204' || github.event.head_commit.message == 'release: publish verified Android build 45')"
+    if: "(github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: publish verified Android build 42') && (github.ref != 'refs/heads/codex/pilote-abidjan-20261204' || (github.event.head_commit.message == 'release: publish verified Android build 45' || github.event.head_commit.message == 'release: publish verified Android build 46'))"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
       - name: Check the public download channel rules
-        run: node --test scripts/__tests__/publish-android-channel.test.mjs scripts/__tests__/validate-android-release.test.mjs scripts/__tests__/pilot45-receipt.test.mjs
+        run: node --test scripts/__tests__/publish-android-channel.test.mjs scripts/__tests__/validate-android-release.test.mjs scripts/__tests__/pilot45-receipt.test.mjs scripts/__tests__/ui46-receipt.test.mjs
       - name: Validate pinned build and native QA
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,6 +37,7 @@ jobs:
           const profile=androidPublicationProfile(c);
           const required=[[c.buildRun,c.buildWorkflowCommit,'.github/workflows/android-local-build.yml','success'],[c.qaRun,c.qaWorkflowCommit,'.github/workflows/android-qa.yml','success']];
           if(profile==='pilot45-alpha') required.push([c.pilotRun,c.pilotWorkflowCommit,'.github/workflows/android-pilot-receipt.yml','failure'],[c.liveRun,c.liveWorkflowCommit,'.github/workflows/android-qa.yml','failure']);
+          if(profile==='ui46-alpha') required.push([c.uiRun,c.uiWorkflowCommit,'.github/workflows/android-ui-review.yml','success']);
           for(const [id,sha,path,conclusion] of required) {
             const r=JSON.parse(execFileSync('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${id}`],{encoding:'utf8'}));
             if(r.status!=='completed' || r.conclusion!==conclusion || r.head_sha!==sha || r.path!==path) throw new Error('Required verified run is missing');
@@ -54,6 +55,10 @@ jobs:
           if(tag!==c.buildWorkflowCommit) throw new Error('Release tag changed');
           execFileSync('gh',['run','download',String(c.buildRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-apk','--dir','release-apk'],{stdio:'inherit'});
           execFileSync('gh',['run','download',String(c.qaRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-proof','--dir','native-proof'],{stdio:'inherit'});
+          if(profile==='ui46-alpha') {
+            execFileSync('git',['diff','--exit-code',c.sourceCommit,c.uiWorkflowCommit,'--','app']);
+            execFileSync('gh',['run','download',String(c.uiRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','trois-ecrans-android','--dir','ui-native-proof'],{stdio:'inherit'});
+          }
           if(profile==='pilot45-alpha') {
             execFileSync('gh',['run','download',String(c.pilotRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','pilot-native-receipt','--dir','pilot-native-proof'],{stdio:'inherit'});
             execFileSync('gh',['run','download',String(c.liveRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-proof','--dir','partial-live-proof'],{stdio:'inherit'});
