@@ -5,12 +5,15 @@ import pathlib
 import re
 import subprocess
 import sys
+import sqlite3
+import tempfile
 import time
+import urllib.request
 
 sys.path.insert(0, str(pathlib.Path(__file__).with_name("pilot-android-qa")))
 from PIL import Image
 import native
-from native import adb, BRUNCH, FIXTURES, find, login, match, now, PACKAGE, tap, touch, tree
+from native import adb, ANON, BRUNCH, FIXTURES, find, match, now, PACKAGE, tap, touch, tree
 
 out = pathlib.Path("ui-review")
 out.mkdir(exist_ok=True)
@@ -27,10 +30,13 @@ def read_surface():
     wait = next((n for n in ui.iter("node") if n.get("package")=="android" and
                  n.get("resource-id","").endswith("/aerr_wait")), None)
     if wait is not None:
+        last = adb("shell","dumpsys","activity","lastanr") + "\n" + adb("logcat","-d","-b","events","-s","am_anr")
+        owners = re.findall(r"(?:ANR in |\[\d+,\d+,)([a-z][\w.]+)",last)
+        owner = owners[-1] if owners else "indéterminé"
         events = results.setdefault("dialogues_android_attendre",[])
-        if len(events) >= 2:
-            raise RuntimeError("Android signale un blocage persistant pendant le démarrage.")
-        events.append(now())
+        events.append({"at":now(),"process":owner})
+        if owner not in ("com.android.systemui","com.google.android.apps.nexuslauncher","com.android.launcher3") or len(events)>2:
+            raise RuntimeError("Android signale une ANR de "+owner)
         touch(wait)
         time.sleep(4)
         return raw_tree()
@@ -87,9 +93,48 @@ def le_cha():
     shot("le-cha")
     adb("shell","am","force-stop",PACKAGE)
 def authenticate():
+    # This suite photographs existing screens. Restore a real, previously consented demo session.
+    account = FIXTURES[3]
+    assert account["demo"] and adb("shell","getprop","ro.kernel.qemu").strip()=="1"
     adb("shell","am","force-stop",PACKAGE)
+    base="http://127.0.0.1:54321"
+    def req(path, token=ANON, payload=None):
+        body = json.dumps(payload).encode() if payload is not None else None
+        request=urllib.request.Request(base+path,data=body,headers={"apikey":ANON,"Authorization":"Bearer "+token,"Content-Type":"application/json"})
+        with urllib.request.urlopen(request,timeout=18) as r:
+            return json.load(r)
+    phone={"phone_e164":account["phone"]}
+    req("/functions/v1/otp-send",payload=phone)
+    session=req("/functions/v1/otp-verify",payload={**phone,"otp_code":"123456"})
+    assert session.pop("user_id")==account["id"]
+    token=session["access_token"]
+    assert req("/auth/v1/user",token)["id"]==account["id"]
+    user,=req("/rest/v1/spawters?select=*&id=eq."+account["id"],token)
+    palais,=req("/rest/v1/user_palais?select=*&spawter_id=eq."+account["id"],token)
+    assert user["is_demo"] and user["cgv_accepted_at"] and user["geoloc_consent_at"]
+    assert len(req("/rest/v1/places?select=id&is_published=eq.true&city_code=eq.abidjan",token))==155
+    dish,=req("/rest/v1/public_menu_items?id=eq."+DISH,token)
+    assert dish["price_xof"]==7000
+    def device_count(target):
+        http=f"GET /rest/v1/{target} HTTP/1.0\r\nHost: localhost\r\napikey: {ANON}\r\nConnection: close\r\n\r\n"
+        wire=subprocess.run(["adb","shell","-T","toybox","nc","-w","12","127.0.0.1","54321"],input=http.encode(),stdout=subprocess.PIPE,check=True,timeout=20).stdout
+        head,body=wire.split(b"\r\n\r\n",1)
+        assert b"200" in head.splitlines()[0],head.splitlines()[0].decode()
+        return len(json.loads(body))
+    assert device_count("places?select=id&is_published=eq.true&city_code=eq.abidjan")==155
+    results["inventaire_depuis_android"]={"nombre":155,"prix_catalogue":dish["price_xof"],"at":now()}
+    rows={"sb-127-auth-token":json.dumps(session),"spawt:spawter":json.dumps(user),"spawt:palais":json.dumps(palais),
+          "spawt:consent:cgv":user["cgv_accepted_at"],"spawt:consent:geoloc":user["geoloc_consent_at"]}
+    with tempfile.TemporaryDirectory() as directory:
+        file=pathlib.Path(directory)/"RKStorage"
+        with sqlite3.connect(file) as db:
+            db.execute("PRAGMA user_version=1")
+            db.execute("CREATE TABLE catalystLocalStorage(key text primary key,value text not null)")
+            db.executemany("INSERT INTO catalystLocalStorage(key,value) VALUES(?,?)",rows.items())
+        adb("shell","run-as",PACKAGE,"mkdir","-p","databases")
+        subprocess.run(["adb","shell","-T",f"run-as {PACKAGE} sh -c 'cat > databases/RKStorage'"],input=file.read_bytes(),check=True)
     adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
-    login(FIXTURES[3]); find("Accueil")
+    find("Accueil",120)
 def saved():
     open_url("spawt://place/"+BRUNCH);find("IN’ Concept Store")
     tap("Sauvegarde pour plus tard");find("Sauvegardé")

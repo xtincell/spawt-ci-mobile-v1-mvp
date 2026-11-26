@@ -78,6 +78,9 @@ jobs:
           if ! timeout 240s "$ANDROID_HOME/platform-tools/adb" wait-for-device; then tail -c 12000 "$RUNNER_TEMP/pilot-emulator.log"; exit 1; fi
           for i in {1..90}; do if [ "$("$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then break; fi; sleep 2; done
           "$ANDROID_HOME/platform-tools/adb" shell input keyevent 82
+          "$ANDROID_HOME/platform-tools/adb" shell am wait-for-broadcast-idle
+          "$ANDROID_HOME/platform-tools/adb" shell input keyevent KEYCODE_HOME
+          "$ANDROID_HOME/platform-tools/adb" shell cmd package list packages >/dev/null
       - name: Photographier les écrans après les gestes Android
         run: |
           gh run download 45708837139 -n emulator-debug-45-x86_64 -D "$RUNNER_TEMP/debug"
