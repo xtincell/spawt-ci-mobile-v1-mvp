@@ -9,15 +9,34 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).with_name("pilot-android-qa")))
 from PIL import Image
+import native
 from native import adb, BRUNCH, FIXTURES, find, login, match, now, PACKAGE, tap, touch, tree
 
 out = pathlib.Path("ui-review")
 out.mkdir(exist_ok=True)
-results = {"source": os.environ["GITHUB_SHA"], "native": "debug x86_64 build 45, Android 15",
+results = {"source": os.environ["GITHUB_SHA"],
+           "app_tree": subprocess.check_output(["git","rev-parse","HEAD:app"],text=True).strip(),
+           "native": "debug x86_64 build 45, Android 15",
            "api": "isolated loopback fixture", "screens": {}}
 review = json.loads(pathlib.Path("app/src/data/le-cha-review.json").read_text())
 DISH = "6dad3f00-d87f-4c70-87a7-b083af11c4d7"
 inventory = json.loads(pathlib.Path("scripts/pilot-android-qa/lieux-abidjan-publics.json").read_text())
+raw_tree = tree
+def read_surface():
+    ui = raw_tree()
+    wait = next((n for n in ui.iter("node") if n.get("package")=="android" and
+                 n.get("resource-id","").endswith("/aerr_wait")), None)
+    if wait is not None:
+        events = results.setdefault("dialogues_android_attendre",[])
+        if len(events) >= 2:
+            raise RuntimeError("Android signale un blocage persistant pendant le démarrage.")
+        events.append(now())
+        touch(wait)
+        time.sleep(4)
+        return raw_tree()
+    return ui
+# Both this script and the shared UI finders must observe and record the same system dialog.
+tree = native.tree = read_surface
 def open_url(url):
     adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d",url,"-p",PACKAGE)
 def shot(name):
@@ -46,6 +65,7 @@ def diagnose(name):
         shot("diagnostic-"+name)
     return info
 def stage(name, run):
+    print("Écran :",name,flush=True)
     try:
         run()
         results["screens"][name] = {"pass":True,"at":now()}
@@ -56,6 +76,7 @@ def stage(name, run):
         except Exception:
             pass
         print(name, error, flush=True)
+    (out/"recu.json").write_text(json.dumps(results,ensure_ascii=False,indent=2))
 def le_cha():
     open_url("https://spawt.online/ouvrir/avis/le-cha-alexandre")
     find("le-cha-review-title",95); find("le-cha-review-photo"); find("le-cha-review-comment")
@@ -66,6 +87,7 @@ def le_cha():
     shot("le-cha")
     adb("shell","am","force-stop",PACKAGE)
 def authenticate():
+    adb("shell","am","force-stop",PACKAGE)
     adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
     login(FIXTURES[3]); find("Accueil")
 def saved():
