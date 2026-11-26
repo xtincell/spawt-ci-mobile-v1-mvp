@@ -115,13 +115,18 @@ def authenticate():
     assert len(req("/rest/v1/places?select=id&is_published=eq.true&city_code=eq.abidjan",token))==155
     dish,=req("/rest/v1/public_menu_items?id=eq."+DISH,token)
     assert dish["price_xof"]==7000
-    def device_count(target):
-        http=f"GET /rest/v1/{target} HTTP/1.0\r\nHost: localhost\r\napikey: {ANON}\r\nConnection: close\r\n\r\n"
-        wire=subprocess.run(["adb","shell","-T","toybox","nc","-w","12","127.0.0.1","54321"],input=http.encode(),stdout=subprocess.PIPE,check=True,timeout=20).stdout
-        head,body=wire.split(b"\r\n\r\n",1)
-        assert b"200" in head.splitlines()[0],head.splitlines()[0].decode()
-        return len(json.loads(body))
-    assert device_count("places?select=id&is_published=eq.true&city_code=eq.abidjan")==155
+    # Forward to the device's own loopback, which the app reaches through adb reverse.
+    # An HTTP client can validate the response without racing netcat's stdin EOF.
+    adb("reverse","tcp:54321","tcp:54321")
+    port=adb("forward","tcp:0","tcp:54321").strip()
+    assert port.isdecimal()
+    try:
+        request=urllib.request.Request("http://127.0.0.1:"+port+"/rest/v1/places?select=id&is_published=eq.true&city_code=eq.abidjan",
+            headers={"apikey":ANON,"Authorization":"Bearer "+token})
+        with urllib.request.urlopen(request,timeout=15) as response:
+            assert len(json.load(response))==155
+    finally:
+        adb("forward","--remove","tcp:"+port)
     results["inventaire_depuis_android"]={"nombre":155,"prix_catalogue":dish["price_xof"],"at":now()}
     rows={"sb-127-auth-token":json.dumps(session),"spawt:spawter":json.dumps(user),"spawt:palais":json.dumps(palais),
           "spawt:consent:cgv":user["cgv_accepted_at"],"spawt:consent:geoloc":user["geoloc_consent_at"]}
