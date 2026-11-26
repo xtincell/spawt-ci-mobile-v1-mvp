@@ -1,10 +1,10 @@
 {
-  "build": 47,
-  "previousBuild": 46,
-  "sourceCommit": "cc47e50067bc6d79fd6a9cee15a643f17caf8433",
+  "build": 48,
+  "previousBuild": 47,
+  "sourceCommit": "74d8b3b5bee649368d80b6adcfc6a35d5422d1de",
   "mode": "opening",
   "phone": "+2250000000193",
-  "localBuildRun": 45832851628,
-  "buildWorkflowCommit": "551425a3b4f17ce03d005bf39cc314ec5d8185dc",
-  "version": "1.1.6"
+  "localBuildRun": 45874192390,
+  "buildWorkflowCommit": "c48f2abd2cc35529d1203c60a1fea32e2996cd94",
+  "version": "1.1.7"
 }
