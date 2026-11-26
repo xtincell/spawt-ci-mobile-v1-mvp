@@ -41,8 +41,6 @@ def read_surface():
         time.sleep(4)
         return raw_tree()
     return ui
-# Both this script and the shared UI finders must observe and record the same system dialog.
-tree = native.tree = read_surface
 def open_url(url):
     adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d",url,"-p",PACKAGE)
 def shot(name):
@@ -64,6 +62,12 @@ def diagnose(name):
     ids = {node.get("resource-id","").split("/")[-1] for node in ui.iter("node")}
     info = {"identifiants":sorted(i for i in ids if re.fullmatch(r"[a-zA-Z][\w-]{1,70}",i)),
             "libelles": [label for label in known if any(label.casefold() in text.casefold() for text in labels)]}
+    rest = subprocess.run(["docker","logs","--tail","800",os.environ["PILOT_REST_CONTAINER"]],capture_output=True,text=True)
+    counts={}
+    for method,resource,status in re.findall(r'"(GET|POST|HEAD|PATCH) /([\w/]+)[^"]* HTTP/[^"]+" (\d{3})',rest.stdout+rest.stderr):
+        key=method+" "+resource+" "+status
+        counts[key]=counts.get(key,0)+1
+    info["statuts_rest"]=counts
     # Only photograph known product views with no phone, OTP, email or editable field.
     private = any(node.get("class") == "android.widget.EditText" for node in ui.iter("node")) or any(
         re.search(r"@|\+225|\b[\d \u202f-]{10,}\b",label) for label in labels)
@@ -113,8 +117,10 @@ def authenticate():
     palais,=req("/rest/v1/user_palais?select=*&spawter_id=eq."+account["id"],token)
     assert user["is_demo"] and user["cgv_accepted_at"] and user["geoloc_consent_at"]
     assert len(req("/rest/v1/places?select=id&is_published=eq.true&city_code=eq.abidjan",token))==155
-    dish,=req("/rest/v1/public_menu_items?id=eq."+DISH,token)
+    dish,=req("/rest/v1/public_menu_items?select=*&order=id.asc&offset=0&limit=500",token)
     assert dish["price_xof"]==7000
+    snapshot=req("/rest/v1/rpc/my_outings",token,{"p_owner":account["id"]})
+    assert isinstance(snapshot,dict) and snapshot["dishes"]==[] and snapshot["lists"]==[]
     # Forward to the device's own loopback, which the app reaches through adb reverse.
     # An HTTP client can validate the response without racing netcat's stdin EOF.
     adb("reverse","tcp:54321","tcp:54321")
@@ -143,13 +149,27 @@ def authenticate():
 def saved():
     open_url("spawt://place/"+BRUNCH);find("IN’ Concept Store")
     tap("Sauvegarde pour plus tard");find("Sauvegardé")
-    open_url("spawt://search")
-    field = wait_node(lambda n: n.get("class") == "android.widget.EditText")
-    touch(field)
-    adb("shell","input","text","Eggs")
-    if "mInputShown=true" in adb("shell","dumpsys","input_method"):
-        adb("shell","input","keyevent","4")
-    tap("save-intent-"+DISH)
+    # Open the actual published menu as a diner would; its action may be below the fold.
+    tap("Menu")
+    swiped = 0
+    for attempt in range(10):
+        ui = tree()
+        action=next((n for n in ui.iter("node") if match("save-intent-"+DISH,n)),None)
+        if action is not None:
+            touch(action)
+            break
+        retry=next((n for n in ui.iter("node") if match("Réessayer",n)),None)
+        if retry is not None and attempt<3:
+            touch(retry)
+            time.sleep(2)
+        else:
+            size=adb("shell","wm","size")
+            w,h=map(int,re.findall(r"(\d+)x(\d+)",size)[-1])
+            adb("shell","input","swipe",str(w//2),str(int(h*.75)),str(w//2),str(int(h*.39)),"480")
+            swiped+=1
+        time.sleep(.6)
+    else:
+        raise AssertionError(f"Action d’enregistrement du plat absente dans le menu après {swiped} défilements.")
     # Both records must be written by native gestures, owned by this demonstration account.
     owner = FIXTURES[3]["id"]
     query = f"""SELECT EXISTS(SELECT FROM saved_places WHERE spawter_id='{owner}' AND place_id='{BRUNCH}')
@@ -178,7 +198,15 @@ def saved():
     shot("mes-envies-adresse")
 def empty_saved():
     open_url("spawt://saved")
-    wait_node(lambda n: any(match(label,n) for label in ("saved-empty","Aucune envie enregistrée","Chercher un plat ou une adresse")))
+    def empty(n):
+        return any(match(label,n) for label in ("saved-empty","Aucune envie enregistrée","Chercher un plat ou une adresse"))
+    for attempt in range(3):
+        try:
+            wait_node(empty,18)
+            break
+        except RuntimeError:
+            if attempt==2: raise
+            tap("Réessayer")
     shot("mes-envies-vide")
 def marker_centers(source, rect):
     """Read actual golden marker centres in the bounded MapLibre surface on this emulator."""
@@ -221,9 +249,12 @@ def carte():
     else:
         raise AssertionError("Aucun point du catalogue avec quartier n’a ouvert sa fiche.")
     tap("carte-view-toggle");time.sleep(1);shot("carte-liste");tap("carte-view-toggle");find("carte-mapview")
-stage("Le Cha",le_cha)
-stage("Identification interne",authenticate)
-if results["screens"]["Identification interne"]["pass"]:
-    stage("Mes envies vide",empty_saved);stage("Mes envies",saved);stage("Carte",carte)
-(out/"recu.json").write_text(json.dumps(results,ensure_ascii=False,indent=2))
-if not all(r["pass"] for r in results["screens"].values()):sys.exit(1)
+if __name__ == "__main__":
+    # Both this script and the shared UI finders must observe the same system dialog.
+    tree = native.tree = read_surface
+    stage("Le Cha",le_cha)
+    stage("Identification interne",authenticate)
+    if results["screens"]["Identification interne"]["pass"]:
+        stage("Mes envies vide",empty_saved);stage("Mes envies",saved);stage("Carte",carte)
+    (out/"recu.json").write_text(json.dumps(results,ensure_ascii=False,indent=2))
+    if not all(r["pass"] for r in results["screens"].values()):sys.exit(1)
