@@ -12,7 +12,7 @@ import { parseMeuteHeritage } from "./meute-heritage";
 import type { UserPalais } from "../types/palais";
 import type { SpawtCheckin } from "../types/spawt";
 import type { FeatureFlag } from "../types/feature-flag";
-import type { PlaceReview, PlaceWithAdn, ProgressionRow } from "./data-source";
+import type { PlaceReview, PlaceWithAdn, ProgressionRow, ReviewPageOptions } from "./data-source";
 import type { CollectionTitreRow } from "../types/collection-titres";
 import { PlaceWithAdnSchema } from "../types/place.schema";
 import { DataReadError, withReadTimeout } from "./data-read-error";
@@ -491,14 +491,21 @@ export async function listTitresFromSupabase(
 export async function listReviewsForPlaceFromSupabase(
   placeId: string,
   limit: number,
+  page?: ReviewPageOptions,
 ): Promise<PlaceReview[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("public_reviews")
     .select("id, spawter_id, note_etoiles, note_globale, note_cuisine, note_cadre, note_service, texte_avis, photos, created_at, is_seed, display_name, avatar_url")
-    .eq("place_id", placeId)
-    .order("note_globale", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .eq("place_id", placeId);
+  if (page?.search) {
+    const escaped = page.search.replace(/[\\%_]/g, "\\$&");
+    query = query.ilike("texte_avis", "%" + escaped + "%");
+  }
+  if (page?.order !== "recent") query = query.order("note_globale", { ascending: false });
+  query = query.order("created_at", { ascending: false });
+  const {data, error} = await (page
+    ? query.order("id", {ascending: true}).range(page.offset, page.offset + limit - 1)
+    : query.limit(limit));
 
   if (error || !data) {
     if (__DEV__ && error) console.warn("[data-source] listReviewsForPlace failed", error);

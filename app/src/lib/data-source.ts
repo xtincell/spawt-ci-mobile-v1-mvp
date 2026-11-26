@@ -327,15 +327,22 @@ export interface PlaceReview {
  * l'état vide via `reviews_empty`. Mode supabase : join `spawters!inner` en
  * un round-trip.
  */
+export interface ReviewPageOptions {
+  offset: number;
+  order: "recent" | "best";
+  search: string;
+}
+
 export async function listReviewsForPlace(
   placeId: string,
   limit = 5,
+  page?: ReviewPageOptions,
 ): Promise<PlaceReview[]> {
   if (isSupabaseConfigured) {
     const { listReviewsForPlaceFromSupabase } = await import(
       "./data-source.supabase"
     );
-    return listReviewsForPlaceFromSupabase(placeId, limit);
+    return listReviewsForPlaceFromSupabase(placeId, limit, page);
   }
   return [];
 }

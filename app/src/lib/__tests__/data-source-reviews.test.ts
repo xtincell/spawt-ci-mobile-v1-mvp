@@ -16,6 +16,8 @@ type MockBuilder = {
   not: jest.Mock;
   order: jest.Mock;
   limit: jest.Mock;
+  range: jest.Mock;
+  ilike: jest.Mock;
 };
 
 interface MockResponse {
@@ -49,6 +51,14 @@ function mockMakeBuilder(): MockBuilder {
   // `limit` est le terminateur de chaîne — il déclenche la résolution.
   b.limit = jest.fn((...args: unknown[]) => {
     mockCalls.push({ kind: "limit", args });
+    return Promise.resolve(mockResponse);
+  });
+  b.ilike = jest.fn((...args: unknown[]) => {
+    mockCalls.push({ kind: "ilike", args });
+    return b as MockBuilder;
+  });
+  b.range = jest.fn((...args: unknown[]) => {
+    mockCalls.push({ kind: "range", args });
     return Promise.resolve(mockResponse);
   });
   return b as MockBuilder;
@@ -208,4 +218,14 @@ describe("listReviewsForPlaceFromSupabase — Story 4.9 AC #1", () => {
     const out = await listReviewsForPlaceFromSupabase("place-1", 5);
     expect(out[0]?.spawter_avatar_url).toBeNull();
   });
+});
+
+it("cherche sur la vue publique entière puis pagine avec un ordre stable", async () => {
+  mockCalls.length = 0;
+  mockResponse = {data: [], error: null};
+  await listReviewsForPlaceFromSupabase("IN", 25, {order: "recent", offset: 24, search: "brunch_20%"});
+  expect(mockCalls).toContainEqual({kind: "eq", args: ["place_id", "IN"]});
+  expect(mockCalls).toContainEqual({kind: "ilike", args: ["texte_avis", "%brunch\\_20\\%%"]});
+  expect(mockCalls.filter(c => c.kind === "order").map(c => c.args[0])).toEqual(["created_at","id"]);
+  expect(mockCalls).toContainEqual({kind: "range", args: [24, 48]});
 });
