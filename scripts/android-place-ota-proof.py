@@ -45,7 +45,7 @@ def swipe(up=True, fraction=.44):
     x=int(width*.5)
     top,bottom=.30,.30+fraction
     y1,y2=(bottom,top) if up else (top,bottom)
-    adb("shell","input","swipe",x,int(height*y1),x,int(height*y2),460)
+    adb("shell","input","swipe",str(x),str(int(height*y1)),str(x),str(int(height*y2)),"460")
     time.sleep(.75)
 
 def visible(identifier):
@@ -69,6 +69,19 @@ def seek(label,limit=15):
 
 def text_on_screen():
     return " ".join(n.get("text","")+" "+n.get("content-desc","") for n in tree().iter("node"))
+
+def diagnose(kind, value, tb):
+    try:
+        current=text_on_screen()
+        safe_indicators=[label for label in ("IN’ Concept Store","Horaires","Préparer sa visite","Eggs Benedict","Menu","Avis") if label.casefold() in current.casefold()]
+        ids=sorted({n.get("resource-id","").split("/")[-1] for n in tree().iter("node") if n.get("resource-id","").startswith("place-")})
+        receipt["diagnostic"]={"kind":kind.__name__,"safeLabels":safe_indicators,"venueControlIds":ids}
+        record()
+        if safe_indicators and not any(n.get("class")=="android.widget.EditText" for n in tree().iter("node")):
+            (out/"diagnostic-fiche.png").write_bytes(subprocess.check_output(["adb","exec-out","screencap","-p"]))
+    finally:
+        sys.__excepthook__(kind,value,tb)
+sys.excepthook=diagnose
 
 def shot(name, checks):
     time.sleep(.65)

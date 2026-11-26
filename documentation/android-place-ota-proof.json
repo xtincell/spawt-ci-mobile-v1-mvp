@@ -7,5 +7,6 @@
   "sourceCommit": "9c87d5d1f97d5c3f5acffaefcf46688ee69658c7",
   "otaWorkflowSource": "6e84928e48c4f1f5f541d0c403e89aa125389a37",
   "runtimeBackend": "https://api.spawt.online",
-  "expoReleaseRun": 45882535818
+  "expoReleaseRun": 45882535818,
+  "inspectionRevision": 2
 }
