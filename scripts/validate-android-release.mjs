@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { requirePilot47Recipe, readPilot47Receipt } from './validate-pilot47-receipt.mjs';
+import { dish48Files, readDish48Receipt, receiveDish48, requireDish48Recipe } from './validate-dish48-receipt.mjs';
 import { loadUi46 } from './validate-ui46-receipt.mjs';
 import { receivePilot45Alpha } from './validate-pilot45-receipt.mjs';
 
@@ -43,7 +44,9 @@ const requireTrue = (record, keys) => record && keys.every(key => record[key] ==
 
 export function androidPublicationProfile(recipe) {
   const profile = recipe.publicationProfile ?? 'complete';
-  if (!['complete', 'raccordements', 'pilot45-alpha', 'ui46-alpha', 'pilot47-signed'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (recipe.build === 48 && profile !== 'dish48-alpha') throw new Error('Signed build 48 dish and upgrade receipts are required');
+  if (!['complete', 'raccordements', 'pilot45-alpha', 'ui46-alpha', 'pilot47-signed', 'dish48-alpha'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (profile === 'dish48-alpha') requireDish48Recipe(recipe);
   if (profile === 'pilot47-signed') requirePilot47Recipe(recipe);
   if (profile === 'ui46-alpha') {
     const pinned = JSON.parse(fs.readFileSync(new URL('../documentation/android-build46-alpha-receipt.json', import.meta.url), 'utf8'));
@@ -80,6 +83,21 @@ export function validateAndroidReleaseProof(recipe, metadata, proof) {
   if (firebase?.defaultAppInitialized !== true) throw new Error('Firebase native initialization was not verified');
   if (recipe.build >= 41 && (upgrade?.from !== recipe.build - 1 || upgrade?.to !== recipe.build
     || upgrade?.installedOverPrevious !== true || upgrade?.backgroundLocationDeclared !== true)) throw new Error('Native upgrade receipt missing');
+
+  if (profile === 'dish48-alpha') {
+    const rating = receiveDish48(recipe, proof.dishRating);
+    return { profile, copies: [
+      ['assertions.json', 'native-opening-assertions.json'], ['upgrade-install.json', 'upgrade-install-proof.json'],
+      ['firebase-runtime.json', 'firebase-runtime-proof.json'], ['opening-visibility.json', 'opening-visibility-proof.json'],
+      ...dish48Files.map(name => [name, name]),
+    ], qualification: {
+      schemaVersion: 1, publicationProfile: profile, qualification: 'alpha', publicationDecision: recipe.publicationDecision,
+      version: recipe.version, build: recipe.build, sourceCommit: recipe.sourceCommit, sha256: recipe.sha256, bytes: recipe.bytes,
+      buildRun: recipe.buildRun, qaRun: recipe.qaRun, upgradeFrom47: true, firebaseInitialized: true,
+      signedOpeningAssertionsPassed: assertions.length, rating,
+      fullLiveReceipt: false, consoleModerationReceipt: false, physicalGuetReceipt: false,
+    } };
+  }
 
   if (profile === 'pilot47-signed') {
     if (proof.pilot47?.initialStateRestored !== true || proof.pilot47.sha256 !== recipe.sha256
@@ -206,6 +224,8 @@ export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'releas
     proof.raccordements = read('raccordements-data.json');
     if (fs.existsSync(path.join(proofDirectory, 'live-data.json'))) throw new Error('Pending receipts must remain explicitly unverified');
     proof.fingerprints = Object.fromEntries(Object.keys(BUILD42_PROOF_SHA256).map(name => [name, createHash('sha256').update(fs.readFileSync(path.join(proofDirectory, name))).digest('hex')]));
+  } else if (profile === 'dish48-alpha') {
+    proof.dishRating = readDish48Receipt(recipe, proofDirectory);
   } else if (profile === 'pilot47-signed') {
     proof.pilot47 = readPilot47Receipt(recipe, visualDirectory, proofDirectory);
   } else if (profile === 'ui46-alpha') {

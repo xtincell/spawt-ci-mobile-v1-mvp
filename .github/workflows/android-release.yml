@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: "(github.ref != 'refs/heads/codex/deploiement-release-47' || github.event.head_commit.message == 'release: publish verified Android build 47') && (github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: publish verified Android build 42') && (github.ref != 'refs/heads/codex/pilote-abidjan-20261204' || (github.event.head_commit.message == 'release: publish verified Android build 45' || github.event.head_commit.message == 'release: publish verified Android build 46'))"
+    if: "(github.ref != 'refs/heads/codex/deploiement-release-47' || github.event.head_commit.message == 'release: publish verified Android build 47') && (github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: publish verified Android build 42') && (github.ref != 'refs/heads/codex/pilote-abidjan-20261204' || (github.event.head_commit.message == 'release: publish verified Android build 45' || github.event.head_commit.message == 'release: publish verified Android build 46' || github.event.head_commit.message == 'release: publish verified Android build 48'))"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -37,8 +37,13 @@ jobs:
           import {execFileSync} from 'node:child_process';
           import {androidPublicationProfile} from './scripts/validate-android-release.mjs';
           const c=JSON.parse(fs.readFileSync('documentation/android-release.json'));
+          if (process.env.GITHUB_REF === 'refs/heads/codex/pilote-abidjan-20261204') {
+            const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH));
+            if (event.head_commit.message !== `release: publish verified Android build ${c.build}`) throw new Error('Build number differs from the publication request');
+          }
           if(!Number.isSafeInteger(c.build) || !/^[a-f0-9]{64}$/.test(c.sha256) || !/^[a-f0-9]{40}$/.test(c.sourceCommit) || c.tag!==`local-build-android-${c.buildDate}-${c.build}` || !Number.isSafeInteger(c.bytes)) throw new Error('Invalid release recipe');
           const profile=androidPublicationProfile(c);
+          if(profile==='dish48-alpha') execFileSync('node',['--test','scripts/__tests__/validate-dish48.test.mjs'],{stdio:'inherit'});
           const required=[[c.buildRun,c.buildWorkflowCommit,'.github/workflows/android-local-build.yml','success'],[c.qaRun,c.qaWorkflowCommit,'.github/workflows/android-qa.yml','success']];
           if(profile==='pilot45-alpha') required.push([c.pilotRun,c.pilotWorkflowCommit,'.github/workflows/android-pilot-receipt.yml','failure'],[c.liveRun,c.liveWorkflowCommit,'.github/workflows/android-qa.yml','failure']);
           if(profile==='pilot47-signed') required.push([c.uiRun,c.uiWorkflowCommit,'.github/workflows/android-signed-screens.yml','success']);
