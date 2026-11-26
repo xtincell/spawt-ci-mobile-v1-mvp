@@ -1,0 +1,87 @@
+/* Candidate DS — parcours connexion et récupération staff, isolé du shell admin. */
+.staff-access {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.staff-access__card {
+  width: min(100%, 440px);
+  padding: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: 0 4px 16px rgba(10, 10, 10, 0.06);
+}
+
+.staff-access__moka {
+  display: block;
+  width: 88px;
+  height: auto;
+  margin: 0 auto 12px;
+}
+
+.staff-access__title { margin: 0; font-size: 30px; line-height: 1.15; text-align: center; }
+.staff-access__description { margin: 10px auto 0; max-width: 34ch; color: var(--ink-soft); font-size: 14px; text-align: center; }
+
+.staff-access__form { display: grid; gap: 18px; margin-top: 28px; }
+.staff-access__field { display: grid; gap: 6px; min-width: 0; color: var(--ink); font-size: 14px; font-weight: 600; }
+.staff-access__field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--spawt-gold-deep);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+}
+.staff-access__field input[aria-invalid="true"] { border-color: var(--danger); }
+.staff-access__field-error { margin: 0; color: var(--danger); font-size: 14px; font-weight: 400; }
+.staff-access__title:focus-visible,
+.staff-access__field input:focus-visible,
+.staff-access__button:focus-visible,
+.staff-access__link:focus-visible,
+.staff-access__alert:focus-visible,
+.staff-access__status:focus-visible {
+  outline: 3px solid var(--spawt-black);
+  outline-offset: 2px;
+}
+.staff-access__button { width: 100%; min-height: 48px; padding: 10px 16px; font-size: 14px; font-weight: 700; }
+.staff-access__link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  color: var(--spawt-gold-deep);
+  font-size: 14px;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+.staff-access__alert, .staff-access__status { margin: 0; padding: 12px; border-radius: 8px; font-size: 14px; }
+.staff-access__alert { border: 1px solid var(--danger); color: var(--danger); }
+.staff-access__status { border: 1px solid var(--green); color: var(--chat-green-deep); }
+.staff-access__card > :is(.staff-access__alert, .staff-access__status) { margin-top: 24px; }
+.staff-access__footer { margin: 12px 0 0; text-align: center; }
+.staff-access__pending {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .staff-access { align-items: start; padding: 16px; }
+  .staff-access__card { margin-top: 16px; padding: 24px 20px; }
+  .staff-access__moka { width: 72px; }
+  .staff-access__title { font-size: 27px; }
+}

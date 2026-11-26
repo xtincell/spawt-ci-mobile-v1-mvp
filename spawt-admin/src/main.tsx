@@ -4,6 +4,7 @@ import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./styles/fonts.css";
 import "./styles/layout.css";
+import "./styles/staff-access.css";
 
 // Empreinte du build, écrite dans la console du navigateur au démarrage.
 //
