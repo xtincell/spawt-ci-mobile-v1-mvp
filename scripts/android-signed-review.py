@@ -44,6 +44,7 @@ for state in ("cold","warm"):
         assert abs((c-a)/(d-b)-.75)<.025, "Photo not shown in its original 3:4 ratio"
         notes=[x["label"]+" "+str(x["value"]).replace(".",",")+"/5" for x in data["ratings"]]
         assert all(any(note in node.get("content-desc","") for node in nodes) for note in notes)
+        assert any(data["author"]==n.get("text") for n in nodes) and data["author"]=="Membre de la Bande"
         pixels = subprocess.check_output(["adb","exec-out","screencap","-p"])
         (folder/("le-cha-"+state+".png")).write_bytes(pixels)
         pid=adb("shell","pidof",package)

@@ -80,11 +80,11 @@ export default function LeChaReviewScreen() {
           <Text testID="le-cha-review-comment" style={{ ...preset.body, lineHeight: 25, color: colors.text.primary }}>
             {review.quote}
           </Text>
-          <Pressable onPress={visitPlace} accessibilityRole="link"
+          {hasHistory && <Pressable onPress={visitPlace} accessibilityRole="link"
             style={{ minHeight: 48, flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: spacing.sm }}>
             <Ico name="pin" color={colors.brand.accent} size={18} />
             <Text style={{ ...preset.small, color: colors.brand.accent, textDecorationLine: "underline" }}>{t("pilot.open_place")}</Text>
-          </Pressable>
+          </Pressable>}
         </View>
       </ScrollView>
     </SafeAreaView>
