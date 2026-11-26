@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
       - name: Check the public download channel rules
-        run: node --test scripts/__tests__/publish-android-channel.test.mjs scripts/__tests__/validate-android-release.test.mjs scripts/__tests__/pilot45-receipt.test.mjs scripts/__tests__/ui46-receipt.test.mjs
+        run: node --test scripts/__tests__/publish-android-channel.test.mjs scripts/__tests__/validate-android-release.test.mjs scripts/__tests__/pilot45-receipt.test.mjs scripts/__tests__/ui46-receipt.test.mjs scripts/__tests__/pilot47-receipt.test.mjs
       - name: Validate pinned build and native QA
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,6 +37,7 @@ jobs:
           const profile=androidPublicationProfile(c);
           const required=[[c.buildRun,c.buildWorkflowCommit,'.github/workflows/android-local-build.yml','success'],[c.qaRun,c.qaWorkflowCommit,'.github/workflows/android-qa.yml','success']];
           if(profile==='pilot45-alpha') required.push([c.pilotRun,c.pilotWorkflowCommit,'.github/workflows/android-pilot-receipt.yml','failure'],[c.liveRun,c.liveWorkflowCommit,'.github/workflows/android-qa.yml','failure']);
+          if(profile==='pilot47-signed') required.push([c.uiRun,c.uiWorkflowCommit,'.github/workflows/android-signed-screens.yml','success']);
           if(profile==='ui46-alpha') required.push([c.uiRun,c.uiWorkflowCommit,'.github/workflows/android-signed-screens.yml','success']);
           for(const [id,sha,path,conclusion] of required) {
             const r=JSON.parse(execFileSync('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${id}`],{encoding:'utf8'}));
@@ -55,6 +56,10 @@ jobs:
           if(tag!==c.buildWorkflowCommit) throw new Error('Release tag changed');
           execFileSync('gh',['run','download',String(c.buildRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-apk','--dir','release-apk'],{stdio:'inherit'});
           execFileSync('gh',['run','download',String(c.qaRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','android-proof','--dir','native-proof'],{stdio:'inherit'});
+          if(profile==='pilot47-signed') {
+            execFileSync('git',['diff','--exit-code',c.sourceCommit,c.uiWorkflowCommit,'--','app']);
+            execFileSync('gh',['run','download',String(c.uiRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','recette-signee-47','--dir','ui-native-proof'],{stdio:'inherit'});
+          }
           if(profile==='ui46-alpha') {
             execFileSync('git',['diff','--exit-code',c.sourceCommit,c.uiWorkflowCommit,'--','app']);
             execFileSync('gh',['run','download',String(c.uiRun),'--repo',process.env.GITHUB_REPOSITORY,'--name','trois-ecrans-android','--dir','ui-native-proof'],{stdio:'inherit'});

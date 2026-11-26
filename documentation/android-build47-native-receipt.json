@@ -1,0 +1,99 @@
+{
+  "recipe": {
+    "version": "1.1.6",
+    "build": 47,
+    "buildDate": "2026-11-26",
+    "tag": "local-build-android-2026-11-26-47",
+    "sourceCommit": "ce30aa41ea51b5f798a8c7621b6deef5c8bae5cd",
+    "sha256": "88042ac19e7c6d3af6626f761f25eab45bbe3d212651af05f0a8ab1e66214129",
+    "bytes": 162897383,
+    "buildRun": 45824861462,
+    "buildWorkflowCommit": "a6cb2b16bf9eb60a4328ea87a728c940c8c151d9",
+    "qaRun": 45830225324,
+    "qaWorkflowCommit": "9fa1fbc119120651fef0be9311a0e27895865325",
+    "uiRun": 45831760780,
+    "uiWorkflowCommit": "a21373939e58c8489db4f617cb31895b8efff4d5",
+    "publicationProfile": "pilot47-signed",
+    "publicationDecision": "owner-approved-signed-emulator-pilot47"
+  },
+  "visualFiles": {
+    "mes-envies-adresse.png": "30d82b983641882339bd0e5f859376e4ac7f89c243e70f1fd9f543f361d613d7",
+    "mes-envies.png": "c13326c202273fae80f42d107f01bca0700f06c2032fdac7e80f6e33ac56449f",
+    "onboarding-propre.png": "85ff235416709d5cbc269b290d9662835d094425ddbc5858ce779764bd0b77f0",
+    "recu.json": "2e5d24771c4081a0db0b98c29c20b7173fd2a5557471036b681e73657c7529aa"
+  },
+  "standardFiles": {
+    "apk-metadata.json": "c3828e440ff616fe30eaa9358394ecf2b74b33b198eaca30dc38da4dc67ce3b2",
+    "assertions.json": "30a25a4bb495394aaafa2318bfed229d062eeaffe9d600cd42053db3a161c38f",
+    "firebase-runtime.json": "20b42ead0992422d5f84a798d76cfc6a5821a5ea1e9c1ac7f49e2baf726feb36",
+    "opening-visibility.json": "5d82f8c69c5840711663a31a5cee54462859055941709bed6a75a1cd62fba5a1",
+    "upgrade-install.json": "d9e9aefced96005271d5f69b9cd7ce03dbd7d1cdccc7c4325bdd12f8cb865358"
+  },
+  "native": {
+    "source": "a21373939e58c8489db4f617cb31895b8efff4d5",
+    "app_tree": "99307f1740026f4b867009641bd20f98c131593d",
+    "native": "APK signé Android 1.1.6 (47)",
+    "api": "https://api.spawt.online",
+    "screens": {
+      "Mise à jour et installation propre": {
+        "pass": true,
+        "at": "2026-11-26T13:45:36.248+00:00"
+      },
+      "Identification interne": {
+        "pass": true,
+        "at": "2026-11-26T13:46:14.946+00:00"
+      },
+      "Mes envies": {
+        "pass": true,
+        "at": "2026-11-26T13:47:41.453+00:00"
+      }
+    },
+    "sha256": "88042ac19e7c6d3af6626f761f25eab45bbe3d212651af05f0a8ab1e66214129",
+    "build": 47,
+    "android_api": "35",
+    "mise_a_jour": {
+      "de": 45,
+      "vers": 47,
+      "premiere_installation_et_uid_conserves": true,
+      "demarrage_confirme": "2026-11-26T13:45:05.862+00:00"
+    },
+    "installation_propre": {
+      "ecran": "splash-start",
+      "at": "2026-11-26T13:45:36.223+00:00"
+    },
+    "favori_absent_avant": "2026-11-26T13:46:16.918+00:00",
+    "fiche_ouverte": {
+      "lieu": "c5acfd12-01dd-5cd3-9beb-0531d89c3e99",
+      "at": "2026-11-26T13:46:33.110+00:00"
+    },
+    "serveur_apres_geste": {
+      "lieu": "c5acfd12-01dd-5cd3-9beb-0531d89c3e99",
+      "at": "2026-11-26T13:47:03.581+00:00"
+    },
+    "redemarrage_authentifie": "2026-11-26T13:47:16.060+00:00",
+    "favori_apres_redemarrage": "2026-11-26T13:47:31.035+00:00",
+    "favoris_acquittes": {
+      "plat": "6dad3f00-d87f-4c70-87a7-b083af11c4d7",
+      "lieu": "c5acfd12-01dd-5cd3-9beb-0531d89c3e99",
+      "prix_xof": 7000,
+      "at": "2026-11-26T13:47:39.658+00:00"
+    },
+    "etat_initial_retabli": true
+  },
+  "portalStaging": {
+    "page": "/?utm_source=facebook&utm_medium=paid_social#telecharger",
+    "localOnly": true,
+    "button": "Télécharger l’APK",
+    "file": "spawt-1.1.6-build47.apk",
+    "bytes": 162897383,
+    "sha256": "88042ac19e7c6d3af6626f761f25eab45bbe3d212651af05f0a8ab1e66214129"
+  },
+  "publicRollback": {
+    "path": "/#telecharger",
+    "cta": "/downloads/spawt-1.1.4-build45.apk",
+    "size": 162850779,
+    "sha256": "b6a092e3935835de1f6a0b6384c953d96b0f37ed15eaeb5ba842527a95e63a90",
+    "http": 200,
+    "mime": "application/vnd.android.package-archive"
+  }
+}
