@@ -7,7 +7,7 @@
   "ratings": [
     {
       "label": "Cuisine",
-      "value": 5
+      "value": 4.5
     },
     {
       "label": "Cadre",
@@ -21,5 +21,7 @@
   "quote": "Je mets 4,5/5 à la cuisine pour le goût qui sort de l’ordinaire. La déco aussi a sa personnalité. Côté service, il y avait peu de monde et on s’est sentis un peu livrés à nous-mêmes.",
   "photoAlt": "Chez Le Cha, un sandwich grillé et des frites en panier devant des bouchées nappées de sauce.",
   "area": "Marcory",
-  "frontAlt": "La devanture de Le Cha, avec l’enseigne « le chā asian coffee house »."
+  "frontAlt": "La devanture de Le Cha, avec l’enseigne « le chā asian coffee house ».",
+  "overallScore": 4,
+  "linkLabel": "L’avis d’Alexandre"
 }

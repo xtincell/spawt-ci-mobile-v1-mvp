@@ -16,6 +16,8 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../theme/ThemeProvider";
 import { subscribeReviewChanges } from "../lib/review-events";
+import { LeChaReviewLink } from "./LeChaReviewLink";
+import editorialReview from "../data/le-cha-review.json";
 import { ReviewCard } from "./ReviewCard";
 import {
   countReviewsForPlace,
@@ -96,6 +98,7 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
         {t("place.reviews_title")}
       </Text>
 
+      <LeChaReviewLink placeId={placeId} />
       {state.kind === "loading" ? (
         <View
           style={{
@@ -117,7 +120,7 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
         </View>
       ) : null}
 
-      {state.kind === "error" || (state.kind === "loaded" && state.reviews.length === 0) ? (
+      {state.kind === "error" || (state.kind === "loaded" && state.reviews.length === 0 && placeId !== editorialReview.placeId) ? (
         <Text
           style={{
             ...theme.typography.preset.body,

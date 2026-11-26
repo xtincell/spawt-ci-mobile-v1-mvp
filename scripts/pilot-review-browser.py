@@ -15,7 +15,7 @@ APP="com.upgraders.spawt"
 URL="https://spawt.online/ouvrir/avis/le-cha-alexandre"
 ANDROID_CTA="intent://spawt.online/ouvrir/avis/le-cha-alexandre#Intent;scheme=https;package="+APP+";S.browser_fallback_url="+quote(URL+"#installer",safe="")+";end"
 OUT=pathlib.Path("pilot-proof/le-cha");OUT.mkdir(parents=True,exist_ok=True)
-REVIEW=json.loads(pathlib.Path("app/src/data/le-cha-review.json").read_text())
+REVIEW=json.loads(pathlib.Path(__file__).with_name("le-cha-review-build45.json").read_text(encoding="utf8"))
 def adb(*args):
     return subprocess.check_output(["adb",*args],timeout=90).decode(errors="replace")
 def tree():

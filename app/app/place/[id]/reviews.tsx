@@ -14,6 +14,8 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { Ico } from "../../../src/components/primitives/Ico";
 import { subscribeReviewChanges } from "../../../src/lib/review-events";
+import { LeChaReviewLink } from "../../../src/components/LeChaReviewLink";
+import editorialReview from "../../../src/data/le-cha-review.json";
 import { ReviewCard } from "../../../src/components/ReviewCard";
 import {
   listReviewsForPlace,
@@ -95,6 +97,7 @@ export default function PlaceReviewsScreen() {
         </Text>
       </View>
 
+      {id ? <View style={{ paddingHorizontal: theme.spacing.lg }}><LeChaReviewLink placeId={id} /></View> : null}
       {state.kind === "loading" ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator color={theme.colors.brand.primary} />
@@ -102,7 +105,7 @@ export default function PlaceReviewsScreen() {
       ) : null}
 
       {state.kind === "error" ||
-      (state.kind === "loaded" && state.reviews.length === 0) ? (
+      (state.kind === "loaded" && state.reviews.length === 0 && id !== editorialReview.placeId) ? (
         <View style={{ padding: theme.spacing.lg }}>
           <Text
             style={{

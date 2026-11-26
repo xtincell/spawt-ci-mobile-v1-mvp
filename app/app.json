@@ -2,7 +2,7 @@
   "expo": {
     "name": "SPAWT",
     "slug": "spawt-mobile-ci",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "spawt",
@@ -41,7 +41,7 @@
     "android": {
       "package": "com.upgraders.spawt",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 45,
+      "versionCode": 46,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -149,7 +149,7 @@
       "eas": {
         "projectId": "15ac2301-e901-4caa-a8c8-864c6621bcd0"
       },
-      "buildDate": "2026-10-30"
+      "buildDate": "2026-11-26"
     },
     "owner": "xtincell",
     "androidStatusBar": {
