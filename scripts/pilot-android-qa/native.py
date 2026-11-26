@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import re
+import signal
 import subprocess
 import time
 import urllib.request
@@ -45,13 +46,22 @@ def match(label, node):
 def dismiss_notification_prompt(surface):
     nodes = [n for n in surface.iter("node") if n.get("package", "").endswith(".permissioncontroller")]
     prompt = any("notification" in n.get("text", "").casefold() for n in nodes)
-    deny = next((n for n in nodes if n.get("resource-id", "").endswith("/permission_deny_button")), None)
-    if not prompt or deny is None:
+    deny = next((n for n in nodes if n.get("enabled") != "false" and
+                 (n.get("resource-id", "").endswith(("/permission_deny_button", "/permission_deny_and_dont_ask_again_button"))
+                  or n.get("text", "").casefold() in {"don't allow", "don’t allow", "ne pas autoriser"})), None)
+    if deny is None:
+        # Android 15 may show system-only consent follow-ups on package replacement.
+        # Only acknowledge a neutral dismissal in this runner's disposable device.
+        dismiss = next((n for n in nodes if n.get("clickable") == "true"
+                        and n.get("text", "").casefold() in {"ok", "got it", "close", "dismiss"}), None)
+        if dismiss is not None:
+            touch(dismiss)
+            return True
         return False
     # Capture only the decision button. The screen behind the OS dialog is excluded.
     left, top, right, bottom = map(int, re.findall(r"-?\d+", deny.get("bounds", "")))
     target = OUT/"dialogue-android-notifications.png"
-    if not target.exists() and right > left and bottom > top:
+    if prompt and not target.exists() and right > left and bottom > top:
         screenshot = subprocess.check_output(["adb", "exec-out", "screencap", "-p"])
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", "pipe:0", "-vf",
                         f"crop={right-left}:{bottom-top}:{left}:{top}", "-frames:v", "1", str(target)],
@@ -85,6 +95,10 @@ def find(label, timeout=70):
     present = [v for v in labels if any(match(v,n) for n in surface.iter("node"))]
     packages = sorted({n.get("package") for n in surface.iter("node") if n.get("package")})
     print("Android UI", {"wanted": label, "markers": present, "packages": packages}, flush=True)
+    system_ids = sorted({n.get("resource-id") for n in surface.iter("node")
+                         if n.get("package", "").endswith(".permissioncontroller") and n.get("resource-id")})
+    if system_ids:
+        print("Android permission controls", system_ids, flush=True)
     if "splash-start" in present and not any(n.get("class")=="android.widget.EditText" for n in surface.iter("node")):
         with (OUT/"diagnostic-accueil-anonyme.png").open("wb") as screen:
             subprocess.run(["adb","exec-out","screencap","-p"],stdout=screen,check=True)
@@ -246,19 +260,44 @@ def map_probe():
 def check_upgrade():
     account=FIXTURES[2]
     legacy=os.environ["PILOT_LEGACY_APK"]
-    outcome={"from":42,"to":45,"account":"interne","place":BRUNCH}
+    outcome={"from":42,"to":45,"account":"interne","place":BRUNCH,
+             "legacy_source":"8cf7ea89ef7610b69c28f7608218f4e005dbdc30",
+             "candidate_source":"c0381415c67722c41ee075b49358d65dcb35c466"}
+    # Android's stock emulator uses 10.0.2.2:8081 even when adb reverse exists.
+    # Switch the listener on the host so only the selected frozen bundle is reachable.
+    relay = None
+    def select_metro(port):
+        nonlocal relay
+        if relay is not None:
+            os.killpg(relay.pid, signal.SIGTERM)
+            relay.wait(timeout=10)
+            relay = None
+        if port is None:
+            return
+        relay = subprocess.Popen(["socat", "TCP-LISTEN:8081,bind=127.0.0.1,reuseaddr,fork",
+                                  f"TCP:127.0.0.1:{port}"], start_new_session=True)
+        for _ in range(20):
+            if relay.poll() is not None:
+                raise RuntimeError("The loopback Metro relay exited early")
+            try:
+                with urllib.request.urlopen("http://127.0.0.1:8081/status",timeout=2) as response:
+                    if b"packager-status:running" in response.read(): return
+            except OSError:
+                time.sleep(.2)
+        raise RuntimeError("The selected Metro bundle could not be reached")
     try:
         subprocess.run(["adb","uninstall",PACKAGE],capture_output=True)
-        adb("reverse","tcp:8081","tcp:8082");adb("install",legacy,timeout=180)
+        select_metro(8082)
+        adb("install",legacy,timeout=180)
         adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
         login(account);find("Accueil")
         def place():
             adb("shell","am","start","-W","-a","android.intent.action.VIEW","-d","spawt://place/"+BRUNCH,"-p",PACKAGE)
             find("IN’ Concept Store")
         expected=f"select count(*) from public.saved_places where spawter_id='{account['id']}' and place_id='{BRUNCH}'"
-        def count():
+        def count(query=expected):
             return subprocess.check_output(["docker","exec",os.environ["PILOT_DB_CONTAINER"],"psql","-XAtq",
-                "-U","postgres","-d","pilot_http","-c",expected],text=True).strip()
+                "-U","postgres","-d","pilot_http","-c",query],text=True).strip()
         assert count()=="0", "The legacy favorite scenario requires an untouched synthetic persona"
         outcome["before_legacy_save"]=now()
         place()
@@ -269,8 +308,15 @@ def check_upgrade():
             if count()=="1":break
             time.sleep(1)
         assert count()=="1";outcome["legacy_server_ack"]=now()
-        adb("shell","am","force-stop",PACKAGE);adb("reverse","tcp:8081","tcp:8081")
-        adb("install","-r",APK,timeout=180);place();find("Sauvegardé")
+        assert count(f"select count(*) from pilot_private.actions where person='{account['id']}'") == "0", \
+            "Build 42 must write the legacy favorite without any build 45 pilot event"
+        outcome["legacy_pilot_actions"] = 0
+        adb("shell","am","force-stop",PACKAGE)
+        select_metro(8083)
+        adb("install","-r",APK,timeout=180)
+        adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
+        find("Accueil")
+        place();find("Sauvegardé")
         assert count()=="1";outcome["after_upgrade_favorite_visible"]=now()
         j=journey("facebook")
         adb("shell","am","start","-W","-a","android.intent.action.VIEW",
@@ -279,7 +325,7 @@ def check_upgrade():
         outcome["server"]=proof(j["journey_id"])
         assert outcome["server"]["acquisition"] is False
     finally:
-        adb("reverse","tcp:8081","tcp:8081")
+        select_metro(None)
         (OUT/"favori-mise-a-jour.json").write_text(json.dumps(outcome,ensure_ascii=False,indent=2))
 
 errors=[]

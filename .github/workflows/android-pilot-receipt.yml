@@ -1,7 +1,7 @@
-name: Android pilot native receipt
+name: Android pilot legacy favorite receipt
 on:
   push:
-    branches: ['codex/pilote-abidjan-20261204']
+    branches: ['codex/recette-pilote-mise-a-jour-45']
     paths: ['.github/workflows/android-pilot-receipt.yml', 'scripts/pilot-android-qa/**']
   workflow_dispatch:
 permissions:
@@ -35,9 +35,9 @@ jobs:
           java-version: '17'
       - name: Prepare isolated fixture and Metro
         run: |
-          if ! command -v ffmpeg >/dev/null; then
+          if ! command -v socat >/dev/null || ! command -v ffmpeg >/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y --no-install-recommends ffmpeg
+            sudo apt-get install -y --no-install-recommends ffmpeg socat
           fi
           git fetch --no-tags --depth 1 origin c0381415c67722c41ee075b49358d65dcb35c466
           git restore --source=c0381415c67722c41ee075b49358d65dcb35c466 --staged --worktree -- app supabase
@@ -48,9 +48,9 @@ jobs:
           # Match the signed build's UI. The developer-only warning banner covers the bottom buttons in debug clients.
           printf '%s\n' 'import { LogBox } from "react-native"; LogBox.ignoreAllLogs();' > qa-quiet.js
           sed -i '1i import "./qa-quiet";' index.js
-          CI=1 EXPO_OFFLINE=1 NODE_OPTIONS=--dns-result-order=ipv4first nohup npx expo start --lan --port 8081 --no-dev --minify > "$RUNNER_TEMP/pilot-metro.log" 2>&1 &
-          for i in {1..60}; do if curl -fsS http://127.0.0.1:8081/status >/dev/null 2>&1; then break; fi; sleep 2; done
-          if ! curl -fsS http://127.0.0.1:8081/status; then ss -lnt; tail -60 "$RUNNER_TEMP/pilot-metro.log"; exit 1; fi
+          CI=1 EXPO_OFFLINE=1 NODE_OPTIONS=--dns-result-order=ipv4first nohup npx expo start --lan --port 8083 --no-dev --minify > "$RUNNER_TEMP/pilot-metro.log" 2>&1 &
+          for i in {1..60}; do if curl -fsS http://127.0.0.1:8083/status >/dev/null 2>&1; then break; fi; sleep 2; done
+          if ! curl -fsS http://127.0.0.1:8083/status; then ss -lnt; tail -60 "$RUNNER_TEMP/pilot-metro.log"; exit 1; fi
       - name: Prepare the original build 42 source for the upgrade test
         run: |
           git fetch --no-tags --depth 1 origin 8cf7ea89ef7610b69c28f7608218f4e005dbdc30
@@ -120,18 +120,13 @@ jobs:
             adb shell am start -W -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "$link" > "pilot-proof/signed-$state.txt"
             sleep 12
           done
-      - name: Open the exact Le Cha review from a real Android browser
-        run: python3 scripts/pilot-review-browser.py
-      - name: Run consent, account, view and confirmed favorite in local fixture
-        if: ${{ !cancelled() && env.PILOT_DEBUG_APK != '' }}
+      - name: Verify the actual legacy favorite on upgrade without changing user storage
         run: |
           adb shell wm size 1080x2160
           adb shell wm density 420
-          adb shell settings put system show_touches 1
           adb reverse tcp:54321 tcp:54321
           adb reverse tcp:8081 tcp:8081
-          curl -fsS http://127.0.0.1:8081/status
-          python3 scripts/pilot-android-qa/native.py
+          python3 -c 'import sys; sys.path.insert(0, "scripts/pilot-android-qa"); import native; native.check_upgrade()'
       - name: Export local server receipts
         if: ${{ !cancelled() && env.PILOT_DB_CONTAINER != '' }}
         run: |
