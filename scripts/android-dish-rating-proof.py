@@ -17,7 +17,8 @@ assert api=="https://api.spawt.online"
 key=env["EXPO_PUBLIC_SUPABASE_ANON_KEY"]
 ui.out=pathlib.Path("android-proof")
 metadata=json.loads((ui.out/"apk-metadata.json").read_text())
-assert metadata["build"]==47 and metadata["sourceCommit"]=="cc47e50067bc6d79fd6a9cee15a643f17caf8433"
+target=json.loads(pathlib.Path("documentation/android-qa.json").read_text())
+assert metadata["build"]==target["build"]==47 and metadata["sourceCommit"]==target["sourceCommit"]
 with pathlib.Path("spawt.apk").open("rb") as binary:
     assert hashlib.file_digest(binary,"sha256").hexdigest()==metadata["sha256"]
 evidence={"build":47,"sha256":metadata["sha256"],"api":api,"checks":[],"source":metadata["sourceCommit"]}
@@ -82,7 +83,19 @@ try:
     rate(None);verify("rating_removed",(False,False,None))
     ui.tap("save-intent-"+ui.DISH);verify("only_dish",(False,True,None))
     ui.open_url("spawt://place/"+ui.BRUNCH);ui.tap("Enregistrer ce lieu");verify("place_and_dish",(True,True,None))
-    ui.open_url("spawt://saved");ui.find("saved-place-"+ui.BRUNCH);ui.shot("envies-lieu-premier")
+    ui.open_url("spawt://saved");ui.find("saved-place-"+ui.BRUNCH)
+    first=ui.find("Lieux enregistrés")
+    ui.shot("envies-lieu-premier")
+    second=next((n for n in ui.tree().iter("node") if ui.match("Favoris plats",n)),None)
+    if second is not None:
+        import re
+        def top(node):return int(re.findall(r"-?\d+",node.get("bounds",""))[1])
+        assert top(first)<top(second)
+    else:
+        ui.adb("shell","input","swipe","490","1340","490","700","430")
+        ui.find("Favoris plats")
+    ui.shot("envies-favoris-plats")
+    evidence["saved_sections"]=["Lieux enregistrés","Favoris plats"]
     search_dish();ui.tap("save-intent-"+ui.DISH);verify("only_place",(True,False,None))
     ui.open_url("spawt://place/"+ui.BRUNCH);ui.tap("Lieu enregistré");verify("neither",(False,False,None))
 finally:
