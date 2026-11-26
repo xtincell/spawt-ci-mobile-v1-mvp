@@ -17,10 +17,11 @@ jest.mock("../../src/lib/data-source", () => ({ listPlaces: jest.fn(async () => 
 const mockState = { savedPlaceIds: new Set(), savedUnavailable: false, refreshSaved: jest.fn(async () => undefined), toggleSaved: jest.fn() };
 jest.mock("../../src/store/spawter-store", () => ({ useSpawterStore: (select: (s: typeof mockState) => unknown) => select(mockState) }));
 import SavedScreen from "../../app/saved";
-beforeEach(() => { jest.clearAllMocks(); mockOutings.snapshot.dishes = []; mockOutings.pending = 0; mockState.savedUnavailable = false; });
+beforeEach(() => { jest.clearAllMocks(); mockOutings.snapshot.dishes = []; mockOutings.pending = 0; mockOutings.loading = false; mockState.savedUnavailable = false; });
 
 it("ouvre le plat enregistré dans le menu du lieu, y compris quand sa synchronisation est en attente", async () => {
   mockOutings.pending = 1;
+  mockOutings.loading = true;
   mockOutings.snapshot.dishes = [{ id:"dish-id", place_id:"place-id", name:"Eggs Benedict", place_name:"IN’ Concept Store",
     price_xof:7000, observed_on:"2026-03-22", photo_url:null, is_published:true }];
   let rendered!: ReturnType<typeof TestRenderer.create>;
@@ -28,6 +29,8 @@ it("ouvre le plat enregistré dans le menu du lieu, y compris quand sa synchroni
   const content = JSON.stringify(rendered.toJSON());
   expect(content).toContain("dish-dish-id");
   expect(content).toContain("saved-sync-status");
+  expect(content.indexOf("dish-dish-id")).toBeLessThan(content.indexOf("saved-sync-status"));
+  expect(content).not.toContain("common.loading");
   expect(content).not.toContain("saved-empty");
   const dish = rendered.root.findAll((n: {props: {accessibilityLabel?: string; onPress?: unknown}}) =>
     Boolean(n.props.accessibilityLabel?.startsWith("Eggs Benedict. IN’ Concept Store.")) && typeof n.props.onPress === "function");

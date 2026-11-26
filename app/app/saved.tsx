@@ -74,7 +74,8 @@ export default function SavedScreen() {
     router.push(`/crew/${ref.session_id}` as never);
   }
   const sectionTitle = { ...theme.typography.preset.h2, color: theme.colors.text.primary };
-  const empty = !saved.length && !dishes.length && !loading && !outings.loading && !failed && !outings.failed && !savedUnavailable;
+  const hasItems = saved.length > 0 || dishes.length > 0;
+  const empty = !hasItems && !loading && !outings.loading && !failed && !outings.failed && !savedUnavailable;
   return <SafeAreaView testID="saved-screen" edges={["top"]} style={{ flex: 1, backgroundColor: theme.colors.surface.base }}>
     <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.base, paddingBottom: theme.spacing["2xl"] }}>
       <Pressable accessibilityRole="button" accessibilityLabel={t("common.back")}
@@ -84,13 +85,7 @@ export default function SavedScreen() {
         <Text style={{...theme.typography.preset.small, color: theme.colors.text.secondary}}>{t("common.back")}</Text>
       </Pressable>
       <View style={{ gap: theme.spacing.xs }}><Text accessibilityRole="header" style={{ ...theme.typography.preset.h1, color: theme.colors.text.primary }}>{t("outings.title")}</Text><Text style={{ ...theme.typography.preset.body, color: theme.colors.text.secondary }}>{t("outings.subtitle")}</Text></View>
-      <DataLoadNotice loading={loading || outings.loading} failed={failed || outings.failed} onRetry={() => { void reload(); void outings.refresh(); }} />
-      {savedUnavailable ? <View><Text accessibilityRole="alert" style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("saved.unavailable")}</Text><Pressable accessibilityRole="button" accessibilityLabel={t("saved.retry")} style={button} onPress={() => void refreshSaved().catch(() => undefined)}><Text style={ink}>{t("saved.retry")}</Text></Pressable></View> : null}
-      {outings.pending > 0 ? <View testID="saved-sync-status" style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}>
-        <Ico name="clock" size={16} color={theme.colors.text.secondary} />
-        <Text accessibilityLiveRegion="polite" style={{...theme.typography.preset.small, flex: 1, color: theme.colors.text.secondary}}>{t("outings.pending")}</Text>
-      </View> : null}
-      {outings.rejected > 0 ? <View><Text style={ink}>{t("outings.rejected")}</Text><Pressable accessibilityRole="button" style={button} onPress={() => void run(async () => { if (owner) await discardRejectedOutings(owner.id); await outings.refresh(); })}><Text style={ink}>{t("outings.dismiss_rejected")}</Text></Pressable></View> : null}
+      {!hasItems && <DataLoadNotice loading={loading || outings.loading} failed={failed || outings.failed} onRetry={() => { void reload(); void outings.refresh(); }} />}
       {adding ? <Text style={{ ...theme.typography.preset.h3, color: theme.colors.text.primary }}>{t("outings.pick_list")}</Text> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs }}>
         {[{ id: null, title: t("outings.all") }, ...outings.snapshot.lists].map(l => <Pressable key={l.id ?? "all"} accessibilityRole="button" accessibilityState={{ selected: selected === l.id, disabled: busy }} disabled={busy} onPress={() => void run(() => selectList(l.id))} style={{ ...button, borderRadius: theme.radius.md, backgroundColor: selected === l.id ? theme.colors.brand.primary : theme.colors.surface.subtle }}><Text style={{ ...theme.typography.preset.small, color: selected === l.id ? theme.colors.text.onBrand : theme.colors.text.primary }}>{l.title}</Text></Pressable>)}
@@ -130,6 +125,13 @@ export default function SavedScreen() {
         <OutingActions placeId={place.id} full />
         {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", {list_id: selected, place_id: place.id}))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
       </SavedItemRow>)}
+      {savedUnavailable ? <View><Text accessibilityRole="alert" style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary }}>{t("saved.unavailable")}</Text><Pressable accessibilityRole="button" accessibilityLabel={t("saved.retry")} style={button} onPress={() => void refreshSaved().catch(() => undefined)}><Text style={ink}>{t("saved.retry")}</Text></Pressable></View> : null}
+      {outings.pending > 0 ? <View testID="saved-sync-status" style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.xs }}>
+        <Ico name="clock" size={16} color={theme.colors.text.secondary} />
+        <Text accessibilityLiveRegion="polite" style={{...theme.typography.preset.small, flex: 1, color: theme.colors.text.secondary}}>{t("outings.pending")}</Text>
+      </View> : null}
+      {outings.rejected > 0 ? <View><Text style={ink}>{t("outings.rejected")}</Text><Pressable accessibilityRole="button" style={button} onPress={() => void run(async () => { if (owner) await discardRejectedOutings(owner.id); await outings.refresh(); })}><Text style={ink}>{t("outings.dismiss_rejected")}</Text></Pressable></View> : null}
+      {hasItems && (failed || outings.failed) && <DataLoadNotice loading={false} failed onRetry={() => { void reload(); void outings.refresh(); }} />}
       <Pressable accessibilityRole="button" style={button} onPress={() => router.push({ pathname: "/support", params: { context: activeList ? `liste:${activeList.id}` : "envies" } } as never)}><Text style={ink}>{t("outings.feedback")}</Text></Pressable>
     </ScrollView>
     <Modal visible={editor} animationType="slide" onRequestClose={() => setEditor(false)}>
