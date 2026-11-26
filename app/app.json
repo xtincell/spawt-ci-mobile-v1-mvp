@@ -27,7 +27,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.upgraders.spawt",
-      "buildNumber": "45",
+      "buildNumber": "46",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
