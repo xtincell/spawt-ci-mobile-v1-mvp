@@ -15,3 +15,9 @@ L’APK signé pèse **162 850 779 octets**. Son SHA-256 est `b6a092e3935835de1f
 L’équipe a autorisé la publication avec les réceptions encore ouvertes. Les échanges avec le support et la modération complète en production restent à recevoir. L’équipe atteste avoir validé le Guet sur mobile. Aucun nouveau reçu terrain spécifique au build 45 n’a été produit.
 
 Le premier essai HTTPS à chaud est resté dans Chrome. Les deux parcours complets d’attribution et la conservation d’un favori de lieu acquis sous 42 restent à vérifier. Le reçu structuré de cette publication est joint sous `release-qualification.json`.
+
+### Restauration d’un compte ancien
+
+Lors de la recette isolée, un compte déjà créé avec un Palais et une date d’acceptation des CGV absente sur le serveur a pu se connecter. Le 45 a ensuite remplacé l’acceptation qui venait d’être donnée sur ce téléphone par la valeur vide du profil. Le suivi de première ouverture et le rattachement à la campagne attendent alors un consentement. Une fois connecté, l’alpha 45 ne propose aucun écran permettant de le redonner.
+
+Sur un ancien compte dont le consentement avait bien été enregistré, le second essai a reçu côté serveur la première ouverture et le rattachement Facebook à la bonne installation. Cette observation concerne l’émulation Android et un compte de recette. [Nouvel essai du pilote](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/45724053402)
