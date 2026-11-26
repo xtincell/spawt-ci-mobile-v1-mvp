@@ -51,7 +51,15 @@ jobs:
           const config=JSON.parse(fs.readFileSync('documentation/android-place-ota-proof.json'));
           const manifest=await (await fetch('https://raw.githubusercontent.com/xtincell/spawt-ci-mobile-v1-mvp/android-releases/latest.json?run='+process.env.GITHUB_RUN_ID)).json();
           if(config.build!==48 || manifest.build!==48 || manifest.sha256!==config.sha256) throw new Error('Le canal doit pointer vers le 48 validé');
-          const response=await fetch('https://spawt.online/downloads/spawt-1.1.7-build48.apk');
+          const address='https://spawt.online/downloads/spawt-1.1.7-build48.apk';
+          let ready=false;
+          for(let attempt=0;attempt<25;attempt++){
+            const probe=await fetch(address,{method:'HEAD',cache:'no-store'});
+            if(probe.ok && Number(probe.headers.get('content-length'))===manifest.bytes){ready=true;break;}
+            await new Promise(resolve=>setTimeout(resolve,15000));
+          }
+          if(!ready)throw new Error('Le fichier épinglé doit être disponible sur la vitrine');
+          const response=await fetch(address);
           if(!response.ok) throw new Error('Téléchargement vitrine HTTP '+response.status);
           const bytes=Buffer.from(await response.arrayBuffer());
           if(bytes.length!==manifest.bytes || createHash('sha256').update(bytes).digest('hex')!==config.sha256) throw new Error('La vitrine et le canal doivent servir le même binaire');

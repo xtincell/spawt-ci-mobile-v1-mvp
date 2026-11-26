@@ -100,8 +100,8 @@ for launch in range(1,7):
 else:raise RuntimeError("L’APK publié n’a pas reçu l’interface de la mise à jour attendue")
 receipt["visibleOnLaunch"]=launch
 touch(toggle)
-find_grouped(lambda text: all(labels_fr["day_"+day] in text for day in ("fri","sat")) and "02:00" in text)
-shot("in-horaires",["vendredi","samedi","02:00"])
+find_grouped(lambda text: all(labels_fr["day_"+day] in text for day in ("mon","tue","wed","thu","fri","sat","sun")) and "02:00" in text)
+shot("in-horaires",["sept jours","vendredi et samedi jusqu’à 02:00"])
 # Reopen the place to start from its normal initial scroll position.
 adb("shell","input","keyevent","4");time.sleep(.7);visit()
 seek("place-practical")
