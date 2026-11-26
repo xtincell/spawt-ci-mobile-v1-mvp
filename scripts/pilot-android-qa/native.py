@@ -29,14 +29,43 @@ def tree():
     return ET.fromstring(adb("exec-out", "cat", "/sdcard/pilot-ui.xml").strip())
 
 def match(label, node):
-    return any(node.get(k, "").casefold() == label.casefold() or
-               node.get(k, "").endswith(":id/" + label) for k in ("text", "resource-id", "content-desc"))
+    aliases = {
+        "pilot-open-place": ("Ouvrir la fiche",),
+        "pilot-code-input": ("Code de reprise",),
+        "pilot-code-submit": ("Retrouver le lieu",),
+        "pilot-enter-code": ("Reprendre avec un code",),
+    }
+    names = {value.casefold() for value in (label, *aliases.get(label, ()))}
+    if node.get("resource-id", "").rsplit("/", 1)[-1].casefold() in names:
+        return True
+    # React Native can group accessibility labels and hints with a comma.
+    values = (node.get("text", ""), *re.split(r"[,\n]", node.get("content-desc", "")))
+    return any(value.strip().casefold() in names for value in values)
+
+def dismiss_notification_prompt(surface):
+    nodes = [n for n in surface.iter("node") if n.get("package", "").endswith(".permissioncontroller")]
+    prompt = any("notification" in n.get("text", "").casefold() for n in nodes)
+    deny = next((n for n in nodes if n.get("resource-id", "").endswith("/permission_deny_button")), None)
+    if not prompt or deny is None:
+        return False
+    # Capture only the decision button. The screen behind the OS dialog is excluded.
+    left, top, right, bottom = map(int, re.findall(r"-?\d+", deny.get("bounds", "")))
+    target = OUT/"dialogue-android-notifications.png"
+    if not target.exists() and right > left and bottom > top:
+        screenshot = subprocess.check_output(["adb", "exec-out", "screencap", "-p"])
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", "pipe:0", "-vf",
+                        f"crop={right-left}:{bottom-top}:{left}:{top}", "-frames:v", "1", str(target)],
+                       input=screenshot, check=False)
+    touch(deny)
+    return True
 
 def find(label, timeout=70):
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         try:
             surface=tree()
+            if dismiss_notification_prompt(surface):
+                continue
             skip=next((n for n in surface.iter("node") if match("app-opening-skip",n)),None)
             if skip is not None:
                 touch(skip);time.sleep(1);continue
@@ -50,7 +79,12 @@ def find(label, timeout=70):
     labels = ("splash-start", "consent-continue", "phone-input", "otp-cell-0", "pilot-open-place",
               "Accueil", "Prix à préciser", "Sauvegardé", "Reload", "Dismiss", "Continue", "Continue without an account")
     surface=tree()
+    labels += ("pilot-code-input", "pilot-code-submit", "Ouvrir la fiche", "Retrouver le lieu", "Continuer",
+               "Entre les 12 caractères du code de reprise.", "Ce code a expiré ou a déjà été utilisé.",
+               "Sauvegarde pour plus tard", "IN’ Concept Store", "carte-view-toggle", "permission_deny_button")
     present = [v for v in labels if any(match(v,n) for n in surface.iter("node"))]
+    packages = sorted({n.get("package") for n in surface.iter("node") if n.get("package")})
+    print("Android UI", {"wanted": label, "markers": present, "packages": packages}, flush=True)
     if "splash-start" in present and not any(n.get("class")=="android.widget.EditText" for n in surface.iter("node")):
         with (OUT/"diagnostic-accueil-anonyme.png").open("wb") as screen:
             subprocess.run(["adb","exec-out","screencap","-p"],stdout=screen,check=True)
@@ -62,6 +96,25 @@ def touch(node):
 
 def tap(label):
     touch(find(label))
+
+def enter_resume_code(value):
+    assert re.fullmatch(r"[0-9A-F]{12}", value)
+    field = "pilot-code-input"
+    tap(field)
+    for attempt in range(4):
+        typed = find(field).get("text", "").upper()
+        if typed == value:
+            adb("shell","input","keyevent","4")
+            tap("pilot-code-submit")
+            return
+        if not value.startswith(typed):
+            adb("shell", "input", "keycombination", "113", "29")
+            adb("shell", "input", "keyevent", "67")
+            typed = ""
+        for ch in value[len(typed):]:
+            adb("shell", "input", "text", ch)
+            time.sleep(.15)
+    raise RuntimeError("Le champ de reprise ne contient pas les douze caractères attendus")
 
 def advance(control, destination):
     for attempt in range(4):
@@ -131,8 +184,8 @@ def scenario(source,account,mode):
             "android.intent.category.BROWSABLE","-d","https://spawt.online/reprendre/"+j["resume_token"],"-p",PACKAGE)
     else:
         adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
-        advance("pilot-enter-code","pilot-code-input");tap("pilot-code-input");adb("shell","input","text",j["resume_code"])
-        adb("shell","input","keyevent","4");tap("pilot-code-submit")
+        advance("pilot-enter-code","pilot-code-input")
+        enter_resume_code(j["resume_code"])
     step("consentement et identification synthétique");login(account)
     find("pilot-open-place")
     row=proof(j["journey_id"])

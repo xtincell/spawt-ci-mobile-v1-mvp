@@ -36,6 +36,7 @@ jobs:
       - name: Prepare isolated fixture and Metro
         run: |
           git fetch --no-tags --depth 1 origin c0381415c67722c41ee075b49358d65dcb35c466
+          git restore --source=c0381415c67722c41ee075b49358d65dcb35c466 --staged --worktree -- app supabase
           git diff --exit-code c0381415c67722c41ee075b49358d65dcb35c466 -- app supabase
           bash scripts/pilot-android-qa/start-ci.sh "$GITHUB_WORKSPACE"
           npm ci --prefix app --legacy-peer-deps --no-audit --no-fund
