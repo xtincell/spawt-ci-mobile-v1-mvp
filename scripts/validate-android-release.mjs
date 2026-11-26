@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { receiveDish47 } from './validate-dish47-receipt.mjs';
 import { loadUi46 } from './validate-ui46-receipt.mjs';
 import { receivePilot45Alpha } from './validate-pilot45-receipt.mjs';
 
@@ -42,7 +43,13 @@ const requireTrue = (record, keys) => record && keys.every(key => record[key] ==
 
 export function androidPublicationProfile(recipe) {
   const profile = recipe.publicationProfile ?? 'complete';
-  if (!['complete', 'raccordements', 'pilot45-alpha', 'ui46-alpha'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (!['complete', 'raccordements', 'pilot45-alpha', 'ui46-alpha', 'dish47-alpha'].includes(profile)) throw new Error('Unknown Android publication profile');
+  if (profile === 'dish47-alpha') {
+    const pinned = JSON.parse(fs.readFileSync(new URL('../documentation/android-build47-alpha-receipt.json', import.meta.url), 'utf8'));
+    const fields = ['version','build','buildDate','tag','sourceCommit','sha256','bytes','buildRun','buildWorkflowCommit','qaRun','qaWorkflowCommit'];
+    if (recipe.build !== 47 || recipe.version !== '1.1.6' || recipe.publicationDecision !== 'owner-approved-build47-alpha-with-pending-receipts'
+      || !fields.every(key => recipe[key] !== undefined && recipe[key] === pinned[key])) throw new Error('The dish rating release is pinned to the verified build 47');
+  }
   if (profile === 'ui46-alpha') {
     const pinned = JSON.parse(fs.readFileSync(new URL('../documentation/android-build46-alpha-receipt.json', import.meta.url), 'utf8'));
     const fields = ['version','build','buildDate','tag','sourceCommit','sha256','bytes','buildRun','buildWorkflowCommit','qaRun','qaWorkflowCommit','uiRun','uiWorkflowCommit'];
@@ -78,6 +85,20 @@ export function validateAndroidReleaseProof(recipe, metadata, proof) {
   if (firebase?.defaultAppInitialized !== true) throw new Error('Firebase native initialization was not verified');
   if (recipe.build >= 41 && (upgrade?.from !== recipe.build - 1 || upgrade?.to !== recipe.build
     || upgrade?.installedOverPrevious !== true || upgrade?.backgroundLocationDeclared !== true)) throw new Error('Native upgrade receipt missing');
+
+  if (profile === 'dish47-alpha') {
+    const rating = receiveDish47(recipe, proof.dishRating);
+    return { profile, copies: [
+      ['assertions.json','native-opening-assertions.json'], ['upgrade-install.json','upgrade-install-proof.json'],
+      ['firebase-runtime.json','firebase-runtime-proof.json'], ['opening-visibility.json','opening-visibility-proof.json'],
+      ['dish-rating-47.json','dish-rating-47.json'], ['note-du-plat.png','note-du-plat.png'], ['envies-lieu-premier.png','envies-lieu-premier.png'], ['envies-favoris-plats.png','envies-favoris-plats.png']
+    ], qualification: {
+      schemaVersion: 1, publicationProfile: profile, qualification: 'alpha', publicationDecision: recipe.publicationDecision,
+      version: recipe.version, build: recipe.build, sourceCommit: recipe.sourceCommit, sha256: recipe.sha256, bytes: recipe.bytes,
+      buildRun: recipe.buildRun, qaRun: recipe.qaRun, upgradeFrom46: true, firebaseInitialized: true, signedOpeningAssertionsPassed: assertions.length, rating,
+      fullLiveReceipt: false, consoleModerationReceipt: false, physicalGuetReceipt: false,
+    } };
+  }
 
   if (profile === 'ui46-alpha') {
     if (proof.ui?.signedLeCha !== true || proof.ui?.mapPointAndNeighborhood !== true || proof.ui?.savedPlaceAndDish !== true) throw new Error('Signed or visual Android evidence missing');
@@ -190,6 +211,13 @@ export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'releas
     proof.raccordements = read('raccordements-data.json');
     if (fs.existsSync(path.join(proofDirectory, 'live-data.json'))) throw new Error('Pending receipts must remain explicitly unverified');
     proof.fingerprints = Object.fromEntries(Object.keys(BUILD42_PROOF_SHA256).map(name => [name, createHash('sha256').update(fs.readFileSync(path.join(proofDirectory, name))).digest('hex')]));
+  } else if (profile === 'dish47-alpha') {
+    const pinned = JSON.parse(fs.readFileSync(new URL('../documentation/android-build47-alpha-receipt.json', import.meta.url), 'utf8'));
+    for (const [name,digest] of Object.entries(pinned.receiptFiles)) {
+      const bytes=fs.readFileSync(path.join(proofDirectory,name));
+      if (createHash('sha256').update(bytes).digest('hex') !== digest) throw new Error('Dish rating proof fingerprint mismatch');
+    }
+    proof.dishRating = read('dish-rating-47.json');
   } else if (profile === 'ui46-alpha') {
     proof.ui = loadUi46(recipe, proofDirectory, visualDirectory);
   } else if (profile === 'pilot45-alpha') {

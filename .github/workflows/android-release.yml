@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: "(github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: publish verified Android build 42') && (github.ref != 'refs/heads/codex/pilote-abidjan-20261204' || (github.event.head_commit.message == 'release: publish verified Android build 45' || github.event.head_commit.message == 'release: publish verified Android build 46'))"
+    if: "(github.ref != 'refs/heads/codex/build42-raccordements' || github.event.head_commit.message == 'release: publish verified Android build 42') && (github.ref != 'refs/heads/codex/pilote-abidjan-20261204' || (github.event.head_commit.message == 'release: publish verified Android build 45' || github.event.head_commit.message == 'release: publish verified Android build 46' || github.event.head_commit.message == 'release: publish verified Android build 47'))"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
