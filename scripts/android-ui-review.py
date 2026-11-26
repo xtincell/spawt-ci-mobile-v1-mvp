@@ -210,17 +210,24 @@ def saved():
     wait_node(lambda n: match("saved-place-"+BRUNCH,n) or ("IN’ Concept Store" in n.get("content-desc","") and "Eggs Benedict" not in n.get("content-desc","")))
     shot("mes-envies-adresse")
 def empty_saved():
+    adb("shell","am","force-stop",PACKAGE)
     open_url("spawt://saved")
-    def empty(n):
-        return any(match(label,n) for label in ("saved-empty","Aucune envie enregistrée","Chercher un plat ou une adresse"))
-    for attempt in range(3):
-        try:
-            wait_node(empty,18)
-            break
-        except RuntimeError:
-            if attempt==2: raise
-            tap("Réessayer")
-    shot("mes-envies-vide")
+    end=time.monotonic()+115
+    retry_after=time.monotonic()+12
+    retries=0
+    empty_labels=("saved-empty","Aucune envie enregistrée","Chercher un plat ou une adresse")
+    while time.monotonic()<end:
+        nodes=list(tree().iter("node"))
+        if any(match(label,n) for n in nodes for label in empty_labels):
+            shot("mes-envies-vide")
+            return
+        retry=next((n for n in nodes if match("Réessayer",n)),None)
+        if retry is not None and retries<2 and time.monotonic()>retry_after:
+            touch(retry)
+            retries+=1
+            retry_after=time.monotonic()+22
+        time.sleep(1)
+    raise RuntimeError(f"Vue vide absente après ouverture directe et {retries} relances disponibles.")
 def marker_centers(source, rect):
     """Read actual golden marker centres in the bounded MapLibre surface on this emulator."""
     image = Image.open(source).convert("RGB")
