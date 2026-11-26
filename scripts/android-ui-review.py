@@ -147,10 +147,27 @@ def authenticate():
     adb("shell","am","start","-W","-n",PACKAGE+"/.MainActivity")
     find("Accueil",120)
 def saved():
+    adb("shell","am","force-stop",PACKAGE)
     open_url("spawt://place/"+BRUNCH);find("IN’ Concept Store")
     tap("Sauvegarde pour plus tard");find("Sauvegardé")
+    owner = FIXTURES[3]["id"]
+    def receipt(sql):
+        return subprocess.check_output(["docker","exec",os.environ["PILOT_DB_CONTAINER"],"psql","-XAtq","-U","postgres",
+                                        "-d","pilot_http","-c",sql],text=True).strip() == "t"
+    place_saved = f"EXISTS(SELECT FROM saved_places WHERE spawter_id='{owner}' AND place_id='{BRUNCH}')"
+    dish_saved = f"EXISTS(SELECT FROM saved_menu_items WHERE spawter_id='{owner}' AND menu_item_id='{DISH}')"
+    deadline=time.monotonic()+40
+    while not receipt("SELECT "+place_saved):
+        if time.monotonic()>deadline: raise RuntimeError("Adresse en attente de confirmation serveur")
+        time.sleep(.7)
+    results["adresse_acquittee"]={"lieu":BRUNCH,"at":now()}
+    open_url("spawt://saved")
+    wait_node(lambda n: match("saved-place-"+BRUNCH,n) or "IN’ Concept Store" in n.get("content-desc",""),45)
+    shot("mes-envies-lieu")
+    adb("shell","am","force-stop",PACKAGE)
+    open_url("spawt://place/"+BRUNCH+"?tab=menu")
+    find("IN’ Concept Store")
     # Open the actual published menu as a diner would; its action may be below the fold.
-    tap("Menu")
     swiped = 0
     for attempt in range(10):
         ui = tree()
@@ -171,12 +188,8 @@ def saved():
     else:
         raise AssertionError(f"Action d’enregistrement du plat absente dans le menu après {swiped} défilements.")
     # Both records must be written by native gestures, owned by this demonstration account.
-    owner = FIXTURES[3]["id"]
-    query = f"""SELECT EXISTS(SELECT FROM saved_places WHERE spawter_id='{owner}' AND place_id='{BRUNCH}')
-      AND EXISTS(SELECT FROM saved_menu_items WHERE spawter_id='{owner}' AND menu_item_id='{DISH}');"""
     deadline = time.monotonic()+40
-    while subprocess.check_output(["docker","exec",os.environ["PILOT_DB_CONTAINER"],"psql","-XAtq","-U","postgres",
-                                   "-d","pilot_http","-c",query],text=True).strip() != "t":
+    while not receipt("SELECT "+place_saved+" AND "+dish_saved):
         if time.monotonic() >= deadline:
             raise AssertionError("Acquittement du plat et de l’adresse absent de la base isolée.")
         time.sleep(1)

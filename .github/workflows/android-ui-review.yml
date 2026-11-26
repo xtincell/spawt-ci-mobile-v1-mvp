@@ -90,6 +90,13 @@ jobs:
           adb install "$PILOT_DEBUG_APK"
           adb shell pm grant com.upgraders.spawt android.permission.POST_NOTIFICATIONS
           python3 scripts/android-ui-review.py
+      - name: Retenir les statuts anonymes de la passerelle locale
+        if: always()
+        run: |
+          if [ -n "${PILOT_HTTP_TRACE:-}" ] && [ -s "$PILOT_HTTP_TRACE" ]; then
+            mkdir -p ui-review
+            cp "$PILOT_HTTP_TRACE" ui-review/requetes-locales.jsonl
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
