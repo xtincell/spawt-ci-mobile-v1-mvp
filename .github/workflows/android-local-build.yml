@@ -2,8 +2,8 @@ name: Android preview local build
 on:
   push:
     tags: ['local-build-android-*']
-    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements']
-    paths: ['documentation/android-build41.json', 'documentation/android-build42.json']
+    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/spawt-android-pilote-47']
+    paths: ['documentation/android-build41.json', 'documentation/android-build42.json', 'documentation/android-build47.json']
   workflow_dispatch:
     inputs:
       recipe:
@@ -24,7 +24,7 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
-      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || 'documentation/android-build42.json' }}
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || (github.ref == 'refs/heads/codex/spawt-android-pilote-47' && 'documentation/android-build47.json') || 'documentation/android-build42.json' }}
     steps:
       - uses: actions/checkout@v4
         with:

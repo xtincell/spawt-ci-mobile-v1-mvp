@@ -103,5 +103,22 @@ SELECT pg_temp.ok((SELECT sum(active_people)=1 FROM pilot_private.funnel('2020-1
 \if :{?example}
 COPY (SELECT at_utc,person_id,place_id,event,population,origin,beta_code,spawt_id,journey_id FROM pilot_private.usage WHERE beta_code='B01' ORDER BY at_utc) TO STDOUT WITH CSV HEADER;
 \endif
-ROLLBACK;
 
+-- The existing captured campaign also exercises the receipts used by the pilot panel.
+SET LOCAL ROLE anon;
+SELECT public.pilot_download_received(pg_temp.id(40),47,162896707);
+SELECT public.pilot_download_received(pg_temp.id(40),47,162896707);
+RESET ROLE;
+SELECT pg_temp.ok((SELECT count(*)=1 FROM pilot_private.download_receipts WHERE journey=(:'click'::jsonb->>'journey_id')::uuid),'réception APK dédupliquée');
+INSERT INTO public.user_palais(spawter_id) VALUES(pg_temp.id(1)) ON CONFLICT DO NOTHING;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.id(1)::text,true);
+SELECT public.pilot_onboarding_received(pg_temp.id(31),:'first_ts');
+SELECT public.pilot_onboarding_received(pg_temp.id(31),:'first_ts');
+RESET ROLE;
+SELECT pg_temp.ok((SELECT count(*)=1 FROM pilot_private.onboarding_receipts o
+ JOIN pilot_private.journeys j ON j.install=o.install AND j.person=o.person
+ WHERE o.person=pg_temp.id(1) AND j.campaign='abidjan_beta_20261204' AND j.source='facebook'),
+ 'onboarding confirmé une seule fois sur l’installation de campagne');
+
+ROLLBACK;
