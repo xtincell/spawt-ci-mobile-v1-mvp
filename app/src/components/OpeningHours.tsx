@@ -45,10 +45,11 @@ function formatSlots(slots: OpeningSlot[], closedLabel: string): string {
 interface Props {
   hours: Record<DayOfWeek, OpeningSlot[]>;
   /** Injection pour tests — sinon dérive du jour réel. */
-  today?: DayOfWeek;
+  today?: DayOfWeek | undefined;
+  highlightToday?: boolean;
 }
 
-export function OpeningHours({ hours, today }: Props) {
+export function OpeningHours({ hours, today, highlightToday = true }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const current = today ?? todayKey();
@@ -57,7 +58,7 @@ export function OpeningHours({ hours, today }: Props) {
   return (
     <View>
       {DISPLAY_ORDER.map((day) => {
-        const isToday = day === current;
+        const isToday = highlightToday && day === current;
         const slots = hours[day];
         return (
           <View

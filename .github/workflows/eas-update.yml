@@ -87,11 +87,38 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Épingler le backend de la distribution preview dans le manifeste
+        run: |
+          node ../scripts/pin-backend-in-manifest.mjs preview
+          npx expo config --type public --json > "$RUNNER_TEMP/config-export-ota.json"
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const config=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/config-export-ota.json'));
+          const profile=JSON.parse(fs.readFileSync('eas.json')).build.preview;
+          const extra=config.extra || {};
+          if(extra.supabaseUrl!=='https://api.spawt.online' || !extra.supabaseAnonKey || extra.supabaseAnonKey!==profile.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+            || config.updates?.enabled!==true || config.runtimeVersion?.policy!=='nativeVersion'
+            || config.updates.url!=='https://u.expo.dev/'+extra.eas.projectId || profile.channel!=='preview') throw new Error('Configuration OTA non conforme au profil APK');
+          const proof={api:extra.supabaseUrl,keySha256:createHash('sha256').update(extra.supabaseAnonKey).digest('hex'),project:extra.eas.projectId,
+            androidRuntime:config.version+'('+config.android.versionCode+')',channel:profile.channel,source:process.env.GITHUB_SHA};
+          console.log(JSON.stringify(proof));
+          fs.writeFileSync(process.env.RUNNER_TEMP+'/ota-config-recue.json',JSON.stringify(proof,null,2));
+          JS
       - name: Publish OTA update
+        env:
+          SPAWT_OTA_MESSAGE: ${{ inputs.message }}
+          SPAWT_OTA_PLATFORM: ${{ inputs.platform }}
         run: >-
           eas update
           --branch preview
           --environment preview
-          --platform ${{ inputs.platform }}
-          --message "${{ inputs.message }}"
-          --non-interactive
+          --platform "$SPAWT_OTA_PLATFORM"
+          --message "$SPAWT_OTA_MESSAGE"
+          --non-interactive --json > "$RUNNER_TEMP/ota-publiee.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ota-publiee
+          path: |
+            ${{ runner.temp }}/ota-publiee.json
+            ${{ runner.temp }}/ota-config-recue.json

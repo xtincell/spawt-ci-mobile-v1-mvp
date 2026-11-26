@@ -40,6 +40,7 @@ export function PlaceTabs<K extends string>({ tabs, active, onChange }: Props<K>
         return (
           <Pressable
             key={tab.key}
+            testID={`place-tab-${tab.key}`}
             onPress={() => {
               if (!isActive) onChange(tab.key);
             }}

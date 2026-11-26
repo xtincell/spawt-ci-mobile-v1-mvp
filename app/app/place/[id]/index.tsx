@@ -55,7 +55,9 @@ import { track } from "../../../src/lib/analytics";
 import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
 import { startManualReview } from "../../../src/lib/manual-review";
 import { subscribeReviewChanges } from "../../../src/lib/review-events";
-import { OpeningHours } from "../../../src/components/OpeningHours";
+import { PlaceWeek } from "../../../src/components/place/PlaceWeek";
+import { PlacePractical } from "../../../src/components/place/PlacePractical";
+import { PlaceNeighbors } from "../../../src/components/place/PlaceNeighbors";
 import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
 import { PlaceTabs } from "../../../src/components/place/PlaceTabs";
 import { PlaceMediaTab } from "../../../src/components/place/PlaceMediaTab";
@@ -249,12 +251,12 @@ export default function PlaceDetailScreen() {
         properties: {
           place_id: place.id,
           match_score: matchScore ?? 0,
-          distance_km: Number.isFinite(distanceKm) ? distanceKm : null,
+          distance_km: position.source === "gps" && Number.isFinite(distanceKm) ? distanceKm : null,
           time_since_onboarding_seconds: timeSinceOnboardingSeconds,
         },
       });
     }
-  }, [place, matchScore, ref, spawter, distanceKm]);
+  }, [place, matchScore, ref, spawter, distanceKm, position.source]);
 
   // adn_under_construction_seen — si total_reviews < 5 OU confidence < 0.3
   useEffect(() => {
@@ -339,7 +341,10 @@ export default function PlaceDetailScreen() {
   const hasCover = coverUrl.length > 0 && !coverFailed;
   // Story 4.12 — carte statique sous l'adresse. `null` si pas de clé API ou
   // coords nulles → on retombe sur l'adresse texte seule (AC #1 fallback).
-  const staticMapUrl = buildStaticMapUrl(place.location.lat, place.location.lng);
+  const { lat, lng, descriptive_address, city } = place.location;
+  const hasPin = lat !== null && lng !== null && !(lat === 0 && lng === 0);
+  const hasAddress = Boolean(descriptive_address.trim());
+  const staticMapUrl = hasPin ? buildStaticMapUrl(lat, lng) : null;
 
   // Voix-Off "En construction" : si le Palais du spawter est trop immature
   // (confidence < 0.3), le match_score serait un mensonge UX (project-context
@@ -363,7 +368,7 @@ export default function PlaceDetailScreen() {
     track({ name: "place_call_tapped", properties: { place_id: place.id } });
     // Strip whitespace : `tel:+225 27 XX XX XX` casse certains dialers Android.
     const telDigits = place.phone.replace(/\s+/g, "");
-    void Linking.openURL(`tel:${telDigits}`);
+    void Linking.openURL(`tel:${telDigits}`).catch(() => Alert.alert(t("place.link_failed")));
   };
 
   const onWhatsAppPress = () => {
@@ -380,7 +385,7 @@ export default function PlaceDetailScreen() {
       name: "place_whatsapp_tapped",
       properties: { place_id: place.id },
     });
-    void Linking.openURL(`https://wa.me/${digits}`);
+    void Linking.openURL(`https://wa.me/${digits}`).catch(() => Alert.alert(t("place.link_failed")));
   };
 
   // Réservation 1-tap — visible si flag actif ET numéro WhatsApp exploitable.
@@ -492,14 +497,19 @@ export default function PlaceDetailScreen() {
   // Story 4.12 — ouvre l'app cartes native. `geo:` côté Android ; iOS ne le
   // gère pas toujours → fallback Apple Maps après test canOpenURL.
   const onOpenMap = async () => {
-    const { lat, lng } = place.location;
-    if (lat === null || lng === null) return;
-    const geo = geoUrl(lat, lng, place.name);
+    if (!hasPin && !hasAddress) return;
+    const destination = hasPin ? lat + "," + lng : [place.name, descriptive_address, city].filter(Boolean).join(", ");
+    const directions = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(destination);
     try {
-      const canGeo = await Linking.canOpenURL(geo);
-      await Linking.openURL(canGeo ? geo : appleMapsUrl(lat, lng, place.name));
-    } catch (err) {
-      if (__DEV__) console.warn("[place] open map failed", err);
+      if (Platform.OS === "ios" && hasPin) {
+        await Linking.openURL(appleMapsUrl(lat, lng, place.name));
+      } else if (Platform.OS === "android" && hasPin && await Linking.canOpenURL(geoUrl(lat, lng, place.name))) {
+        await Linking.openURL(geoUrl(lat, lng, place.name));
+      } else {
+        await Linking.openURL(directions);
+      }
+    } catch {
+      await Linking.openURL(directions).catch(() => Alert.alert(t("place.link_failed")));
     }
   };
 
@@ -684,9 +694,10 @@ export default function PlaceDetailScreen() {
               marginBottom: theme.spacing.base,
             }}
           >
-            {place.location.neighborhood}
-            {place.cuisine.length > 0 ? ` · ${place.cuisine.join(" · ")}` : ""}
+            {[place.location.neighborhood, place.location.city, ...place.cuisine.map(c => t("cuisine." + c, { defaultValue: c }))].filter(Boolean).join(" · ")}
           </Text>
+
+          <PlaceWeek key={place.id} hours={place.hours} city={place.location.city} />
 
           {/* Story 4.9 — Rating principal + prix en h2, visible à 1m.
               R21 — le prix affiche « ~N F CFA » si avg_ticket_xof est
@@ -763,7 +774,7 @@ export default function PlaceDetailScreen() {
             {matchScore !== null && palaisConfident ? (
               <MatchScore value={matchScore} />
             ) : null}
-            <View
+            {position.source === "gps" && hasPin && Number.isFinite(distanceKm) ? <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -777,9 +788,9 @@ export default function PlaceDetailScreen() {
                   color: theme.colors.text.tertiary,
                 }}
               >
-                {Number.isFinite(distanceKm) ? `${distanceKm.toFixed(1)} km` : t("place.location_pending")}
+                {distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km
               </Text>
-            </View>
+            </View> : null}
           </View>
 
           {/* Phase 2 F12 — Coup de Cœur actionnable (quota mensuel par stade) */}
@@ -970,21 +981,12 @@ export default function PlaceDetailScreen() {
                 />
               </Pressable>
             ) : null}
-            {/* Story 4.12 — horaires des 7 jours (remplace l'ancienne ligne
-                "jour courant" unique). */}
-            <View style={{ marginTop: theme.spacing.sm }}>
-              <Text
-                style={{
-                  ...theme.typography.preset.small,
-                  color: theme.colors.text.secondary,
-                  marginBottom: theme.spacing.xs,
-                }}
-              >
-                {t("place.info_hours")}
-              </Text>
-              <OpeningHours hours={place.hours} />
-            </View>
+            {hasPin || hasAddress ? <Pressable accessibilityRole="button" onPress={onOpenMap} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, minHeight: 48 }}>
+              <Ico name="compass" size={18} color={theme.colors.brand.accent}/>
+              <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("place.directions")}</Text>
+            </Pressable> : null}
           </View>
+          <PlacePractical key={place.id} placeId={place.id} />
 
           {/* R18 — Section « Divers » tout en bas : contact relégué en
               InfoLines simples (tel:/wa.me conservés). Intention produit :
@@ -999,7 +1001,7 @@ export default function PlaceDetailScreen() {
                   marginBottom: theme.spacing.sm,
                 }}
               >
-                {t("place.divers_title")}
+                {t("place.direct_contact")}
               </Text>
               {place.phone ? (
                 <InfoLine
@@ -1019,6 +1021,11 @@ export default function PlaceDetailScreen() {
               ) : null}
             </View>
           ) : null}
+          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/support", params: {context: "place:" + place.id, topic: "question"} })}
+            style={{flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, minHeight: 48}}>
+            <Ico name="send" size={16}/><Text style={{ ...theme.typography.preset.small, color: theme.colors.brand.accent }}>{t("place.question_team")}</Text>
+          </Pressable>
+          <PlaceNeighbors key={place.id} place={place} />
         </View>
       </ScrollView>
 

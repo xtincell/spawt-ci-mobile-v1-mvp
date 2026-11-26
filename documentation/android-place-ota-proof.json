@@ -1,0 +1,12 @@
+{
+  "build": 48,
+  "runtime": "1.1.7(48)",
+  "sha256": "641e6d33818a69b1543fda5d6dee08cc6ef737780258ecbc0d7aee0ed8a32d0b",
+  "updateGroup": "0a45fe71-747d-4566-828d-656529dd7fc8",
+  "updateId": "01a2194c-f565-77f9-b006-69899cffc2c7",
+  "sourceCommit": "9c87d5d1f97d5c3f5acffaefcf46688ee69658c7",
+  "otaWorkflowSource": "6e84928e48c4f1f5f541d0c403e89aa125389a37",
+  "runtimeBackend": "https://api.spawt.online",
+  "expoReleaseRun": 45882535818,
+  "inspectionRevision": 2
+}

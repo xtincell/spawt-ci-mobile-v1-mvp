@@ -10,7 +10,7 @@ import { useSpawterStore } from "../src/store/spawter-store";
 import { appDiagnostic, checkAppContent, listAppFeedback, sendAppFeedback, type AppDiagnostic, type AppFeedback, type FeedbackKind } from "../src/lib/app-support";
 
 interface FeedbackDraft { id: string; kind: FeedbackKind; message: string }
-const newFeedbackDraft = (): FeedbackDraft => ({ id: Crypto.randomUUID(), kind: "bug", message: "" });
+const newFeedbackDraft = (kind: FeedbackKind = "bug"): FeedbackDraft => ({ id: Crypto.randomUUID(), kind, message: "" });
 const validFeedbackDraft = (value: unknown): value is FeedbackDraft => {
   if (!value || typeof value !== "object") return false;
   const d = value as Partial<FeedbackDraft>;
@@ -19,14 +19,16 @@ const validFeedbackDraft = (value: unknown): value is FeedbackDraft => {
 
 export default function SupportScreen() {
   const theme = useTheme(); const { t } = useTranslation(); const router = useRouter();
-  const { context } = useLocalSearchParams<{ context?: string }>();
+  const { context, topic } = useLocalSearchParams<{ context?: string; topic?: string }>();
+  const question = topic === "question" && typeof context === "string" && /^place:[a-f0-9-]{36}$/.test(context);
+  const createDraft = useCallback(() => newFeedbackDraft(question ? "content" : "bug"), [question]);
   const spawterId = useSpawterStore(s => s.spawter?.id);
   const [diagnostic, setDiagnostic] = useState<AppDiagnostic>(appDiagnostic);
   const [checking, setChecking] = useState(false); const [checkFailed, setCheckFailed] = useState(false);
   const [includeChecks, setIncludeChecks] = useState(true);
-  const draftKey = `spawt:feedback-draft:${spawterId ?? "anonymous"}`;
+  const draftKey = `spawt:feedback-draft:${spawterId ?? "anonymous"}` + (question ? ":" + context : "");
   const currentKey = useRef(draftKey); currentKey.current = draftKey;
-  const { draft, setDraft, ready } = useOwnedDraft(draftKey, newFeedbackDraft, validFeedbackDraft);
+  const { draft, setDraft, ready } = useOwnedDraft(draftKey, createDraft, validFeedbackDraft);
   const [sending, setSending] = useState(false);
   const [sendFailed, setSendFailed] = useState(false); const [receipt, setReceipt] = useState("");
   const [rows, setRows] = useState<AppFeedback[]>([]); const [historyFailed, setHistoryFailed] = useState(false);

@@ -20,7 +20,7 @@ interface NodeLike {
   props: Record<string, unknown>;
 }
 interface RendererLike {
-  root: { findAllByType: (t: unknown) => NodeLike[] };
+  root: { findAll: (p: (n: NodeLike) => boolean) => NodeLike[]; findAllByType: (t: unknown) => NodeLike[] };
   unmount: () => void;
 }
 
@@ -91,6 +91,10 @@ describe("<PlaceMediaTab /> — R17 / Q1 onglet Média", () => {
     await flush();
     // 3 images max côté présentation, pas d'état vide global.
     expect(r.root.findAllByType(Image)).toHaveLength(3);
+    const toggle = r.root.findAll(node => node.props.accessibilityRole === "button" && typeof node.props.onPress === "function")[0];
+    expect(toggle).toBeDefined();
+    TestRenderer.act(() => (toggle!.props.onPress as () => void)());
+    expect(r.root.findAllByType(Image)).toHaveLength(5);
     expect(texts(r)).not.toContain("place.media_empty_title");
     // Galerie spawters vide → titre + copy d'invitation.
     expect(texts(r)).toContain("place.media_spawters_title");
@@ -117,11 +121,12 @@ describe("<PlaceMediaTab /> — R17 / Q1 onglet Média", () => {
     expect(texts(r)).not.toContain("place.media_empty_title");
   });
 
-  it("fetcher rejeté → même UX que 0 photo spawter (pas de crash)", async () => {
+  it("panne de galerie → conserve les photos de présentation et permet de réessayer", async () => {
     const fetcher = jest.fn(() => Promise.reject(new Error("boom")));
     const r = render(["https://x/1.jpg"], fetcher);
     await flush();
     expect(r.root.findAllByType(Image)).toHaveLength(1);
-    expect(texts(r)).toContain("place.media_spawters_empty");
+    expect(texts(r)).toContain("place.retry_photos");
+    expect(texts(r)).not.toContain("place.media_spawters_empty");
   });
 });

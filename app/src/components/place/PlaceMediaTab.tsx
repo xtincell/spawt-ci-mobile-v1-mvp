@@ -10,7 +10,7 @@
 // État vide élégant (EmptyState « le chat tousse ») si aucune photo du tout.
 
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../../theme/ThemeProvider";
@@ -30,12 +30,17 @@ interface Props {
 
 type FetchState =
   | { kind: "loading" }
-  | { kind: "loaded"; photos: string[] };
+  | { kind: "loaded"; photos: string[] }
+  | { kind: "error" };
 
 export function PlaceMediaTab({ placeId, galleryUrls, fetcher }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [state, setState] = useState<FetchState>({ kind: "loading" });
+
+  const [attempt, setAttempt] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => setShowAll(false), [placeId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,19 +53,16 @@ export function PlaceMediaTab({ placeId, galleryUrls, fetcher }: Props) {
       })
       .catch((err: unknown) => {
         if (__DEV__) console.warn("[PlaceMediaTab] fetch failed", err);
-        // Erreur ⇒ même UX que « aucune photo spawter » (pas d'écran d'erreur
-        // dédié pour une section secondaire de la fiche).
         if (cancelled) return;
-        setState({ kind: "loaded", photos: [] });
+        setState({kind: "error"});
       });
     return () => {
       cancelled = true;
     };
-  }, [placeId, fetcher]);
+  }, [placeId, fetcher, attempt]);
 
   const presentation = galleryUrls
-    .filter((u) => typeof u === "string" && u.length > 0)
-    .slice(0, PRESENTATION_MAX);
+    .filter((u) => typeof u === "string" && u.length > 0);
 
   const spawterPhotos = state.kind === "loaded" ? state.photos : [];
   const isEmpty =
@@ -83,7 +85,11 @@ export function PlaceMediaTab({ placeId, galleryUrls, fetcher }: Props) {
   return (
     <View>
       {/* 1. Photos de présentation (jusqu'à 3, slots complétés en placeholders). */}
-      {presentation.length > 0 ? <PlaceGallery urls={presentation} /> : null}
+      {presentation.length > 0 ? <PlaceGallery urls={showAll ? presentation : presentation.slice(0, PRESENTATION_MAX)} minSlots={0}/> : null}
+      {presentation.length > PRESENTATION_MAX ? <Pressable accessibilityRole="button" accessibilityState={{expanded: showAll}}
+        onPress={() => setShowAll(v => !v)} style={{minHeight: 44, justifyContent: "center"}}>
+        <Text style={{...theme.typography.preset.small, color: theme.colors.brand.accent}}>{t(showAll ? "place.fewer_photos" : "place.all_photos", {count: presentation.length})}</Text>
+      </Pressable> : null}
 
       {/* 2. Galerie des spawters. */}
       {state.kind === "loading" ? (
@@ -97,7 +103,9 @@ export function PlaceMediaTab({ placeId, galleryUrls, fetcher }: Props) {
         >
           <ActivityIndicator color={theme.colors.brand.primary} />
         </View>
-      ) : spawterPhotos.length > 0 ? (
+      ) : state.kind === "error" ? <Pressable accessibilityRole="button" onPress={() => setAttempt(n => n + 1)}
+        style={{minHeight: 48, justifyContent: "center"}}><Text style={{...theme.typography.preset.small, color: theme.colors.brand.accent}}>{t("place.retry_photos")}</Text></Pressable>
+      : spawterPhotos.length > 0 ? (
         <PlaceGallery
           urls={spawterPhotos}
           minSlots={0}
