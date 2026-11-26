@@ -18,6 +18,56 @@ def saved():
     query = f"select created_at from public.saved_places where spawter_id='{account['id']}' and place_id='{BRUNCH}';"
     return subprocess.check_output(["docker", "exec", os.environ["PILOT_DB_CONTAINER"], "psql", "-XAtq", "-U", "postgres", "-d", "pilot_http", "-c", query], text=True).strip()
 
+def prepare_demo():
+    """Restore a real local session for a returning synthetic demo user on a disposable emulator."""
+    from urllib.request import Request, urlopen
+    import hashlib
+    import sqlite3
+    import tempfile
+    from pathlib import Path
+    base = "http://127.0.0.1:54321"
+    key = "sb_publishable_spawt_abidjan_local_recette"
+    def request(path, token=key, payload=None):
+        body = json.dumps(payload).encode() if payload is not None else None
+        req = Request(base + path, data=body, headers={"apikey":key,"Authorization":"Bearer " + token,"Content-Type":"application/json"})
+        with urlopen(req, timeout=12) as response:
+            return json.load(response)
+    phone={"phone_e164":account["phone"]}
+    request("/functions/v1/otp-send",payload=phone)
+    session=request("/functions/v1/otp-verify",payload={**phone,"otp_code":"123456"})
+    assert session.pop("user_id")==account["id"]
+    token=session["access_token"]
+    assert request("/auth/v1/user", token)["id"]==account["id"]
+    user,=request("/rest/v1/spawters?select=*&id=eq."+account["id"],token)
+    palais,=request("/rest/v1/user_palais?select=*&spawter_id=eq."+account["id"],token)
+    assert user["is_demo"] and user["is_internal"] and user["cgv_accepted_at"] and user["geoloc_consent_at"]
+    state["account_preparation"]="Session du compte démo authentifiée auprès de la passerelle isolée et restaurée avant le tournage."
+    rows={"sb-127-auth-token":json.dumps(session),"spawt:spawter":json.dumps(user),"spawt:palais":json.dumps(palais),
+          "spawt:consent:cgv":user["cgv_accepted_at"],"spawt:consent:geoloc":user["geoloc_consent_at"]}
+    with tempfile.TemporaryDirectory() as folder:
+        db=Path(folder)/"RKStorage"
+        with sqlite3.connect(db) as storage:
+            storage.execute("PRAGMA user_version=1")
+            storage.execute("create table catalystLocalStorage(key text primary key, value text not null)")
+            storage.executemany("insert into catalystLocalStorage(key,value) values(?,?)",rows.items())
+        blob=db.read_bytes()
+        adb("shell","run-as",PACKAGE,"mkdir","-p","databases")
+        subprocess.run(["adb","shell","-T",f"run-as {PACKAGE} sh -c 'cat > databases/RKStorage'"],input=blob,check=True)
+        assert hashlib.sha256(blob).hexdigest() in adb("shell","run-as",PACKAGE,"sha256sum","databases/RKStorage")
+
+def locate_result(timeout=45):
+    from native import touch
+    until=time.monotonic()+timeout
+    while time.monotonic()<until:
+        surface=tree()
+        for node in surface.iter("node"):
+            for attr in ("content-desc","text"):
+                name=node.get(attr,"")
+                if "concept store" in name.casefold() and "in" in name.casefold():
+                    return node
+        time.sleep(1)
+    raise RuntimeError("IN’ Concept Store absent des résultats visibles.")
+
 def enter_search():
     adb("shell", "am", "start", "-W", "-a", "android.intent.action.VIEW", "-d", "spawt://search", "-p", PACKAGE)
     deadline = time.monotonic() + 60
@@ -30,7 +80,7 @@ def enter_search():
             if "mInputShown=true" in adb("shell", "dumpsys", "input_method"):
                 adb("shell", "input", "keyevent", "4")
             try:
-                find("IN’ Concept Store")
+                locate_result()
             except RuntimeError:
                 with (OUT / "demo-search-diagnostic.png").open("wb") as screen:
                     subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=screen, check=True)
@@ -42,9 +92,15 @@ def enter_search():
 subprocess.run(["adb", "uninstall", PACKAGE], capture_output=True)
 adb("install", APK, timeout=180)
 adb("shell", "pm", "grant", PACKAGE, "android.permission.POST_NOTIFICATIONS")
+prepare_demo()
 adb("shell", "am", "start", "-W", "-n", PACKAGE + "/.MainActivity")
-login(account)
-find("Accueil", 65)
+try:
+    find("Accueil", 155)
+except RuntimeError:
+    with (OUT / "demo-before-search.png").open("wb") as screen:
+        subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=screen, check=True)
+    print(adb("shell", "dumpsys", "activity", "activities").split("mResumedActivity")[-1][:220])
+    raise
 log_step("demo_connected")
 enter_search()
 assert not saved(), "The isolated demo favorite already exists"
@@ -53,7 +109,8 @@ proc = subprocess.Popen(["adb", "shell", "screenrecord", "--size", "720x1440", "
 try:
     time.sleep(2.5)
     log_step("recording")
-    tap("IN’ Concept Store")
+    from native import touch
+    touch(locate_result())
     find("IN’ Concept Store")
     find("Prix à préciser")
     find("Sauvegarde pour plus tard")
