@@ -11,8 +11,9 @@ jest.mock("react-i18next", () => ({
 }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 
 const mockTrack = jest.fn();
@@ -21,11 +22,11 @@ jest.mock("../../src/lib/analytics", () => ({
 }));
 
 const mockSetField = jest.fn();
-const mockPhoneInitial = "+225";
+let mockPhoneInitial = "";
 jest.mock("../../src/store/onboarding-draft", () => {
-  const fn = (selector: (s: { setField: typeof mockSetField; draft: { phone_e164: string } }) => unknown) =>
-    selector({ setField: mockSetField, draft: { phone_e164: mockPhoneInitial } });
-  return { useOnboardingDraft: fn };
+  const getState = () => ({ setField: mockSetField, draft: { phone_e164: mockPhoneInitial } });
+  const select = (selector: (s: ReturnType<typeof getState>) => unknown) => selector(getState());
+  return { useOnboardingDraft: Object.assign(select, { getState }) };
 });
 
 let mockSupabaseConfigured = false;
@@ -83,6 +84,8 @@ describe("<PhoneScreen /> — Story 2.3 + 2.3a (mode démo)", () => {
   beforeEach(() => {
     mockTranslate.mockClear();
     mockPush.mockClear();
+    mockReplace.mockClear();
+    mockPhoneInitial = "";
     mockTrack.mockClear();
     mockSetField.mockClear();
     mockSupabaseConfigured = false;
@@ -115,6 +118,22 @@ describe("<PhoneScreen /> — Story 2.3 + 2.3a (mode démo)", () => {
       pathname: "/(onboarding)/otp",
       params: { phone: "+22507123456", demo: "1" },
     });
+  });
+
+  it("redemande le consentement avant un envoi à un autre numéro", async () => {
+    mockPhoneInitial = "+2250700000001";
+    const instance = render();
+    TestRenderer.act(() => {
+      const input = instance.root.findByProps({ testID: "phone-input" });
+      (input.props.onChangeText as (phone: string) => void)("+2250700000002");
+    });
+    await TestRenderer.act(async () => {
+      const send = instance.root.findByProps({ testID: "phone-send" });
+      await (send.props.onPress as () => Promise<void>)();
+    });
+    expect(mockSetField).toHaveBeenCalledWith("phone_e164", "+2250700000002");
+    expect(mockReplace).toHaveBeenCalledWith("/(onboarding)/consent");
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it("format fallback étranger (+33611111111) accepté", () => {
