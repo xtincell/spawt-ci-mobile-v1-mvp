@@ -30,19 +30,19 @@ jobs:
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           const temp=process.env.RUNNER_TEMP;
-          const channel=JSON.parse(fs.readFileSync(temp+'/channel.json','utf8'));
+          const channel=JSON.parse(fs.readFileSync(temp+'/channel.json','utf8')).currentPage;
           const branch=JSON.parse(fs.readFileSync(temp+'/branch.json','utf8'));
           console.log('Channel fields:',Object.keys(channel),'Branch fields:',Object.keys(branch));
           const mapping=typeof channel.branchMapping==='string'?JSON.parse(channel.branchMapping):channel.branchMapping;
           const entries=mapping?.data || [];
           const mapped=entries.find(x=>x.branchId===branch.id);
           const expo=JSON.parse(fs.readFileSync('app.json')).expo;
-          const record={project:expo.extra.eas.projectId,channel:channel.name,branch:branch.name,matchedBranch:Boolean(mapped),
+          const record={project:expo.extra.eas.projectId,channel:channel.name,branch:branch.name,matchedBranch:Boolean(mapped),isPaused:channel.isPaused,
             route:entries.map(e=>({branchId:e.branchId,logic:e.branchMappingLogic})),runtime:expo.version+'('+expo.android.versionCode+')',
             receivedAt:new Date().toISOString(),source:process.env.GITHUB_SHA,noUpdatePublished:true};
           console.log(JSON.stringify(record));
           fs.writeFileSync(temp+'/expo-canal.json',JSON.stringify(record,null,2));
-          if(channel.name!=='preview'||branch.name!=='preview'||!mapped)throw new Error('Le raccordement doit être vérifié');
+          if(channel.name!=='preview'||branch.name!=='preview'||!mapped||channel.isPaused===true||mapped.branchMappingLogic!=='true')throw new Error('Le raccordement doit être vérifié');
           JS
       - uses: actions/upload-artifact@v4
         if: always()
