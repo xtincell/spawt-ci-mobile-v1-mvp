@@ -149,7 +149,7 @@ def authenticate():
 def saved():
     adb("shell","am","force-stop",PACKAGE)
     open_url("spawt://place/"+BRUNCH);find("IN’ Concept Store")
-    tap("Sauvegarde pour plus tard");find("Sauvegardé")
+    tap("place-save-action");find("place-saved-state")
     owner = FIXTURES[3]["id"]
     def receipt(sql):
         return subprocess.check_output(["docker","exec",os.environ["PILOT_DB_CONTAINER"],"psql","-XAtq","-U","postgres",

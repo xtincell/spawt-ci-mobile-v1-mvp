@@ -30,6 +30,8 @@ def tree():
 
 def match(label, node):
     aliases = {
+        "place-save-action": ("Enregistrer le lieu", "Sauvegarde pour plus tard"),
+        "place-saved-state": ("Lieu enregistré", "Sauvegardé"),
         "pilot-open-place": ("Ouvrir la fiche",),
         "pilot-code-input": ("Code de reprise",),
         "pilot-code-submit": ("Retrouver le lieu",),
@@ -200,7 +202,7 @@ def scenario(source,account,mode):
         step("ouverture volontaire de IN’");tap("pilot-open-place")
         find("IN’ Concept Store");find("Prix à préciser")
         assert match("Sauvegarde pour plus tard",find("Sauvegarde pour plus tard"))
-        time.sleep(1.5);step("appui sur le favori");tap("Sauvegarde pour plus tard");find("Sauvegardé")
+        time.sleep(1.5);step("appui sur le favori");tap("place-save-action");find("place-saved-state")
         receipt["server"]=durable_add(j["journey_id"]);time.sleep(2)
         step("favori confirmé sur le serveur local")
     finally:
@@ -262,15 +264,15 @@ def check_upgrade():
         assert count()=="0", "The legacy favorite scenario requires an untouched synthetic persona"
         outcome["before_legacy_save"]=now()
         place()
-        tap("Sauvegarde pour plus tard")
-        find("Sauvegardé")
+        tap("place-save-action")
+        find("place-saved-state")
         outcome["legacy_ui_gesture_confirmed"]=now()
         for _ in range(30):
             if count()=="1":break
             time.sleep(1)
         assert count()=="1";outcome["legacy_server_ack"]=now()
         adb("shell","am","force-stop",PACKAGE);adb("reverse","tcp:8081","tcp:8081")
-        adb("install","-r",APK,timeout=180);place();find("Sauvegardé")
+        adb("install","-r",APK,timeout=180);place();find("place-saved-state")
         assert count()=="1";outcome["after_upgrade_favorite_visible"]=now()
         j=journey("facebook")
         adb("shell","am","start","-W","-a","android.intent.action.VIEW",
