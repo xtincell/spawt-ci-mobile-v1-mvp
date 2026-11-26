@@ -17,7 +17,11 @@ export function receiveUi46(recipe, signed, visual, readSignedScreenshot) {
     assert.equal(createHash('sha256').update(readSignedScreenshot(state)).digest('hex'), evidence.screenshotSha256);
   }
   assert.equal(visual.source, recipe.uiWorkflowCommit);
-  assert.match(visual.native, /debug x86_64 build 45/);
+  assert.equal(visual.native, 'APK signé Android 1.1.5 (46)');
+  assert.equal(visual.sha256, recipe.sha256);
+  assert.equal(visual.api, 'https://api.spawt.online');
+  assert.equal(visual.etat_initial_retabli, true);
+  assert.equal(visual.favoris_acquittes.prix_xof, 7000);
   for (const screen of ['Le Cha', 'Identification interne', 'Mes envies', 'Carte']) assert.equal(visual.screens[screen]?.pass, true);
   assert.ok(visual.lieu_sur_la_carte?.nom && visual.lieu_sur_la_carte?.quartier);
   assert.ok(visual.favoris_acquittes?.plat && visual.favoris_acquittes?.lieu);
@@ -29,6 +33,10 @@ export function receiveUi46(recipe, signed, visual, readSignedScreenshot) {
 export function loadUi46(recipe, proofDirectory, visualDirectory) {
   const read = file => JSON.parse(readFileSync(file, 'utf8'));
   const signed = read(path.join(proofDirectory,'le-cha-signed.json'));
+  const pinned = JSON.parse(readFileSync(new URL('../documentation/android-build46-alpha-receipt.json',import.meta.url),'utf8'));
+  for (const [name,digest] of Object.entries(pinned.visualFiles)) {
+    assert.equal(createHash('sha256').update(readFileSync(path.join(visualDirectory,name))).digest('hex'), digest);
+  }
   const visual = read(path.join(visualDirectory,'recu.json'));
   return receiveUi46(recipe,signed,visual,state => readFileSync(path.join(proofDirectory,'le-cha-'+state+'.png')));
 }

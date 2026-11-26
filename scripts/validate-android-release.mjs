@@ -180,7 +180,7 @@ export function validateAndroidReleaseProof(recipe, metadata, proof) {
   return { profile, copies };
 }
 
-export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'release-apk', proofDirectory = 'native-proof', pilotDirectory = 'pilot-native-proof', liveDirectory = 'partial-live-proof' } = {}) {
+export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'release-apk', proofDirectory = 'native-proof', pilotDirectory = 'pilot-native-proof', liveDirectory = 'partial-live-proof', visualDirectory = 'ui-native-proof' } = {}) {
   const profile = androidPublicationProfile(recipe);
   const read = name => JSON.parse(fs.readFileSync(path.join(proofDirectory, name), 'utf8'));
   const metadata = JSON.parse(fs.readFileSync(path.join(artifactDirectory, 'apk-metadata.json'), 'utf8'));
@@ -191,7 +191,7 @@ export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'releas
     if (fs.existsSync(path.join(proofDirectory, 'live-data.json'))) throw new Error('Pending receipts must remain explicitly unverified');
     proof.fingerprints = Object.fromEntries(Object.keys(BUILD42_PROOF_SHA256).map(name => [name, createHash('sha256').update(fs.readFileSync(path.join(proofDirectory, name))).digest('hex')]));
   } else if (profile === 'ui46-alpha') {
-    proof.ui = loadUi46(recipe, proofDirectory, 'ui-native-proof');
+    proof.ui = loadUi46(recipe, proofDirectory, visualDirectory);
   } else if (profile === 'pilot45-alpha') {
     proof.pilot = receivePilot45Alpha(pilotDirectory);
     const actual = createHash('sha256').update(fs.readFileSync(path.join(liveDirectory, 'assertions.json'))).digest('hex');
@@ -207,6 +207,13 @@ export function prepareAndroidReleaseProof(recipe, { artifactDirectory = 'releas
     fs.copyFileSync(path.join(proofDirectory, source), destination);
     return destination;
   });
+  if (profile === 'ui46-alpha') {
+    for (const filename of ['carte.png','carte-adresse.png','mes-envies.png','mes-envies-adresse.png']) {
+      const destination = path.join(artifactDirectory, filename);
+      fs.copyFileSync(path.join(visualDirectory,filename), destination);
+      assets.push(destination);
+    }
+  }
   if (result.qualification) {
     const destination = path.join(artifactDirectory, 'release-qualification.json');
     fs.writeFileSync(destination, JSON.stringify(result.qualification, null, 2) + '\n');

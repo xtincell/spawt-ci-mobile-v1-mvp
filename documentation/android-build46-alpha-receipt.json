@@ -1,0 +1,24 @@
+{
+  "version": "1.1.5",
+  "build": 46,
+  "buildDate": "2026-11-26",
+  "sourceCommit": "c88d79880c40dcc2d9f92f8a37da1d9812b942c7",
+  "bytes": 162896707,
+  "sha256": "0f2f78ccaf65ece6467c23f5969eacdf5821773790ddcf3a00bcce2a7e87690f",
+  "tag": "local-build-android-2026-11-26-46",
+  "buildRun": 45736708509,
+  "buildWorkflowCommit": "1541d8a0dfd404c9d5af35765a51ff147240ef09",
+  "qaRun": 45754933420,
+  "qaWorkflowCommit": "4f4386e7f5b62e0df3d6137b6e8801049ac8d10b",
+  "uiRun": 45783386425,
+  "uiWorkflowCommit": "d944b45a32cc3c9be47a88ecfe7a45194a66d011",
+  "publicationProfile": "ui46-alpha",
+  "publicationDecision": "owner-approved-build46-alpha-with-pending-receipts",
+  "visualFiles": {
+    "recu.json": "f4c932d1e882dc845cf470c6c351585f008805559f079d509e4512ce01261345",
+    "carte.png": "55990a4b8bf0e8a610bbeb17ed310940fc1cb6e975c68912c5e58e74afc09de0",
+    "carte-adresse.png": "d4506f5f0b830a9c47a3df795ce93f0ee0138dfd960f0553c8a76de7165a9c5f",
+    "mes-envies.png": "d287f842f43dadcb8eec535aec9e2f854ac47508decc9950e9791928d911b575",
+    "mes-envies-adresse.png": "786f7d306375beb18d41ab262cd515fe14fdf06ac77ea86d908e074d953d6d07"
+  }
+}

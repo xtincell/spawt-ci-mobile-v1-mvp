@@ -11,12 +11,12 @@ function fixture() {
     signed: { build: 46, sha256: recipe.sha256, url: 'https://spawt.online/ouvrir/avis/le-cha-alexandre',
       states: ['cold','warm'].map(state => ({ state, title: 'Le Cha', author: true, quote: true, processVerified: true,
         ratings: ['Cuisine 4,5/5','Cadre 4/5','Service 3/5'], photoAspectRatio: .75, screenshotSha256: digest })) },
-    visual: { source: recipe.uiWorkflowCommit, native: 'debug x86_64 build 45', screens: Object.fromEntries(
+    visual: { source: recipe.uiWorkflowCommit, native: 'APK signé Android 1.1.5 (46)', sha256: recipe.sha256, api:'https://api.spawt.online', etat_initial_retabli: true, screens: Object.fromEntries(
       ['Le Cha','Identification interne','Mes envies','Carte'].map(name => [name,{pass:true}])),
-      lieu_sur_la_carte: { nom: 'Exemple', quartier: 'Marcory' }, favoris_acquittes: { plat:'exemple',lieu:'exemple' } },
+      lieu_sur_la_carte: { nom: 'Exemple', quartier: 'Marcory' }, favoris_acquittes: { plat:'exemple',lieu:'exemple',prix_xof:7000 } },
   };
 }
-test('separates signed cold/warm evidence from the loopback visual receipt', () => {
+test('compares both signed cold/warm and production-account visual evidence', () => {
   const { signed, visual } = fixture();
   const received = receiveUi46(recipe,signed,visual,() => picture);
   assert.equal(received.signedLeCha, true);

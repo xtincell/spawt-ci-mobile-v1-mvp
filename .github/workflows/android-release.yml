@@ -37,7 +37,7 @@ jobs:
           const profile=androidPublicationProfile(c);
           const required=[[c.buildRun,c.buildWorkflowCommit,'.github/workflows/android-local-build.yml','success'],[c.qaRun,c.qaWorkflowCommit,'.github/workflows/android-qa.yml','success']];
           if(profile==='pilot45-alpha') required.push([c.pilotRun,c.pilotWorkflowCommit,'.github/workflows/android-pilot-receipt.yml','failure'],[c.liveRun,c.liveWorkflowCommit,'.github/workflows/android-qa.yml','failure']);
-          if(profile==='ui46-alpha') required.push([c.uiRun,c.uiWorkflowCommit,'.github/workflows/android-ui-review.yml','success']);
+          if(profile==='ui46-alpha') required.push([c.uiRun,c.uiWorkflowCommit,'.github/workflows/android-signed-screens.yml','success']);
           for(const [id,sha,path,conclusion] of required) {
             const r=JSON.parse(execFileSync('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${id}`],{encoding:'utf8'}));
             if(r.status!=='completed' || r.conclusion!==conclusion || r.head_sha!==sha || r.path!==path) throw new Error('Required verified run is missing');
