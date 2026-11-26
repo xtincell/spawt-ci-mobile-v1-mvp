@@ -1,8 +1,8 @@
 name: Android signed screen inspection
 on:
   push:
-    branches: ['codex/pilote-abidjan-20261204']
-    paths: ['.github/workflows/android-signed-screens.yml', 'scripts/android-signed-screens.py']
+    branches: ['codex/recette-signee-47']
+    paths: ['.github/workflows/android-signed-screens.yml', 'scripts/android-signed-47.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -40,21 +40,38 @@ jobs:
           if ! timeout 240s "$ANDROID_HOME/platform-tools/adb" wait-for-device; then tail -c 12000 "$RUNNER_TEMP/pilot-emulator.log"; exit 1; fi
           for i in {1..90}; do if [ "$("$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then break; fi; sleep 2; done
           "$ANDROID_HOME/platform-tools/adb" shell input keyevent 82
-      - name: Recevoir le candidat signé puis lire les trois écrans
+      - name: Recevoir et comparer les APK signés 45 et 47
         env:
           GH_TOKEN: ${{ github.token }}
-          PILOT_DEBUG_APK: signed-candidate
         run: |
-          gh run download 45736708509 -n android-apk -D "$RUNNER_TEMP/signed"
-          apk="$RUNNER_TEMP/signed/spawt-1.1.5-build46.apk"
-          echo "0f2f78ccaf65ece6467c23f5969eacdf5821773790ddcf3a00bcce2a7e87690f  $apk" | sha256sum -c -
-          adb install "$apk"
-          adb shell pm grant com.upgraders.spawt android.permission.POST_NOTIFICATIONS
+          set -euo pipefail
+          gh run download 45824861462 --name android-apk --dir "$RUNNER_TEMP/signed"
+          apk="$RUNNER_TEMP/signed/spawt-1.1.6-build47.apk"
+          legacy="$RUNNER_TEMP/spawt-1.1.4-build45.apk"
+          curl -fsSL --retry 3 'https://spawt.online/downloads/spawt-1.1.4-build45.apk' -o "$legacy"
+          echo "b6a092e3935835de1f6a0b6384c953d96b0f37ed15eaeb5ba842527a95e63a90  $legacy" | sha256sum -c -
+          echo "88042ac19e7c6d3af6626f761f25eab45bbe3d212651af05f0a8ab1e66214129  $apk" | sha256sum -c -
+          test "$(stat -c %s "$apk")" = 162897383
+          test "$(stat -c %s "$legacy")" = 162850779
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$signer" verify --print-certs "$legacy" > "$RUNNER_TEMP/signer45"
+          "$signer" verify --print-certs "$apk" > "$RUNNER_TEMP/signer47"
+          grep '^Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/signer45" > "$RUNNER_TEMP/cert45"
+          grep '^Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/signer47" > "$RUNNER_TEMP/cert47"
+          cmp "$RUNNER_TEMP/cert45" "$RUNNER_TEMP/cert47"
+          echo "PILOT_DEBUG_APK=$apk" >> "$GITHUB_ENV"
+          echo "PILOT_LEGACY_APK=$legacy" >> "$GITHUB_ENV"
+      - name: Mise à jour, premier écran, fiche et favori acquitté
+        run: |
           python3 -m pip install --quiet pillow
-          python3 scripts/android-signed-screens.py
+          python3 scripts/android-signed-47.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: trois-ecrans-android
-          path: ui-review
+          name: recette-signee-47
+          path: |
+            ui-review/recu.json
+            ui-review/onboarding-propre.png
+            ui-review/mes-envies.png
+            ui-review/mes-envies-adresse.png
           retention-days: 14
