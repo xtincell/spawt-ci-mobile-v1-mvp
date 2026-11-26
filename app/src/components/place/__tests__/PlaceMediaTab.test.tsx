@@ -6,7 +6,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — react-test-renderer ships JS only
 import TestRenderer from "react-test-renderer";
-import { ActivityIndicator, Image, Pressable, Text } from "react-native";
+import { ActivityIndicator, Image, Text } from "react-native";
 
 const mockTranslate = jest.fn((key: string) => key);
 jest.mock("react-i18next", () => ({
@@ -20,7 +20,7 @@ interface NodeLike {
   props: Record<string, unknown>;
 }
 interface RendererLike {
-  root: { findAllByType: (t: unknown) => NodeLike[] };
+  root: { findAll: (p: (n: NodeLike) => boolean) => NodeLike[]; findAllByType: (t: unknown) => NodeLike[] };
   unmount: () => void;
 }
 
@@ -91,7 +91,7 @@ describe("<PlaceMediaTab /> — R17 / Q1 onglet Média", () => {
     await flush();
     // 3 images max côté présentation, pas d'état vide global.
     expect(r.root.findAllByType(Image)).toHaveLength(3);
-    const toggle = r.root.findAllByType(Pressable).find(node => typeof node.props.onPress === "function" && node.props.accessibilityState);
+    const toggle = r.root.findAll(node => node.props.accessibilityRole === "button" && typeof node.props.onPress === "function")[0];
     expect(toggle).toBeDefined();
     TestRenderer.act(() => (toggle!.props.onPress as () => void)());
     expect(r.root.findAllByType(Image)).toHaveLength(5);

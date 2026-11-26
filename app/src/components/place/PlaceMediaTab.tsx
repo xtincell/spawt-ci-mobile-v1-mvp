@@ -53,8 +53,6 @@ export function PlaceMediaTab({ placeId, galleryUrls, fetcher }: Props) {
       })
       .catch((err: unknown) => {
         if (__DEV__) console.warn("[PlaceMediaTab] fetch failed", err);
-        // Erreur ⇒ même UX que « aucune photo spawter » (pas d'écran d'erreur
-        // dédié pour une section secondaire de la fiche).
         if (cancelled) return;
         setState({kind: "error"});
       });
