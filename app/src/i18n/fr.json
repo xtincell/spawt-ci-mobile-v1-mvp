@@ -919,6 +919,11 @@
     "share_card_pionnier": "Pionnier n°{{n}} de la bande"
   },
   "place": {
+    "question_team": "Poser une question à l’équipe SPAWT",
+    "all_photos_one": "Voir la photo du lieu",
+    "all_photos_other": "Voir les {{count}} photos du lieu",
+    "fewer_photos": "Revenir à la sélection",
+    "retry_photos": "Recharger les photos de La Bande",
     "official_site": "Site de l’établissement",
     "maps_listing": "Voir la fiche sur Google Maps",
     "practical_title": "Préparer sa visite",

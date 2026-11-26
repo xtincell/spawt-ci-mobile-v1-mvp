@@ -1021,6 +1021,10 @@ export default function PlaceDetailScreen() {
               ) : null}
             </View>
           ) : null}
+          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/support", params: {context: "place:" + place.id, topic: "question"} })}
+            style={{flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, minHeight: 48}}>
+            <Ico name="send" size={16}/><Text style={{ ...theme.typography.preset.small, color: theme.colors.brand.accent }}>{t("place.question_team")}</Text>
+          </Pressable>
           <PlaceNeighbors key={place.id} place={place} />
         </View>
       </ScrollView>

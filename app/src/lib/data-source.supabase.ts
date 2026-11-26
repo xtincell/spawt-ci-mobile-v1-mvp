@@ -596,6 +596,7 @@ export async function listPlacePhotosFromSpawtsFromSupabase(
     if (__DEV__ && error) {
       console.warn("[data-source] listPlacePhotosFromSpawts failed", error);
     }
+    if (error) throw new DataReadError("photos");
     return [];
   }
 
