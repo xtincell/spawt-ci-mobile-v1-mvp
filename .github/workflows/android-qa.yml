@@ -5,7 +5,7 @@ permissions:
 on:
   push:
     tags: ['qa-android-*']
-    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204']
+    branches: ['codex/recette-signee-47', 'codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204']
     paths: ['documentation/android-qa.json']
   workflow_dispatch:
     inputs:
@@ -188,6 +188,7 @@ jobs:
           references={
               40:('2026-10-19','f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648'),
               41:('2026-10-22','62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9'),
+              46:('2026-11-26','0f2f78ccaf65ece6467c23f5969eacdf5821773790ddcf3a00bcce2a7e87690f'),
               45:('2026-11-25','b6a092e3935835de1f6a0b6384c953d96b0f37ed15eaeb5ba842527a95e63a90'),
               44:(None,'f839b7758f5eec35a0dfd98e0f6115cbdbad6c1e9efd15104a8d5ce1968e419f'),
           }
@@ -199,7 +200,7 @@ jobs:
               subprocess.run(['gh','run','download','45685227649','--name','android-apk','--dir',str(dest)],check=True)
               shutil.copyfile(dest/'spawt-1.1.3-build44.apk','previous.apk')
           else:
-              version='1.1.4' if previous==45 else '1.1.1'
+              version={46:'1.1.5',45:'1.1.4'}.get(previous,'1.1.1')
               url=f'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-{date}-{previous}/spawt-{version}-build{previous}.apk'
               urllib.request.urlretrieve(url,'previous.apk')
           assert hashlib.sha256(pathlib.Path('previous.apk').read_bytes()).hexdigest()==digest
@@ -304,16 +305,10 @@ jobs:
         if: always() && steps.capture_policy.outputs.raw_allowed == 'true'
         with:
           name: android-proof
-          path: android-proof
-          retention-days: 14
-      - name: Préparer les aperçus de recette
-        if: always() && steps.capture_policy.outputs.raw_allowed == 'true' && steps.apk.outputs.ready == 'true'
-        run: |
-          python3 -m pip install --quiet pillow
-          python3 scripts/android-proof-preview.py
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.capture_policy.outputs.raw_allowed == 'true' && steps.apk.outputs.ready == 'true'
-        with:
-          name: android-preview
-          path: android-preview
+          path: |
+            android-proof/apk-metadata.json
+            android-proof/assertions.json
+            android-proof/upgrade-install.json
+            android-proof/firebase-runtime.json
+            android-proof/opening-visibility.json
           retention-days: 14
