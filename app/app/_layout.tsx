@@ -94,6 +94,10 @@ export default function RootLayout() {
     if (Platform.OS === "android" && isSupabaseConfigured) void recordColdOpen().catch(() => undefined);
   }, []);
   const { fontsLoaded, fontError } = useAppFonts();
+  const route: readonly string[] = useSegments();
+  const lightScreen = route[0] === "saved"
+    || (route[0] === "(tabs)" && route[1] === "carte")
+    || (route[0] === "lieu" && route[2] === "avis");
 
   const { t } = useTranslation();
   const restoreAccount = useCallback(async () => {
@@ -347,7 +351,8 @@ export default function RootLayout() {
     <GestureHandlerRootView onLayout={onRootLayout} style={{ flex: 1, backgroundColor: openingVisible ? palette.pureWhite : palette.black }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <StatusBar style={openingVisible ? "dark" : "light"} backgroundColor={openingVisible ? palette.pureWhite : palette.black} />
+          <StatusBar style={openingVisible || lightScreen ? "dark" : "light"}
+            backgroundColor={openingVisible || lightScreen ? palette.pureWhite : palette.black} />
           <RouteGuard onReady={setRouteReady} />
           <Stack
             screenOptions={{
