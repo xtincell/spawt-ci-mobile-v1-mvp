@@ -618,7 +618,7 @@ export default function PlaceDetailScreen() {
                 accessibilityLabel={
                   isSaved ? t("place.heart_active") : t("place.heart_hint")
                 }
-                accessibilityHint={t("place.heart_hint")}
+                accessibilityHint={t(isSaved ? "outings.remove_place" : "outings.save_place")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={{
                   width: 40,
