@@ -1,0 +1,9 @@
+.pilot { display: grid; gap: 1rem; }
+.pilot-controls { display: flex; gap: .75rem; align-items: end; flex-wrap: wrap; }
+.pilot-controls label { display: grid; gap: .3rem; }
+.pilot-kpis { display: grid; grid-template-columns: repeat(auto-fit,minmax(175px,1fr)); gap: .75rem; margin: 0; }
+.pilot-kpis .panel { padding: 1rem; margin: 0; }
+.pilot-kpis dd { font-size: 1.7rem; font-weight: 700; margin: .35rem 0 0; font-variant-numeric: tabular-nums; }
+.pilot-table { overflow-x: auto; }
+.pilot-table th,.pilot-table td { text-align: left; padding: .55rem; }
+.pilot-table td { font-variant-numeric: tabular-nums; }

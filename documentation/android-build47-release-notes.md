@@ -1,0 +1,6 @@
+# SPAWT Android 1.1.6 · build 47
+APK signé pour la bêta Android. Le fichier pèse 162 897 383 octets. SHA-256 : `88042ac19e7c6d3af6626f761f25eab45bbe3d212651af05f0a8ab1e66214129`.
+
+Sur Android 15, le binaire s’installe par-dessus le 45 distribué par la vitrine, avec le même certificat et la même identité d’installation. Une installation propre affiche le premier écran. Le compte de recette réservé a ouvert IN’ Concept Store et ajouté l’adresse aux favoris. Le serveur a acquitté ce lieu, la fiche l’affichait encore après un redémarrage depuis l’icône et l’état initial a été rétabli. [Parcours sur le binaire signé](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/45831760780) · [Contrôle standard, y compris la mise à jour depuis l’alpha 46](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/45830225324)
+
+Le premier essai a montré qu’un lien profond de fiche immédiatement après un arrêt forcé pouvait ouvrir l’accueil. La reprise directe d’une campagne après installation, l’onboarding complet et le Guet sur téléphone physique restent à vérifier séparément. [Premier essai](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/45830323914) · [Tests SQL isolés](https://github.com/xtincell/spawt-ci-mobile-v1-mvp/actions/runs/45824102500)

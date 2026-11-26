@@ -1,3 +1,4 @@
+import { PilotPage } from "./pages/pilote";
 import { GuetPage } from "./pages/guet";
 import { ActualitesList } from "./pages/actualites";
 import { MenusPage } from "./pages/menus";
@@ -160,6 +161,7 @@ export const App = () =>
           <Route path="/comptes" element={<ComptesList />} />
           <Route path="/comptes/show/:id" element={<CompteShow />} />
           <Route path="/metriques" element={<MetriquesDashboard />} />
+          <Route path="/pilote" element={<PilotPage />} />
           <Route path="/fonctionnalites" element={<FonctionnalitesList />} />
           <Route path="/evenements" element={<EvenementsList />} />
           <Route path="/promotions" element={<PromotionsList />} />

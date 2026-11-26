@@ -30,7 +30,10 @@ checks() {
   done
 }
 checks
+# Receipts depend on the pilot install and journey tables. Undo newest first.
 sql -f /repo/supabase/migrations/0097_saved_catalogue_metrics.down.sql
+sql -f /repo/supabase/migrations/0096_pilot_funnel_receipts.down.sql
+sql -f /repo/supabase/migrations/0095_admin_pilot_funnel.down.sql
 sql -f /repo/supabase/migrations/0094_abidjan_pilot_reports.down.sql
 sql -f /repo/supabase/migrations/0093_abidjan_pilot.down.sql
 sql -f /repo/supabase/migrations/0092_guet_cartographic_locations.down.sql
@@ -83,6 +86,8 @@ for version in 0079 0080 0081; do
 done
 sql -f /repo/supabase/migrations/0093_abidjan_pilot.sql
 sql -f /repo/supabase/migrations/0094_abidjan_pilot_reports.sql
+sql -f /repo/supabase/migrations/0095_admin_pilot_funnel.sql
+sql -f /repo/supabase/migrations/0096_pilot_funnel_receipts.sql
 sql -f /repo/supabase/migrations/0097_saved_catalogue_metrics.sql
 checks
 echo 'Payment SQL: fresh schema, permissions, invoices, rollback and upgrade passed.'

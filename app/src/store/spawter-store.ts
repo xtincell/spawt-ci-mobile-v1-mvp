@@ -1,3 +1,4 @@
+import { queuePilotOnboarding, syncPilot } from "../lib/pilot-journey";
 // Store Zustand pour le spawter actif + son Palais + ses spawts locaux.
 // Persiste via AsyncStorage. Synchronise vers Supabase si configuré.
 
@@ -893,6 +894,8 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
     }
     if (generation !== sessionGeneration) throw new Error("ACCOUNT_SESSION_CHANGED");
 
+    if (isSupabaseConfigured) await queuePilotOnboarding(id).catch(() => undefined);
+
     // 3. Synchroniser profil → Palais (FK) → claim définitif. Le preview OTP
     // n'a créé aucune ligne. La synchronisation reste best-effort : sa reprise
     // durable et sa visibilité ne sont pas reçues par ce lot.
@@ -909,6 +912,7 @@ export const useSpawterStore = create<SpawterStore>((set, get) => ({
       } catch (err) {
         if (__DEV__) console.warn("[spawter-store] savePalais finalize failed", err);
       }
+      if (isSupabaseConfigured) void syncPilot(id).catch(() => undefined);
       if (heritage?.claimed) return;
       try {
         const claim = await claimMeuteHeritage(id, spawter.phone_e164);

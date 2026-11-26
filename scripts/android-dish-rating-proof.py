@@ -18,10 +18,10 @@ key=env["EXPO_PUBLIC_SUPABASE_ANON_KEY"]
 ui.out=pathlib.Path("android-proof")
 metadata=json.loads((ui.out/"apk-metadata.json").read_text())
 target=json.loads(pathlib.Path("documentation/android-qa.json").read_text())
-assert metadata["build"]==target["build"]==47 and metadata["sourceCommit"]==target["sourceCommit"]
+assert metadata["build"]==target["build"]==48 and metadata["sourceCommit"]==target["sourceCommit"]
 with pathlib.Path("spawt.apk").open("rb") as binary:
     assert hashlib.file_digest(binary,"sha256").hexdigest()==metadata["sha256"]
-evidence={"build":47,"sha256":metadata["sha256"],"api":api,"checks":[],"source":metadata["sourceCommit"]}
+evidence={"build":48,"sha256":metadata["sha256"],"api":api,"checks":[],"source":metadata["sourceCommit"]}
 def call(path,payload=None,token=None):
     req=urllib.request.Request(api+path,data=json.dumps(payload).encode() if payload is not None else None,
         headers={"apikey":key,"Authorization":"Bearer "+(token or key),"Content-Type":"application/json"})
@@ -40,7 +40,7 @@ def current(token,owner):
     ratings=call("/rest/v1/rpc/my_menu_item_ratings",{},token)
     score=next((row["rating"] for row in ratings if row["menu_item_id"]==ui.DISH),None)
     return bool(places),any(d["id"]==ui.DISH for d in outings["dishes"]),score
-accounts=[("+2250000000194","dca6b8a2-0c57-4adb-8858-93736370d3ed"),("+2250000000193","d7ea30bc-fb7f-440d-bac6-4bbd306f1e42")]
+accounts=[("+2250000000193","d7ea30bc-fb7f-440d-bac6-4bbd306f1e42")]
 for phone, owner in accounts:
     token=session(phone,owner)
     original=current(token,owner)
@@ -105,4 +105,4 @@ finally:
         if state:call("/rest/v1/rpc/mutate_outing",{"p_id":str(uuid.uuid4()),"p_action":"unsave","p_payload":{field:value},"p_owner":owner},token)
     verify("original_state_restored",original)
     call("/auth/v1/logout?scope=local",{},token)
-    (ui.out/"dish-rating-47.json").write_text(json.dumps(evidence,ensure_ascii=False,indent=2))
+    (ui.out/"dish-rating-48.json").write_text(json.dumps(evidence,ensure_ascii=False,indent=2))

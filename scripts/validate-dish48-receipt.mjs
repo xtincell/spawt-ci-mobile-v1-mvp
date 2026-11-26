@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
-export function receiveDish47(recipe, proof) {
-  assert.equal(proof.build, 47);
+export function receiveDish48(recipe, proof) {
+  assert.equal(proof.build, 48);
   assert.equal(proof.sha256, recipe.sha256);
   assert.equal(proof.source, recipe.sourceCommit);
   assert.equal(proof.api, 'https://api.spawt.online');

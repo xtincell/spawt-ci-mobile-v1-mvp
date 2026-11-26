@@ -27,3 +27,29 @@ Les populations `interne` (y compris équipe, comptes d’amorçage ou bannis) e
 Les migrations `0093_abidjan_pilot` et `0094_abidjan_pilot_reports` disposent de leur retour arrière. Sur une base éphémère préparée avec `supabase/tests/fixtures/full_schema_bootstrap.sql`, appliquer les migrations dans l’ordre et la seed des offres après 0002, puis lancer `psql -X -v ON_ERROR_STOP=1 -f supabase/tests/abidjan_pilot.sql`. Le scénario s’exécute dans une transaction annulée à la fin. Il couvre la reprise tardive par lien, le code consommé par un autre compte ou expiré, la conservation de l’heure initiale, l’ajout confirmé puis retiré, les événements répétés ou désordonnés, la déduplication, les populations exclues, la borne de fin de semaine, l’absence de trajet et la différence entre spawt local et serveur.
 
 Le site et le candidat doivent viser un backend doté de ces migrations pour la recette de bout en bout. Le déploiement et le rapprochement des données réelles sont à constater séparément.
+
+## Console staff : Funnel d’activation
+
+La route `/pilote` de la console admin est réservée au rôle administrateur.
+La migration 0095 publie une seule RPC en lecture ; elle vérifie de nouveau le
+rôle côté serveur. Les résultats sont filtrés par période (Abidjan) et reprennent
+les définitions du pilote. Les téléchargements complets ne sont pas mesurés :
+le clic, l’ouverture et l’installation attribuée sont distincts. L’onboarding
+est compté une fois, à réception du premier signal `onboarding_completed` pour
+un compte ayant un Palais persistant. Ce signal ne contient pas un identifiant
+d’installation fiable : le total n’est pas ventilé par origine.
+Les derniers favoris affichent une référence pseudonyme et pas d’identité de compte.
+
+Déploiement : vérifier l’application des migrations 0093 et 0094, puis appliquer
+0095 avant de publier le nouveau bundle admin. Ne pas remplacer la branche
+de production par toute la branche du pilote simplement pour livrer cet écran :
+intégrer les modifications admin dans la branche effectivement déployée.
+Recette : vérifier que la RPC refuse anonyme, opérateur et compte normal ;
+ouvrir l’écran avec un compte admin, exécuter un parcours instrumenté externe
+sur un Android et retrouver l’ajout confirmé, puis contrôler qu’un second ajout
+sur un autre lieu n’incrémente pas le nombre d’actifs de cette personne.
+
+### Reçus de transfert et campagne d’onboarding (0096)
+- « APK reçus » compte une visite instrumentée qui signale la réponse APK complète, de la taille du manifeste, dans le navigateur. Il ne garantit ni l’écriture dans Téléchargements, ni l’installation. Lien direct et navigateurs incompatibles restent disponibles, mais non mesurés. La mesure navigateur est déclarative ; ne pas en faire une preuve antifraude.
+- La fin d’onboarding envoie un reçu sur l’installation déjà liée au compte. La base exige un Palais persistant. Un lien/coupon de campagne rattaché à cette même installation et à ce même compte, cliqué avant la fin de l’onboarding, rend la ventilation possible. Les anciens signaux sans reçu restent « Inconnu », jamais attribués par supposition.
+- Appliquer 0093 à 0096 avant les nouveaux clients. Publier le panel et le portail validés sur leurs branches de déploiement respectives ; compiler et signer un nouveau build Android, puis le publier sur le canal qui sert le bouton. Vérifier sur Android physique que le parcours, de la campagne au favori, remonte jusqu’au panel. Valider aussi un transfert interrompu et le téléchargement direct.

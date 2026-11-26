@@ -79,6 +79,7 @@ export const Layout = () => {
           <NavLink to="/push" className={({ isActive }) => (isActive ? "active" : "")}>
             Push
           </NavLink>
+          {identity?.role === "admin" && <NavLink to="/pilote" className={({ isActive }) => isActive ? "active" : ""}>Funnel d’activation</NavLink>}
           <NavLink to="/metriques" className={({ isActive }) => (isActive ? "active" : "")}>
             Métriques
           </NavLink>
