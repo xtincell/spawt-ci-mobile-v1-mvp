@@ -123,7 +123,7 @@ export default function SavedScreen() {
         note={dish.is_published ? t("outings.observed", {date: dish.observed_on}) : t("outings.retired")}
         open={() => router.push({pathname: "/place/[id]", params: {id: dish.place_id, tab: "menu", dish: dish.id}} as never)}>
         {dish.is_published ? <OutingActions placeId={dish.place_id} dish={dish} /> :
-          <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("unsave", {menu_item_id: dish.id}))}><Text style={ink}>{t("outings.remove_saved")}</Text></Pressable>}
+          <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("unsave", {menu_item_id: dish.id}))}><Text style={ink}>{t("outings.remove_dish")}</Text></Pressable>}
         {!dish.is_published && <DishRatingButton key={(owner?.id ?? "") + dish.id} owner={owner?.id} dishId={dish.id} name={dish.name} published={false} />}
         {selected ? <Pressable accessibilityRole="button" style={button} onPress={() => void run(() => outings.perform("list_remove", {list_id: selected, menu_item_id: dish.id}))}><Text style={ink}>{t("outings.remove_from_list")}</Text></Pressable> : null}
       </SavedItemRow>)}

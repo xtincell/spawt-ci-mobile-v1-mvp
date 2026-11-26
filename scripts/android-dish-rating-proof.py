@@ -81,8 +81,8 @@ try:
     ui.shot("note-du-plat");ui.tap("dish-rating-save");verify("rated_without_saves",(False,False,4))
     rate(2);verify("rating_changed",(False,False,2))
     rate(None);verify("rating_removed",(False,False,None))
-    ui.tap("save-intent-"+ui.DISH);verify("only_dish",(False,True,None))
-    ui.open_url("spawt://place/"+ui.BRUNCH);ui.tap("Enregistrer ce lieu");verify("place_and_dish",(True,True,None))
+    ui.find("save-intent-"+ui.DISH);ui.tap("Ajouter aux favoris");verify("only_dish",(False,True,None))
+    ui.open_url("spawt://place/"+ui.BRUNCH);ui.tap("Enregistrer le lieu");verify("place_and_dish",(True,True,None))
     ui.open_url("spawt://saved");ui.find("saved-place-"+ui.BRUNCH)
     first=ui.find("Lieux enregistrés")
     ui.shot("envies-lieu-premier")
@@ -96,7 +96,7 @@ try:
         ui.find("Favoris plats")
     ui.shot("envies-favoris-plats")
     evidence["saved_sections"]=["Lieux enregistrés","Favoris plats"]
-    search_dish();ui.tap("save-intent-"+ui.DISH);verify("only_place",(True,False,None))
+    search_dish();ui.find("save-intent-"+ui.DISH);ui.tap("Retirer le plat des favoris");verify("only_place",(True,False,None))
     ui.open_url("spawt://place/"+ui.BRUNCH);ui.tap("Lieu enregistré");verify("neither",(False,False,None))
 finally:
     place,dish,score=current(token,owner)
