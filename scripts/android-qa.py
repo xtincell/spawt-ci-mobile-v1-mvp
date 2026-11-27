@@ -974,48 +974,114 @@ try:
             raise AssertionError('Le Cha absent des résultats tactiles depuis l’accueil')
         check('accueil puis recherche ouvrent la fiche en direct', bool(label(scroll_find('open-le-cha-approved-preview'))))
         scroll_tap('open-le-cha-approved-preview')
-        find('Agrandir la devanture de Le Cha', timeout=40)
-        snap('fiche-49-le-cha')
+        find('Retour à la découverte', timeout=40, exact=True)
+        tree = snap('fiche-49-le-cha')
         check('Rendu de la fiche approuvee dans la WebView signee',
-              bool(label(find('Agrandir la devanture de Le Cha'))))
-        # The horizontal social rail reveals one review in place. Its next
-        # control always stays above the rail, independently of line wrapping.
-        scroll_tap('Avis suivants')
-        time.sleep(.6)
-        tap('Avis suivants')
-        time.sleep(.6)
-        scroll_tap('Développer l’avis · Alexandre')
-        check('avis Alexandre developpe sur la meme carte',
-              bool(label(scroll_find('Replier l’avis · Alexandre'))))
-        snap('avis-49-alexandre-developpe')
-        scroll_tap('Voir le palmarès de novembre')
-        find('Mois précédent', timeout=18)
-        check('distinction : palmares de novembre consultable',
-              bool(label(find('novembre 2026'))))
-        snap('distinction-49-novembre')
-        tap('Mois précédent')
-        check('distinction : le mois precedent est accessible',bool(label(find('octobre 2026'))))
-        back()
-        check('retour Android referme le palmares', bool(label(find('Voir le palmarès de novembre'))))
+              any(n.get('class') == 'android.webkit.WebView' for n in tree.iter('node')))
+        meta = json.loads((OUT / 'apk-metadata.json').read_text())
+        assert meta['runId'] == 45967628096 and meta['sha256'] == '326c6fc07358e37a9c3a3706836f794f57397695327b3e92674051cca71f7ca9'
+        failures = []
+        facade = 'Agrandir la devanture de Le Cha'
+        caption = 'La devanture de Le Cha · Rue Paul Langevin, Marcory'
+        preview = 'place/' + restaurant + '?vue=apercu'
+        direct = 'place/' + restaurant + '?vue=direct'
 
-        deep('place/' + restaurant + '?vue=apercu')
-        find('Agrandir la devanture de Le Cha',timeout=35)
-        for _ in range(8):
+        def scenario(name, action):
             try:
-                menu_tab = find('Menu', timeout=2, exact=True)
-                break
-            except AssertionError:
+                action()
+            except (AssertionError, RuntimeError, subprocess.SubprocessError) as exc:
+                failures.append(name)
+                RESULTS.append({'check': name, 'passed': False, 'detail': str(exc)[:240]})
+                print('FAIL ' + name + ': ' + str(exc), flush=True)
+                snap('diagnostic-49-' + name)
+                # Reopen the preview independently of its modal or scroll state.
+                deep(direct)
+                deep(preview)
+
+        def review():
+            scroll_tap('Avis suivants')
+            time.sleep(.6)
+            tap('Avis suivants')
+            time.sleep(.6)
+            scroll_tap('Développer l’avis · Alexandre')
+            scroll_find('Replier l’avis · Alexandre')
+            check('avis Alexandre developpe sur la meme carte', True)
+            for field in ('Alexandre', 'Touriste', 'Note de Alexandre · 4 sur 5',
+                          'Un burger qui sort de l’ordinaire'):
+                find(field, exact=True)
+            snap('avis-49-alexandre-developpe')
+            check('signature, rang, note et titre de l’avis visibles', True)
+
+        def award():
+            scroll_tap('Voir le palmarès de novembre')
+            find('Mois précédent', timeout=18)
+            check('distinction : palmares de novembre consultable', bool(label(find('novembre 2026'))))
+            snap('distinction-49-novembre')
+            tap('Mois précédent')
+            check('distinction : le mois precedent est accessible', bool(label(find('octobre 2026'))))
+            back()
+            check('retour Android referme le palmares', bool(label(find('Voir le palmarès de novembre'))))
+
+        def image_after_back():
+            deep(preview)
+            tree = snap('devanture-49-avant-remontee')
+            viewport = next((bounds(n) for n in tree.iter('node') if n.get('class') == 'android.webkit.WebView'), [0,0,0,0])
+            x1, y1, x2, y2 = viewport
+            assert x2 > x1 and y2 > y1, 'WebView sans dimensions'
+            x = (x1+x2)//2
+            trace = []
+            for step in range(24):
+                tree, _ = nodes()
+                node = next((n for n in tree.iter('node') if facade in label(n)), None)
+                box = bounds(node) if node is not None else []
+                trace.append(box)
+                if len(box) == 4 and box[2]-box[0] > 24 and box[3]-box[1] > 80:
+                    if y1+25 < (box[1]+box[3])//2 < y2-150:
+                        break
+                adb('shell','input','swipe',x,y1+(y2-y1)//4,x,y1+(y2-y1)*3//4,350)
+                time.sleep(.45)
+            else:
+                raise AssertionError('Devanture hors écran après remontée : ' + str(trace))
+            (OUT/'devanture-49-bounds.json').write_text(json.dumps({'viewport':viewport,'bounds':trace}))
+            snap('devanture-49-avant-toucher')
+            tap_node(node)
+            find(caption, timeout=12)
+            close = find('Fermer', exact=True)
+            snap('devanture-49-ouverte')
+            check('agrandissement tactile : légende et fermeture visibles', True)
+            tap_node(close)
+            find(facade, timeout=12)
+            tree, _ = nodes()
+            check('agrandissement refermé', not any(label(n).strip() == 'Fermer' and bounds(n) != [0,0,0,0] for n in tree.iter('node')))
+
+        def preview_menu():
+            deep(preview)
+            for _ in range(12):
+                try:
+                    tab = find('Menu', timeout=2, exact=True)
+                    if 100 < (bounds(tab)[1]+bounds(tab)[3])//2 < 2040:
+                        break
+                except AssertionError:
+                    pass
                 scroll()
-        else:
-            raise AssertionError('Onglet Menu absent de la fiche approuvée')
-        tap_node(menu_tab)
-        menu_search = scroll_find('Chercher dans tout le menu')
-        check('carte du restaurant reformatee et consultable',bool(label(menu_search)))
-        snap('menu-49-le-cha')
-        deep('place/' + restaurant + '?vue=direct')
-        scroll_tap('place-tab-menu')
-        check('informations du menu natif accessibles', bool(label(scroll_find('menu-information'))))
-        snap('menu-49-le-cha-direct')
+            else:
+                raise AssertionError('Menu hors de la zone tactile')
+            tap_node(tab)
+            scroll_find('Chercher dans tout le menu')
+            check('carte du restaurant reformatee et consultable', True)
+            snap('menu-49-le-cha')
+
+        def direct_menu():
+            deep(direct)
+            scroll_tap('place-tab-menu')
+            check('informations du menu natif accessibles', bool(label(scroll_find('menu-information'))))
+            snap('menu-49-le-cha-direct')
+
+        scenario('avis-signe', review)
+        scenario('distinction', award)
+        scenario('devanture', image_after_back)
+        scenario('menu-apercu', preview_menu)
+        scenario('menu-direct', direct_menu)
         deep('carte')
         check('inventaire ou carte native accessible', bool(label(find('carte-view-toggle', timeout=45))))
         time.sleep(3)
@@ -1061,6 +1127,8 @@ try:
                 if 'retirer' in label(node).casefold():
                     tap_node(node)
                     time.sleep(1)
+        if failures:
+            raise AssertionError('Scénarios Le Cha échoués : ' + ', '.join(failures))
         raise SystemExit(0)
     if MODE=='pitch':
         pitch_cases()
