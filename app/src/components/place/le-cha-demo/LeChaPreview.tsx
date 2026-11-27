@@ -39,7 +39,7 @@ export default function LeChaPreview({ tab }: {tab?: string | undefined}) {
   }), [saved, member, heart.connu, heart.given, heart.remaining]);
   useEffect(() => { if (ready.current) frame.current?.send({type:"state", state}); }, [state]);
   useEffect(() => {
-    if (heart.feedback && ready.current) frame.current?.send({type:"notice", title:"Coup de cœur", body:heart.feedback});
+    if (heart.feedback && ready.current) frame.current?.send({type:"notice", title:t("le_cha_preview.heart_action"), body:heart.feedback});
   }, [heart.feedback]);
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== "android") return;
@@ -65,11 +65,11 @@ export default function LeChaPreview({ tab }: {tab?: string | undefined}) {
     const url = buildPlaceShareUrl(id);
     try {
       if (Platform.OS === "web") {
-        if (navigator.share) await navigator.share({title:"Le Cha · SPAWT", url});
-        else { await navigator.clipboard.writeText(url); notice("Partager Le Cha", "Le lien de la fiche a été copié."); }
-      } else await Share.share({title:"Le Cha · SPAWT", message:"Le Cha · SPAWT\n" + url, url});
+        if (navigator.share) await navigator.share({title:t("le_cha_preview.share_title"), url});
+        else { await navigator.clipboard.writeText(url); notice(t("le_cha_preview.share_action"), t("le_cha_preview.copied")); }
+      } else await Share.share({title:t("le_cha_preview.share_title"), message:t("le_cha_preview.share_title") + "\n" + url, url});
     } catch (error) {
-      if ((error as Error)?.name !== "AbortError") notice("Partager Le Cha", url);
+      if ((error as Error)?.name !== "AbortError") notice(t("le_cha_preview.share_action"), url);
     }
   }
   const action = (raw: unknown) => {
@@ -94,16 +94,16 @@ export default function LeChaPreview({ tab }: {tab?: string | undefined}) {
         else notice(t("place.spawter_required_title"), t("place.spawter_required_body"));
         break;
       case "save":
-        if (!member) { notice("Enregistrer le lieu", "Connecte-toi à SPAWT pour retrouver Le Cha dans tes envies."); break; }
+        if (!member) { notice(t("le_cha_preview.save_action"), t("le_cha_preview.save_login")); break; }
         if (saving.current) break;
         saving.current = true;
         void toggleSaved(id).then(added => track({name:added ? "place_saved" : "place_unsaved",properties:{place_id:id}}))
-          .catch(() => notice("Enregistrer le lieu", t("saved.save_failed"))).finally(() => {saving.current = false;});
+          .catch(() => notice(t("le_cha_preview.save_action"), t("saved.save_failed"))).finally(() => {saving.current = false;});
         break;
       case "heart":
-        if (!member) notice("Coup de cœur", "Connecte-toi à SPAWT pour attribuer ton coup de cœur du mois.");
-        else if (!heart.connu) notice("Coup de cœur", "Ton quota du mois est indisponible pour le moment.");
-        else if (!heart.busy) void heart.onPress().catch(() => notice("Coup de cœur", t("cdc.error")));
+        if (!member) notice(t("le_cha_preview.heart_action"), t("le_cha_preview.heart_login"));
+        else if (!heart.connu) notice(t("le_cha_preview.heart_action"), t("le_cha_preview.heart_unavailable"));
+        else if (!heart.busy) void heart.onPress().catch(() => notice(t("le_cha_preview.heart_action"), t("cdc.error")));
         break;
     }
   };
