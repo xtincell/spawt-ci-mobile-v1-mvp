@@ -952,13 +952,14 @@ try:
                   len(modes) >= 3 and max(b[1] for b in modes) - min(b[1] for b in modes) <= 3)
         restaurant = json.loads(pathlib.Path('app/src/data/le-cha-review.json').read_text())['placeId']
         deep('place/' + restaurant)
-        find('Le Cha', timeout=35)
+        check('fiche Le Cha chargee dans le binaire signe', bool(label(find('Le Cha', timeout=35))))
         snap('fiche-49-le-cha')
         scroll_tap('place-tab-menu')
-        scroll_find('menu-information')
+        check('informations du menu natif accessibles', bool(label(scroll_find('menu-information'))))
         snap('menu-49-le-cha')
         deep('carte')
-        time.sleep(6)
+        check('inventaire ou carte native accessible', bool(label(find('carte-view-toggle', timeout=45))))
+        time.sleep(3)
         snap('carte-49')
 
         # Preserve every pre-existing mark on the synthetic account.
@@ -990,9 +991,9 @@ try:
             mark_if_needed(dish_marker, 'Ajouter aux favoris')
             deep('saved')
             find('saved-screen')
-            scroll_find('saved-place-' + brunch_place)
+            check('lieu retrouve dans les envies', bool(label(scroll_find('saved-place-' + brunch_place))))
             snap('envies-49-adresses')
-            scroll_find('dish-' + eggs_benedict)
+            check('plat retrouve dans les favoris', bool(label(scroll_find('dish-' + eggs_benedict))))
             snap('envies-49-plats')
         finally:
             for existing in reversed(new_marks):
