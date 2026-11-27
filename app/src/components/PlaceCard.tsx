@@ -1,4 +1,3 @@
-import { useFlag } from "../store/feature-flags";
 // Carte d'un lieu dans le feed (PRD §3.1 Feature 3, §6.3 signaux).
 // Re-dérivée Story 1.4 : consomme les primitives canoniques (MatchScore,
 // Stars, Chip, Ico) — la signature publique reste stable pour les 3 callers
@@ -35,7 +34,6 @@ const SIGNAL_LABELS: Record<string, string> = {
 export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const monetaryBudget = useFlag("place-avg-price");
   const [coverFailed, setCoverFailed] = useState(false);
   // Defensive gate : un place non publié ne doit pas être rendu, même si
   // l'adapter serveur a un bug ou un deep-link bypasse le filtre RLS
@@ -134,7 +132,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
                 {safeDistance}
               </Text>
             </View>
-            <Chip label={getPlaceBudgetLabel(place.price, t, monetaryBudget)} variant="default" />
+            <Chip label={getPlaceBudgetLabel(place.price, t)} variant="default" />
           </View>
         </View>
       </View>

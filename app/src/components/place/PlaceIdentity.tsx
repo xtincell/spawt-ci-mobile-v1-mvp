@@ -5,8 +5,12 @@ import { useTheme } from "../../theme/ThemeProvider";
 import type { Place } from "../../types/place";
 import type { PlacePractical } from "../../lib/place-practical";
 import review from "../../data/le-cha-review.json";
+import { PlaceRatingBadge } from "./PlaceRatingBadge";
+import { PlaceReviewAttribution } from "./PlaceReviewAttribution";
 
-export function PlaceIdentity({ place, practical }: {place: Place; practical: PlacePractical | null}) {
+export function PlaceIdentity({ place, practical, score, reviewCount, onReviews, revision }: {
+  place:Place; practical:PlacePractical|null; score:number; reviewCount:number; onReviews:()=>void; revision:string;
+}) {
   const {t} = useTranslation();
   const {spacing, colors, radius, typography:{preset}} = useTheme();
   const [avatarAttempt, setAvatarAttempt] = useState(0);
@@ -30,8 +34,12 @@ export function PlaceIdentity({ place, practical }: {place: Place; practical: Pl
       </View>
       <View style={{flex:1,gap:2}}>
         {cuisine ? <Text style={{...preset.overline,color:colors.brand.accent}}>{cuisine}</Text> : null}
-        <Text accessibilityRole="header" style={{...preset.display,color:colors.text.primary}}>{place.name}</Text>
+        <View style={{flexDirection:"row",flexWrap:"wrap",alignItems:"center",columnGap:spacing.sm,rowGap:spacing.xs}}>
+          <Text accessibilityRole="header" style={{...preset.display,color:colors.text.primary,flexShrink:1}}>{place.name}</Text>
+          {reviewCount > 0 && score > 0 && score <= 5 ? <PlaceRatingBadge score={score}/> : null}
+        </View>
         <Text style={{...preset.small,color:colors.text.secondary}}>{[place.location.neighborhood,place.location.city].filter(Boolean).join(" · ")}</Text>
+        {reviewCount > 0 ? <PlaceReviewAttribution placeId={place.id} reviewCount={reviewCount} onPress={onReviews} revision={revision}/> : null}
       </View>
     </View>
     {description ? <Text style={{...preset.body,color:colors.text.primary}}>{description}</Text> : null}

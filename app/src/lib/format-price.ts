@@ -11,7 +11,9 @@ const HIGH_BUDGET_START = 15_000;
 
 /** Un repas par personne, hors boissons. Un plat à la carte ne classe jamais le lieu. */
 export function getPlaceBudgetTier(price: PriceRange): PlaceBudgetTier | null {
-  const ticket = price.avg_ticket_xof;
+  const verified = price.avg_ticket_xof;
+  const ticket = typeof verified === "number" && Number.isFinite(verified) && verified >= 1
+    ? verified : price.menu_estimate_xof;
   if (typeof ticket !== "number" || !Number.isFinite(ticket) || Math.round(ticket) <= 0) return null;
   if (ticket < MID_BUDGET_START) return 1;
   return ticket < HIGH_BUDGET_START ? 2 : 3;
@@ -29,7 +31,7 @@ export function getBudgetTierLabel(tier: PlaceBudgetTier | null, t: TFunction, m
 
 export function getPlaceBudgetLabel(price: PriceRange, t: TFunction, monetary = true): string {
   const measured = monetary ? getPlaceBudgetTier(price) : null;
-  return measured === null ? getBudgetTierLabel(price.tier, t, false) : getBudgetTierLabel(measured, t);
+  return measured === null ? t("place.budget_contribute") : getBudgetTierLabel(measured, t);
 }
 
 /**

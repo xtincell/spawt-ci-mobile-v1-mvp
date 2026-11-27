@@ -46,6 +46,7 @@ import { listPlaces } from "../../src/lib/data-source";
 import { startManualReview } from "../../src/lib/manual-review";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { useFlag } from "../../src/store/feature-flags";
+import { useMenuBudgets, withMenuBudget } from "../../src/lib/use-menu-budgets";
 import { track } from "../../src/lib/analytics";
 
 type ScreenState =
@@ -68,6 +69,8 @@ export default function SpawterTabScreen() {
   const suggestionsEnabled = useFlag("suggestions-lieux");
 
   const [state, setState] = useState<ScreenState>({ kind: "loading_perm" });
+
+  const budgets = useMenuBudgets(state.kind === "loaded");
 
   const loadNearby = useCallback(async () => {
     setState({ kind: "loading_perm" });
@@ -336,7 +339,7 @@ export default function SpawterTabScreen() {
               return (
                 <NearbyCard
                   key={item.place.id}
-                  item={item}
+                  item={{ ...item, place: withMenuBudget(item.place, budgets) }}
                   disabled={starting}
                   onSpawt={() => void handleSpawt(item, userLat, userLng)}
                 />
@@ -362,8 +365,7 @@ function NearbyCard({ item, onSpawt, disabled }: NearbyCardProps) {
   const cuisineLabel = firstCuisine
     ? t(`cuisine.${firstCuisine}`, { defaultValue: firstCuisine })
     : null;
-  const monetaryBudget = useFlag("place-avg-price");
-  const priceLabel = getPlaceBudgetLabel(place.price, t, monetaryBudget);
+  const priceLabel = getPlaceBudgetLabel(place.price, t);
 
   return (
     <View

@@ -19,7 +19,6 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { Ico, type IconName } from "../../../src/components/primitives/Ico";
-import { Stars } from "../../../src/components/primitives/Stars";
 import { MatchScore } from "../../../src/components/primitives/MatchScore";
 import { AdnTags } from "../../../src/components/AdnTags";
 import { PlaceReviews } from "../../../src/components/PlaceReviews";
@@ -37,7 +36,7 @@ import { useFlag } from "../../../src/store/feature-flags";
 import { EMPTY_PALAIS } from "../../../src/data/seed/sample-spawter";
 import { track } from "../../../src/lib/analytics";
 import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
-import { startManualReview } from "../../../src/lib/manual-review";
+import { usePlaceReviewAction } from "../../../src/lib/use-place-review-action";
 import { subscribeReviewChanges } from "../../../src/lib/review-events";
 import { PlaceWeek } from "../../../src/components/place/PlaceWeek";
 import { PlacePractical, usePlacePractical } from "../../../src/components/place/PlacePractical";
@@ -53,7 +52,10 @@ import { PlaceMediaTab } from "../../../src/components/place/PlaceMediaTab";
 import { PlaceMenuTab } from "../../../src/components/place/PlaceMenuTab";
 import { OutingActions } from "../../../src/components/OutingActions";
 import { useOutings } from "../../../src/store/outings-store";
-import { formatXofAmount, getPlaceBudgetLabel } from "../../../src/lib/format-price";
+import { getPlaceBudgetLabel, getPlaceBudgetTier } from "../../../src/lib/format-price";
+import { estimateMenuMeal } from "../../../src/lib/menu-meal-estimate";
+import { placeDishes } from "../../../src/lib/place-menu-catalog";
+import { useMenuItems } from "../../../src/lib/use-menu-items";
 import {
   buildStaticMapUrl,
 } from "../../../src/lib/static-map";
@@ -85,11 +87,22 @@ function tabFromRoute(tab?: string): PlaceTabKey {
 }
 
 export default function PlaceDetailScreen() {
+  const params = useLocalSearchParams<{ id: string; vue?: string; tab?: string }>();
+  if (params.id === leCha.placeId && params.vue === "apercu") {
+    // Avoid decoding the illustrated document when opening any live place.
+    const Preview = require("../../../src/components/place/le-cha-demo/LeChaPreview").default;
+    return <Preview tab={params.tab}/>;
+  }
+  return <LivePlaceDetailScreen/>;
+}
+
+function LivePlaceDetailScreen() {
   const contentRevision = useContentRevision();
   const params = useLocalSearchParams<{ id: string; ref?: string; tab?: string }>();
   useOutings();
   const id = params.id;
   const practical = usePlacePractical(id);
+  const menuData = useMenuItems(id);
   const scroll = useRef<ScrollView>(null);
   const ref = (VALID_REFS as ReadonlyArray<string>).includes(params.ref ?? "")
     ? (params.ref as Referrer)
@@ -111,10 +124,7 @@ export default function PlaceDetailScreen() {
   const [coverFailed, setCoverFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<PlaceTabKey>(() => tabFromRoute(params.tab));
   useEffect(() => { setActiveTab(tabFromRoute(params.tab)); }, [params.tab, params.id]);
-  const spawtBusy = useRef(false);
-  const [startingReview, setStartingReview] = useState(false);
 
-  const registerSpawt = useSpawterStore((s) => s.registerSpawt);
   const spawter = useSpawterStore((s) => s.spawter);
   const palais = useSpawterStore((s) => s.palais ?? EMPTY_PALAIS);
   const spawts = useSpawterStore((s) => s.spawts);
@@ -157,13 +167,7 @@ export default function PlaceDetailScreen() {
   );
 
   const position = useSpawterPosition();
-
-  // R21 + Q4 — flag produit du prix moyen. R22 (build 8) : ce hook DOIT être
-  // appelé AVANT les early returns loading/not-found ci-dessous. En build 7 il
-  // vivait après → premier render (loading) sans ce hook, second render (place
-  // chargée) avec → « Rendered more hooks than during the previous render » →
-  // crash systématique de TOUTES les fiches lieu à l'ouverture (rules of hooks).
-  const avgPriceEnabled = useFlag("place-avg-price");
+  const { handleSpawt, startingReview } = usePlaceReviewAction(id, place?.name ?? "", position, place?.signals);
 
   // Réservation 1-tap — hooks AVANT les early returns (même leçon R22).
   const resaEnabled = useFlag("reservation-1tap");
@@ -329,15 +333,13 @@ export default function PlaceDetailScreen() {
   // §Edge cases : "confidence_score < 0.3 → afficher En construction").
   const palaisConfident = palais.confidence_score >= 0.3;
 
-  // R21 + Q4 (décision produit 07/2026) — prix moyen en valeur F CFA si
-  // `avg_ticket_xof` est renseigné (« ~8 000 F CFA »), sinon fallback échelle ₣
-  // du tier. Convention éditoriale (méthode TheFork) : repas type par personne,
-  // HORS BOISSONS — chiffre saisi par l'équipe dans le dashboard admin, aucun
-  // calcul côté client. Togglable via le flag `place-avg-price` (dashboard
-  // admin → Fonctionnalités) ; OFF → échelle ₣ historique. (Le hook useFlag
-  // est appelé plus haut, avant les early returns — R22.)
-  const avgTicket = avgPriceEnabled ? formatXofAmount(place.price.avg_ticket_xof) : null;
-  const priceLabel = getPlaceBudgetLabel(avgPriceEnabled ? place.price : {tier:place.price.tier}, t);
+  // Un repas par personne, hors boissons, sur la même échelle pour tous les lieux.
+  const editorialTicket = place.price.avg_ticket_xof;
+  const measured = typeof editorialTicket === "number" && Number.isFinite(editorialTicket) && editorialTicket >= 1;
+  const estimate = measured ? null : place.price.menu_estimate_xof
+    ?? estimateMenuMeal(placeDishes(place.id, menuData.items.filter(item => item.place_id === place.id)));
+  const budget = {...place.price, ...(estimate != null && {menu_estimate_xof:estimate})};
+  const priceLabel = getPlaceBudgetTier(budget) !== null ? getPlaceBudgetLabel(budget, t) : null;
   const area = [place.location.neighborhood, city].filter(Boolean).join(" · ");
   const overview = activeTab === "overview";
 
@@ -475,46 +477,6 @@ export default function PlaceDetailScreen() {
 
   const onOpenMap = () => router.push({pathname:"/(tabs)/carte", params:{lieu:place.id}});
 
-  const handleSpawt = async () => {
-    if (spawtBusy.current) return;
-    if (!spawter) {
-      // Pas d'onboarding fini → on ne peut pas créer de spawt. Alert plutôt
-      // qu'un router.back() silencieux qui ferait croire au geste enregistré.
-      Alert.alert(
-        t("place.spawter_required_title"),
-        t("place.spawter_required_body"),
-        [
-          { text: t("common.cancel"), style: "cancel" },
-          {
-            text: t("place.spawter_required_cta"),
-            onPress: () => router.replace("/"),
-          },
-        ],
-      );
-      return;
-    }
-    // Story 4.2 — `buildManualSpawt` factorise la construction de row mode démo
-    // (UUID, timestamps, geolocation_source = "manual", is_verified = false).
-    // Le badge Premier Spawt n'est pas déclenché en mode démo (is_verified false).
-    spawtBusy.current = true;
-    setStartingReview(true);
-    try {
-      const row = await startManualReview({ spawterId: spawter.id, placeId: place.id,
-        placeSignals: place.signals,
-        lat: position.source === "gps" ? position.lat : null,
-        lng: position.source === "gps" ? position.lng : null,
-        spawts, register: registerSpawt });
-      router.push({ pathname: "/review/[spawt_id]", params: { spawt_id: row.id, entry: "place_detail", place_name: place.name } });
-    } catch (error) {
-      if (__DEV__) console.warn("[place] start review failed", error);
-      Alert.alert(t("review.error_title"), t("review.start_failed"));
-    } finally {
-      spawtBusy.current = false;
-      setStartingReview(false);
-    }
-  };
-
-
   return (
     <SafeAreaView
       edges={["top"]}
@@ -537,7 +499,8 @@ export default function PlaceDetailScreen() {
           </View>
           {overview ? <View style={{paddingHorizontal:theme.spacing.lg,paddingVertical:theme.spacing.sm,gap:theme.spacing.sm}}>
             <CoupDeCoeurButton place_id={place.id}/>
-            <PlaceIdentity key={[place.id,place.logo_url,place.signage_url].join("/")} place={place} practical={practical.facts}/>
+            <PlaceIdentity key={[place.id,place.logo_url,place.signage_url].join("/")} place={place} practical={practical.facts}
+              score={place.adn.weighted_rating} reviewCount={place.adn.total_reviews} onReviews={()=>onTabChange("avis")} revision={contentRevision+"/"+attempt}/>
             {hasPin || hasAddress ? <Pressable accessibilityRole="button" testID="place-open-internal-map" onPress={onOpenMap}
               accessibilityLabel={t("place.internal_map")} style={{minHeight:44,flexDirection:"row",alignItems:"center",gap:theme.spacing.sm}}>
               <Ico name="pin" size={18} color={theme.colors.brand.accent}/>
@@ -547,13 +510,22 @@ export default function PlaceDetailScreen() {
             {position.source === "gps" && hasPin ? <PlaceTravel km={distanceKm}/> : null}
             <View style={{padding:theme.spacing.base,backgroundColor:theme.colors.surface.subtle,borderRadius:theme.radius.lg,gap:theme.spacing.xs}}>
               <Text style={{...theme.typography.preset.overline,color:theme.colors.brand.accent}}>{t("place.budget_title")}</Text>
-              <Text accessibilityLabel={t("place.price_aria",{value:priceLabel})} style={{...theme.typography.preset.h2,color:theme.colors.text.primary}}>{priceLabel}</Text>
-              <Text style={{...theme.typography.preset.caption,color:theme.colors.text.secondary}}>{avgTicket ? t("place.price_avg",{amount:avgTicket})+" · " : ""}{t("place.budget_basis")}</Text>
+              {priceLabel ? <>
+                <Text accessibilityLabel={t("place.price_aria",{value:priceLabel})} style={{...theme.typography.preset.h2,color:theme.colors.text.primary}}>{priceLabel}</Text>
+                <Text style={{...theme.typography.preset.caption,color:theme.colors.text.secondary}}>
+                  {t(estimate != null ? "place.budget_estimated_basis" : "place.budget_basis")}
+                </Text>
+              </> : <Pressable testID="place-contribute-budget" accessibilityRole="button" onPress={()=>void handleSpawt()}
+                style={{minHeight:44,justifyContent:"center",alignSelf:"flex-start"}}>
+                <Text style={{...theme.typography.preset.small,color:theme.colors.brand.accent,textDecorationLine:"underline"}}>{t("place.budget_contribute")}</Text>
+              </Pressable>}
             </View>
-            {place.adn.weighted_rating > 0 || (matchScore !== null && palaisConfident) ? <View style={{flexDirection:"row",alignItems:"center",gap:theme.spacing.sm}}>
-              {place.adn.weighted_rating > 0 ? <><Stars value={place.adn.weighted_rating} size="sm"/><Text style={{...theme.typography.preset.body,color:theme.colors.text.primary}}>{place.adn.weighted_rating.toLocaleString("fr-FR",{maximumFractionDigits:1})}/5</Text></> : null}
-              {matchScore !== null && palaisConfident ? <MatchScore value={matchScore}/> : null}
-            </View> : null}
+            {place.id === leCha.placeId ? <Pressable accessibilityRole="button" testID="open-le-cha-approved-preview"
+              onPress={() => router.replace({pathname:"/place/[id]",params:{id:place.id,vue:"apercu"}})}
+              style={{minHeight:44,justifyContent:"center",alignSelf:"flex-start"}}>
+              <Text style={{...theme.typography.preset.body,color:theme.colors.brand.accent}}>Aperçu SPAWT →</Text>
+            </Pressable> : null}
+            {matchScore !== null && palaisConfident ? <MatchScore value={matchScore}/> : null}
           </View> : null}
         </View>
         <View style={{backgroundColor:theme.colors.surface.base,paddingVertical:theme.spacing.sm,paddingHorizontal:theme.spacing.sm}}>
@@ -567,8 +539,8 @@ export default function PlaceDetailScreen() {
             <PlaceReviews key={place.id} placeId={place.id} compact={overview} limit={overview ? 3 : 5} hideTitle
               onSeeAll={() => overview ? onTabChange("avis") : router.push(`/place/${place.id}/reviews` as never)}/>
           </View> : null}
-          {overview || activeTab === "menu" ? <PlaceMenuTab urls={place.menu_urls} placeId={place.id} placeName={place.name} locationLabel={area}
-            {...(overview ? {onOpenMenu:()=>onTabChange("menu")} : {})}/> : null}
+          {overview || activeTab === "menu" ? <PlaceMenuTab urls={place.menu_urls} placeId={place.id} menuData={menuData} placeName={place.name} locationLabel={area}
+            {...(overview ? {onOpenMenu:()=>onTabChange("menu")} : {onBackToPlace:()=>onTabChange("overview")})}/> : null}
           {overview ? <>
             <PlaceRecognition key={place.id} placeId={place.id} name={place.name} signals={place.signals}/>
             <PlaceActivitySection placeId={place.id}/>
