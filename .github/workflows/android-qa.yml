@@ -5,8 +5,8 @@ permissions:
 on:
   push:
     tags: ['qa-android-*']
-    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204', 'codex/recette-accueil-fiches-49']
-    paths: ['documentation/android-qa.json']
+    branches: ['codex/recette-le-cha-91ae142']
+    paths: ['scripts/android-qa.py']
   workflow_dispatch:
     inputs:
       apk_url:
