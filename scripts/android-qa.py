@@ -949,7 +949,9 @@ try:
             modes = [bounds(n) for n in tree.iter('node')
                      if re.fullmatch(r'home-mode-(suggestions|rapide|selections|duo|spots)', n.get('resource-id', '').split('/')[-1])]
             check(f'{width}: contextes visibles sur la meme ligne',
-                  len(modes) >= 3 and max(b[1] for b in modes) - min(b[1] for b in modes) <= 3)
+                  len(modes) == 5 and max(b[1] for b in modes) - min(b[1] for b in modes) <= 3
+                  and max(b[3] for b in modes) - min(b[3] for b in modes) <= 3
+                  and min(b[0] for b in modes) >= 0 and max(b[2] for b in modes) <= 3*width)
         restaurant = json.loads(pathlib.Path('app/src/data/le-cha-review.json').read_text())['placeId']
         tap('Chercher', exact=True)
         search_box = find('Cherche un spawt', timeout=20)
