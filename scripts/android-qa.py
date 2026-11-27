@@ -998,22 +998,47 @@ try:
                 deep(direct)
                 deep(preview)
 
+        def web_control(query, *, kind=None, direction='down', low=430, high=1770, exact=True):
+            # WebView keeps off-screen nodes and nodes behind the fixed action bar.
+            for _ in range(35):
+                tree, _ = nodes()
+                move = direction
+                for n in tree.iter('node'):
+                    if kind and n.get('class') != kind:
+                        continue
+                    names = (n.get('text', ''), n.get('content-desc', ''))
+                    if query and not any(t == query if exact else query in t for t in names):
+                        continue
+                    box = bounds(n)
+                    if len(box) != 4 or box[2]-box[0] < 20 or box[3]-box[1] < 18:
+                        continue
+                    center = (box[1]+box[3])//2
+                    if low <= center <= high:
+                        return n
+                    move = 'up' if center < low else 'down'
+                # Three hundred pixels with a slow finger, avoiding kinetic overshoot.
+                start, stop = (1120, 760) if move == 'down' else (760, 1120)
+                adb('shell','input','swipe',560,start,560,stop,480)
+                time.sleep(.25)
+            raise AssertionError('Contrôle hors de la zone tactile : ' + (query or kind))
+
         def review():
-            scroll_tap('Avis suivants')
-            time.sleep(.6)
-            tap('Avis suivants')
-            time.sleep(.6)
-            scroll_tap('Développer l’avis · Alexandre')
-            scroll_find('Replier l’avis · Alexandre')
+            for before, after in [('1 / 3', '2 / 3'), ('2 / 3', '3 / 3')]:
+                arrow = web_control('Avis suivants', low=570, high=1150)
+                find(before, exact=True, timeout=5)
+                tap_node(arrow)
+                find(after, exact=True, timeout=6)
+            tap_node(web_control('Développer l’avis · Alexandre'))
+            web_control('Replier l’avis · Alexandre', low=1200, high=1990)
             check('avis Alexandre developpe sur la meme carte', True)
             for field in ('Alexandre', 'Touriste', 'Note de Alexandre · 4 sur 5',
                           'Un burger qui sort de l’ordinaire'):
-                find(field, exact=True)
+                find(field, exact=True, timeout=6)
             snap('avis-49-alexandre-developpe')
             check('signature, rang, note et titre de l’avis visibles', True)
 
         def award():
-            scroll_tap('Voir le palmarès de novembre')
+            tap_node(web_control('Voir le palmarès de novembre', exact=False))
             find('Mois précédent', timeout=18)
             check('distinction : palmares de novembre consultable', bool(label(find('novembre 2026'))))
             snap('distinction-49-novembre')
@@ -1067,9 +1092,18 @@ try:
             else:
                 raise AssertionError('Menu hors de la zone tactile')
             tap_node(tab)
-            scroll_find('Chercher dans tout le menu')
-            check('carte du restaurant reformatee et consultable', True)
-            snap('menu-49-le-cha')
+            find('Menu · Le Cha · SPAWT', timeout=15)
+            # Android WebView exposes the search field as an unnamed EditText.
+            field = web_control(None, kind='android.widget.EditText', direction='down')
+            tap_node(field)
+            adb('shell','input','text','Okonomiyaki')
+            time.sleep(.6)
+            if 'mInputShown=true' in adb('shell','dumpsys','input_method'):
+                adb('shell','input','keyevent','4')
+            web_control('Okonomiyaki Corn Dog')
+            tree = snap('menu-49-le-cha')
+            check('filtrage du menu : Okonomiyaki présent et Basic Corn Dog exclu',
+                  not any(n.get('text') == 'Basic Corn Dog' for n in tree.iter('node')))
 
         def direct_menu():
             deep(direct)
