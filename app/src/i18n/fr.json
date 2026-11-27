@@ -1,4 +1,15 @@
 {
+  "le_cha_preview": {
+    "share_title": "Le Cha · SPAWT",
+    "share_action": "Partager Le Cha",
+    "copied": "Le lien de la fiche a été copié.",
+    "save_action": "Enregistrer le lieu",
+    "save_login": "Connecte-toi à SPAWT pour retrouver Le Cha dans tes envies.",
+    "heart_login": "Connecte-toi à SPAWT pour attribuer ton coup de cœur du mois.",
+    "heart_unavailable": "Ton quota du mois est indisponible pour le moment.",
+    "heart_action": "Coup de cœur",
+    "frame_title": "Le Cha · Aperçu SPAWT"
+  },
   "pilot": {
     "title": "Reprendre avec un code",
     "code_help": "Saisis le code de 12 caractères affiché sur la page de téléchargement.",

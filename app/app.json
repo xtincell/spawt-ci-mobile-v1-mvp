@@ -40,6 +40,7 @@
     },
     "android": {
       "package": "com.upgraders.spawt",
+      "runtimeVersion": { "policy": "fingerprint" },
       "googleServicesFile": "./google-services.json",
       "versionCode": 49,
       "adaptiveIcon": {
