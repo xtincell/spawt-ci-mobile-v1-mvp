@@ -951,12 +951,58 @@ try:
             check(f'{width}: contextes visibles sur la meme ligne',
                   len(modes) >= 3 and max(b[1] for b in modes) - min(b[1] for b in modes) <= 3)
         restaurant = json.loads(pathlib.Path('app/src/data/le-cha-review.json').read_text())['placeId']
-        deep('place/' + restaurant)
-        check('fiche Le Cha chargee dans le binaire signe', bool(label(find('Le Cha', timeout=35))))
+        tap('Chercher', exact=True)
+        search_box = find('Cherche un spawt', timeout=20)
+        tap_node(search_box)
+        adb('shell','input','text','Le%sCha')
+        time.sleep(1)
+        if 'mInputShown=true' in adb('shell','dumpsys','input_method'):
+            adb('shell','input','keyevent','4')
+        tap('Le Cha', timeout=40, exact=True)
+        check('accueil puis recherche ouvrent la fiche en direct', bool(label(scroll_find('open-le-cha-approved-preview'))))
+        scroll_tap('open-le-cha-approved-preview')
+        find('Agrandir la devanture de Le Cha', timeout=40)
         snap('fiche-49-le-cha')
+        check('Rendu de la fiche approuvee dans la WebView signee',
+              bool(label(find('Agrandir la devanture de Le Cha'))))
+        # The horizontal social rail reveals one review in place. Its next
+        # control always stays above the rail, independently of line wrapping.
+        scroll_tap('Avis suivants')
+        time.sleep(.6)
+        tap('Avis suivants')
+        time.sleep(.6)
+        scroll_tap('Développer l’avis · Alexandre')
+        check('avis Alexandre developpe sur la meme carte',
+              bool(label(scroll_find('Replier l’avis · Alexandre'))))
+        snap('avis-49-alexandre-developpe')
+        scroll_tap('Voir le palmarès de novembre')
+        find('Mois précédent', timeout=18)
+        check('distinction : palmares de novembre consultable',
+              bool(label(find('novembre 2026'))))
+        snap('distinction-49-novembre')
+        tap('Mois précédent')
+        check('distinction : le mois precedent est accessible',bool(label(find('octobre 2026'))))
+        back()
+        check('retour Android referme le palmares', bool(label(find('Voir le palmarès de novembre'))))
+
+        deep('place/' + restaurant + '?vue=apercu')
+        find('Agrandir la devanture de Le Cha',timeout=35)
+        for _ in range(8):
+            try:
+                menu_tab = find('Menu', timeout=2, exact=True)
+                break
+            except AssertionError:
+                scroll()
+        else:
+            raise AssertionError('Onglet Menu absent de la fiche approuvée')
+        tap_node(menu_tab)
+        menu_search = scroll_find('Chercher dans tout le menu')
+        check('carte du restaurant reformatee et consultable',bool(label(menu_search)))
+        snap('menu-49-le-cha')
+        deep('place/' + restaurant + '?vue=direct')
         scroll_tap('place-tab-menu')
         check('informations du menu natif accessibles', bool(label(scroll_find('menu-information'))))
-        snap('menu-49-le-cha')
+        snap('menu-49-le-cha-direct')
         deep('carte')
         check('inventaire ou carte native accessible', bool(label(find('carte-view-toggle', timeout=45))))
         time.sleep(3)
