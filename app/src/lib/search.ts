@@ -5,6 +5,7 @@
 
 import type { PlaceWithAdn } from "./data-source";
 import { getActiveCity } from "./city";
+import { getPlaceBudgetTier } from "./format-price";
 import { haversineKm } from "./matching";
 
 export interface SearchFilters {
@@ -66,6 +67,7 @@ export function searchPlaces(
   query: string,
   filters: SearchFilters,
   ctx: SearchContext,
+  monetaryBudget = true,
 ): PlaceWithAdn[] {
   const normalizedQuery = normalize(query);
   if (normalizedQuery.length === 0 && isFiltersEmpty(filters)) {
@@ -89,11 +91,9 @@ export function searchPlaces(
     ) {
       continue;
     }
-    if (
-      filters.budgetTiers.length > 0 &&
-      (place.price.tier === null || !filters.budgetTiers.includes(place.price.tier))
-    ) {
-      continue;
+    if (filters.budgetTiers.length > 0) {
+      const budget = monetaryBudget ? getPlaceBudgetTier(place.price) : place.price.tier;
+      if (budget === null || !filters.budgetTiers.includes(budget)) continue;
     }
     if (filters.minRating !== null && place.adn.weighted_rating < filters.minRating) {
       continue;

@@ -30,15 +30,17 @@ export function ModeStories({
   const theme = useTheme();
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
-  const itemWidth = Math.max(84 * Math.max(1, fontScale), (width - 40) / 5);
+  const inset = width < 360 ? theme.spacing.sm : theme.spacing.base;
+  const minWidth = fontScale > 1 ? 72 * fontScale : 58;
+  const itemWidth = Math.max(minWidth, (width - 2 * inset) / HOME_MODES.length);
   const row = useRef<ScrollView>(null);
   useEffect(() => {
     const index = HOME_MODES.indexOf(selectedMode);
     row.current?.scrollTo({
-      x: Math.max(0, index * (itemWidth + 4) - (width - itemWidth) / 2),
+      x: Math.max(0, inset + index * itemWidth - (width - itemWidth) / 2),
       animated: false,
     });
-  }, [selectedMode, itemWidth, width]);
+  }, [selectedMode, itemWidth, width, inset]);
   return (
     <View
       accessibilityRole="radiogroup"
@@ -48,7 +50,7 @@ export function ModeStories({
         ref={row}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 12, gap: 4 }}
+        contentContainerStyle={{ paddingHorizontal: inset, alignItems: "stretch" }}
       >
         {HOME_MODES.map((mode) => {
           const active = selectedMode === mode;
@@ -67,19 +69,18 @@ export function ModeStories({
               }}
               style={({ pressed }) => ({
                 width: itemWidth,
-                paddingHorizontal: 2,
                 minHeight: 44,
                 alignItems: "center",
-                gap: 5,
+                gap: theme.spacing.sm,
                 opacity: pressed ? 0.8 : 1,
               })}
             >
               <View
                 testID={`home-mode-disc-${mode}`}
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
+                  width: 44,
+                  height: 44,
+                  borderRadius: theme.radius.full,
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: 1,
@@ -93,33 +94,32 @@ export function ModeStories({
               >
                 <HomeModeIcon mode={mode} active={active} />
               </View>
-              <View style={{ alignItems: "center", gap: 1 }}>
-              <Text
-                style={{
-                  ...theme.typography.preset.caption,
-                  textTransform: "none",
-                  letterSpacing: 0,
-                  fontFamily: theme.typography.preset.overline.fontFamily,
-                  textDecorationLine: active ? "underline" : "none",
-                  color: theme.colors.text.primary,
-                  textAlign: "center",
-                }}
-              >
-                {title}
-              </Text>
-              <Text
-                style={{
-                  ...theme.typography.preset.caption,
-                  textTransform: "none",
-                  letterSpacing: 0,
-                  fontFamily: theme.typography.family.body,
-                  color: theme.colors.text.secondary,
-                  textAlign: "center",
-                  maxWidth: itemWidth,
-                }}
-              >
-                {subtitle}
-              </Text>
+              <View style={{ alignSelf: "stretch", alignItems: "center", gap: 2 }}>
+                <Text
+                  style={{
+                    ...theme.typography.preset.caption,
+                    textTransform: "none",
+                    letterSpacing: 0,
+                    fontFamily: theme.typography.preset.overline.fontFamily,
+                    color: active ? theme.colors.brand.accent : theme.colors.text.primary,
+                    textAlign: "center",
+                  }}
+                >
+                  {title}
+                </Text>
+                <Text
+                  style={{
+                    ...theme.typography.preset.caption,
+                    textTransform: "none",
+                    letterSpacing: 0,
+                    fontFamily: theme.typography.family.body,
+                    color: theme.colors.text.secondary,
+                    textAlign: "center",
+                    maxWidth: itemWidth,
+                  }}
+                >
+                  {subtitle}
+                </Text>
               </View>
             </Pressable>
           );

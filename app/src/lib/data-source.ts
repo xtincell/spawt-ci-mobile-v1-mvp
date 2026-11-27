@@ -305,6 +305,7 @@ export interface PlaceReview {
   id: string;
   spawter_id: string;
   spawter_display_name: string;
+  spawter_stage?: Stade;
   spawter_avatar_url: string | null;
   /** 1-5, demi-points possibles côté DB mais arrondi par Stars. */
   note_etoiles: number;
@@ -331,6 +332,16 @@ export interface ReviewPageOptions {
   offset: number;
   order: "recent" | "best";
   search: string;
+}
+
+export async function listFeaturedReviewsForPlace(placeId: string, limit: number): Promise<PlaceReview[]> {
+  if (!isSupabaseConfigured) return [];
+  const { listReviewsForPlaceFromSupabase } = await import("./data-source.supabase");
+  const ranked = await listReviewsForPlaceFromSupabase(placeId, limit, undefined, true);
+  if (ranked.length >= limit) return ranked;
+  const others = await listReviewsForPlace(placeId, limit);
+  const featured = new Set(ranked.map(row => row.id));
+  return [...ranked, ...others.filter(row => !featured.has(row.id))].slice(0, limit);
 }
 
 export async function listReviewsForPlace(

@@ -1,17 +1,36 @@
-// Refonte fiche lieu (R21) — prix moyen affiché en valeur F CFA plutôt que
-// l'échelle symbolique ₣₣₣.
-//
-// Source de donnée UNIQUE : la colonne existante `places.avg_ticket_xof`
-// (migration 0010). La méthode de calcul du panier moyen n'est PAS tranchée
-// (décision produit/data ouverte) — aucun calcul côté client, on affiche la
-// valeur telle quelle si renseignée, sinon le caller retombe sur l'échelle ₣.
-//
-// Format fr-FR : groupement des milliers par espace insécable (U+00A0),
-// ex. 8000 → « 8 000 ». Implémentation locale déterministe — pas de dépendance
-// à Intl.NumberFormat (support Hermes variable selon build/plateforme).
+import type { TFunction } from "i18next";
+import type { PriceRange } from "../types/place";
 
 /** Espace insécable (U+00A0) — séparateur de milliers fr-FR. */
 export const NBSP = " ";
+
+export const PLACE_BUDGET_TIERS = [1, 2, 3] as const;
+export type PlaceBudgetTier = typeof PLACE_BUDGET_TIERS[number];
+const MID_BUDGET_START = 10_000;
+const HIGH_BUDGET_START = 15_000;
+
+/** Un repas par personne, hors boissons. Un plat à la carte ne classe jamais le lieu. */
+export function getPlaceBudgetTier(price: PriceRange): PlaceBudgetTier | null {
+  const ticket = price.avg_ticket_xof;
+  if (typeof ticket !== "number" || !Number.isFinite(ticket) || Math.round(ticket) <= 0) return null;
+  if (ticket < MID_BUDGET_START) return 1;
+  return ticket < HIGH_BUDGET_START ? 2 : 3;
+}
+
+export function getBudgetTierLabel(tier: PlaceBudgetTier | null, t: TFunction, monetary = true): string {
+  if (tier === null) return t("place.price_unknown");
+  if (!monetary) return "₣".repeat(tier);
+  const middle = formatXofAmount(MID_BUDGET_START);
+  const high = formatXofAmount(HIGH_BUDGET_START);
+  if (tier === 1) return t("place.budget_under", { max: middle });
+  if (tier === 2) return t("place.budget_between", { min: middle, max: high });
+  return t("place.budget_from", { min: high });
+}
+
+export function getPlaceBudgetLabel(price: PriceRange, t: TFunction, monetary = true): string {
+  const measured = monetary ? getPlaceBudgetTier(price) : null;
+  return measured === null ? getBudgetTierLabel(price.tier, t, false) : getBudgetTierLabel(measured, t);
+}
 
 /**
  * Formate un montant XOF en string groupée par milliers (« 8 000 »).

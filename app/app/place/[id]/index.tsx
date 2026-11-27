@@ -1,20 +1,5 @@
 import { useContentRevision } from "../../../src/lib/content-sync";
 import { PlaceEditorial } from "../../../src/components/place/PlaceEditorial";
-// Story 3.4 — Fiche lieu canonique (UX spec §1127).
-// Story 3.6 — toggle favori (heart top-right) + signal matching +0.05.
-// Story 3.7 — bouton partager (share) + payload WhatsApp natif.
-// Refonte fiche lieu (retours produit R10-R21, Q1-Q2) :
-//   R10 — plus de rang de CTAs Appeler/WhatsApp proéminent (doublon InfoLines).
-//   R11 — CTA sticky « Spawt le ! ».
-//   R17+R19 — contenu éclaté en onglets Média · Menu · Avis (cet ordre) ;
-//             ordre global : hero → titre → note+prix → signaux → onglets →
-//             ADN → carte+adresse → horaires → « Divers ».
-//   R18 — contact (tel/wa.me) relégué dans la section « Divers » en bas.
-//   R21 — prix moyen en valeur F CFA (avg_ticket_xof), fallback échelle ₣.
-// Events analytics (events.md §5) : place_viewed, place_call_tapped,
-// place_whatsapp_tapped, place_tab_viewed, adn_under_construction_seen,
-// place_first_view.
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DataLoadNotice } from "../../../src/components/DataLoadNotice";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -33,8 +18,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../src/theme/ThemeProvider";
-import { Ico } from "../../../src/components/primitives/Ico";
-import { Chip } from "../../../src/components/primitives/Chip";
+import { Ico, type IconName } from "../../../src/components/primitives/Ico";
 import { Stars } from "../../../src/components/primitives/Stars";
 import { MatchScore } from "../../../src/components/primitives/MatchScore";
 import { AdnTags } from "../../../src/components/AdnTags";
@@ -56,7 +40,12 @@ import { useSpawterPosition } from "../../../src/lib/use-spawter-position";
 import { startManualReview } from "../../../src/lib/manual-review";
 import { subscribeReviewChanges } from "../../../src/lib/review-events";
 import { PlaceWeek } from "../../../src/components/place/PlaceWeek";
-import { PlacePractical } from "../../../src/components/place/PlacePractical";
+import { PlacePractical, usePlacePractical } from "../../../src/components/place/PlacePractical";
+import { PlaceIdentity } from "../../../src/components/place/PlaceIdentity";
+import { PlaceRecognition } from "../../../src/components/place/PlaceRecognition";
+import { PlaceSectionHeader } from "../../../src/components/place/PlaceSectionHeader";
+import { PlaceTravel } from "../../../src/components/place/PlaceTravel";
+import leCha from "../../../src/data/le-cha-review.json";
 import { PlaceNeighbors } from "../../../src/components/place/PlaceNeighbors";
 import { CoupDeCoeurButton } from "../../../src/components/CoupDeCoeurButton";
 import { PlaceTabs } from "../../../src/components/place/PlaceTabs";
@@ -64,11 +53,9 @@ import { PlaceMediaTab } from "../../../src/components/place/PlaceMediaTab";
 import { PlaceMenuTab } from "../../../src/components/place/PlaceMenuTab";
 import { OutingActions } from "../../../src/components/OutingActions";
 import { useOutings } from "../../../src/store/outings-store";
-import { formatXofAmount } from "../../../src/lib/format-price";
+import { formatXofAmount, getPlaceBudgetLabel } from "../../../src/lib/format-price";
 import {
   buildStaticMapUrl,
-  geoUrl,
-  appleMapsUrl,
 } from "../../../src/lib/static-map";
 // Réservation 1-tap (0042) — bouton « Réserver » (flag reservation-1tap,
 // masqué sans numéro WhatsApp), sheet groupe+créneau, trace best-effort puis
@@ -81,22 +68,6 @@ import { buildWaMeUrl } from "../../../src/lib/reservations";
 // est un affichage ÉTIQUETÉ — jamais dans la note ni le matching (Contrat).
 import { PlaceActivitySection } from "../../../src/components/place/PlaceActivitySection";
 
-const SIGNAL_LABELS: Record<string, string> = {
-  coup_de_coeur: "❤️ Coup de Cœur",
-  pepite_verifiee: "💎 Pépite vérifiée",
-  institution: "👑 Institution",
-  fidelite: "🔁 Fidélité",
-  decouverte: "🌱 Découverte",
-  table_diverse: "🌍 Table diverse",
-  noctambule_verifie: "🌙 Noctambule vérifié",
-};
-
-const PRICE_TIER_LABELS: Record<1 | 2 | 3, string> = {
-  1: "₣",
-  2: "₣₣",
-  3: "₣₣₣",
-};
-
 type Referrer = "feed" | "search" | "map" | "share" | "direct";
 const VALID_REFS: ReadonlyArray<Referrer> = [
   "feed",
@@ -107,13 +78,19 @@ const VALID_REFS: ReadonlyArray<Referrer> = [
 ];
 
 // R17 + R19 — onglets de la fiche, dans cet ordre produit (Média · Menu · Avis).
-type PlaceTabKey = "media" | "menu" | "avis";
+type PlaceTabKey = "overview" | "avis" | "menu" | "media" | "infos";
+function tabFromRoute(tab?: string): PlaceTabKey {
+  if (tab === "photos") return "media";
+  return tab === "menu" || tab === "media" || tab === "avis" || tab === "infos" ? tab : "overview";
+}
 
 export default function PlaceDetailScreen() {
   const contentRevision = useContentRevision();
   const params = useLocalSearchParams<{ id: string; ref?: string; tab?: string }>();
   useOutings();
   const id = params.id;
+  const practical = usePlacePractical(id);
+  const scroll = useRef<ScrollView>(null);
   const ref = (VALID_REFS as ReadonlyArray<string>).includes(params.ref ?? "")
     ? (params.ref as Referrer)
     : "direct";
@@ -132,8 +109,8 @@ export default function PlaceDetailScreen() {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [coverFailed, setCoverFailed] = useState(false);
-  const [activeTab, setActiveTab] = useState<PlaceTabKey>(params.tab === "menu" ? "menu" : "media");
-  useEffect(() => { if (params.tab === "menu") setActiveTab("menu"); }, [params.tab, params.id]);
+  const [activeTab, setActiveTab] = useState<PlaceTabKey>(() => tabFromRoute(params.tab));
+  useEffect(() => { setActiveTab(tabFromRoute(params.tab)); }, [params.tab, params.id]);
   const spawtBusy = useRef(false);
   const [startingReview, setStartingReview] = useState(false);
 
@@ -337,8 +314,9 @@ export default function PlaceDetailScreen() {
   // Le `noUncheckedIndexedAccess` typerait cover_photo_url comme `string | null`
   // mais la couche DB peut livrer `""` (Zod normalise désormais → null, voir
   // place.schema.ts). On double-check côté UI pour les seeds qui passent off-schema.
-  const coverUrl = place.cover_photo_url ?? "";
-  const hasCover = coverUrl.length > 0 && !coverFailed;
+  const coverUrl = place.cover_photo_url || place.gallery_urls.find(url => /^https?:\/\//i.test(url));
+  const headerImage = place.id === leCha.placeId ? require("../../../assets/editorial/le-cha-devanture.jpg") : coverUrl ? {uri:coverUrl} : undefined;
+  const hasCover = Boolean(headerImage) && !coverFailed;
   // Story 4.12 — carte statique sous l'adresse. `null` si pas de clé API ou
   // coords nulles → on retombe sur l'adresse texte seule (AC #1 fallback).
   const { lat, lng, descriptive_address, city } = place.location;
@@ -359,9 +337,9 @@ export default function PlaceDetailScreen() {
   // admin → Fonctionnalités) ; OFF → échelle ₣ historique. (Le hook useFlag
   // est appelé plus haut, avant les early returns — R22.)
   const avgTicket = avgPriceEnabled ? formatXofAmount(place.price.avg_ticket_xof) : null;
-  const priceLabel = avgTicket
-    ? t("place.price_avg", { amount: avgTicket })
-    : (place.price.tier === null ? t("place.price_unknown") : PRICE_TIER_LABELS[place.price.tier]);
+  const priceLabel = getPlaceBudgetLabel(avgPriceEnabled ? place.price : {tier:place.price.tier}, t);
+  const area = [place.location.neighborhood, city].filter(Boolean).join(" · ");
+  const overview = activeTab === "overview";
 
   const onCallPress = () => {
     if (!place.phone) return;
@@ -488,30 +466,14 @@ export default function PlaceDetailScreen() {
   // VRAI changement (jamais sur re-tap de l'onglet actif) → pas de dédup ici.
   const onTabChange = (tab: PlaceTabKey) => {
     setActiveTab(tab);
+    requestAnimationFrame(() => scroll.current?.scrollTo({y:0,animated:false}));
     track({
       name: "place_tab_viewed",
       properties: { place_id: place.id, tab },
     });
   };
 
-  // Story 4.12 — ouvre l'app cartes native. `geo:` côté Android ; iOS ne le
-  // gère pas toujours → fallback Apple Maps après test canOpenURL.
-  const onOpenMap = async () => {
-    if (!hasPin && !hasAddress) return;
-    const destination = hasPin ? lat + "," + lng : [place.name, descriptive_address, city].filter(Boolean).join(", ");
-    const directions = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(destination);
-    try {
-      if (Platform.OS === "ios" && hasPin) {
-        await Linking.openURL(appleMapsUrl(lat, lng, place.name));
-      } else if (Platform.OS === "android" && hasPin && await Linking.canOpenURL(geoUrl(lat, lng, place.name))) {
-        await Linking.openURL(geoUrl(lat, lng, place.name));
-      } else {
-        await Linking.openURL(directions);
-      }
-    } catch {
-      await Linking.openURL(directions).catch(() => Alert.alert(t("place.link_failed")));
-    }
-  };
+  const onOpenMap = () => router.push({pathname:"/(tabs)/carte", params:{lieu:place.id}});
 
   const handleSpawt = async () => {
     if (spawtBusy.current) return;
@@ -560,472 +522,88 @@ export default function PlaceDetailScreen() {
     >
       <DataSourceBanner />
 
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: theme.spacing.lg,
-        }}
-      >
-        {/* Photo hero + header overlay — hauteur identique avec/sans cover
-            pour éviter un saut de mise en page quand la photo rate à charger. */}
-        <View style={{ position: "relative" }}>
-          {hasCover ? (
-            <Image
-              source={{ uri: coverUrl }}
-              onError={() => setCoverFailed(true)}
-              style={{ width: "100%", height: 280 }}
-              resizeMode="cover"
-            />
-          ) : (
-            <View
-              style={{
-                width: "100%",
-                height: 280,
-                backgroundColor: theme.colors.surface.subtle,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ico name="pin" size={48} color={theme.colors.text.tertiary} />
-            </View>
-          )}
-          {/* Header actions overlay */}
-          <View
-            style={{
-              position: "absolute",
-              top: theme.spacing.base,
-              left: theme.spacing.base,
-              right: theme.spacing.base,
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Pressable
-              onPress={goBack}
-              accessibilityRole="button"
-              accessibilityLabel={t("place.back")}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: theme.colors.surface.base,
-                alignItems: "center",
-                justifyContent: "center",
-                ...theme.elevation.sm,
-              }}
-            >
-              <Ico name="arrow-left" size={20} />
-            </Pressable>
-
-            <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-              <Pressable
-                onPress={onToggleSavedPress}
-                accessibilityRole="button"
-                // Story 4.9 — désambiguïse vs chip Coup de Cœur sous le rating.
-                // Le heart top-right = sauvegarde personnelle (favoris). Le chip
-                // ❤️ sous le rating = signal communautaire rare (PRD §7.3).
-                accessibilityLabel={
-                  isSaved ? t("place.heart_active") : t("place.heart_hint")
-                }
-                accessibilityHint={t(isSaved ? "outings.remove_place" : "outings.save_place")}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.colors.surface.base,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  ...theme.elevation.sm,
-                }}
-              >
-                <Ico
-                  name="heart"
-                  size={20}
-                  filled={isSaved}
-                  color={
-                    isSaved
-                      ? theme.colors.brand.primary
-                      : theme.colors.text.secondary
-                  }
-                />
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  void onSharePress();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={t("share.button_label")}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.colors.surface.base,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  ...theme.elevation.sm,
-                }}
-              >
-                <Ico name="share" size={20} />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        {/* Titre + sous-titre */}
-        <View style={{ padding: theme.spacing.lg }}>
-          <Text
-            style={{
-              ...theme.typography.preset.display,
-              color: theme.colors.text.primary,
-              marginBottom: 4,
-            }}
-          >
-            {place.name}
-          </Text>
-          {/* Story 4.9 — sous-titre ne porte plus le price tier (déplacé dans
-              le bloc rating en h2 pour lisibilité 1m). Garde quartier + cuisine. */}
-          <Text
-            style={{
-              ...theme.typography.preset.body,
-              color: theme.colors.text.secondary,
-              marginBottom: theme.spacing.base,
-            }}
-          >
-            {[place.location.neighborhood, place.location.city, ...place.cuisine.map(c => t("cuisine." + c, { defaultValue: c }))].filter(Boolean).join(" · ")}
-          </Text>
-
-          <PlaceWeek key={place.id} hours={place.hours} city={place.location.city} />
-
-          {/* Story 4.9 — Rating principal + prix en h2, visible à 1m.
-              R21 — le prix affiche « ~N F CFA » si avg_ticket_xof est
-              renseigné, sinon l'échelle ₣ du tier. */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: theme.spacing.sm,
-              marginBottom: theme.spacing.base,
-            }}
-          >
-            {place.adn.weighted_rating > 0 ? (
-              <>
-                <Text
-                  style={{
-                    ...theme.typography.preset.h2,
-                    color: theme.colors.text.primary,
-                  }}
-                  accessibilityLabel={t("a11y.stars", {
-                    count: Math.round(place.adn.weighted_rating * 10) / 10,
-                    max: 5,
-                  })}
-                >
-                  {place.adn.weighted_rating.toFixed(1)}
-                </Text>
-                <Stars value={place.adn.weighted_rating} size="lg" />
-              </>
-            ) : (
-              <Chip label={t("place.notRatedYet")} variant="default" />
-            )}
-            <Text
-              style={{
-                ...theme.typography.preset.h2,
-                color: theme.colors.text.primary,
-                marginLeft: theme.spacing.xs,
-              }}
-              accessibilityLabel={t("place.price_aria", { value: priceLabel })}
-            >
-              {priceLabel}
-            </Text>
-          </View>
-
-          {/* Q4 — convention du prix moyen affichée (honnêteté du chiffre) :
-              repas type par personne, boissons non comprises. */}
-          {avgTicket ? (
-            <Text
-              style={{
-                ...theme.typography.preset.small,
-                color: theme.colors.text.tertiary,
-                marginTop: -theme.spacing.sm,
-                marginBottom: theme.spacing.base,
-              }}
-            >
-              {t("place.price_avg_note")}
-            </Text>
-          ) : null}
-
-          {/* R10 — le rang de CTAs « Appeler » / « Réserver via WhatsApp » a
-              été supprimé (doublon : le téléphone réapparaissait en InfoLine).
-              Le contact vit désormais dans la section « Divers » en bas (R18). */}
-
-          {/* MatchScore + Distance (Stars + price ont été remontés au-dessus). */}
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: theme.spacing.sm,
-              alignItems: "center",
-              marginBottom: theme.spacing.base,
-            }}
-          >
-            {matchScore !== null && palaisConfident ? (
-              <MatchScore value={matchScore} />
-            ) : null}
-            {position.source === "gps" && hasPin && Number.isFinite(distanceKm) ? <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Ico name="walk" size={14} color={theme.colors.text.tertiary} />
-              <Text
-                style={{
-                  ...theme.typography.preset.small,
-                  color: theme.colors.text.tertiary,
-                }}
-              >
-                {distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km
-              </Text>
-            </View> : null}
-          </View>
-
-          {/* Phase 2 F12 — Coup de Cœur actionnable (quota mensuel par stade) */}
-          <CoupDeCoeurButton place_id={place.id} />
-
-          {/* Réservation 1-tap (0042) — flag reservation-1tap + WhatsApp requis. */}
-          {resaAvailable ? (
-            <Pressable
-              onPress={() => setResaVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel={t("resa.open_aria", { name: place.name })}
-              testID="place-reserve-button"
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: theme.spacing.sm,
-                borderWidth: 1,
-                borderColor: theme.colors.brand.primary,
-                borderRadius: theme.radius.lg,
-                paddingVertical: theme.spacing.base,
-                marginBottom: theme.spacing.base,
-                minHeight: 48,
-                opacity: pressed ? 0.8 : 1,
-              })}
-            >
-              <Ico name="clock" size={18} color={theme.colors.brand.primary} />
-              <Text
-                style={{ ...theme.typography.preset.h3, color: theme.colors.brand.primary }}
-              >
-                {t("resa.button")}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {/* Signaux */}
-          <OutingActions placeId={place.id} full />
-          <Pressable testID="place-contribute" accessibilityRole="button"
-            onPress={() => router.push({ pathname: "/contribute/[id]", params: { id: place.id, name: place.name } } as never)}
-            style={{ minHeight: 48, justifyContent: "center", marginBottom: theme.spacing.base }}>
-            <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("contribution.title")}</Text>
-          </Pressable>
-          {place.signals.length > 0 && (
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: theme.spacing.xs,
-                marginBottom: theme.spacing.lg,
-              }}
-            >
-              {place.signals.map((s) => (
-                <Chip key={s} label={SIGNAL_LABELS[s] ?? s} variant="default" />
-              ))}
-            </View>
-          )}
-
-          {/* « En ce moment » (0049/0050) — bandeau promo étiqueté + cartes
-              événement. Rien si vide : aucun espace réservé. */}
-          <PlaceActivitySection placeId={place.id} />
-
-          {/* R17 + R19 — Onglets Média · Menu · Avis (cet ordre). Seul le
-              contenu de l'onglet actif est monté : fetchs à la demande,
-              fiche légère. */}
-          <PlaceTabs<PlaceTabKey>
-            tabs={[
-              { key: "media", label: t("place.tab_media") },
-              { key: "menu", label: t("place.tab_menu") },
-              { key: "avis", label: t("place.tab_reviews") },
-            ]}
-            active={activeTab}
-            onChange={onTabChange}
-          />
-          <View style={{ marginBottom: theme.spacing.sm }}>
-            {activeTab === "media" ? (
-              /* Q1 — photos de présentation (gallery_urls, jusqu'à 3) puis
-                 galerie des spawters (photos des spawts du lieu). */
-              <PlaceMediaTab
-                placeId={place.id}
-                galleryUrls={place.gallery_urls}
-              />
-            ) : null}
-            {activeTab === "menu" ? (
-              <PlaceMenuTab urls={place.menu_urls} placeId={place.id} />
-            ) : null}
-            {activeTab === "avis" ? (
-              /* Q2 — PlaceReviews porte « Voir tous les avis (N) » → l'écran
-                 dédié reviews.tsx. */
-              <PlaceReviews
-                placeId={place.id}
-                onSeeAll={() =>
-                  // `as never` : typedRoutes ne régénère pas toujours la route
-                  // imbriquée hors dev-server (pattern repo, cf. profile.tsx
-                  // router.push("/saved" as never)). Résout au runtime.
-                  router.push(`/place/${place.id}/reviews` as never)
-                }
-              />
-            ) : null}
-          </View>
-
-          <PlaceEditorial place={place} />
-
-          {/* Section ADN */}
-          <View
-            style={{
-              marginTop: theme.spacing.base,
-              padding: theme.spacing.base,
-              backgroundColor: theme.colors.surface.raised,
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.colors.border.subtle,
-            }}
-          >
-            <Text
-              style={{
-                ...theme.typography.preset.h3,
-                color: theme.colors.text.primary,
-                marginBottom: theme.spacing.sm,
-              }}
-            >
-              {t("place.adn_section_title")}
-            </Text>
-            {adnHasEnoughReviews ? (
-              <AdnTags adn={place.adn} />
-            ) : (
-              <View>
-                <Text
-                  style={{
-                    ...theme.typography.preset.body,
-                    color: theme.colors.text.primary,
-                    fontStyle: "italic",
-                  }}
-                >
-                  {t("place.adn_in_construction")}
-                </Text>
-                <Text
-                  style={{
-                    ...theme.typography.preset.small,
-                    color: theme.colors.text.tertiary,
-                    marginTop: 4,
-                  }}
-                >
-                  {/* L'échantillon, pas le compteur public : sinon le texte
-                      annonce « 0 avis, il en faut 5 » alors que 3 avis
-                      fondateurs comptent déjà pour la révélation du radar. */}
-                  {t("place.adn_in_construction_hint", {
-                    reviews: place.adn.sample_size,
-                  })}
-                </Text>
+      <ScrollView ref={scroll} stickyHeaderIndices={[1]} contentContainerStyle={{paddingBottom:theme.spacing.lg}}>
+        <View>
+          <View testID={overview && hasCover ? "place-header-photo" : "place-header-no-gallery"} style={{minHeight:overview && hasCover ? 210 : 66}}>
+            {overview && hasCover ? <Image accessible={false} source={headerImage} onError={() => setCoverFailed(true)}
+              style={{width:"100%",height:210}} resizeMode="cover"/> : null}
+            <View style={{position:"absolute",left:theme.spacing.base,right:theme.spacing.base,top:theme.spacing.sm,flexDirection:"row",alignItems:"center",justifyContent:"space-between"}}>
+              <ActionIcon icon="arrow-left" label={t("place.back")} onPress={goBack}/>
+              <View style={{flexDirection:"row",gap:theme.spacing.sm}}>
+                <ActionIcon icon="bookmark" filled={isSaved} label={t(isSaved ? "place.heart_active":"place.heart_hint")} onPress={onToggleSavedPress}/>
+                <ActionIcon icon="share" label={t("share.button_label")} onPress={onSharePress}/>
               </View>
-            )}
-          </View>
-
-          {/* R19 — Carte + adresse : la carte statique descend ici, sous les
-              onglets et l'ADN. Puis horaires (R12 — OpeningHours, 7 jours). */}
-          <View style={{ marginTop: theme.spacing.lg }}>
-            <InfoLine
-              label={t("place.info_address")}
-              value={place.location.descriptive_address || t("place.location_pending")}
-              theme={theme}
-            />
-            {/* Story 4.12 — carte statique tappable sous l'adresse. Fallback :
-                pas d'URL (clé absente / coords nulles) → rien de plus,
-                l'adresse texte ci-dessus suffit (AC #1). */}
-            {staticMapUrl ? (
-              <Pressable
-                onPress={() => {
-                  void onOpenMap();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={t("place.map_open_aria")}
-                style={({ pressed }) => ({
-                  marginTop: theme.spacing.sm,
-                  borderRadius: theme.radius.lg,
-                  overflow: "hidden",
-                  opacity: pressed ? 0.85 : 1,
-                })}
-              >
-                <Image
-                  source={{ uri: staticMapUrl }}
-                  style={{
-                    width: "100%",
-                    height: 140,
-                    backgroundColor: theme.colors.surface.subtle,
-                  }}
-                  resizeMode="cover"
-                  accessibilityIgnoresInvertColors
-                />
-              </Pressable>
-            ) : null}
-            {hasPin || hasAddress ? <Pressable accessibilityRole="button" onPress={onOpenMap} style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, minHeight: 48 }}>
-              <Ico name="compass" size={18} color={theme.colors.brand.accent}/>
-              <Text style={{ ...theme.typography.preset.body, color: theme.colors.brand.accent }}>{t("place.directions")}</Text>
-            </Pressable> : null}
-          </View>
-          <PlacePractical key={place.id} placeId={place.id} />
-
-          {/* R18 — Section « Divers » tout en bas : contact relégué en
-              InfoLines simples (tel:/wa.me conservés). Intention produit :
-              pousser la réservation in-app plus tard — pas de bouton
-              proéminent (R10). */}
-          {place.phone || place.whatsapp ? (
-            <View style={{ marginTop: theme.spacing.lg }}>
-              <Text
-                style={{
-                  ...theme.typography.preset.h3,
-                  color: theme.colors.text.primary,
-                  marginBottom: theme.spacing.sm,
-                }}
-              >
-                {t("place.direct_contact")}
-              </Text>
-              {place.phone ? (
-                <InfoLine
-                  label={t("place.info_phone")}
-                  value={place.phone}
-                  theme={theme}
-                  onPress={onCallPress}
-                />
-              ) : null}
-              {place.whatsapp ? (
-                <InfoLine
-                  label={t("place.info_whatsapp")}
-                  value={place.whatsapp}
-                  theme={theme}
-                  onPress={onWhatsAppPress}
-                />
-              ) : null}
             </View>
-          ) : null}
-          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/support", params: {context: "place:" + place.id, topic: "question"} })}
-            style={{flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, minHeight: 48}}>
-            <Ico name="send" size={16}/><Text style={{ ...theme.typography.preset.small, color: theme.colors.brand.accent }}>{t("place.question_team")}</Text>
-          </Pressable>
-          <PlaceNeighbors key={place.id} place={place} />
+          </View>
+          {overview ? <View style={{paddingHorizontal:theme.spacing.lg,paddingVertical:theme.spacing.sm,gap:theme.spacing.sm}}>
+            <CoupDeCoeurButton place_id={place.id}/>
+            <PlaceIdentity key={[place.id,place.logo_url,place.signage_url].join("/")} place={place} practical={practical.facts}/>
+            {hasPin || hasAddress ? <Pressable accessibilityRole="button" testID="place-open-internal-map" onPress={onOpenMap}
+              accessibilityLabel={t("place.internal_map")} style={{minHeight:44,flexDirection:"row",alignItems:"center",gap:theme.spacing.sm}}>
+              <Ico name="pin" size={18} color={theme.colors.brand.accent}/>
+              <Text style={{flex:1,...theme.typography.preset.body,color:theme.colors.brand.accent}}>{descriptive_address || t("place.internal_map")}</Text>
+              <Ico name="chevron-right" size={16}/>
+            </Pressable> : null}
+            {position.source === "gps" && hasPin ? <PlaceTravel km={distanceKm}/> : null}
+            <View style={{padding:theme.spacing.base,backgroundColor:theme.colors.surface.subtle,borderRadius:theme.radius.lg,gap:theme.spacing.xs}}>
+              <Text style={{...theme.typography.preset.overline,color:theme.colors.brand.accent}}>{t("place.budget_title")}</Text>
+              <Text accessibilityLabel={t("place.price_aria",{value:priceLabel})} style={{...theme.typography.preset.h2,color:theme.colors.text.primary}}>{priceLabel}</Text>
+              <Text style={{...theme.typography.preset.caption,color:theme.colors.text.secondary}}>{avgTicket ? t("place.price_avg",{amount:avgTicket})+" · " : ""}{t("place.budget_basis")}</Text>
+            </View>
+            {place.adn.weighted_rating > 0 || (matchScore !== null && palaisConfident) ? <View style={{flexDirection:"row",alignItems:"center",gap:theme.spacing.sm}}>
+              {place.adn.weighted_rating > 0 ? <><Stars value={place.adn.weighted_rating} size="sm"/><Text style={{...theme.typography.preset.body,color:theme.colors.text.primary}}>{place.adn.weighted_rating.toLocaleString("fr-FR",{maximumFractionDigits:1})}/5</Text></> : null}
+              {matchScore !== null && palaisConfident ? <MatchScore value={matchScore}/> : null}
+            </View> : null}
+          </View> : null}
+        </View>
+        <View style={{backgroundColor:theme.colors.surface.base,paddingVertical:theme.spacing.sm,paddingHorizontal:theme.spacing.sm}}>
+          <PlaceTabs<PlaceTabKey> active={activeTab} onChange={onTabChange} tabs={[
+            {key:"overview",label:t("place.tab_overview")},{key:"avis",label:t("place.tab_reviews")},{key:"menu",label:t("place.tab_menu")},{key:"media",label:t("place.tab_photos")},{key:"infos",label:t("place.tab_infos")}
+          ]}/>
+        </View>
+        <View style={{paddingHorizontal:theme.spacing.base,gap:theme.spacing.base}}>
+          {overview || activeTab === "avis" ? <View style={{gap:theme.spacing.sm}}>
+            <PlaceSectionHeader icon="users" title={t(overview ? "place.bande_heading":"place.all_reviews_heading")} eyebrow={place.name} meta={area}/>
+            <PlaceReviews key={place.id} placeId={place.id} compact={overview} limit={overview ? 3 : 5} hideTitle
+              onSeeAll={() => overview ? onTabChange("avis") : router.push(`/place/${place.id}/reviews` as never)}/>
+          </View> : null}
+          {overview || activeTab === "menu" ? <PlaceMenuTab urls={place.menu_urls} placeId={place.id} placeName={place.name} locationLabel={area}
+            {...(overview ? {onOpenMenu:()=>onTabChange("menu")} : {})}/> : null}
+          {overview ? <>
+            <PlaceRecognition key={place.id} placeId={place.id} name={place.name} signals={place.signals}/>
+            <PlaceActivitySection placeId={place.id}/>
+            <OutingActions placeId={place.id} full/>
+          </> : null}
+          {activeTab === "media" ? <>
+            <PlaceSectionHeader icon="camera" title={t("place.tab_photos")} eyebrow={place.name} meta={area} image={headerImage}/>
+            <PlaceMediaTab placeId={place.id} galleryUrls={place.gallery_urls}/>
+          </> : null}
+          {activeTab === "infos" ? <>
+            <PlaceSectionHeader icon="map" title={t("place.practical_heading")} eyebrow={place.name} meta={area} image={headerImage}/>
+            <InfoLine label={t("place.info_address")} value={descriptive_address || t("place.location_pending")} theme={theme}/>
+            {hasPin || hasAddress ? <Pressable accessibilityRole="button" onPress={onOpenMap} accessibilityLabel={t("place.internal_map")} style={{gap:theme.spacing.xs,paddingVertical:theme.spacing.sm}}>
+              {staticMapUrl ? <Image source={{uri:staticMapUrl}} resizeMode="cover" style={{height:140,width:"100%",borderRadius:theme.radius.md}}/> : null}
+              <Text style={{...theme.typography.preset.body,color:theme.colors.brand.accent}}>{t("place.internal_map")} →</Text>
+            </Pressable> : null}
+            <PlaceWeek key={`week-${place.id}`} hours={place.hours} city={city}/>
+            <PlacePractical facts={practical.facts}/>
+            <DataLoadNotice loading={false} failed={practical.failed} onRetry={practical.retry}/>
+            {place.phone ? <InfoLine label={t("place.info_phone")} value={place.phone} theme={theme} onPress={onCallPress}/> : null}
+            {place.whatsapp ? <InfoLine label={t("place.info_whatsapp")} value={place.whatsapp} theme={theme} onPress={onWhatsAppPress}/> : null}
+            {resaAvailable ? <InfoLine label={t("resa.button")} value="→" theme={theme} onPress={()=>setResaVisible(true)}/> : null}
+            <PlaceEditorial place={place} identityVisible/>
+            <View style={{gap:theme.spacing.xs}}>
+              <Text accessibilityRole="header" style={{...theme.typography.preset.h2,color:theme.colors.text.primary}}>{t("place.adn_section_title")}</Text>
+              {adnHasEnoughReviews ? <AdnTags adn={place.adn}/> : <Text style={{...theme.typography.preset.body,color:theme.colors.text.secondary}}>{t("place.adn_in_construction")}</Text>}
+            </View>
+            <PlaceNeighbors key={`nearby-${place.id}`} place={place}/>
+            <Pressable testID="place-contribute" accessibilityRole="button" onPress={()=>router.push({pathname:"/contribute/[id]",params:{id:place.id,name:place.name}} as never)} style={{minHeight:44,justifyContent:"center"}}>
+              <Text style={{...theme.typography.preset.body,color:theme.colors.brand.accent}}>{t("contribution.title")}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={()=>router.push({pathname:"/support",params:{context:"place:"+place.id,topic:"question"}})} style={{minHeight:44,justifyContent:"center"}}>
+              <Text style={{...theme.typography.preset.body,color:theme.colors.brand.accent}}>{t("place.question_team")}</Text>
+            </Pressable>
+          </> : null}
         </View>
       </ScrollView>
 
@@ -1080,6 +658,13 @@ export default function PlaceDetailScreen() {
       />
     </SafeAreaView>
   );
+}
+
+function ActionIcon({icon,label,onPress,filled=false}:{icon:IconName;label:string;onPress:()=>void;filled?:boolean}) {
+  const {colors,radius} = useTheme();
+  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={icon==="bookmark" ? {selected:filled} : {}} style={{width:44,height:44,justifyContent:"center",alignItems:"center",backgroundColor:colors.surface.base,borderRadius:radius.full,borderWidth:1,borderColor:colors.border.subtle}}>
+    <Ico name={icon} size={20} filled={filled} color={filled?colors.brand.accent:colors.text.primary}/>
+  </Pressable>;
 }
 
 function InfoLine({

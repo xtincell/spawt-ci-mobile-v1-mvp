@@ -29,6 +29,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { getPlaceBudgetLabel } from "../../src/lib/format-price";
 import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 
@@ -54,12 +55,6 @@ type ScreenState =
   | { kind: "empty" }
   | { kind: "unavailable" }
   | { kind: "loaded"; items: NearbyPlace[]; userLat: number; userLng: number };
-
-const PRICE_LABELS: Record<1 | 2 | 3, string> = {
-  1: "₣",
-  2: "₣₣",
-  3: "₣₣₣",
-};
 
 export default function SpawterTabScreen() {
   const theme = useTheme();
@@ -367,7 +362,8 @@ function NearbyCard({ item, onSpawt, disabled }: NearbyCardProps) {
   const cuisineLabel = firstCuisine
     ? t(`cuisine.${firstCuisine}`, { defaultValue: firstCuisine })
     : null;
-  const priceLabel = (place.price.tier === null ? t("place.price_unknown") : PRICE_LABELS[place.price.tier]);
+  const monetaryBudget = useFlag("place-avg-price");
+  const priceLabel = getPlaceBudgetLabel(place.price, t, monetaryBudget);
 
   return (
     <View

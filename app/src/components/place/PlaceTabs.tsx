@@ -6,7 +6,7 @@
 // dans son `onChange` (qui n'est déclenché QUE sur un vrai changement, jamais
 // sur un re-tap de l'onglet actif).
 
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, ScrollView } from "react-native";
 
 import { useTheme } from "../../theme/ThemeProvider";
 
@@ -25,10 +25,11 @@ export function PlaceTabs<K extends string>({ tabs, active, onChange }: Props<K>
   const theme = useTheme();
 
   return (
-    <View
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{flexGrow:1}}><View
       accessibilityRole="tablist"
       style={{
         flexDirection: "row",
+        flexGrow: 1,
         backgroundColor: theme.colors.surface.subtle,
         borderRadius: theme.radius.full,
         padding: theme.spacing.xs,
@@ -49,7 +50,8 @@ export function PlaceTabs<K extends string>({ tabs, active, onChange }: Props<K>
             accessibilityState={{ selected: isActive }}
             style={{
               flex: 1,
-              minHeight: 40,
+              minHeight: 44,
+              paddingHorizontal: theme.spacing.sm,
               alignItems: "center",
               justifyContent: "center",
               borderRadius: theme.radius.full,
@@ -73,6 +75,6 @@ export function PlaceTabs<K extends string>({ tabs, active, onChange }: Props<K>
           </Pressable>
         );
       })}
-    </View>
+    </View></ScrollView>
   );
 }

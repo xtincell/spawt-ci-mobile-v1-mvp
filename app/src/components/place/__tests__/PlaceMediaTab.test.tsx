@@ -91,7 +91,7 @@ describe("<PlaceMediaTab /> — R17 / Q1 onglet Média", () => {
     await flush();
     // 3 images max côté présentation, pas d'état vide global.
     expect(r.root.findAllByType(Image)).toHaveLength(3);
-    const toggle = r.root.findAll(node => node.props.accessibilityRole === "button" && typeof node.props.onPress === "function")[0];
+    const toggle = r.root.findAll(node => node.props.testID === "toggle-official-photos" && typeof node.props.onPress === "function")[0];
     expect(toggle).toBeDefined();
     TestRenderer.act(() => (toggle!.props.onPress as () => void)());
     expect(r.root.findAllByType(Image)).toHaveLength(5);

@@ -1,0 +1,545 @@
+{
+  "place_id": "ef8f3289-a9ca-56f0-899c-f95f93ee9c75",
+  "source_label": "Carte du restaurant Le Chā",
+  "observed_on": "2026-11-26",
+  "currency": "XOF",
+  "sections": [
+    {
+      "menu_label": "Salé",
+      "menu_section": "Plats",
+      "source_page": 4,
+      "items": [
+        {
+          "id": "tteokbokki",
+          "name": "Tteokbokki",
+          "price_xof": 5500,
+          "description": "Gnocchis coréens dans une sauce sucrée-salée et pimentée, servis avec du poulet croustillant et de la mozzarella fondue.",
+          "preview_photo_url": "https://eda-dostavka.com/media/154324/c16e4c79c9a0010f4ad0139c27467b8a-163x141.jpeg"
+        },
+        {
+          "id": "bulgogi-fries",
+          "name": "Bulgogi Fries",
+          "price_xof": 6000,
+          "description": "Frites, viande marinée à la coréenne, oignons verts, graines de sésame et mayonnaise pimentée."
+        },
+        {
+          "id": "rainbow-fries",
+          "name": "Rainbow Fries",
+          "price_xof": 3500,
+          "description": "Frites, sauce cheddar, sauce sriracha, mayonnaise, tomates, jalapeños, oignons verts et graines de sésame."
+        }
+      ]
+    },
+    {
+      "menu_label": "Salé",
+      "menu_section": "Bao burgers",
+      "source_page": 5,
+      "items": [
+        {
+          "id": "chicken-katsu",
+          "name": "Chicken Katsu",
+          "price_xof": 5000,
+          "description": "Poulet croustillant, chou, oignons verts, sauce tartare japonaise et sauce okonomiyaki.",
+          "preview_photo_url": "https://eda-dostavka.com/media/154324/fc4900c7042afc9929f22366922ebd83-163x141.jpeg"
+        },
+        {
+          "id": "dynamite-chicken-bao",
+          "name": "Dynamite Chicken Bao",
+          "price_xof": 5000,
+          "description": "Poulet croustillant, chou, jalapeños et oignons verts, avec sauce dynamite maison et sriracha."
+        },
+        {
+          "id": "cheese-smash-bao",
+          "name": "Cheese Smash Bao",
+          "price_xof": 6500,
+          "description": "Deux steaks smashés, cheddar fondu, laitue, oignons caramélisés et mayonnaise."
+        },
+        {
+          "id": "classic-bao-burger",
+          "name": "Classic Bao Burger",
+          "price_xof": 5000,
+          "description": "Steak haché, laitue, tomate et oignons."
+        },
+        {
+          "id": "bulgogi-burger",
+          "name": "Bulgogi Burger",
+          "price_xof": 7000,
+          "description": "Bœuf mariné à la coréenne, cheddar, salade et mayonnaise."
+        },
+        {
+          "id": "chicken-cheese",
+          "name": "Chicken & Cheese",
+          "price_xof": 5500,
+          "description": "Poulet croustillant, sauce cheddar, mayonnaise et salade."
+        }
+      ]
+    },
+    {
+      "menu_label": "Salé",
+      "menu_section": "Corn dogs",
+      "source_page": 5,
+      "items": [
+        {
+          "id": "basic-corn-dog",
+          "name": "Basic Corn Dog",
+          "price_xof": 3000,
+          "description": "Saucisse enrobée de pâte à beignet coréenne."
+        },
+        {
+          "id": "cheese-corn-dog",
+          "name": "Cheese Corn Dog",
+          "price_xof": 3000,
+          "description": "Bâtonnet de mozzarella en beignet, façon coréenne."
+        },
+        {
+          "id": "half-half",
+          "name": "Half Half",
+          "price_xof": 3500,
+          "description": "Une moitié saucisse et une moitié fromage dans une pâte à beignet."
+        },
+        {
+          "id": "okonomiyaki",
+          "name": "Okonomiyaki Corn Dog",
+          "price_xof": 4000,
+          "description": "Mi-saucisse, mi-fromage, avec sauce okonomiyaki, mayonnaise japonaise, bonite, sésame, nori et oignons verts.",
+          "preview_photo_url": "https://eda-dostavka.com/media/154324/0433dc2c0f8d2a26e05823fb7206150b-163x141.jpeg"
+        }
+      ]
+    },
+    {
+      "menu_label": "Salé",
+      "menu_section": "Finger food",
+      "source_page": 4,
+      "items": [
+        {
+          "id": "so-teok-so-teok",
+          "name": "So-Teok So-Teok",
+          "price_xof": 3500,
+          "description": "Quatre brochettes de gâteaux de riz et de saucisse, caramélisées à la sauce gochujang."
+        },
+        {
+          "id": "kfc",
+          "name": "KFC",
+          "price_xof": 4000,
+          "description": "Lamelles de poulet frit à la coréenne."
+        },
+        {
+          "id": "mozzarella-sticks",
+          "name": "Mozzarella Sticks",
+          "price_xof": 4000,
+          "description": "Six bâtonnets de mozzarella."
+        }
+      ]
+    },
+    {
+      "menu_label": "Sucré",
+      "menu_section": "Desserts",
+      "source_page": 7,
+      "items": [
+        {
+          "id": "pain-perdu",
+          "name": "Pain perdu",
+          "price_xof": 4000,
+          "description": "Pain perdu XXL, boule de glace vanille et sauce caramel."
+        },
+        {
+          "id": "catsella-cake",
+          "name": "Catsella Cake",
+          "price_xof": 4000,
+          "description": "Gâteau taïwanais à la texture légère.",
+          "choices": [
+            "Cream cheese et Nutella",
+            "Façon tiramisu",
+            "Caramel et perles de boba"
+          ]
+        },
+        {
+          "id": "tiramisu",
+          "name": "Tiramisu",
+          "price_xof": 3000,
+          "description": "Portion individuelle. Le parfum dépend des disponibilités.",
+          "choices": [
+            "Café",
+            "Citron"
+          ]
+        },
+        {
+          "id": "mochi",
+          "name": "Mochi glacé",
+          "price_xof": 2500,
+          "description": "Glace artisanale dans une enveloppe de pâte de riz.",
+          "preview_photo_url": "https://eda-dostavka.com/media/154324/9d43f4fc3155a69c5867fa3fad11fd0e-163x141.jpeg"
+        },
+        {
+          "id": "shibuya-french-toast",
+          "name": "Shibuya French Toast",
+          "price_xof": 4500,
+          "description": "Pain façon pain perdu au miel et au beurre, avec banane, chocolat et chantilly."
+        }
+      ]
+    },
+    {
+      "menu_label": "Sucré",
+      "menu_section": "Bingsus",
+      "source_page": 7,
+      "items": [
+        {
+          "id": "choco-brownie",
+          "name": "Choco Brownie",
+          "price_xof": 4500,
+          "description": "Glace coréenne, chantilly, brownie et sauce chocolat."
+        },
+        {
+          "id": "fruits-rouges",
+          "name": "Fruits rouges",
+          "price_xof": 4500,
+          "description": "Glace coréenne aux fruits rouges, purée de fruits et amandes."
+        },
+        {
+          "id": "tropical-bingsu",
+          "name": "Tropical Bingsu",
+          "price_xof": 4500,
+          "description": "Fruits de saison, chantilly et sauce fruitée. Les fruits peuvent inclure banane, mangue ou fraise."
+        },
+        {
+          "id": "oreo-bingsu",
+          "name": "Oreo Bingsu",
+          "price_xof": 4500,
+          "description": "Glace Oreo, biscuits Oreo, chantilly et sauce chocolat."
+        },
+        {
+          "id": "vanilla-bingsu",
+          "name": "Vanilla Bingsu",
+          "price_xof": 4500,
+          "description": "Glace coréenne, glace vanille, chantilly et cookies."
+        }
+      ]
+    },
+    {
+      "menu_label": "Boissons",
+      "menu_section": "Bubble teas au lait",
+      "source_page": 2,
+      "items": [
+        {
+          "id": "bubble-milk-tea",
+          "name": "Bubble Milk Tea",
+          "price_xof": 2000,
+          "description": "Thé au lait aux perles de tapioca.",
+          "preview_photo_url": "https://eda-dostavka.com/media/154324/0a5024d99e9fcc157295a2563b93f40f-163x141.jpeg"
+        },
+        {
+          "id": "original-brown-sugar",
+          "name": "Original Brown Sugar",
+          "price_xof": 3000,
+          "description": "Bubble tea traditionnel, saveur brown sugar."
+        },
+        {
+          "id": "cookie-tiger-milk",
+          "name": "Cookie Tiger Milk",
+          "price_xof": 2500,
+          "description": "Lait saveur cookies, sauce caramel et perles de tapioca."
+        },
+        {
+          "id": "iced-latte",
+          "name": "Iced Latte",
+          "price_xof": 2000,
+          "description": "Café au lait et perles de tapioca."
+        },
+        {
+          "id": "matcha-latte",
+          "name": "Matcha Latte",
+          "price_xof": 3000,
+          "description": "Matcha latte et perles de tapioca."
+        },
+        {
+          "id": "choco-cookie",
+          "name": "Choco Cookie",
+          "price_xof": 3000,
+          "description": "Chocolat au lait saveur cookie et sauce chocolat."
+        },
+        {
+          "id": "thai-milk-tea",
+          "name": "Thai Milk Tea",
+          "price_xof": 3000,
+          "description": "Thé au lait thaïlandais et perles de tapioca."
+        },
+        {
+          "id": "taro",
+          "name": "Taro",
+          "price_xof": 3000,
+          "description": "Taro et perles de tapioca."
+        },
+        {
+          "id": "coco-latte",
+          "name": "Coco Latte",
+          "price_xof": 2500,
+          "description": "Latte au lait de coco et perles de tapioca."
+        }
+      ]
+    },
+    {
+      "menu_label": "Boissons",
+      "menu_section": "Bubble teas sans lait",
+      "source_page": 2,
+      "items": [
+        {
+          "id": "bubble-green-tea",
+          "name": "Bubble Green Tea",
+          "price_xof": 2000,
+          "description": "Thé vert aux perles de tapioca."
+        },
+        {
+          "id": "peach-bubble-tea",
+          "name": "Peach Bubble Tea",
+          "price_xof": 2500,
+          "description": "Thé glacé à la pêche et perles à la pêche."
+        },
+        {
+          "id": "framboise-bluebbery",
+          "name": "Framboise Blueberry",
+          "price_xof": 2500,
+          "aliases": [
+            "Framboise Bluebbery"
+          ],
+          "description": "Thé vert, perles de myrtille et sirop de framboise."
+        },
+        {
+          "id": "blue-lytchee",
+          "name": "Blue Lytchee",
+          "price_xof": 2500,
+          "description": "Thé vert, sirop de curaçao bleu et perles de litchi."
+        },
+        {
+          "id": "red-temptation",
+          "name": "Red Temptation",
+          "price_xof": 2500,
+          "description": "Thé aux fruits rouges, sirop de grenadine et perles de fraise."
+        },
+        {
+          "id": "mango-mojito",
+          "name": "Mango Mojito",
+          "price_xof": 2500,
+          "description": "Thé vert, jus de citron, sirop de mangue et perles de mangue."
+        },
+        {
+          "id": "honey-lemon-green-tea",
+          "name": "Honey Lemon Green Tea",
+          "price_xof": 3000,
+          "description": "Thé vert, miel, jus de citron et perles de tapioca."
+        },
+        {
+          "id": "virgin-mojito",
+          "name": "Virgin Mojito",
+          "price_xof": 2500,
+          "description": "Thé vert, jus de citron, sirop de menthe et perles de citron."
+        }
+      ]
+    },
+    {
+      "menu_label": "Boissons",
+      "menu_section": "Bubble teas spéciaux",
+      "source_page": 3,
+      "items": [
+        {
+          "id": "crunchy-cream",
+          "name": "Crunchy & Cream",
+          "price_xof": 3500,
+          "description": "Lait, perles de tapioca, brown sugar, brisures de biscuits au chocolat et mousse de cream cheese."
+        },
+        {
+          "id": "coconut-matcha",
+          "name": "Coconut Matcha",
+          "price_xof": 3500,
+          "description": "Matcha latte au lait de coco et perles de tapioca."
+        },
+        {
+          "id": "pink-yogurt",
+          "name": "Pink Yogurt",
+          "price_xof": 3500,
+          "description": "Lait à la fraise, perles de fraise et de vanille, yaourt et purée de fraise."
+        },
+        {
+          "id": "blueberry-cheesecake",
+          "name": "Blueberry Cheesecake",
+          "price_xof": 4000,
+          "description": "Lait saveur biscuit, cream cheese, coulis de fruits rouges, perles de myrtille et brisures de biscuits."
+        },
+        {
+          "id": "thai-latte-cream",
+          "name": "Thai Latte & Cream",
+          "price_xof": 3500,
+          "description": "Thé au lait thaïlandais, shot d’espresso, chantilly et sauce chocolat."
+        },
+        {
+          "id": "macchiato-cream",
+          "name": "Macchiato & Cream",
+          "price_xof": 3000,
+          "description": "Latte au caramel, chantilly, sauce caramel et perles de tapioca."
+        },
+        {
+          "id": "very-latte",
+          "name": "Very Latte",
+          "price_xof": 3000,
+          "description": "Latte à la vanille, sauce caramel, perles de tapioca et de vanille."
+        },
+        {
+          "id": "mocha-brown-sugar",
+          "name": "Mocha Brown Sugar",
+          "price_xof": 3500,
+          "description": "Café mocha au brown sugar et perles de tapioca."
+        },
+        {
+          "id": "sunday",
+          "name": "Sunday",
+          "price_xof": 3500,
+          "description": "Façon sundae, avec des cacahuètes.",
+          "choices": [
+            "Caramel",
+            "Chocolat",
+            "Fraise"
+          ]
+        },
+        {
+          "id": "taro-latte-foam",
+          "name": "Taro Latte & Foam",
+          "price_xof": 4000,
+          "description": "Bubble tea au taro, shot d’espresso, perles de tapioca et mousse de cream cheese."
+        }
+      ]
+    },
+    {
+      "menu_label": "Boissons",
+      "menu_section": "Shakes et cafés frappés",
+      "source_page": 6,
+      "items": [
+        {
+          "id": "vanilla-bubble-shake",
+          "name": "Vanilla Bubble Shake",
+          "price_xof": 3500,
+          "description": "Milkshake vanille et perles de vanille."
+        },
+        {
+          "id": "choco-bubble-shake",
+          "name": "Choco Bubble Shake",
+          "price_xof": 3500,
+          "description": "Milkshake chocolat et perles de tapioca."
+        },
+        {
+          "id": "cookie-tiger-shake",
+          "name": "Cookie Tiger Shake",
+          "price_xof": 3500,
+          "description": "Milkshake au cookie, sauce caramel et perles de tapioca."
+        },
+        {
+          "id": "strawberry-shake",
+          "name": "Strawberry Shake",
+          "price_xof": 4000,
+          "description": "Yaourt frappé, purée de fraise et perles de tapioca."
+        },
+        {
+          "id": "passion-glace",
+          "name": "Passion glacé",
+          "price_xof": 4000,
+          "description": "Yaourt frappé, purée de fruit de la passion et perles de tapioca."
+        },
+        {
+          "id": "frapuccino",
+          "name": "Frapuccino",
+          "price_xof": 3000,
+          "description": "Café au lait frappé et perles de tapioca."
+        },
+        {
+          "id": "caramel-frapuccino",
+          "name": "Caramel Frapuccino",
+          "price_xof": 3500,
+          "description": "Café au lait frappé au caramel, sauce caramel et perles de tapioca."
+        },
+        {
+          "id": "matcha-frappe",
+          "name": "Matcha frappé",
+          "price_xof": 4000,
+          "description": "Matcha latte frappé et perles de tapioca."
+        },
+        {
+          "id": "cookie-mocha-frappe",
+          "name": "Cookie Mocha frappé",
+          "price_xof": 4000,
+          "description": "Café au lait frappé au cookie, sauce chocolat, chantilly, biscuit et perles de tapioca."
+        },
+        {
+          "id": "mokaccino-frappe",
+          "name": "Mokaccino frappé",
+          "price_xof": 3500,
+          "description": "Café au lait chocolaté, sauce chocolat et perles de tapioca."
+        }
+      ]
+    },
+    {
+      "menu_label": "Boissons",
+      "menu_section": "Boissons chaudes",
+      "source_page": 6,
+      "items": [
+        {
+          "id": "espresso",
+          "name": "Espresso",
+          "price_xof": 1500
+        },
+        {
+          "id": "cappuccino",
+          "name": "Cappuccino",
+          "price_xof": 2000
+        },
+        {
+          "id": "caramel-macchiato",
+          "name": "Caramel Macchiato",
+          "price_xof": 2500
+        },
+        {
+          "id": "the",
+          "name": "Thé",
+          "price_xof": 1500
+        }
+      ]
+    },
+    {
+      "menu_label": "Boissons",
+      "menu_section": "Suppléments des bubble teas",
+      "source_page": 2,
+      "items": [
+        {
+          "id": "supplement-sauce",
+          "name": "Sauce",
+          "price_xof": 500
+        },
+        {
+          "id": "supplement-perles",
+          "name": "Perles",
+          "price_xof": 500,
+          "description": "Selon disponibilité.",
+          "choices": [
+            "Litchi",
+            "Vanille",
+            "Mangue",
+            "Citron",
+            "Passion",
+            "Myrtille",
+            "Fraise",
+            "Pêche",
+            "Tapioca"
+          ]
+        },
+        {
+          "id": "supplement-chantilly",
+          "name": "Chantilly",
+          "price_xof": 500
+        },
+        {
+          "id": "supplement-cream-cheese",
+          "name": "Cream cheese",
+          "price_xof": 500
+        }
+      ]
+    }
+  ],
+  "preview_photo_credit": "Le Cha House · Éda-Dostavka"
+}

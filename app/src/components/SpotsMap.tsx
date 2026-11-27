@@ -64,7 +64,7 @@ function useVisibleMap() {
   return focused && foreground;
 }
 
-export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
+export function SpotsMap({ embedded = false, focusId }: { embedded?: boolean; focusId?: string | undefined }) {
   const theme = useTheme();
   const router = useRouter();
   const navigate = useNavigationAction();
@@ -85,7 +85,7 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
   );
   const [filter, setFilter] = useState<"all" | "unexplored" | "mine">("all");
   const [listMode, setListMode] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(focusId ?? null);
   const visiblePlaces = useMemo(
     () =>
       places.filter(
@@ -103,6 +103,10 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
     [visiblePlaces],
   );
   const selected = locatedPlaces.find((place) => place.id === selectedId);
+  const initialPlace = locatedPlaces.find(p => p.id === focusId);
+  const orderedList = useMemo(() => !focusId ? visiblePlaces : [
+    ...visiblePlaces.filter(p => p.id === focusId), ...visiblePlaces.filter(p => p.id !== focusId),
+  ], [visiblePlaces, focusId]);
   const points = useMemo<PlacePoints>(
     () => ({
       type: "FeatureCollection",
@@ -473,11 +477,11 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
         embedded ? (
           <View style={listStyle}>
             {listHeader}
-            {visiblePlaces.map(row)}
+            {orderedList.map(row)}
           </View>
         ) : (
           <FlatList
-            data={visiblePlaces}
+            data={orderedList}
             keyExtractor={(place) => place.id}
             renderItem={({ item }) => row(item)}
             extraData={explored}
@@ -496,7 +500,9 @@ export function SpotsMap({ embedded = false }: { embedded?: boolean }) {
           {maplibre && visible ? (
             <PlaceMapSurface
               library={maplibre}
-              center={center}
+              key={initialPlace?.id ?? "city"}
+              center={initialPlace ? [initialPlace.location.lng, initialPlace.location.lat] : center}
+              zoom={initialPlace ? 15 : DEFAULT_ZOOM}
               points={points}
               selectedId={selected?.id}
               onSelect={setSelectedId}
@@ -604,6 +610,7 @@ const styles = StyleSheet.create({
 function PlaceMapSurface({
   library,
   center,
+  zoom,
   points,
   selectedId,
   onSelect,
@@ -611,6 +618,7 @@ function PlaceMapSurface({
 }: {
   library: MapLibreModule;
   center: [number, number];
+  zoom: number;
   points: PlacePoints;
   selectedId: string | undefined;
   onSelect: (id: string) => void;
@@ -636,7 +644,7 @@ function PlaceMapSurface({
         onDidFinishLoadingStyle={() => setStyleReady(true)}
         onDidFailLoadingMap={onStyleFailure}
       >
-        <Camera initialViewState={{ center, zoom: DEFAULT_ZOOM }} />
+        <Camera initialViewState={{ center, zoom }} />
         {styleReady && (
           <GeoJSONSource
             id="spawt-places"

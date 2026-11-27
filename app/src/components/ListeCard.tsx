@@ -1,5 +1,5 @@
 // Story 3.6 — variant compact de PlaceCard pour la liste favoris.
-// Layout horizontal : vignette à gauche, contenu à droite + icon heart à droite.
+// Vignette, identité du lieu et marque-page pour les lieux enregistrés.
 
 import { Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -27,7 +27,9 @@ export function ListeCard({ place, onPress, onUnsave, activity }: Props) {
   const { t } = useTranslation();
   const hasRating =
     Number.isFinite(place.rating_display) && place.rating_display > 0;
-  const cuisineLabel = place.cuisine[0] ?? "";
+  const cuisine = place.cuisine[0];
+  const cuisineLabel = cuisine && cuisine !== "autre"
+    ? t(`cuisine.${cuisine}`, { defaultValue: cuisine.replace(/_/g, " ") }) : "";
 
   return (
     <Pressable
@@ -91,7 +93,7 @@ export function ListeCard({ place, onPress, onUnsave, activity }: Props) {
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{ padding: theme.spacing.xs }}
         >
-          <Ico name="heart" size={24} filled color={theme.colors.brand.primary} />
+          <Ico name="bookmark" size={24} filled color={theme.colors.brand.accent} />
         </Pressable>
       ) : null}
     </Pressable>

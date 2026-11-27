@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../theme/ThemeProvider";
 import { subscribeReviewChanges } from "../lib/review-events";
+import { PlaceReviewRail } from "./place/PlaceReviewRail";
 import { PlaceRatingSummary } from "./place/PlaceRatingSummary";
 import { LeChaReviewLink } from "./LeChaReviewLink";
 import editorialReview from "../data/le-cha-review.json";
@@ -23,6 +24,7 @@ import { ReviewCard } from "./ReviewCard";
 import {
   countReviewsForPlace,
   listReviewsForPlace,
+  listFeaturedReviewsForPlace,
   type PlaceReview,
 } from "../lib/data-source";
 
@@ -30,6 +32,8 @@ interface Props {
   placeId: string;
   /** Limit override (default 5). Test-only — la fiche utilise toujours 5. */
   limit?: number;
+  compact?: boolean;
+  hideTitle?: boolean;
   /** Injection pour tests — bypass le data-source réel. */
   fetcher?: (placeId: string, limit: number) => Promise<PlaceReview[]>;
   /** Injection pour tests — compte total des avis. */
@@ -43,7 +47,7 @@ type FetchState =
   | { kind: "loaded"; reviews: PlaceReview[]; total: number }
   | { kind: "error" };
 
-export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }: Props) {
+export function PlaceReviews({ placeId, limit = 5, compact = false, hideTitle = false, fetcher, counter, onSeeAll }: Props) {
   const contentRevision = useContentRevision();
   const { t } = useTranslation();
   const theme = useTheme();
@@ -59,7 +63,7 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
     let cancelled = false;
     setState({ kind: "loading" });
 
-    const fetchReviews = fetcher ?? listReviewsForPlace;
+    const fetchReviews = fetcher ?? (compact ? listFeaturedReviewsForPlace : listReviewsForPlace);
     const fetchCount = counter ?? countReviewsForPlace;
 
     void Promise.all([fetchReviews(placeId, limit), fetchCount(placeId)])
@@ -76,7 +80,7 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
     return () => {
       cancelled = true;
     };
-  }, [placeId, limit, fetcher, counter, revision, contentRevision]);
+  }, [placeId, limit, fetcher, counter, revision, contentRevision, compact]);
 
   return (
     <View
@@ -89,7 +93,7 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
         borderColor: theme.colors.border.subtle,
       }}
     >
-      <Text
+      {!hideTitle ? <Text
         style={{
           ...theme.typography.preset.h3,
           color: theme.colors.text.primary,
@@ -97,10 +101,10 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
         }}
       >
         {t("place.reviews_title")}
-      </Text>
+      </Text> : null}
 
       <PlaceRatingSummary placeId={placeId} />
-      <LeChaReviewLink placeId={placeId} />
+      {compact ? <PlaceReviewRail placeId={placeId} reviews={state.kind === "loaded" ? state.reviews : []} onSeeAll={onSeeAll}/> : <LeChaReviewLink placeId={placeId} />}
       {state.kind === "loading" ? (
         <View
           style={{
@@ -137,10 +141,10 @@ export function PlaceReviews({ placeId, limit = 5, fetcher, counter, onSeeAll }:
 
       {state.kind === "error" ? <Pressable accessibilityRole="button" onPress={() => setRevision(n => n + 1)} style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ color: theme.colors.brand.accent }}>{t("common.retry")}</Text></Pressable> : null}
 
-      {state.kind === "loaded" && state.reviews.length > 0 ? (
+      {!compact && state.kind === "loaded" && state.reviews.length > 0 ? (
         <View style={{ gap: theme.spacing.base }}>
           {state.reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} theme={theme} />
+            <ReviewCard expandable key={review.id} review={review} theme={theme} />
           ))}
           {/* AC #4 — bouton visible seulement si le total dépasse les avis
               affichés (count > 5). Le label porte le VRAI N. */}

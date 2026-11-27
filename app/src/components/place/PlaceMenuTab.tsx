@@ -11,25 +11,15 @@ import { useTheme } from "../../theme/ThemeProvider";
 import { EmptyState } from "../EmptyState";
 import { Ico } from "../primitives/Ico";
 import { resolveMenuUrls } from "../../lib/place-contributions";
-import { useMenuItems } from "../../lib/use-menu-items";
-import { MenuItemCard } from "../MenuItemCard";
-import { DataLoadNotice } from "../DataLoadNotice";
+import { PlaceMenuCatalog, type PlaceMenuProps } from "./PlaceMenuCatalog";
 
-interface Props {
+interface Props extends PlaceMenuProps {
   urls: readonly string[];
   placeId?: string;
 }
 
-export function PlaceMenuTab({ urls, placeId }: Props) {
-  return placeId ? <StructuredPlaceMenu urls={urls} placeId={placeId} /> : <MenuPhotos urls={urls} />;
-}
-function StructuredPlaceMenu({ urls, placeId }: { urls: readonly string[]; placeId: string }) {
-  const menu = useMenuItems(placeId); const theme = useTheme();
-  return <View style={{ gap: theme.spacing.base }}>
-    <DataLoadNotice loading={menu.loading} failed={menu.failed} onRetry={menu.reload} />
-    {menu.items.map(item => <MenuItemCard key={item.id} item={item} />)}
-    <MenuPhotos urls={urls} hideEmpty={menu.items.length > 0} />
-  </View>;
+export function PlaceMenuTab({ urls, placeId, ...props }: Props) {
+  return placeId ? <PlaceMenuCatalog key={placeId} placeId={placeId} {...props} /> : <MenuPhotos urls={urls} />;
 }
 function MenuPhotos({ urls, hideEmpty = false }: { urls: readonly string[]; hideEmpty?: boolean }) {
   const { t } = useTranslation();

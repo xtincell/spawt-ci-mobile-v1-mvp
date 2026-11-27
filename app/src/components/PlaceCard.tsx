@@ -1,3 +1,4 @@
+import { useFlag } from "../store/feature-flags";
 // Carte d'un lieu dans le feed (PRD §3.1 Feature 3, §6.3 signaux).
 // Re-dérivée Story 1.4 : consomme les primitives canoniques (MatchScore,
 // Stars, Chip, Ico) — la signature publique reste stable pour les 3 callers
@@ -5,6 +6,7 @@
 
 import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
+import { getPlaceBudgetLabel } from "../lib/format-price";
 import { useTranslation } from "react-i18next";
 import { Chip } from "./primitives/Chip";
 import { Ico } from "./primitives/Ico";
@@ -30,21 +32,16 @@ const SIGNAL_LABELS: Record<string, string> = {
   noctambule_verifie: "🌙 Noctambule",
 };
 
-const PRICE_TIER_LABELS: Record<1 | 2 | 3, string> = {
-  1: "₣",
-  2: "₣₣",
-  3: "₣₣₣",
-};
-
 export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const monetaryBudget = useFlag("place-avg-price");
+  const [coverFailed, setCoverFailed] = useState(false);
   // Defensive gate : un place non publié ne doit pas être rendu, même si
   // l'adapter serveur a un bug ou un deep-link bypasse le filtre RLS
   // (project-context : « ne pas se fier seul à la RLS serveur »).
   if (!place.is_published) return null;
 
-  const [coverFailed, setCoverFailed] = useState(false);
   const adnReady = place.adn.confidence_score >= 0.3;
   const hasRating = Number.isFinite(place.rating_display) && place.rating_display > 0;
   const cuisineLabel = place.cuisine.length > 0 ? ` · ${place.cuisine.slice(0, 2).join(" · ")}` : "";
@@ -137,7 +134,7 @@ export function PlaceCard({ place, matchScore, distanceKm, onPress }: Props) {
                 {safeDistance}
               </Text>
             </View>
-            <Chip label={(place.price.tier === null ? t("place.price_unknown") : PRICE_TIER_LABELS[place.price.tier])} variant="default" />
+            <Chip label={getPlaceBudgetLabel(place.price, t, monetaryBudget)} variant="default" />
           </View>
         </View>
       </View>

@@ -16,6 +16,7 @@ export type IconName =
   | "filter"
   | "star"
   | "heart"
+  | "bookmark"
   | "arrow-right"
   | "arrow-left"
   | "arrow-up"
@@ -110,6 +111,8 @@ export function Ico({ name, size = 20, color, filled = false }: Props) {
           fill={fill}
         />,
       );
+    case "bookmark":
+      return svg(<Path {...common} d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16l-6-4-6 4Z" fill={fill} />);
     case "heart":
       return svg(
         <Path

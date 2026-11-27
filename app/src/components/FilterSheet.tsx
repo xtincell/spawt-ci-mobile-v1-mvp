@@ -1,3 +1,4 @@
+import { useFlag } from "../store/feature-flags";
 // Story 3.5 — Bottom sheet de filtres avancés.
 // Multi-select chips Cuisine + Budget, single-select Distance + Note minimale,
 // CTA "Voir N spots" live count.
@@ -5,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getBudgetTierLabel, PLACE_BUDGET_TIERS } from "../lib/format-price";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../theme/ThemeProvider";
@@ -45,6 +47,7 @@ export function FilterSheet({
 }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const monetaryBudget = useFlag("place-avg-price");
   const [draft, setDraft] = useState<SearchFilters>(initialFilters);
 
   // Réinitialise le draft uniquement quand la sheet (re)devient visible —
@@ -189,25 +192,14 @@ export function FilterSheet({
               >
                 {t("search.filters_section_budget")}
               </Text>
-              <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-                <Chip
-                  label={t("search.budget_low")}
-                  variant="dark"
-                  selected={draft.budgetTiers.includes(1)}
-                  onPress={() => toggleBudget(1)}
-                />
-                <Chip
-                  label={t("search.budget_mid")}
-                  variant="dark"
-                  selected={draft.budgetTiers.includes(2)}
-                  onPress={() => toggleBudget(2)}
-                />
-                <Chip
-                  label={t("search.budget_high")}
-                  variant="dark"
-                  selected={draft.budgetTiers.includes(3)}
-                  onPress={() => toggleBudget(3)}
-                />
+              <Text style={{ ...theme.typography.preset.small, color: theme.colors.text.secondary, marginBottom: theme.spacing.sm }}>
+                {t("place.budget_basis")}
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
+                {PLACE_BUDGET_TIERS.map(tier => (
+                  <Chip key={tier} label={getBudgetTierLabel(tier, t, monetaryBudget)} variant="dark"
+                    selected={draft.budgetTiers.includes(tier)} onPress={() => toggleBudget(tier)} />
+                ))}
               </View>
             </View>
 

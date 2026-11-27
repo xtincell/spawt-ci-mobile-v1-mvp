@@ -1,3 +1,4 @@
+import { STADES, type Stade } from "../types/stade";
 // Implémentation Supabase — chargée dynamiquement par data-source.ts
 // quand EXPO_PUBLIC_SUPABASE_URL + ANON_KEY sont configurés.
 //
@@ -492,11 +493,13 @@ export async function listReviewsForPlaceFromSupabase(
   placeId: string,
   limit: number,
   page?: ReviewPageOptions,
+  featured = false,
 ): Promise<PlaceReview[]> {
   let query = supabase
     .from("public_reviews")
-    .select("id, spawter_id, note_etoiles, note_globale, note_cuisine, note_cadre, note_service, texte_avis, photos, created_at, is_seed, display_name, avatar_url")
+    .select("id, spawter_id, note_etoiles, note_globale, note_cuisine, note_cadre, note_service, texte_avis, photos, created_at, is_seed, display_name, avatar_url, stade")
     .eq("place_id", placeId);
+  if (featured) query = query.eq("is_seed", false).in("stade", ["djidji", "guide"]);
   if (page?.search) {
     const escaped = page.search.replace(/[\\%_]/g, "\\$&");
     query = query.ilike("texte_avis", "%" + escaped + "%");
@@ -533,6 +536,7 @@ export async function listReviewsForPlaceFromSupabase(
       id: String(r.id),
       spawter_id: String(r.spawter_id),
       spawter_display_name: r.display_name,
+      ...(typeof r.stade === "string" && (STADES as readonly string[]).includes(r.stade) ? { spawter_stage: r.stade as Stade } : {}),
       spawter_avatar_url:
         typeof r.avatar_url === "string" && r.avatar_url.length > 0 ? r.avatar_url : null,
       note_etoiles: Number(r.note_etoiles ?? 0),

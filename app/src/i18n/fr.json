@@ -24,7 +24,8 @@
     "error_network": "Pas de réseau. Le Chat patiente.",
     "data_read_error": "Je n’ai pas pu charger les données. Réessaie dans un instant.",
     "retry": "Réessayer",
-    "dataSourceBanner": "Mode démo · données locales · Supabase pas encore branché",
+    "dataSourceBanner": "Mode démo · données locales",
+    "catalogue_unavailable": "Le catalogue est indisponible.",
     "ok": "OK"
   },
   "nav": {
@@ -274,26 +275,30 @@
     "meute_body": "Pour l'instant, retrouve les autres spawters via les avis et les Coups de Cœur sur les fiches lieu."
   },
   "home": {
+    "discover_city": "On mange où à {{city}} ?",
+    "more_places": "Les adresses à explorer",
+    "more_addresses": "Voir plus d’adresses",
+    "ticket_per_person": "{{amount}} F CFA / pers.",
     "masthead_kicker": "ÉDITION DU JOUR",
     "modes_title": "Je sors pour…",
     "suggestions_title": "Voici mes 3 suggestions du jour.",
     "selector_label": "À la une",
     "selector": {
       "suggestions": {
-        "title": "Suggestions",
-        "subtitle": "Pour vous"
+        "title": "Idées",
+        "subtitle": "Pour toi"
       },
       "rapide": {
         "title": "Rapide",
-        "subtitle": "Choisir vite"
+        "subtitle": "Décider"
       },
       "selections": {
-        "title": "Les sélections",
-        "subtitle": "Nos carnets"
+        "title": "Sélections",
+        "subtitle": "Carnets"
       },
       "duo": {
         "title": "En duo",
-        "subtitle": "À deux"
+        "subtitle": "Sortir à 2"
       },
       "spots": {
         "title": "Les spots",
@@ -302,9 +307,9 @@
     },
     "personalized_feed": "Selon votre Palais",
     "editorial_empty": "Pas encore de lieu dans cette sélection. Les autres adresses vous attendent juste en dessous.",
-    "collections_empty": "Chaque carnet apparaîtra ici dès sa publication. Retrouvez les lieux dans Suggestions en attendant.",
-    "collections_unavailable": "Les carnets ne sont pas encore ouverts. Retrouvez les lieux dans Suggestions.",
-    "suggestions_short": "Suggestions",
+    "collections_empty": "Chaque carnet apparaîtra ici dès sa publication. Retrouvez les lieux dans Idées en attendant.",
+    "collections_unavailable": "Les carnets ne sont pas encore ouverts. Retrouvez les lieux dans Idées.",
+    "suggestions_short": "Idées",
     "interfaces": {
       "suggestions": {
         "title": "Suggestions pour vous",
@@ -324,7 +329,7 @@
       }
     },
     "duo_empty_title": "Les carnets à deux se préparent",
-    "duo_empty_body": "La sélection à deux est en préparation. En attendant, retrouvez les lieux dans Suggestions.",
+    "duo_empty_body": "La sélection à deux est en préparation. En attendant, retrouvez les lieux dans Idées.",
     "collections_hint": "Un carnet ouvre sa liste de spots.",
     "preview": {
       "label": "Aperçu de carnet",
@@ -919,6 +924,44 @@
     "share_card_pionnier": "Pionnier n°{{n}} de la bande"
   },
   "place": {
+    "internal_map": "Voir sur la carte SPAWT",
+    "lecha_corn_dog": "Corn dog au cheddar · Le Chā, @lecha.coffeehouse",
+    "lecha_corn_dogs": "Corn dogs devant la fresque manga · Le Chā, @lecha.coffeehouse",
+    "portal_selection": "Les trouvailles de la Bande",
+    "portal_selection_area": "3 adresses · Marcory, Abidjan",
+    "tab_overview": "Aperçu",
+    "tab_photos": "Photos",
+    "tab_infos": "Infos",
+    "practical_heading": "Infos pratiques",
+    "bande_heading": "L’avis de la Bande",
+    "all_reviews_heading": "Tous les avis",
+    "recognitions": "Distinctions et sélections",
+    "spawt_signal": "Distinction SPAWT",
+    "in_selection": "Dans la sélection",
+    "signal_coup_de_coeur": "Coup de cœur",
+    "signal_pepite_verifiee": "Pépite vérifiée",
+    "signal_institution": "Institution",
+    "signal_fidelite": "Fidélité",
+    "signal_decouverte": "Découverte",
+    "signal_table_diverse": "Table diverse",
+    "signal_noctambule_verifie": "Noctambule vérifié",
+    "lecha_taste": "+ Goût original",
+    "lecha_service": "− Service discret",
+    "lecha_decor": "+ Décor singulier",
+    "alexandre_observation": "D’après Alexandre · {{tag}}",
+    "travel_estimate": "Env. {{walk}} min à pied · {{drive}} min en voiture",
+    "travel_direct": "Env. {{km}} km à vol d’oiseau",
+    "travel_method": "Depuis ta position. Estimation indicative, sans itinéraire ni trafic en temps réel.",
+    "travel_direct_method": "Distance directe depuis ta position actuelle.",
+    "budget_title": "Repère de prix",
+    "open_review": "Détails de l’avis",
+    "close_review": "Réduire l’avis",
+    "open_photo": "Agrandir la photo",
+    "official_photos": "Photos du lieu",
+    "signed_photos": "Le Chā · @lecha.coffeehouse",
+    "compact_reviewer": "Spawter",
+    "paroles": "Paroles de spawters",
+    "more_opinions": "Voir tous les avis",
     "question_team": "Poser une question à l’équipe SPAWT",
     "all_photos_one": "Voir la photo du lieu",
     "all_photos_other": "Voir les {{count}} photos du lieu",
@@ -1008,6 +1051,10 @@
     "photo_illustration": "Illustration",
     "info_hours_unknown": "À confirmer",
     "price_unknown": "Prix à préciser",
+    "budget_under": "Moins de {{max}} F CFA",
+    "budget_between": "{{min}} à moins de {{max}} F CFA",
+    "budget_from": "{{min}} F CFA et plus",
+    "budget_basis": "Par personne, hors boissons",
     "location_pending": "Localisation à préciser"
   },
   "place_activity": {
@@ -1548,6 +1595,17 @@
     "none": "Tu n’as pas noté ce plat.",
     "read_error": "Ta note n’a pas pu être chargée.",
     "write_error": "La note n’a pas été confirmée. Réessaie."
+  },
+  "menu_detail": {
+    "preview": "Au menu",
+    "full": "Voir toute la carte",
+    "info": "À propos du menu",
+    "no_metadata": "La date de ce relevé reste à préciser.",
+    "other": "Autres plats",
+    "search": "Chercher dans le menu",
+    "no_results": "Aucun plat pour cette recherche.",
+    "choices": "Au choix · {{choices}}",
+    "photo_credit": "Photos : {{credit}}"
   },
   "outings": {
     "title": "Mes envies",

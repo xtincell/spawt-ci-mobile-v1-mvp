@@ -8,7 +8,7 @@ import type { Place } from "../../types/place";
 import { DataLoadNotice } from "../DataLoadNotice";
 
 /** Only the public server projection is rendered. Private notes never reach this reader. */
-export function PlaceEditorial({ place }: { place: Pick<Place, "id" | "editorial_profile"> }) {
+export function PlaceEditorial({ place, identityVisible = false }: { identityVisible?: boolean; place: Pick<Place, "id" | "editorial_profile"> }) {
   const contentRevision = useContentRevision();
   const theme = useTheme();
   const { t } = useTranslation();
@@ -30,7 +30,7 @@ export function PlaceEditorial({ place }: { place: Pick<Place, "id" | "editorial
   return <View testID="place-editorial" style={{ padding: theme.spacing.base, gap: theme.spacing.base }}>
     {doc ? <>
       <Text accessibilityRole="header" style={titleStyle}>{t("editorial.title")}</Text>
-      <Text style={textStyle}>{doc.identity}</Text>
+      {!identityVisible ? <Text style={textStyle}>{doc.identity}</Text> : null}
       {(["specialties", "occasions", "budget_context", "service_context", "access_context"] as const).map(key => doc[key] ? <View key={key}>
         <Text accessibilityRole="header" style={titleStyle}>{t(`editorial.${key}`)}</Text>
         <Text style={textStyle}>{doc[key]}</Text>

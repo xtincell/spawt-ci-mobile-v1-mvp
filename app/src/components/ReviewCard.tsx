@@ -5,6 +5,7 @@
 //
 // Avatar partagé : Moka si la photo est absente ou défaillante.
 
+import { STADE_DESCRIPTORS } from "../types/stade";
 import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -22,14 +23,16 @@ export function ReviewCard({
   review,
   theme,
   expandable = false,
+  expandedInitially = false,
 }: {
   review: PlaceReview;
   theme: Theme;
   expandable?: boolean;
+  expandedInitially?: boolean;
 }) {
   const { t } = useTranslation();
   const spawterId = useSpawterStore((s) => s.spawter?.id ?? null);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(expandedInitially);
   const [reportOpen, setReportOpen] = useState(false);
   // Signaler : uniquement en mode Supabase (la file 0026 n'existe pas en démo)
   // et jamais sur ses propres avis ni les seeds fondateurs.
@@ -91,6 +94,7 @@ export function ReviewCard({
             </Text>
           ) : null}
         </View>
+        {review.spawter_stage ? <Text style={{...theme.typography.preset.caption,color:theme.colors.text.secondary}}>{STADE_DESCRIPTORS[review.spawter_stage].label}</Text> : null}
         <Stars value={review.note_globale ?? review.note_etoiles} size="sm" />
         {review.note_globale !== undefined ? (
           <Text

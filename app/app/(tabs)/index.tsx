@@ -2,6 +2,7 @@ import { Announcements } from "../../src/components/Announcements";
 import { EditorialDiscovery, OutingDiscovery } from "../../src/components/OutingDiscovery";
 import { useOutings } from "../../src/store/outings-store";
 import { useContentRevision } from "../../src/lib/content-sync";
+import { getActiveCity } from "../../src/lib/city";
 // Story 3.3c — HomeD canonique (UX spec §1119-1156).
 // Editorial selection and personalized feed are independent.
 // Consomme rankPlaces (Story 3.3b) + listPlaces durci Zod (Story 3.3a) + saved_place_ids (Story 3.6).
@@ -240,6 +241,8 @@ export default function HomeD() {
           style={{
             minWidth: 44,
             minHeight: 44,
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.colors.surface.editorial,
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -250,9 +253,11 @@ export default function HomeD() {
 
       <View
         style={{
-          marginTop: theme.spacing.sm,
-          paddingVertical: theme.spacing.sm,
-          backgroundColor: theme.colors.surface.editorial,
+          paddingTop: theme.spacing.xs,
+          paddingBottom: theme.spacing.md,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.border.subtle,
+          backgroundColor: theme.colors.surface.base,
         }}
       >
         <ModeStories selectedMode={selectedMode} onModePress={selectMode} />
@@ -294,11 +299,12 @@ export default function HomeD() {
                       : theme.colors.surface.subtle,
                 }}
               >
-                {mode === "suggestions" ? <Announcements compact /> : null}
                 {mode !== "rapide" ? (
                   <View
                     style={{
-                      padding: theme.spacing.lg,
+                      paddingHorizontal: theme.spacing.base,
+                      paddingTop: theme.spacing.lg,
+                      paddingBottom: theme.spacing.base,
                       gap: theme.spacing.xs,
                       backgroundColor: theme.colors.surface.subtle,
                     }}
@@ -306,20 +312,22 @@ export default function HomeD() {
                     <Text
                       accessibilityRole="header"
                       style={{
-                        ...theme.typography.preset.h1,
+                        ...(mode === "suggestions" ? theme.typography.preset.display : theme.typography.preset.h1),
                         color: theme.colors.text.primary,
                       }}
                     >
-                      {t(`home.interfaces.${mode}.title`)}
+                      {mode === "suggestions"
+                        ? t("home.discover_city", { city: getActiveCity().name })
+                        : t(`home.interfaces.${mode}.title`)}
                     </Text>
-                    <Text
+                    {mode !== "suggestions" && <Text
                       style={{
                         ...theme.typography.preset.body,
                         color: theme.colors.text.secondary,
                       }}
                     >
                       {t(`home.interfaces.${mode}.subtitle`)}
-                    </Text>
+                    </Text>}
                   </View>
                 ) : null}
                 {mode === "rapide" ? (
@@ -351,7 +359,7 @@ export default function HomeD() {
                       </View>
                     ) : null}
 
-                    <HomeEditorial
+                    {ranked.length > 0 && <HomeEditorial
                       mode="suggestions"
                       ranked={ranked}
                       onPlacePress={onUnePress}
@@ -368,9 +376,10 @@ export default function HomeD() {
                           },
                         })
                       }
-                    />
+                    />}
                     <EditorialDiscovery />
                     <OutingDiscovery ranked={ranked} />
+                    <Announcements compact />
 
                     {/* « Ça bouge cette semaine » — événements à venir (0049), auto-gatée
             par le flag `evenements-promos` (OFF → null, aucun fetch). */}
@@ -397,7 +406,7 @@ export default function HomeD() {
                             marginBottom: theme.spacing.sm,
                           }}
                         >
-                          {t("home.personalized_feed")}
+                          {t(palais.confidence_score >= 0.3 ? "home.personalized_feed" : "home.more_places")}
                         </Text>
                         <FeuilletonRow
                           places={ranked}

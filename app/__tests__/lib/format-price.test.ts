@@ -2,7 +2,7 @@
 // « ~N F CFA » : milliers groupés par espace insécable (U+00A0), fallback
 // null (→ échelle ₣) si la valeur est absente/invalide/non positive.
 
-import { formatXofAmount, NBSP } from "../../src/lib/format-price";
+import { getPlaceBudgetTier, formatXofAmount, NBSP } from "../../src/lib/format-price";
 
 describe("formatXofAmount — R21 prix moyen F CFA", () => {
   it("NBSP est bien l'espace insécable U+00A0", () => {
@@ -46,5 +46,16 @@ describe("formatXofAmount — R21 prix moyen F CFA", () => {
     expect(formatXofAmount(Number.POSITIVE_INFINITY)).toBeNull();
     // 0.4 arrondi → 0 → null (pas de « 0 F CFA » affiché).
     expect(formatXofAmount(0.4)).toBeNull();
+  });
+});
+
+describe("Budget du repas type, hors boissons", () => {
+  it.each([[9999, 1], [10000, 2], [14999, 2], [15000, 3]])(
+    "classe un ticket de %i F CFA dans la tranche %i",
+    (ticket, tier) => expect(getPlaceBudgetTier({ tier: null, avg_ticket_xof: ticket })).toBe(tier),
+  );
+  it("ne déduit aucun montant du seul niveau déclaré", () => {
+    expect(getPlaceBudgetTier({ tier: 3 })).toBeNull();
+    expect(getPlaceBudgetTier({ tier: 2, avg_ticket_xof: 0 })).toBeNull();
   });
 });

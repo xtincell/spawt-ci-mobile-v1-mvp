@@ -62,6 +62,8 @@ export const PlaceSchema = z.object({
     .string()
     .nullable()
     .transform((v) => (v === null || v.length === 0 ? null : v)),
+  logo_url: z.string().url().nullish().catch(null),
+  signage_url: z.string().url().nullish().catch(null),
   gallery_urls: z.array(z.string()),
   // `.default([])` : résilience à la frontière — une row live antérieure à la
   // migration 0030 (colonne absente → undefined) ne doit pas faire dropper le

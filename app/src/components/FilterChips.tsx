@@ -1,8 +1,10 @@
+import { useFlag } from "../store/feature-flags";
 // Story 3.5 — FilterChips horizontaux scrollable.
 // Affiche les filtres actifs en chips (toggle off au tap) + chip permanente
 // « + Filtres » qui ouvre le FilterSheet (callback prop `onOpenSheet`).
 
 import { ScrollView, View } from "react-native";
+import { getBudgetTierLabel } from "../lib/format-price";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { Chip } from "./primitives/Chip";
@@ -16,15 +18,10 @@ interface Props {
   onOpenSheet: () => void;
 }
 
-const BUDGET_LABELS: Record<1 | 2 | 3, string> = {
-  1: "₣",
-  2: "₣₣",
-  3: "₣₣₣",
-};
-
 export function FilterChips({ filters, onToggle, onOpenSheet }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const monetaryBudget = useFlag("place-avg-price");
   return (
     <ScrollView
       horizontal
@@ -52,7 +49,7 @@ export function FilterChips({ filters, onToggle, onOpenSheet }: Props) {
       {filters.budgetTiers.map((tier) => (
         <Chip
           key={`budget-${tier}`}
-          label={BUDGET_LABELS[tier]}
+          label={getBudgetTierLabel(tier, t, monetaryBudget)}
           variant="dark"
           selected
           onPress={() => onToggle("budget", tier)}

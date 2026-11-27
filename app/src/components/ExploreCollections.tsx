@@ -6,9 +6,11 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { useFlag } from "../store/feature-flags";
 import {
+  dataSourceMode,
   listExploreCollections,
   type ExploreCollectionSummary,
 } from "../lib/data-source";
+import { getActiveCity } from "../lib/city";
 import { useNavigationAction } from "../lib/use-navigation-action";
 import { track } from "../lib/analytics";
 import { DataLoadNotice } from "./DataLoadNotice";
@@ -20,11 +22,13 @@ export function ExploreCollections({
   active = true,
   audience = "general",
   limit,
+  preview = false,
 }: {
   refreshKey?: number;
   active?: boolean;
   audience?: "general" | "duo";
   limit?: number;
+  preview?: boolean;
 }) {
   const contentRevision = useContentRevision();
   const theme = useTheme();
@@ -38,7 +42,7 @@ export function ExploreCollections({
   const [retry, setRetry] = useState(0);
   const opened = useRef(false);
   useEffect(() => {
-    if (!enabled || !active) return;
+    if (!enabled || !active || (preview && dataSourceMode !== "supabase")) return;
     let cancelled = false;
     setLoading(true);
     setFailed(false);
@@ -46,7 +50,7 @@ export function ExploreCollections({
       .then((next) => {
         if (cancelled) return;
         setRows(next.filter(c => (c.audience ?? "general") === audience));
-        if (!opened.current) {
+        if (!preview && !opened.current) {
           opened.current = true;
           track({
             name: "explore_opened",
@@ -63,7 +67,16 @@ export function ExploreCollections({
     return () => {
       cancelled = true;
     };
-  }, [enabled, active, refreshKey, retry, audience, contentRevision]);
+  }, [enabled, active, refreshKey, retry, audience, contentRevision, preview]);
+  function openCollection(collection: ExploreCollectionSummary) {
+    navigate(() => router.push({ pathname: "/explore/[slug]", params: { slug: collection.slug } }));
+  }
+  if (preview) {
+    if (!enabled || dataSourceMode !== "supabase" || !rows?.length) return null;
+    const city = getActiveCity();
+    const collection = rows.find(row => row.city_code === city.code);
+    return collection ? <CollectionCard key={collection.id} collection={collection} compact onPress={() => openCollection(collection)} /> : null;
+  }
   if (!enabled)
     return <PanelNotice message={t("home.collections_unavailable")} />;
   return (
@@ -77,14 +90,7 @@ export function ExploreCollections({
         <CollectionCard
           key={collection.id}
           collection={collection}
-          onPress={() =>
-            navigate(() =>
-              router.push({
-                pathname: "/explore/[slug]",
-                params: { slug: collection.slug },
-              }),
-            )
-          }
+          onPress={() => openCollection(collection)}
         />
       ))}
       {!loading && !failed && rows?.length === 0 ? (
@@ -141,14 +147,48 @@ export function DuoEditorial({ refreshKey = 0 }: { refreshKey?: number }) {
 function CollectionCard({
   collection,
   onPress,
+  compact = false,
 }: {
   collection: ExploreCollectionSummary;
   onPress: () => void;
+  compact?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const [coverFailed, setCoverFailed] = useState(false);
+  const [failedCover, setFailedCover] = useState<string | null>(null);
   const title = t(collection.title_key);
+  const cover = collection.cover_url && collection.cover_url !== failedCover ? collection.cover_url : null;
+  if (compact) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("explore.collection_open_aria", { title })}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          marginHorizontal: theme.spacing.lg,
+          marginVertical: theme.spacing.sm,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.spacing.base,
+          padding: theme.spacing.base,
+          borderRadius: theme.radius.card,
+          backgroundColor: theme.colors.surface.inverse,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        {cover ? (
+          <Image source={{ uri: cover }} resizeMode="cover" onError={() => setFailedCover(cover)}
+            style={{ width: 68, height: 76, borderRadius: theme.radius.md }} />
+        ) : <Ico name="map" size={36} color={theme.colors.brand.primary} />}
+        <View style={{ flex: 1, gap: theme.spacing.xs }}>
+          <Text style={{ ...theme.typography.preset.overline, color: theme.colors.brand.primary }}>{t("outings.editorial")}</Text>
+          <Text style={{ ...theme.typography.preset.h2, color: theme.colors.text.inverse }}>{title}</Text>
+          {collection.subtitle_key ? <Text numberOfLines={2} style={{ ...theme.typography.preset.small, color: theme.colors.text.inverseSecondary }}>{t(collection.subtitle_key)}</Text> : null}
+        </View>
+        <Ico name="chevron-right" size={20} color={theme.colors.text.inverse} />
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       accessibilityRole="button"
@@ -163,10 +203,10 @@ function CollectionCard({
         opacity: pressed ? 0.85 : 1,
       })}
     >
-      {collection.cover_url && !coverFailed ? (
+      {cover ? (
         <Image
-          source={{ uri: collection.cover_url }}
-          onError={() => setCoverFailed(true)}
+          source={{ uri: cover }}
+          onError={() => setFailedCover(cover)}
           style={{ width: "100%", height: 130 }}
           resizeMode="cover"
         />

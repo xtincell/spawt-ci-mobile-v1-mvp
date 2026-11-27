@@ -59,6 +59,7 @@ jest.mock("../../src/lib/data-source", () => ({
   listPlacePhotosFromSpawts: jest.fn(() => Promise.resolve([] as string[])),
   listEditorialReviews: jest.fn(() => Promise.resolve([])),
   listReviewsForPlace: jest.fn(() => Promise.resolve([])),
+  listFeaturedReviewsForPlace: jest.fn(() => Promise.resolve([])),
   countReviewsForPlace: jest.fn(() => Promise.resolve(0)),
   giveCoupDeCoeur: jest.fn(() => Promise.resolve(null)),
   countCoupsDeCoeurThisMonth: jest.fn(() => Promise.resolve(0)),
@@ -166,14 +167,11 @@ describe("PlaceDetailScreen — R22 (fiche lieu sans données ne crash pas)", ()
     await flushMicrotasks();
 
     // Le nom du lieu est rendu → la fiche est montée post-fetch, pas crashée.
-    const texts = renderer.root
-      .findAllByType(
-        (jest.requireActual("react-native") as typeof import("react-native")).Text,
-      )
-      .map((n: { props: { children?: unknown } }) => n.props.children);
-    expect(JSON.stringify(texts)).toContain("Chez Test");
-    // Zéro avis → chip « pas encore noté » (état vide élégant, pas de crash).
-    expect(JSON.stringify(texts)).not.toContain("NaN");
+    const rendered = JSON.stringify(renderer.toJSON());
+    expect(rendered).toContain("Chez Test");
+    expect(rendered).not.toContain("NaN");
+    const tabs = renderer.root.findAllByProps({accessibilityRole:"tab"}).map(node => node.props.testID);
+    expect(new Set(tabs)).toEqual(new Set(["place-tab-overview","place-tab-avis","place-tab-menu","place-tab-media","place-tab-infos"]));
 
     TestRenderer.act(() => renderer.unmount());
   });

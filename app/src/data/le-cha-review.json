@@ -2,7 +2,7 @@
   "placeId": "ef8f3289-a9ca-56f0-899c-f95f93ee9c75",
   "name": "Le Cha",
   "city": "Abidjan",
-  "author": "Membre de la Bande",
+  "author": "Alexandre",
   "stage": "Touriste",
   "ratings": [
     {
@@ -23,5 +23,5 @@
   "area": "Marcory",
   "frontAlt": "La devanture de Le Cha, avec l’enseigne « le chā asian coffee house ».",
   "overallScore": 4,
-  "linkLabel": "L’avis d’un membre de la Bande"
+  "linkLabel": "L’avis d’Alexandre"
 }

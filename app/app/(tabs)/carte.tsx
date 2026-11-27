@@ -1,5 +1,8 @@
 import { SpotsMap } from "../../src/components/SpotsMap";
 
+import { useLocalSearchParams } from "expo-router";
+
 export default function CarteScreen() {
-  return <SpotsMap />;
+  const { lieu } = useLocalSearchParams<{ lieu?: string }>();
+  return <SpotsMap key={lieu ?? "all"} focusId={lieu} />;
 }

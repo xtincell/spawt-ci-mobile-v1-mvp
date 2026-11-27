@@ -3,11 +3,15 @@ import TestRenderer, { act } from "react-test-renderer";
 import { HomeEditorial } from "../../src/components/HomeEditorial";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
 import { DataLoadNotice } from "../../src/components/DataLoadNotice";
-import { Pressable } from "react-native";
+import React from "react";
+import { FlatList, Image } from "react-native";
+import { SEED_PLACES } from "../../src/data/seed/places";
+import { OutingActions } from "../../src/components/OutingActions";
 import type { ExploreCollectionSummary } from "../../src/lib/data-source";
 const mockPush = jest.fn();
 let mockEnabled = true;
 const mockList = jest.fn();
+jest.mock("../../src/components/OutingActions", () => ({ OutingActions: () => null }));
 jest.mock("expo-router", () => ({
   useFocusEffect: (effect: () => void) =>
     require("react").useEffect(effect, [effect]),
@@ -48,6 +52,49 @@ afterEach(() => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockEnabled = true;
+});
+
+it("uses official covers, falls back inside the same card, and gates the community score on public reviews", async () => {
+  const place = SEED_PLACES[0]!;
+  const cover = "https://example.test/facade.jpg";
+  const base = { place, adn: place.adn, raw_score: 0.7, match_score: 80, distance_km: 1 };
+  const reviewed = { ...base,
+    place: { ...place, cover_photo_url: cover },
+    adn: { ...place.adn, weighted_rating: 4.5, total_reviews: 3 } };
+  const unrated = { ...base,
+    place: { ...place, id: "no-public-reviews", name: "Sans avis", cover_photo_url: null },
+    adn: { ...place.adn, weighted_rating: 4.8, total_reviews: 0 } };
+  const onImpression = jest.fn();
+  const onPlacePress = jest.fn();
+  await act(async () => {
+    tree = TestRenderer.create(<ThemeProvider><HomeEditorial mode="suggestions" ranked={[reviewed, unrated]}
+      onPlacePress={onPlacePress} onImpression={onImpression} /></ThemeProvider>);
+  });
+  const list = tree.root.findByType(FlatList);
+  const onVisible = list.props.onViewableItemsChanged;
+  const viewableItems = [{ item: reviewed, index: 0 }];
+  act(() => { onVisible({ viewableItems }); onVisible({ viewableItems }); });
+  expect(onImpression).toHaveBeenCalledTimes(1);
+  expect(onImpression).toHaveBeenCalledWith(reviewed, 0);
+  // Render the captured cells explicitly: Jest has no measured horizontal viewport.
+  const renderItem = list.props.renderItem;
+  act(() => {
+    tree.update(<ThemeProvider>{[reviewed, unrated].map((item, index) =>
+      <React.Fragment key={item.place.id}>{renderItem({ item, index })}</React.Fragment>)}</ThemeProvider>);
+  });
+  const coverNode = () => tree.root.findAllByType(Image).find(node => node.props.source?.uri === cover);
+  const cards = tree.root.findAll(n => n.props.accessibilityRole === "button" && typeof n.props.onPress === "function");
+  const ratedCard = cards.find(node => node.props.accessibilityLabel?.startsWith(place.name))!;
+  expect(ratedCard.props.accessibilityLabel).toContain("4,5/5");
+  expect(ratedCard.props.accessibilityLabel).toContain("place.bande_review_count");
+  expect(cards.find(node => node.props.accessibilityLabel?.startsWith("Sans avis"))!.props.accessibilityLabel).not.toContain("/5");
+  expect(tree.root.findAllByType(OutingActions).map(node => node.props.onHomeCard)).toEqual([true, true]);
+  act(() => ratedCard.props.onPress());
+  expect(onPlacePress).toHaveBeenCalledWith(reviewed);
+  expect(coverNode()).toBeDefined();
+  act(() => coverNode()!.props.onError());
+  expect(coverNode()).toBeUndefined();
+  expect(tree.root.findAllByType(Image)).toHaveLength(2);
 });
 
 it("loads collections in place, opens only the selected published carnet", async () => {

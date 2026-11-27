@@ -186,6 +186,7 @@ jobs:
           c=json.loads(pathlib.Path('documentation/android-qa.json').read_text())
           previous=c.get('previousBuild',40)
           references={
+              48:('2026-11-26','641e6d33818a69b1543fda5d6dee08cc6ef737780258ecbc0d7aee0ed8a32d0b'),
               40:('2026-10-19','f88aa6776f5b9a9694f275de4252c9f28db8e27c0d9f2618f4352dc993d8e648'),
               41:('2026-10-22','62074f4dc68ec3c84dfce3f1e191b4353a3a1b8e6e979a7232600040dd0a6aa9'),
               47:('2026-11-26','88042ac19e7c6d3af6626f761f25eab45bbe3d212651af05f0a8ab1e66214129'),
@@ -201,7 +202,7 @@ jobs:
               subprocess.run(['gh','run','download','45685227649','--name','android-apk','--dir',str(dest)],check=True)
               shutil.copyfile(dest/'spawt-1.1.3-build44.apk','previous.apk')
           else:
-              version={45:'1.1.4',46:'1.1.5',47:'1.1.6'}.get(previous,'1.1.1')
+              version={45:'1.1.4',46:'1.1.5',47:'1.1.6',48:'1.1.7'}.get(previous,'1.1.1')
               url=f'https://github.com/xtincell/spawt-ci-mobile-v1-mvp/releases/download/local-build-android-{date}-{previous}/spawt-{version}-build{previous}.apk'
               urllib.request.urlretrieve(url,'previous.apk')
           assert hashlib.sha256(pathlib.Path('previous.apk').read_bytes()).hexdigest()==digest

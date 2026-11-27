@@ -100,6 +100,8 @@ export interface Place {
   phone: string | null;
   whatsapp: string | null;
   cover_photo_url: string | null;
+  logo_url?: string | null | undefined;
+  signage_url?: string | null | undefined;
   gallery_urls: string[];
   /** Photos du menu (onglet Menu de la fiche — R17/R19, migration 0030) */
   menu_urls: string[];

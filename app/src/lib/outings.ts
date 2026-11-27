@@ -11,6 +11,8 @@ export interface MenuItem {
   observed_on: string; photo_url: string | null; is_published: boolean;
   aliases?: string[]; accompaniments?: string[]; description?: string; source_url?: string;
   neighborhood?: string; place_photo_url?: string | null;
+  menu_label?: string | null; menu_section?: string | null; menu_position?: number | null;
+  source_label?: string | null; price_options?: { label: string; price_xof: number }[] | null;
 }
 export interface PersonalList { id: string; title: string; occasion: Occasion | null; share_token: string | null; }
 export interface PersonalListItem { id: string; list_id: string; place_id: string | null; menu_item_id: string | null; }

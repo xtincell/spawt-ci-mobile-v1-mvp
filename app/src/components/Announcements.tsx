@@ -25,6 +25,7 @@ export function Announcements({ compact = false, id }: { compact?: boolean; id?:
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [revision, retry, id]);
+  if (compact && !failed && rows.length === 0) return null;
   const bodyStyle = { ...theme.typography.preset.body, color: theme.colors.text.primary };
   return <View testID="announcements" style={{ padding: theme.spacing.lg, gap: theme.spacing.base }}>
     <Text accessibilityRole="header" style={{ ...theme.typography.preset.h2, color: theme.colors.text.primary }}>{t("announcements.title")}</Text>

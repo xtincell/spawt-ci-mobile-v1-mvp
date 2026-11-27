@@ -1,11 +1,7 @@
-// Bandeau "Mode démo" — visible quand l'adapter tombe en fallback (Supabase
-// non configuré). Disparaît en mode supabase. Re-skin Story 1.4 sur tokens
-// canoniques (preset.caption Gotham-Medium 11 uppercase) + string i18n.
-
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
-import { dataSourceMode } from "../lib/data-source";
+import { dataSourceMode, isDemoMode } from "../lib/data-source";
 
 export function DataSourceBanner() {
   const theme = useTheme();
@@ -14,7 +10,7 @@ export function DataSourceBanner() {
   return (
     <View
       style={{
-        backgroundColor: theme.colors.state.warning,
+        backgroundColor: isDemoMode ? theme.colors.surface.subtle : theme.colors.state.warning,
         paddingVertical: 6,
         paddingHorizontal: theme.spacing.base,
       }}
@@ -22,11 +18,11 @@ export function DataSourceBanner() {
       <Text
         style={{
           ...theme.typography.preset.caption,
-          color: theme.colors.text.onBrand,
+          color: isDemoMode ? theme.colors.text.secondary : theme.colors.text.onBrand,
           textAlign: "center",
         }}
       >
-        {t("common.dataSourceBanner")}
+        {t(isDemoMode ? "common.dataSourceBanner" : "common.catalogue_unavailable")}
       </Text>
     </View>
   );

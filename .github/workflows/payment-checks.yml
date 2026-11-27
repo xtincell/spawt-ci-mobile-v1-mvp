@@ -6,7 +6,7 @@ on:
       - 'scripts/test-payment-sql.sh'
       - '.github/workflows/payment-checks.yml'
   push:
-    branches: ['main', 'codex/audit-admin-commentaires', 'codex/finalisation-tarifs', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204']
+    branches: ['main', 'codex/audit-admin-commentaires', 'codex/finalisation-tarifs', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204', 'codex/accueil-fiches-android-49']
 permissions:
   contents: read
 jobs:

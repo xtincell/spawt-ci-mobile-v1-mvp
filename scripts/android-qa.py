@@ -938,6 +938,70 @@ try:
     if MODE=='pitch': PITCH_ANONYMOUS=pitch_anonymous_cases()
     login(PHONE)
     snap('signed-in')
+    if MODE == 'observe' and json.loads(pathlib.Path('documentation/android-qa.json').read_text())['build'] == 49:
+        # Receive the signed home and venue on a synthetic account in read-only mode.
+        for width in (320, 393):
+            geometry(width, 1)
+            home()
+            find('home-mode-suggestions', timeout=35, exact=True)
+            time.sleep(1)
+            tree = snap(f'accueil-49-{width}')
+            modes = [bounds(n) for n in tree.iter('node')
+                     if re.fullmatch(r'home-mode-(suggestions|rapide|selections|duo|spots)', n.get('resource-id', '').split('/')[-1])]
+            check(f'{width}: contextes visibles sur la meme ligne',
+                  len(modes) >= 3 and max(b[1] for b in modes) - min(b[1] for b in modes) <= 3)
+        restaurant = json.loads(pathlib.Path('app/src/data/le-cha-review.json').read_text())['placeId']
+        deep('place/' + restaurant)
+        find('Le Cha', timeout=35)
+        snap('fiche-49-le-cha')
+        scroll_tap('place-tab-menu')
+        scroll_find('menu-information')
+        snap('menu-49-le-cha')
+        deep('carte')
+        time.sleep(6)
+        snap('carte-49')
+
+        # Preserve every pre-existing mark on the synthetic account.
+        brunch_place = 'c5acfd12-01dd-5cd3-9beb-0531d89c3e99'
+        eggs_benedict = '6dad3f00-d87f-4c70-87a7-b083af11c4d7'
+        place_marker = 'save-intent-' + brunch_place
+        dish_marker = 'save-intent-' + eggs_benedict
+        new_marks = []
+        def mark_if_needed(marker, enable_label):
+            target = scroll_find(marker)
+            if enable_label.casefold() in label(target).casefold():
+                tap_node(target)
+                time.sleep(1)
+                check('favori ajoute depuis son bouton', 'retirer' in label(find(marker)).casefold())
+                new_marks.append(marker)
+        try:
+            deep('place/' + brunch_place)
+            mark_if_needed(place_marker, 'Enregistrer le lieu')
+            deep('search')
+            tree, _ = nodes()
+            field = next(n for n in tree.iter('node') if n.get('class') == 'android.widget.EditText')
+            tap_node(field)
+            if field.get('text'):
+                adb('shell', 'input', 'keycombination', '113', '29')
+                adb('shell', 'input', 'keyevent', '67')
+            adb('shell', 'input', 'text', 'Eggs')
+            if 'mInputShown=true' in adb('shell', 'dumpsys', 'input_method'):
+                adb('shell', 'input', 'keyevent', '4')
+            mark_if_needed(dish_marker, 'Ajouter aux favoris')
+            deep('saved')
+            find('saved-screen')
+            scroll_find('saved-place-' + brunch_place)
+            snap('envies-49-adresses')
+            scroll_find('dish-' + eggs_benedict)
+            snap('envies-49-plats')
+        finally:
+            for existing in reversed(new_marks):
+                deep('saved')
+                node = scroll_find(existing)
+                if 'retirer' in label(node).casefold():
+                    tap_node(node)
+                    time.sleep(1)
+        raise SystemExit(0)
     if MODE=='pitch':
         pitch_cases()
         raise SystemExit(0)  # Capture-only branch must never fall through to mutation cases.
