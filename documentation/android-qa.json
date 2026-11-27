@@ -1,10 +1,10 @@
 {
   "build": 49,
   "previousBuild": 48,
-  "sourceCommit": "d29f9ccfbd05bf4bbdd58cebf490e1cd5555d5d2",
+  "sourceCommit": "31e6c0ee6b3c1c82be7a59013cf32a645c672861",
   "mode": "observe",
   "phone": "+2250000000193",
-  "localBuildRun": 45927121419,
-  "buildWorkflowCommit": "d5fefa507fcd67738968dd5a71ca11be44fe787f",
+  "localBuildRun": 45935567289,
+  "buildWorkflowCommit": "3da25e3924594b65e40fac969e0801b8b371e102",
   "version": "1.1.8"
 }
