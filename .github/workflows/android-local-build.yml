@@ -2,8 +2,8 @@ name: Android preview local build
 on:
   push:
     tags: ['local-build-android-*']
-    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/spawt-android-pilote-47']
-    paths: ['documentation/android-build41.json', 'documentation/android-build42.json', 'documentation/android-build47.json']
+    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/spawt-android-pilote-47', 'codex/empaquetage-android-49']
+    paths: ['documentation/android-build41.json', 'documentation/android-build42.json', 'documentation/android-build47.json', 'documentation/android-build49.json', '.github/workflows/android-local-build.yml']
   workflow_dispatch:
     inputs:
       recipe:
@@ -24,7 +24,7 @@ jobs:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
       GRADLE_USER_HOME: /tmp/spawt-gradle
-      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || (github.ref == 'refs/heads/codex/spawt-android-pilote-47' && 'documentation/android-build47.json') || 'documentation/android-build42.json' }}
+      SPAWT_BUILD_RECIPE: ${{ inputs.recipe || (github.ref == 'refs/heads/codex/empaquetage-android-49' && 'documentation/android-build49.json') || (github.ref == 'refs/heads/codex/spawt-android-pilote-47' && 'documentation/android-build47.json') || 'documentation/android-build42.json' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,6 +56,7 @@ jobs:
           const runs=await read('/actions/runs?head_sha='+recipe.sourceCommit+'&per_page=100');
           const run=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/app-checks.yml').sort((a,b)=>b.id-a.id)[0];
           if(!run || run.status!=='completed' || run.conclusion!=='success') throw new Error('La dernière CI source doit être terminée et verte avant compilation');
+          if (recipe.sourceCiRun !== undefined && recipe.sourceCiRun !== run.id) throw new Error('La preuve CI épinglée ne correspond pas à la CI verte de la source');
           const jobs=await read('/actions/runs/'+run.id+'/jobs?per_page=100');
           if(!['app','admin'].every(name=>jobs.jobs.some(j=>j.name===name && j.status==='completed' && j.conclusion==='success'))) throw new Error('Contrôles mobile/console incomplets');
           if(recipe.build>=42) {
