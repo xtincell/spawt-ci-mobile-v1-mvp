@@ -55,10 +55,10 @@ export function frameDocument(html: string, tab?: string) {
     const explain = () => notice('Aperçu SPAWT', 'Cette fiche présente le fonctionnement de SPAWT. Certains avis, notes et distinctions sont illustrés pour la démonstration.', [
       link('Ouvrir la fiche en direct', 'direct'), link('Lire les avis publiés', 'reviews')
     ]);
-    const context = document.querySelector('.summary .kind');
+    const context = document.querySelector('.place-cover');
     const about = document.createElement('button'); about.type = 'button'; about.textContent = 'Aperçu SPAWT';
     about.className = 'preview-context'; about.onclick = explain;
-    context.append(document.createTextNode(' · '), about);
+    context.append(about);
     const info = document.createElement('section');
     const h = document.createElement('h2'); h.textContent = 'À propos de cet aperçu';
     const p = document.createElement('p'); p.textContent = 'Les exemples de la fiche illustrent les avis et les distinctions. Retrouve les contributions publiées sur la fiche en direct.';
@@ -139,7 +139,7 @@ export function frameDocument(html: string, tab?: string) {
     if (section) location.hash = section;
     post('ready');
   })();`;
-  const style = '<style>.preview-context{font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;text-decoration:underline;text-underline-offset:3px;padding:4px 0}</style>';
+  const style = '<style>.place-cover .preview-context{position:absolute;right:10px;bottom:10px;z-index:1;width:auto;height:auto;min-height:32px;padding:5px 10px;border:1px solid #ddd5c1;border-radius:16px;background:#faf6eb;color:#284439;font:600 11px/1.2 Gotham,sans-serif}</style>';
   return html.replace(/<head\b[^>]*>/i, match => match + '<meta http-equiv="Content-Security-Policy" content="' + policy + '">' + style)
     .replace(/<\/body>/i, () => '<script>' + script + '</script></body>');
 }

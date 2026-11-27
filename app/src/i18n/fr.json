@@ -964,6 +964,7 @@
     "lecha_decor": "+ Décor singulier",
     "alexandre_observation": "D’après Alexandre · {{tag}}",
     "rating_authors_one": "D’après l’avis d’un spawter",
+    "rating_attribution": "{{score}} sur 5. {{attribution}}",
     "rating_authors_other": "D’après l’avis de {{count}} spawters",
     "rating_reviews_one": "D’après un avis",
     "rating_reviews_other": "D’après {{count}} avis",

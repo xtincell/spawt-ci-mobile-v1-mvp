@@ -37,22 +37,33 @@ async function readPublicRow<S extends z.ZodType>(view: string, placeId: string,
 export const getPlacePractical = (id: string) => readPublicRow("public_place_practical", id, practicalSchema);
 export const getPlaceReviewStats = (id: string) => readPublicRow("public_place_review_stats", id, statsSchema);
 
-/** Public reviews can contain several visits from the same spawter. */
-export async function getPublicReviewAuthorCount(placeId: string): Promise<number | null> {
+export interface ReviewAuthorSummary {
+  count: number;
+  portraits: { id: string; avatarUrl: string | null }[];
+}
+
+/** The public view includes multiple visits from the same account. Pages are ordered by account. */
+export async function getPublicReviewAuthors(placeId: string): Promise<ReviewAuthorSummary | null> {
   if (!isSupabaseConfigured) return null;
   const { supabase } = await import("./supabase");
   const size = 250;
-  let after = "", total = 0;
+  const authors: ReviewAuthorSummary = { count: 0, portraits: [] };
+  let after = "";
   for (;;) {
     const { data, error } = await withReadTimeout("public_review_authors", signal => {
-      const page = supabase.from("public_reviews").select("spawter_id").eq("place_id", placeId)
+      const page = supabase.from("public_reviews").select("spawter_id,avatar_url").eq("place_id", placeId)
         .eq("is_seed", false).not("spawter_id", "is", null).order("spawter_id").limit(size);
       return (after ? page.gt("spawter_id", after) : page).abortSignal(signal);
     });
     if (error || !data) throw new DataReadError("public_review_authors");
-    const ids = data.map(row => String(row.spawter_id));
-    total += new Set(ids).size;
-    if (ids.length < size) return total;
-    after = ids[ids.length - 1]!;
+    for (const row of data) {
+      if (row.spawter_id === after) continue;
+      after = row.spawter_id;
+      authors.count++;
+      if (authors.portraits.length < 3) {
+        authors.portraits.push({ id: after, avatarUrl: row.avatar_url || null });
+      }
+    }
+    if (data.length < size) return authors;
   }
 }

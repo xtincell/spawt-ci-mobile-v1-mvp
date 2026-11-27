@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Image, Text, View } from "react-native";
+import { Image, Text, useWindowDimensions, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider";
 import type { Place } from "../../types/place";
 import type { PlacePractical } from "../../lib/place-practical";
 import review from "../../data/le-cha-review.json";
-import { PlaceRatingBadge } from "./PlaceRatingBadge";
 import { PlaceReviewAttribution } from "./PlaceReviewAttribution";
 
 export function PlaceIdentity({ place, practical, score, reviewCount, onReviews, revision }: {
@@ -13,6 +12,8 @@ export function PlaceIdentity({ place, practical, score, reviewCount, onReviews,
 }) {
   const {t} = useTranslation();
   const {spacing, colors, radius, typography:{preset}} = useTheme();
+  const compact = useWindowDimensions().width < 375;
+  const logoSize = compact ? 40 : 52;
   const [avatarAttempt, setAvatarAttempt] = useState(0);
   const known = place.id === review.placeId;
   const photos = [
@@ -26,21 +27,18 @@ export function PlaceIdentity({ place, practical, score, reviewCount, onReviews,
   const specialties = place.editorial_profile?.specialties;
   const cuisine = place.cuisine.map(c => t("cuisine." + c, {defaultValue:c})).join(" · ");
   return <View style={{gap:spacing.sm}}>
-    <View style={{flexDirection:"row",alignItems:"center",gap:spacing.base}}>
-      <View accessible={false} importantForAccessibility="no-hide-descendants" style={{width:72,height:72,alignItems:"center",justifyContent:"center",overflow:"hidden",borderRadius:radius.lg,backgroundColor:colors.surface.base,borderWidth:1,borderColor:colors.border.subtle}}>
+    <View style={{flexDirection:"row",alignItems:"flex-start",gap:spacing.sm}}>
+      <View accessible={false} importantForAccessibility="no-hide-descendants" style={{width:logoSize,height:logoSize,flexShrink:0,alignItems:"center",justifyContent:"center",overflow:"hidden",borderRadius:radius.lg,backgroundColor:colors.surface.base,borderWidth:1,borderColor:colors.border.subtle}}>
         {photo ? <Image accessible={false}
           source={photo.source} resizeMode={photo.type === "logo" ? "contain" : "cover"} style={{width:"100%",height:"100%",transform:[{scale:photo.type==="sign" ? 1.55 : 1}]}} onError={() => setAvatarAttempt(n => n + 1)}/> :
           <Text adjustsFontSizeToFit numberOfLines={4} style={{...preset.h3,padding:3,color:colors.text.primary,textAlign:"center"}}>{place.name}</Text>}
       </View>
-      <View style={{flex:1,gap:2}}>
+      <View style={{flex:1,minWidth:0,gap:2}}>
+        <Text accessibilityRole="header" testID="place-identity-name" style={{...preset.display,...(compact ? {fontSize:26,lineHeight:32} : {}),color:colors.text.primary,minWidth:0}}>{place.name}</Text>
         {cuisine ? <Text style={{...preset.overline,color:colors.brand.accent}}>{cuisine}</Text> : null}
-        <View style={{flexDirection:"row",flexWrap:"wrap",alignItems:"center",columnGap:spacing.sm,rowGap:spacing.xs}}>
-          <Text accessibilityRole="header" style={{...preset.display,color:colors.text.primary,flexShrink:1}}>{place.name}</Text>
-          {reviewCount > 0 && score > 0 && score <= 5 ? <PlaceRatingBadge score={score}/> : null}
-        </View>
         <Text style={{...preset.small,color:colors.text.secondary}}>{[place.location.neighborhood,place.location.city].filter(Boolean).join(" · ")}</Text>
-        {reviewCount > 0 ? <PlaceReviewAttribution placeId={place.id} reviewCount={reviewCount} onPress={onReviews} revision={revision}/> : null}
       </View>
+      {reviewCount > 0 ? <PlaceReviewAttribution score={score} compact={compact} placeId={place.id} reviewCount={reviewCount} onPress={onReviews} revision={revision}/> : null}
     </View>
     {description ? <Text style={{...preset.body,color:colors.text.primary}}>{description}</Text> : null}
     {specialties ? <Text style={{...preset.small,color:colors.text.secondary}}><Text style={{fontWeight:"700"}}>{t("editorial.specialties")} · </Text>{specialties}</Text> : null}
