@@ -5,7 +5,7 @@ permissions:
 on:
   push:
     tags: ['qa-android-*']
-    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204']
+    branches: ['codex/editorial-research-admin', 'codex/build42-raccordements', 'codex/pilote-abidjan-20261204', 'codex/recette-accueil-fiches-49']
     paths: ['documentation/android-qa.json']
   workflow_dispatch:
     inputs:
