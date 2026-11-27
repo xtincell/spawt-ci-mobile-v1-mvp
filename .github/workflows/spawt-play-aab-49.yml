@@ -1,0 +1,137 @@
+name: SPAWT Android 49 Play bundle
+on:
+  push:
+    branches: ['codex/play-aab-49']
+    paths: ['.github/workflows/spawt-play-aab-49.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+      GRADLE_USER_HOME: /tmp/spawt-gradle
+      SPAWT_BUILD_RECIPE: documentation/android-build49.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Recevoir la recette et sa CI avant compilation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import {execFileSync} from 'node:child_process';
+          const recipePath=process.env.SPAWT_BUILD_RECIPE;
+          if(!/^documentation\/android-build[0-9]+\.json$/.test(recipePath)) throw new Error('Chemin de recette non autorisé');
+          const rawRecipe=fs.readFileSync(recipePath,'utf8');
+          const recipe=JSON.parse(rawRecipe);
+          if(!/^\d+\.\d+\.\d+$/.test(recipe.version) || !Number.isSafeInteger(recipe.build) || recipe.build<1 || recipe.build>2147483647 || !/^\d{4}-\d{2}-\d{2}$/.test(recipe.buildDate) || !/^[a-f0-9]{40}$/.test(recipe.sourceCommit)) throw new Error('Recette invalide');
+          if(new Date(recipe.buildDate).toISOString().slice(0,10)!==recipe.buildDate) throw new Error('Date de recette invalide');
+          if(!Number.isSafeInteger(recipe.previousBuild) || recipe.previousBuild>=recipe.build || !/^[a-f0-9]{40}$/.test(recipe.previousSourceCommit) || !Number.isSafeInteger(recipe.previousBuildRun)) throw new Error('Lignée précédente absente ou invalide');
+          if(recipe.build>=42 && recipe.signatureReferenceBuild!==41) throw new Error('Référence de signature reçue attendue : build 41');
+          const refs=execFileSync('git',['ls-remote','--refs','--tags','origin'],{encoding:'utf8'}).trim().split('\n');
+          const occupied=refs.map(line=>line.split(/\s+/)[1]).filter(ref=>ref && ref!==process.env.GITHUB_REF).map(ref=>({ref,match:ref.match(/(?:local-build-android|build-android(?:-prod)?)-\d{4}-\d{2}-\d{2}-(\d+)$/)})).filter(x=>x.match && Number(x.match[1])>=recipe.build);
+          if(occupied.length) throw new Error('Numéro natif déjà occupé par un autre tag ; sélectionner le prochain numéro après rapprochement des livraisons');
+          const api='https://api.github.com/repos/'+process.env.GITHUB_REPOSITORY;
+          const headers={accept:'application/vnd.github+json','user-agent':'SPAWT-native-release',...(process.env.GH_TOKEN?{authorization:'Bearer '+process.env.GH_TOKEN}:{})};
+          const read=async suffix=>{const response=await fetch(api+suffix,{headers});if(!response.ok) throw new Error('Lecture CI HTTP '+response.status);return response.json();};
+          const previous=await read('/actions/runs/'+recipe.previousBuildRun);
+          if(previous.status!=='completed' || previous.conclusion!=='success' || previous.head_sha!==(recipe.previousBuildRunHead || recipe.previousSourceCommit) || previous.path!=='.github/workflows/android-local-build.yml') throw new Error('Compilation précédente non reçue');
+          const runs=await read('/actions/runs?head_sha='+recipe.sourceCommit+'&per_page=100');
+          const run=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/app-checks.yml').sort((a,b)=>b.id-a.id)[0];
+          if(!run || run.status!=='completed' || run.conclusion!=='success') throw new Error('La dernière CI source doit être terminée et verte avant compilation');
+          if (recipe.sourceCiRun !== undefined && recipe.sourceCiRun !== run.id) throw new Error('La preuve CI épinglée ne correspond pas à la CI verte de la source');
+          const jobs=await read('/actions/runs/'+run.id+'/jobs?per_page=100');
+          if(!['app','admin'].every(name=>jobs.jobs.some(j=>j.name===name && j.status==='completed' && j.conclusion==='success'))) throw new Error('Contrôles mobile/console incomplets');
+          if(recipe.build>=42) {
+            const sqlRun=runs.workflow_runs.filter(r=>r.head_sha===recipe.sourceCommit && r.path==='.github/workflows/payment-checks.yml').sort((a,b)=>b.id-a.id)[0];
+            if(!sqlRun || sqlRun.status!=='completed' || sqlRun.conclusion!=='success') throw new Error('Les migrations et leurs tests SQL doivent être reçus sur la même source avant compilation');
+          }
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'spawt-build-recipe.json'),rawRecipe);
+          fs.appendFileSync(process.env.GITHUB_ENV,Object.entries({SPAWT_APK_SOURCE:recipe.sourceCommit,SPAWT_PREVIOUS_SOURCE:recipe.previousSourceCommit,SPAWT_APK_VERSION:recipe.version,SPAWT_APK_BUILD:recipe.build,SPAWT_APK_DATE:recipe.buildDate,SPAWT_SOURCE_CI_RUN:run.id}).map(([k,v])=>k+'='+v+'\n').join(''));
+          console.log(JSON.stringify({recipe:recipePath,source:recipe.sourceCommit,build:recipe.build,sourceCiRun:run.id}));
+          JS
+      - name: Épingler le code applicatif déjà contrôlé
+        run: |
+          git fetch origin "$SPAWT_APK_SOURCE"
+          git checkout --detach "$SPAWT_APK_SOURCE"
+          test "$(git rev-parse HEAD)" = "$SPAWT_APK_SOURCE"
+          git merge-base --is-ancestor "$SPAWT_PREVIOUS_SOURCE" "$SPAWT_APK_SOURCE"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Dimensionner la mémoire des compilateurs
+        run: |
+          mkdir -p "$GRADLE_USER_HOME"
+          cat > "$GRADLE_USER_HOME/gradle.properties" <<'PROPERTIES'
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8
+          org.gradle.workers.max=2
+          org.gradle.parallel=false
+          kotlin.daemon.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=2048m -XX:+ExitOnOutOfMemoryError
+          kotlin.compiler.execution.strategy=in-process
+          PROPERTIES
+      - name: Installer les outils Android requis
+        run: |
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1' >/dev/null
+      - name: Installer les dépendances et épingler le backend
+        run: |
+          npm ci --prefix app --legacy-peer-deps
+          node scripts/conformity-check.mjs
+          node scripts/check-eas-env.mjs
+          node scripts/pin-backend-in-manifest.mjs production
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const path='app/app.json';
+          const config=JSON.parse(fs.readFileSync(path));
+          if(config.expo.version!==process.env.SPAWT_APK_VERSION || config.expo.android.versionCode!==Number(process.env.SPAWT_APK_BUILD) || config.expo.ios.buildNumber!==process.env.SPAWT_APK_BUILD) throw new Error('La source ne correspond pas à la version de recette');
+          config.expo.extra.buildDate=process.env.SPAWT_APK_DATE;
+          fs.writeFileSync(path,JSON.stringify(config,null,2)+'\n');
+          JS
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: 22.5.0
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Préparer la configuration Firebase Android
+        run: |
+          node scripts/check-firebase-config.mjs
+      - name: Compiler avec la signature EAS existante
+        working-directory: app
+        env:
+          EXPO_PUBLIC_BUILD_DATE: ${{ env.SPAWT_APK_DATE }}
+        run: eas build --platform android --profile production --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-${SPAWT_APK_VERSION}-build${SPAWT_APK_BUILD}.aab"
+      - name: Vérifier la signature et l’intégrité du bundle
+        run: |
+          bundle="spawt-${SPAWT_APK_VERSION}-build${SPAWT_APK_BUILD}.aab"
+          test -s "$bundle"
+          jarsigner -verify "$bundle"
+          keytool -printcert -jarfile "$bundle" > aab-certificate.txt
+          unzip -tq "$bundle"
+          unzip -Z1 "$bundle" | grep -Fx 'base/manifest/AndroidManifest.xml'
+          sha256sum "$bundle" > "$bundle.sha256"
+          printf '%s\n' "$SPAWT_APK_SOURCE" > source-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spawt-play-aab-49
+          if-no-files-found: error
+          path: |
+            spawt-1.1.8-build49.aab
+            spawt-1.1.8-build49.aab.sha256
+            aab-certificate.txt
+            source-commit.txt
+          retention-days: 14
