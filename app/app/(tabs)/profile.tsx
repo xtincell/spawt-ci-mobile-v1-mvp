@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 
+import { pickGalleryImage } from "../../src/lib/pick-gallery-image";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { SpawterCard } from "../../src/components/SpawterCard";
 import { BuildBadge } from "../../src/components/primitives/BuildBadge";
@@ -146,48 +147,47 @@ export default function ProfileScreen() {
   // l'URI locale compressée sert d'avatar.
   const pickAvatarFrom = async (source: "gallery" | "camera") => {
     try {
-      const mod = await import("expo-image-picker");
-      const ImagePicker = mod.default ?? mod;
-      const perm =
-        source === "camera"
-          ? await ImagePicker.requestCameraPermissionsAsync()
-          : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (perm.status !== "granted") {
-        // `canAskAgain: false` = refus définitif, ou permission absente du
-        // manifeste. Redemander ne servira jamais : le seul chemin passe par
-        // les réglages du système, et il faut le dire au lieu de reproposer un
-        // dialogue qui ne s'affichera pas.
-        const definitif = perm.canAskAgain === false;
-        Alert.alert(
-          t("profile.avatar_permission_title"),
-          definitif
-            ? t("profile.avatar_permission_settings")
-            : t("profile.avatar_permission_body"),
-          definitif
-            ? [
-                {
-                  text: t("profile.avatar_permission_open_settings"),
-                  onPress: () => {
-                    void Linking.openSettings();
-                  },
-                },
-                { text: t("common.cancel"), style: "cancel" },
-              ]
-            : undefined,
-        );
-        return;
-      }
       const pickerOptions = {
         allowsEditing: true,
         aspect: [1, 1] as [number, number],
         quality: 1,
       };
-      const result =
-        source === "camera"
-          ? await ImagePicker.launchCameraAsync(pickerOptions)
-          : await ImagePicker.launchImageLibraryAsync(pickerOptions);
-      if (result.canceled || !result.assets?.[0]) return;
-      const compressed = await compressAvatar(result.assets[0].uri);
+      let uri: string | null;
+      if (source === "camera") {
+        const camera = await import("expo-image-picker");
+        const perm = await camera.requestCameraPermissionsAsync();
+        if (perm.status !== "granted") {
+          // `canAskAgain: false` = refus définitif, ou permission absente du
+          // manifeste. Redemander ne servira jamais : le seul chemin passe par
+          // les réglages du système, et il faut le dire au lieu de reproposer un
+          // dialogue qui ne s'affichera pas.
+          const definitif = perm.canAskAgain === false;
+          Alert.alert(
+            t("profile.avatar_permission_title"),
+            definitif
+              ? t("profile.avatar_permission_settings")
+              : t("profile.avatar_permission_body"),
+            definitif
+              ? [
+                  {
+                    text: t("profile.avatar_permission_open_settings"),
+                    onPress: () => {
+                      void Linking.openSettings();
+                    },
+                  },
+                  { text: t("common.cancel"), style: "cancel" },
+                ]
+              : undefined,
+          );
+          return;
+        }
+        const result = await camera.launchCameraAsync({ mediaTypes: ["images"], ...pickerOptions });
+        uri = result.canceled ? null : result.assets[0]?.uri ?? null;
+      } else {
+        uri = await pickGalleryImage(pickerOptions);
+      }
+      if (!uri) return;
+      const compressed = await compressAvatar(uri);
       const url = isSupabaseConfigured
         ? await uploadAvatar(compressed, spawter.id)
         : compressed;

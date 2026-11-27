@@ -24,6 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
+import { pickGalleryImage } from "../src/lib/pick-gallery-image";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { Ico } from "../src/components/primitives/Ico";
 import { Select } from "../src/components/primitives/Select";
@@ -93,16 +94,9 @@ export default function SuggestPlaceScreen() {
   const addPhoto = async () => {
     if (photoUris.length >= PHOTO_MAX) return;
     try {
-      const mod = await import("expo-image-picker");
-      const ImagePicker = mod.default ?? mod;
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (perm.status !== "granted") return;
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsMultipleSelection: false,
-        quality: 1,
-      });
-      if (result.canceled || !result.assets?.[0]) return;
-      const compressed = await compressPhoto(result.assets[0].uri);
+      const selected = await pickGalleryImage();
+      if (!selected) return;
+      const compressed = await compressPhoto(selected);
       setPhotoUris((prev) => [...prev, compressed]);
     } catch (err) {
       if (__DEV__) console.warn("[suggest-place] photo add failed", err);

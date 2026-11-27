@@ -1,0 +1,131 @@
+name: SPAWT Play photo permissions candidate
+on:
+  push:
+    branches: ['codex/play-photo-picker-from-49']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+      GRADLE_USER_HOME: /tmp/spawt-gradle
+      SPAWT_APK_VERSION: '1.1.8'
+      SPAWT_APK_BUILD: '51'
+      SPAWT_APK_DATE: '2026-11-27'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Vérifier la base de la 49
+        run: git merge-base --is-ancestor 91ae1422e66254eacf4cd8231177d42ce0cf6886 HEAD
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Dimensionner la mémoire des compilateurs
+        run: |
+          mkdir -p "$GRADLE_USER_HOME"
+          cat > "$GRADLE_USER_HOME/gradle.properties" <<'PROPERTIES'
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8
+          org.gradle.workers.max=2
+          org.gradle.parallel=false
+          kotlin.daemon.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=2048m -XX:+ExitOnOutOfMemoryError
+          kotlin.compiler.execution.strategy=in-process
+          PROPERTIES
+      - name: Installer les outils Android requis
+        run: |
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1' >/dev/null
+      - name: Installer, vérifier et épingler le backend
+        run: |
+          npm ci --prefix app --legacy-peer-deps --no-audit --no-fund
+          node scripts/conformity-check.mjs
+          node scripts/check-eas-env.mjs
+          node scripts/pin-backend-in-manifest.mjs production
+          npm --prefix app run typecheck
+          npm --prefix app test -- --ci --runInBand __tests__/lib/pick-gallery-image.test.ts
+          if git grep -n 'requestMediaLibraryPermissionsAsync' -- app/app app/src; then
+            echo "Unexpected full-library permission request in the app." >&2
+            exit 1
+          fi
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: 22.5.0
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Préparer la configuration Firebase Android
+        run: |
+          node scripts/check-firebase-config.mjs
+      - name: Compiler avec la signature EAS existante
+        working-directory: app
+        env:
+          EXPO_PUBLIC_BUILD_DATE: ${{ env.SPAWT_APK_DATE }}
+        run: eas build --platform android --profile production --non-interactive --local --output "$GITHUB_WORKSPACE/spawt-${SPAWT_APK_VERSION}-build${SPAWT_APK_BUILD}.aab"
+      - name: Vérifier manifest, SDK, permissions et signature de l’AAB
+        run: |
+          set -euo pipefail
+          bundle="spawt-1.1.8-build51.aab"
+          test -s "$bundle"
+          jarsigner -verify "$bundle" | tee signature.txt
+          grep -Fq 'jar verified.' signature.txt
+          keytool -printcert -jarfile "$bundle" > aab-certificate.txt
+          unzip -tq "$bundle"
+          curl -fsSL --retry 2 'https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar' -o "$RUNNER_TEMP/bundletool.jar"
+          java -jar "$RUNNER_TEMP/bundletool.jar" validate --bundle="$bundle"
+          java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$bundle" --module=base > android-manifest.xml
+          java -jar "$RUNNER_TEMP/bundletool.jar" dump config --bundle="$bundle" > bundle-config.txt
+          grep -Fq PAGE_ALIGNMENT_16K bundle-config.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          from zipfile import ZipFile
+          import re, struct
+          root = ET.parse("android-manifest.xml").getroot()
+          ns = "{http://schemas.android.com/apk/res/android}"
+          assert root.get("package") == "com.upgraders.spawt", root.attrib
+          assert root.get(ns+"versionCode") == "51", root.attrib
+          assert root.get(ns+"versionName") == "1.1.8", root.attrib
+          assert root.find("uses-sdk").get(ns+"targetSdkVersion") == "36"
+          perms = {el.get(ns+"name") for el in root if el.tag.startswith("uses-permission")}
+          forbidden = {"android.permission."+x for x in ("READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO", "READ_MEDIA_VISUAL_USER_SELECTED", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE")}
+          assert not perms.intersection(forbidden), perms.intersection(forbidden)
+          assert "android.permission.CAMERA" in perms
+          with ZipFile("spawt-1.1.8-build51.aab") as z:
+            libs = [p for p in z.namelist() if re.search(r"/lib/(arm64-v8a|x86_64)/[^/]+\.so$", p)]
+            assert libs, "No 64-bit native libraries found"
+            for lib in libs:
+              b = z.read(lib)
+              assert b[:6] == b"\x7fELF\x02\x01", lib
+              offset = struct.unpack_from("<Q", b, 32)[0]
+              span, count = struct.unpack_from("<HH", b, 54)
+              aligns = [struct.unpack_from("<Q", b, offset+i*span+48)[0] for i in range(count) if struct.unpack_from("<I", b, offset+i*span)[0] == 1]
+              assert aligns and min(aligns) >= 16384, (lib, aligns)
+          Path("play-checks.txt").write_text(f"Package com.upgraders.spawt, 1.1.8 (51), target SDK 36.\nNo broad media permissions; camera permission preserved.\n{len(libs)} native 64-bit libraries passed ELF 16 KiB alignment.\n")
+          PY
+          cat play-checks.txt
+          sha256sum "$bundle" > "$bundle.sha256"
+          git rev-parse HEAD > source-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spawt-play-photo-picker-51
+          if-no-files-found: error
+          path: |
+            spawt-1.1.8-build51.aab
+            spawt-1.1.8-build51.aab.sha256
+            aab-certificate.txt
+            android-manifest.xml
+            bundle-config.txt
+            play-checks.txt
+            source-commit.txt
+          retention-days: 14

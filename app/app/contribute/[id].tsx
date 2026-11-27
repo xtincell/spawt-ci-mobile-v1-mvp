@@ -5,6 +5,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as Crypto from "expo-crypto";
 import { useOwnedDraft } from "../../src/lib/use-owned-draft";
+import { pickGalleryImage } from "../../src/lib/pick-gallery-image";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useSpawterStore } from "../../src/store/spawter-store";
 import { useProgressionStore } from "../../src/store/progression-store";
@@ -48,12 +49,17 @@ export default function ContributeScreen() {
     if (busy || draft.photos.length >= 3) return;
     setBusy(true); setError("");
     try {
-      const picker = await import("expo-image-picker");
-      const permission = camera ? await picker.requestCameraPermissionsAsync() : await picker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) { setError("photo_permission"); return; }
-      const result = camera ? await picker.launchCameraAsync({ mediaTypes: ["images"], quality: 1 }) : await picker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
-      if (!result.canceled && result.assets[0]) {
-        const uri = await persistContributionPhoto(await compressPhoto(result.assets[0].uri), Crypto.randomUUID());
+      let selected: string | null;
+      if (camera) {
+        const picker = await import("expo-image-picker");
+        if (!(await picker.requestCameraPermissionsAsync()).granted) { setError("photo_permission"); return; }
+        const result = await picker.launchCameraAsync({ mediaTypes: ["images"], quality: 1 });
+        selected = result.canceled ? null : result.assets[0]?.uri ?? null;
+      } else {
+        selected = await pickGalleryImage();
+      }
+      if (selected) {
+        const uri = await persistContributionPhoto(await compressPhoto(selected), Crypto.randomUUID());
         if (currentKey.current !== key) return;
         change({ photos: [...draft.photos, uri] });
       }

@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { pickGalleryImage } from "../../src/lib/pick-gallery-image";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { Stars } from "../../src/components/primitives/Stars";
 import { Chip } from "../../src/components/primitives/Chip";
@@ -77,12 +78,9 @@ export default function ReviewScreen() {
     if (!ownerId || !spawtId || photoBusy.current || busy.current || draft.photoUris.length >= 3) return;
     photoBusy.current = true; setAddingPhoto(true);
     try {
-      const picker = await import("expo-image-picker");
-      const perm = await picker.requestMediaLibraryPermissionsAsync();
-      if (perm.status !== "granted") { Alert.alert(t("review.permission_title"), t("review.permission_body")); return; }
-      const result = await picker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: false, quality: 1 });
-      if (result.canceled || !result.assets[0]) return;
-      const compressed = await compressPhoto(result.assets[0].uri);
+      const selected = await pickGalleryImage();
+      if (!selected) return;
+      const compressed = await compressPhoto(selected);
       const uri = await persistDraftPhoto(compressed, ownerId, spawtId);
       setDraft(prev => ({ ...prev, photoUris: [...prev.photoUris, uri].slice(0, 3) }));
       track({ name: "review_photo_added", properties: { place_id: placeId ?? "", photos_count_now: draft.photoUris.length + 1 } });
