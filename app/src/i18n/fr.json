@@ -275,7 +275,7 @@
     "meute_body": "Pour l'instant, retrouve les autres spawters via les avis et les Coups de Cœur sur les fiches lieu."
   },
   "home": {
-    "discover_city": "On mange où à {{city}} ?",
+    "discover_city": "Où manger à {{city}} ?",
     "more_places": "Les adresses à explorer",
     "more_addresses": "Voir plus d’adresses",
     "ticket_per_person": "{{amount}} F CFA / pers.",
