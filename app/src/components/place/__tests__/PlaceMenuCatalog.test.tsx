@@ -1,7 +1,7 @@
 import TestRenderer, { act } from "react-test-renderer";
 import { Text } from "react-native";
 import { ThemeProvider } from "../../../theme/ThemeProvider";
-import { leChaMenuId, menuPreviews, placeDishes } from "../../../lib/place-menu-catalog";
+import { inMenuId, leChaMenuId, menuPreviews, placeDishes } from "../../../lib/place-menu-catalog";
 import type { MenuItem } from "../../../lib/outings";
 import { PlaceMenuCatalog } from "../PlaceMenuCatalog";
 import { OutingActions } from "../../OutingActions";
@@ -48,4 +48,31 @@ it("selects the published price, opens dish actions with the real ID, and keeps 
   expect(onOpenMenu).toHaveBeenCalledTimes(1);
   act(() => button("menu-dish-published").props.onPress());
   expect(tree.root.findByType(OutingActions).props.dish).toEqual(live);
+});
+
+
+it("keeps every documented IN’ section and attaches actions only to its public rows", () => {
+  const base = placeDishes(inMenuId, []);
+  expect(base).toHaveLength(162);
+  expect([...new Set(base.map(dish => dish.family))]).toEqual(["Brunch", "À la carte", "Boissons"]);
+  const benedict = base.find(dish => dish.name === "Eggs Benedict")!;
+  const published = { ...live, id: benedict.key, place_id: inMenuId, name: benedict.name,
+    menu_section: "", price_xof: 7500, observed_on: "2026-11-27" };
+  const merged = placeDishes(inMenuId, [published, { ...published, id: "hidden", name: "Hidden", is_published: false }, live]);
+  expect(merged).toHaveLength(base.length);
+  expect(merged.filter(d => !!d.published)).toHaveLength(1);
+  expect(merged.find(d => d.key === benedict.key)).toMatchObject({ section: "Œufs", family: "Brunch", price: 7500, published });
+});
+
+it("finds drinks from outside the current family and offers direct favorites on published items only", async () => {
+  const croissant = placeDishes(inMenuId, []).find(dish => dish.name === "Croissant")!;
+  mockRows.push({ ...live, place_id: inMenuId, id: croissant.key, name: croissant.name, menu_section: "" });
+  const back = jest.fn();
+  await act(async () => { tree = TestRenderer.create(<ThemeProvider><PlaceMenuCatalog placeId={inMenuId} placeName="IN’" onBackToPlace={back} /></ThemeProvider>); });
+  expect(tree.root.findAll(node => node.props.testID === "menu-favorite-" + croissant.key).length).toBeGreaterThan(0);
+  expect(new Set(tree.root.findAll(node => String(node.props.testID).startsWith("menu-favorite-")).map(node => node.props.testID)).size).toBe(1);
+  const search = tree.root.findAll(node => node.props.accessibilityLabel === "menu_detail.search" && typeof node.props.onChangeText === "function")[0]!;
+  act(() => search.props.onChangeText("eau minerale"));
+  expect(tree.root.findAllByType(Text).some(node => node.props.children === "Eau minérale naturelle")).toBe(true);
+  expect(tree.root.findAll(node => node.props.testID === "menu-favorite-" + croissant.key)).toHaveLength(0);
 });

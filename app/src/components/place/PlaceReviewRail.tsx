@@ -6,6 +6,7 @@ import { useTheme } from "../../theme/ThemeProvider";
 import { SpawterAvatar } from "../SpawterAvatar";
 import { Ico } from "../primitives/Ico";
 import { ReviewCard } from "../ReviewCard";
+import { PlaceRatingBadge } from "./PlaceRatingBadge";
 import { STADE_DESCRIPTORS } from "../../types/stade";
 import type { PlaceReview } from "../../lib/data-source";
 import editorial from "../../data/le-cha-review.json";
@@ -40,7 +41,7 @@ export function PlaceReviewRail({placeId,reviews,onSeeAll}:{placeId:string;revie
           <SpawterAvatar url={card.avatar}/><View style={{flex:1}}>
             <Text numberOfLines={1} style={{...preset.h3,color:colors.text.primary}}>{card.name}</Text>
             {card.title ? <Text style={{...preset.caption,color:colors.text.secondary}}>{card.title}</Text> : null}
-          </View><Text style={{...preset.h3,color:colors.chat.djidji}}>★ {card.score.toLocaleString("fr-FR",{maximumFractionDigits:1})}/5</Text>
+          </View><PlaceRatingBadge score={card.score} compact/>
         </View>
         <View style={{flexDirection:"row",alignItems:"center",gap:spacing.sm}}>
           {card.text ? <Text numberOfLines={3} style={{flex:1,...preset.body,color:colors.text.primary}}>{card.text}</Text> : null}

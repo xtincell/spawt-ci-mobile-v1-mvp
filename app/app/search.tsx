@@ -65,7 +65,6 @@ export default function SearchScreen() {
 
   // Feature 18 — entrée « suggère ton spot » dans l'état vide des résultats
   // (flag suggestions-lieux OFF par défaut → lien absent).
-  const monetaryBudget = useFlag("place-avg-price");
   const suggestionsEnabled = useFlag("suggestions-lieux");
 
   const [query, setQuery] = useState("");
@@ -100,13 +99,13 @@ export default function SearchScreen() {
   );
 
   const results = useMemo(
-    () => searchPlaces(places, query, filters, ctx, monetaryBudget),
-    [places, query, filters, ctx, monetaryBudget],
+    () => searchPlaces(places, query, filters, ctx),
+    [places, query, filters, ctx],
   );
   const dishResults = useMemo(() => {
-    const eligible = new Set((isFiltersEmpty(filters) ? places : searchPlaces(places, "", filters, ctx, monetaryBudget)).map(p => p.id));
+    const eligible = new Set((isFiltersEmpty(filters) ? places : searchPlaces(places, "", filters, ctx)).map(p => p.id));
     return findMenuItems(menu.items, query).filter(d => eligible.has(d.place_id));
-  }, [menu.items, query, filters, places, ctx, monetaryBudget]);
+  }, [menu.items, query, filters, places, ctx]);
 
   // Debounce search_submitted event.
   useEffect(() => {
@@ -382,7 +381,7 @@ export default function SearchScreen() {
       <FilterSheet
         visible={sheetVisible}
         initialFilters={filters}
-        resultsCount={(f) => searchPlaces(places, query, f, ctx, monetaryBudget).length}
+        resultsCount={(f) => searchPlaces(places, query, f, ctx).length}
         onApply={(f) => {
           setFilters(f);
           setSheetVisible(false);

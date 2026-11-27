@@ -1,6 +1,8 @@
 import { useContentRevision } from "./content-sync";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listPlaces, type PlaceWithAdn } from "./data-source";
+
+import { useMenuBudgets, withMenuBudget } from "./use-menu-budgets";
 
 /** A failed refresh keeps the last readable inventory; it never invents an empty one. */
 export function usePlaces(enabled = true) {
@@ -30,5 +32,7 @@ export function usePlaces(enabled = true) {
     return () => { request.current += 1; };
   }, [enabled, reload, contentRevision]);
 
-  return { places, loading, failed, reload };
+  const budgets = useMenuBudgets(enabled && places.length > 0);
+  const pricedPlaces = useMemo(() => places.map(place => withMenuBudget(place, budgets)), [places, budgets]);
+  return { places: pricedPlaces, loading, failed, reload };
 }

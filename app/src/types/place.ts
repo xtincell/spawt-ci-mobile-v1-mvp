@@ -86,6 +86,8 @@ export interface PriceRange {
   tier: 1 | 2 | 3 | null; // 1=économique, 2=moyen, 3=premium
   /** Optionnel : panier moyen indicatif en FCFA */
   avg_ticket_xof?: number;
+  /** Estimation locale du repas, dérivée de la carte. */
+  menu_estimate_xof?: number;
 }
 
 export interface Place {

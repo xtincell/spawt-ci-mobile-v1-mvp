@@ -67,7 +67,6 @@ export function searchPlaces(
   query: string,
   filters: SearchFilters,
   ctx: SearchContext,
-  monetaryBudget = true,
 ): PlaceWithAdn[] {
   const normalizedQuery = normalize(query);
   if (normalizedQuery.length === 0 && isFiltersEmpty(filters)) {
@@ -92,7 +91,7 @@ export function searchPlaces(
       continue;
     }
     if (filters.budgetTiers.length > 0) {
-      const budget = monetaryBudget ? getPlaceBudgetTier(place.price) : place.price.tier;
+      const budget = getPlaceBudgetTier(place.price);
       if (budget === null || !filters.budgetTiers.includes(budget)) continue;
     }
     if (filters.minRating !== null && place.adn.weighted_rating < filters.minRating) {

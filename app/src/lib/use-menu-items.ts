@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { listMenuItems, type MenuItem } from "./outings";
 import { useContentRevision } from "./content-sync";
+import { readMenuInventory } from "./menu-inventory";
+
 export function useMenuItems(placeId?: string) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [failed, setFailed] = useState(false);
@@ -9,7 +11,8 @@ export function useMenuItems(placeId?: string) {
   const revision = useContentRevision();
   useEffect(() => {
     let active = true; setLoading(true); setFailed(false);
-    void listMenuItems(placeId).then(data => { if (active) setItems(data); })
+    const request = placeId === undefined ? readMenuInventory(revision) : listMenuItems(placeId);
+    void request.then(data => { if (active) setItems(data); })
       .catch(() => { if (active) setFailed(true); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [placeId, revision, attempt]);
