@@ -1,4 +1,3 @@
-import { useFlag } from "../store/feature-flags";
 // Story 3.5 — Bottom sheet de filtres avancés.
 // Multi-select chips Cuisine + Budget, single-select Distance + Note minimale,
 // CTA "Voir N spots" live count.
@@ -47,7 +46,6 @@ export function FilterSheet({
 }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const monetaryBudget = useFlag("place-avg-price");
   const [draft, setDraft] = useState<SearchFilters>(initialFilters);
 
   // Réinitialise le draft uniquement quand la sheet (re)devient visible —
@@ -197,7 +195,7 @@ export function FilterSheet({
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm }}>
                 {PLACE_BUDGET_TIERS.map(tier => (
-                  <Chip key={tier} label={getBudgetTierLabel(tier, t, monetaryBudget)} variant="dark"
+                  <Chip key={tier} label={getBudgetTierLabel(tier, t)} variant="dark"
                     selected={draft.budgetTiers.includes(tier)} onPress={() => toggleBudget(tier)} />
                 ))}
               </View>

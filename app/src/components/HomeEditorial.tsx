@@ -1,4 +1,3 @@
-import { useFlag } from "../store/feature-flags";
 import { ExploreCollections, DuoEditorial } from "./ExploreCollections";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -133,7 +132,6 @@ function EditorialCard({ item, index, onPress, activity }: {
   const theme = useTheme();
   const { t } = useTranslation();
   const { place, adn } = item;
-  const monetaryBudget = useFlag("place-avg-price");
   const cover = place.cover_photo_url?.trim();
   const [failedCover, setFailedCover] = useState<string | null>(null);
   const hasPhoto = Boolean(cover && cover !== failedCover);
@@ -142,7 +140,7 @@ function EditorialCard({ item, index, onPress, activity }: {
   const neighborhood = place.location.neighborhood?.trim() || place.location.city?.trim();
   const cuisines = place.cuisine.filter(code => code !== "autre").slice(0,2)
     .map(code => t(`cuisine.${code}`, { defaultValue: code.replace(/_/g, " ") })).join(" · ");
-  const budget = getPlaceBudgetLabel(place.price, t, monetaryBudget);
+  const budget = getPlaceBudgetLabel(place.price, t);
   const publicCount = adn.total_reviews;
   const rated = Number.isInteger(publicCount) && publicCount > 0 &&
     Number.isFinite(adn.weighted_rating) && adn.weighted_rating >= 1 && adn.weighted_rating <= 5;

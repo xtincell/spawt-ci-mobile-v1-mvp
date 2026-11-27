@@ -36,3 +36,23 @@ async function readPublicRow<S extends z.ZodType>(view: string, placeId: string,
 }
 export const getPlacePractical = (id: string) => readPublicRow("public_place_practical", id, practicalSchema);
 export const getPlaceReviewStats = (id: string) => readPublicRow("public_place_review_stats", id, statsSchema);
+
+/** Public reviews can contain several visits from the same spawter. */
+export async function getPublicReviewAuthorCount(placeId: string): Promise<number | null> {
+  if (!isSupabaseConfigured) return null;
+  const { supabase } = await import("./supabase");
+  const size = 250;
+  let after = "", total = 0;
+  for (;;) {
+    const { data, error } = await withReadTimeout("public_review_authors", signal => {
+      const page = supabase.from("public_reviews").select("spawter_id").eq("place_id", placeId)
+        .eq("is_seed", false).not("spawter_id", "is", null).order("spawter_id").limit(size);
+      return (after ? page.gt("spawter_id", after) : page).abortSignal(signal);
+    });
+    if (error || !data) throw new DataReadError("public_review_authors");
+    const ids = data.map(row => String(row.spawter_id));
+    total += new Set(ids).size;
+    if (ids.length < size) return total;
+    after = ids[ids.length - 1]!;
+  }
+}

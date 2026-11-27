@@ -1,4 +1,4 @@
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Image, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
@@ -11,7 +11,33 @@ import { ExploreCollections } from "./ExploreCollections";
 import { Ico } from "./primitives/Ico";
 
 export function EditorialDiscovery() {
-  return <ExploreCollections preview />;
+  const theme = useTheme();
+  const router = useRouter();
+  const { t } = useTranslation();
+  return <>
+    <Pressable testID="home-le-cha-preview" accessibilityRole="button"
+      accessibilityLabel={t("home.le_cha_open")}
+      onPress={() => router.push({ pathname: "/place/[id]", params: {
+        id: "ef8f3289-a9ca-56f0-899c-f95f93ee9c75", ref: "feed", vue: "apercu",
+      } })}
+      style={({ pressed }) => ({
+        margin: theme.spacing.base, borderRadius: theme.radius.card, overflow: "hidden",
+        backgroundColor: theme.colors.surface.raised, borderColor: theme.colors.border.subtle,
+        borderWidth: 1, opacity: pressed ? 0.88 : 1,
+      })}>
+      <Image source={require("../../assets/editorial/le-cha.jpg")} resizeMode="cover"
+        accessible={false} style={{ width: "100%", aspectRatio: 1.7 }} />
+      <View style={{ padding: theme.spacing.base, gap: theme.spacing.xs }}>
+        <Text style={{ ...theme.typography.preset.caption, color: theme.colors.brand.accent }}>{t("home.le_cha_context")}</Text>
+        <Text style={{ ...theme.typography.preset.h2, color: theme.colors.text.primary }}>{t("home.le_cha_title")}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.sm }}>
+          <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.secondary, flexShrink: 1 }}>{t("home.le_cha_open")}</Text>
+          <Ico name="chevron-right" size={18} color={theme.colors.brand.accent} />
+        </View>
+      </View>
+    </Pressable>
+    <ExploreCollections preview />
+  </>;
 }
 export function OutingDiscovery({ ranked }: { ranked: readonly PlaceWithScore[] }) {
   const theme = useTheme(); const { t } = useTranslation(); const router = useRouter();

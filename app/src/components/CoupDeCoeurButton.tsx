@@ -40,8 +40,7 @@ interface Props {
   onChange?: () => void;
 }
 
-export function CoupDeCoeurButton({ place_id, onChange }: Props) {
-  const theme = useTheme();
+export function usePlaceCoupDeCoeur(place_id: string, onChange?: () => void, active = true) {
   const { t } = useTranslation();
   const [count, setCount] = useState<number>(0);
   const [given, setGiven] = useState(false);
@@ -74,7 +73,7 @@ export function CoupDeCoeurButton({ place_id, onChange }: Props) {
   );
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || !active) return;
     let annule = false;
     void getCoupDeCoeurState(place_id).then((etat) => {
       if (annule || !etat) return;
@@ -83,9 +82,7 @@ export function CoupDeCoeurButton({ place_id, onChange }: Props) {
     return () => {
       annule = true;
     };
-  }, [place_id, appliquer]);
-
-  if (!isSupabaseConfigured) return null;
+  }, [place_id, appliquer, active]);
 
   const onPress = async () => {
     if (enVolRef.current) return;
@@ -120,6 +117,14 @@ export function CoupDeCoeurButton({ place_id, onChange }: Props) {
     }
   };
 
+  return { count, given, remaining, connu, busy, feedback, onPress };
+}
+
+export function CoupDeCoeurButton({ place_id, onChange }: Props) {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const { count, given, remaining, connu, busy, feedback, onPress } = usePlaceCoupDeCoeur(place_id, onChange);
+  if (!isSupabaseConfigured) return null;
   const libelle = !connu
     ? t("cdc.button_loading")
     : given

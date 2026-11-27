@@ -1,4 +1,3 @@
-import { useFlag } from "../store/feature-flags";
 // Story 3.5 — FilterChips horizontaux scrollable.
 // Affiche les filtres actifs en chips (toggle off au tap) + chip permanente
 // « + Filtres » qui ouvre le FilterSheet (callback prop `onOpenSheet`).
@@ -21,7 +20,6 @@ interface Props {
 export function FilterChips({ filters, onToggle, onOpenSheet }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const monetaryBudget = useFlag("place-avg-price");
   return (
     <ScrollView
       horizontal
@@ -49,7 +47,7 @@ export function FilterChips({ filters, onToggle, onOpenSheet }: Props) {
       {filters.budgetTiers.map((tier) => (
         <Chip
           key={`budget-${tier}`}
-          label={getBudgetTierLabel(tier, t, monetaryBudget)}
+          label={getBudgetTierLabel(tier, t)}
           variant="dark"
           selected
           onPress={() => onToggle("budget", tier)}
