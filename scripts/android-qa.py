@@ -958,7 +958,18 @@ try:
         time.sleep(1)
         if 'mInputShown=true' in adb('shell','dumpsys','input_method'):
             adb('shell','input','keyevent','4')
-        tap('Le Cha', timeout=40, exact=True)
+        search_end = time.monotonic() + 40
+        while time.monotonic() < search_end:
+            search_tree, _ = nodes()
+            venue_result = next((n for n in search_tree.iter('node')
+                if n.get('clickable') == 'true' and n.get('class') != 'android.widget.EditText'
+                and n.get('content-desc', '').casefold() in ('le cha', 'le chā')), None)
+            if venue_result is not None:
+                tap_node(venue_result)
+                break
+            time.sleep(.5)
+        else:
+            raise AssertionError('Le Cha absent des résultats tactiles depuis l’accueil')
         check('accueil puis recherche ouvrent la fiche en direct', bool(label(scroll_find('open-le-cha-approved-preview'))))
         scroll_tap('open-le-cha-approved-preview')
         find('Agrandir la devanture de Le Cha', timeout=40)
