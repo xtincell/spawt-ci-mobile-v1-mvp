@@ -2,10 +2,11 @@
   "version": "1.1.8",
   "build": 49,
   "buildDate": "2026-11-27",
-  "sourceCommit": "0bfc5b91006f48d1a78ac8e35ebb3b8b6206ea50",
+  "sourceCommit": "91ae1422e66254eacf4cd8231177d42ce0cf6886",
   "previousBuild": 48,
   "previousSourceCommit": "74d8b3b5bee649368d80b6adcfc6a35d5422d1de",
   "previousBuildRun": 45874192390,
   "previousBuildRunHead": "c48f2abd2cc35529d1203c60a1fea32e2996cd94",
-  "signatureReferenceBuild": 41
+  "signatureReferenceBuild": 41,
+  "sourceCiRun": 45966989062
 }
