@@ -25,10 +25,10 @@
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-import { isReviewerPhone as isReviewerPhoneShared } from "../_shared/reviewer.ts";
+import { isReservedStoreReviewerPhone, isReviewerPhone as isReviewerPhoneShared, storeReviewerRuntimeEnv } from "../_shared/reviewer.ts";
 
 // @ts-expect-error — Deno global
-declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Promise<Response> | Response) => void };
+declare const Deno: { env: { get(name: string): string | undefined }; readTextFileSync(path: string): string; serve: (h: (req: Request) => Promise<Response> | Response) => void };
 
 interface SendPayload {
   phone_e164: string;
@@ -57,7 +57,7 @@ function isMockMode(): boolean {
 // sinon le numéro serait brické (ni SMS, ni code reviewer). Wrapper Deno.env
 // pour garder la signature testée `isReviewerPhone(phone)`.
 export function isReviewerPhone(phoneE164: string): boolean {
-  return isReviewerPhoneShared(phoneE164, Deno.env);
+  return isReviewerPhoneShared(phoneE164, storeReviewerRuntimeEnv(phoneE164, Deno.env, path => Deno.readTextFileSync(path)));
 }
 
 // P-11 — CORS restreint via `ALLOWED_ORIGINS` (CSV). Pas de wildcard `*` car
@@ -179,6 +179,10 @@ export async function handleRequest(req: Request): Promise<Response> {
     if ((ipCount ?? 0) >= RATE_LIMIT_IP_PER_HOUR) {
       return json({ error: "rate_limited", scope: "ip", retry_after_seconds: 3600 }, req, 429);
     }
+  }
+
+  if (isReservedStoreReviewerPhone(payload.phone_e164) && !isReviewerPhone(payload.phone_e164)) {
+    return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
   }
 
   // Review stores — numéro whitelisté : audit normal, zéro SMS (même en live).
