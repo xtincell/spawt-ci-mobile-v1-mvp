@@ -485,7 +485,7 @@
     "cgv_label": "J'accepte les Conditions Générales d'Utilisation et de Vente",
     "cgv_body": "En tapant Accepter, tu rejoins la bande. Tu utilises SPAWT pour découvrir des lieux, spawter quand tu y vas, et partager tes avis. SPAWT t'engage à respecter les autres, ne pas inventer d'avis, et garder un ton qui ne blesse pas. Aucun usage commercial sans accord. Le détail complet — version juriste — arrive bientôt.",
     "geoloc_label": "J'accepte la collecte de mes données et de ma géolocalisation",
-    "geoloc_body": "Tes infos (nom, quartier, date de naissance) servent à mieux te recommander des lieux. Ta position sert UNIQUEMENT à valider un spawt quand tu es dans un lieu — jamais en arrière-plan pour te tracker. Tu peux tout couper plus tard. Wording final juriste à venir.",
+    "geoloc_body": "Tes infos (nom, quartier, date de naissance) aident SPAWT à te recommander des lieux. Ta position peut servir à afficher les lieux proches et à valider un spawt quand tu es sur place. Le Guet peut utiliser la localisation en arrière-plan. Sur Android, il a sa propre autorisation : on t’explique son usage de la localisation avant de te la demander. Tu pourras le désactiver dans les paramètres.",
     "policy_link": "Politique de confidentialité",
     "terms_link": "Conditions d'utilisation"
   },
@@ -1686,6 +1686,19 @@
     "shared": "Une envie partagée",
     "link_unavailable": "Ce lien n’est plus disponible. Son propriétaire a peut-être désactivé le partage.",
     "remove_saved": "Retirer de mes envies"
+  },
+  "guet_disclosure": {
+    "title": "Le Guet",
+    "intro": "Une alerte quand un lieu à découvrir est tout près.",
+    "learn": "Découvrir et activer le Guet",
+    "permissions": "Vérifier les autorisations",
+    "settings_hint": "Les alertes du Guet dépendent de tes autorisations Android, même si tu as choisi de l’activer dans SPAWT.",
+    "android_body": "Si tu actives le Guet, SPAWT utilise ta localisation même quand l’app est fermée ou que tu ne l’utilises pas. Ton téléphone détecte quand tu entres dans la zone d’un lieu à découvrir ou que tu as enregistré, afin de t’envoyer une alerte. Si tu as validé une visite dans l’app, le Guet peut aussi te rappeler de laisser un avis en quittant le lieu. Il ne valide jamais une visite à ta place.",
+    "optional": "C’est facultatif. Tu peux continuer sans le Guet et le désactiver à tout moment dans Paramètres → Le Guet. Pour recevoir les alertes hors de l’app, choisis « Toujours autoriser » dans les réglages de localisation Android.",
+    "continue": "Activer et continuer",
+    "later": "Pas maintenant",
+    "disable": "Désactiver le Guet",
+    "save_failed": "Impossible d’enregistrer ton choix. Réessaie dans les paramètres."
   },
   "guet_v2": {
     "title": "Le Guet",

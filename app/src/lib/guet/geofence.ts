@@ -71,7 +71,7 @@ export function selectClosestPlaces<T extends ArmablePlace>(
  */
 export async function armGuet(
   places: ReadonlyArray<ArmablePlace>,
-  options: { spawter?: SpawterLocation; hasGeolocConsent: boolean } = { hasGeolocConsent: false },
+  options: { spawter?: SpawterLocation; hasGeolocConsent: boolean; requestPermissions?: boolean } = { hasGeolocConsent: false },
 ): Promise<void> {
   const epoch = ++generation;
   if (dataSourceMode === "fallback") {
@@ -92,7 +92,7 @@ export async function armGuet(
   try {
     let fg = await Location.getForegroundPermissionsAsync();
     if (epoch !== generation) return;
-    if (fg.status !== "granted" && fg.canAskAgain) fg = await Location.requestForegroundPermissionsAsync();
+    if (fg.status !== "granted" && fg.canAskAgain && options.requestPermissions !== false) fg = await Location.requestForegroundPermissionsAsync();
     if (epoch !== generation) return;
     if (fg.status !== "granted") {
       if (__DEV__) console.warn("[guet] armGuet aborted — foreground permission denied");
@@ -101,7 +101,7 @@ export async function armGuet(
     // Une permission de premier plan seule ne permet pas les geofences natives.
     let bg = await Location.getBackgroundPermissionsAsync();
     if (epoch !== generation) return;
-    if (bg.status !== "granted" && bg.canAskAgain) bg = await Location.requestBackgroundPermissionsAsync();
+    if (bg.status !== "granted" && bg.canAskAgain && options.requestPermissions !== false) bg = await Location.requestBackgroundPermissionsAsync();
     if (epoch !== generation) return;
     if (bg.status !== "granted") { await disarmGuet(); return; }
   } catch (err) {

@@ -15,6 +15,8 @@ import { cancelAllGuetNotifications, registerNotificationResponseHandler, type G
 import { ensureNotifPermissionPostOTP } from "./guet-permissions";
 import { GUET_CONTEXT_KEY, clearGuetContext, handleNearbyEvent, serialGuet, type GuetContext, type NearbyPlace } from "./guet-nearby";
 
+import { readGuetChoice, writeGuetChoice } from "./guet-disclosure";
+
 const OPTOUT = "spawt:guet:optout";
 let generation = 0; let owner: string | null = null; let lastArmAt = 0;
 let listener: { remove: () => void } | null = null; let stopResponses: (() => void) | null = null;
@@ -30,7 +32,7 @@ function isEnabledFor(id: string): boolean {
   return flags.spawterId === id && Boolean(flags.flags["guet-proximity-v2"]);
 }
 
-export async function bootGuet(): Promise<void> {
+export async function bootGuet(requestPermissions = false): Promise<void> {
   const current = useSpawterStore.getState().spawter;
   if (!current || Platform.OS === "web" || dataSourceMode !== "supabase") { await shutdownGuet(); return; }
   if (owner === current.id) return;
@@ -57,7 +59,7 @@ export async function bootGuet(): Promise<void> {
   await AsyncStorage.removeItem("spawt:guet:pending");
   if (!isCurrent(epoch, current.id)) return;
   registerGeofenceCallback((type, place) => handleNearbyEvent(type, place.id));
-  await rearmGuet({ force: true });
+  await rearmGuet({ force: true, requestPermissions });
 }
 export function shutdownGuet(): Promise<void> {
   generation++; owner = null; lastArmAt = 0;
@@ -80,7 +82,7 @@ async function pauseGuet(): Promise<void> {
   await clearGuetContext().catch(() => undefined);
   await disarmGuet(); await cancelAllGuetNotifications().catch(() => undefined);
 }
-export function rearmGuet(options: { force: boolean }): Promise<void> {
+export function rearmGuet(options: { force: boolean; requestPermissions?: boolean }): Promise<void> {
   const epoch = generation; const id = owner;
   return serialGuet(async () => {
     if (!id || !isCurrent(epoch, id)) return;
@@ -88,8 +90,10 @@ export function rearmGuet(options: { force: boolean }): Promise<void> {
     catch (error) { await pauseGuet(); throw error; }
   });
 }
-async function rearmUnlocked({ force }: { force: boolean }, epoch: number, id: string): Promise<void> {
+async function rearmUnlocked({ force, requestPermissions = false }: { force: boolean; requestPermissions?: boolean }, epoch: number, id: string): Promise<void> {
   const canContinue = () => isCurrent(epoch, id) && Boolean(useSpawterStore.getState().spawter?.geoloc_consent_at) && isEnabledFor(id);
+  const android = Platform.OS === "android";
+  const mayAsk = !android || requestPermissions;
   if (!useSpawterStore.getState().spawter?.geoloc_consent_at || await isGuetOptedOut()) { await pauseGuet(); return; }
   if (!isCurrent(epoch, id)) { await pauseGuet(); return; }
   // An already-disabled flag must not wait for another network read to stop.
@@ -101,13 +105,17 @@ async function rearmUnlocked({ force }: { force: boolean }, epoch: number, id: s
   if (!canContinue()) { await pauseGuet(); return; }
   const { data: session, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || session.session?.user.id !== id || !canContinue()) { await pauseGuet(); return; }
-  if (await ensureNotifPermissionPostOTP(true) !== "granted" || !canContinue()) { await pauseGuet(); return; }
+  if (await ensureNotifPermissionPostOTP(true, mayAsk) !== "granted" || !canContinue()) { await pauseGuet(); return; }
   let fg = await Location.getForegroundPermissionsAsync();
   if (!canContinue()) { await pauseGuet(); return; }
-  if (fg.status !== "granted" && fg.canAskAgain) fg = await Location.requestForegroundPermissionsAsync();
+  if (fg.status !== "granted" && fg.canAskAgain && mayAsk) fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== "granted" || !canContinue()) { await pauseGuet(); return; }
-  const bg = await Location.getBackgroundPermissionsAsync();
-  if ((bg.status !== "granted" && !bg.canAskAgain) || !canContinue()) { await pauseGuet(); return; }
+  let bg = await Location.getBackgroundPermissionsAsync();
+  if (!canContinue()) { await pauseGuet(); return; }
+  if (android && bg.status !== "granted" && bg.canAskAgain && mayAsk) {
+    bg = await Location.requestBackgroundPermissionsAsync();
+  }
+  if ((bg.status !== "granted" && (android || !bg.canAskAgain)) || !canContinue()) { await pauseGuet(); return; }
   const armed = await isGuetArmed();
   if (!canContinue()) { await pauseGuet(); return; }
   // Throttle catalogue/position work only. Revocations must take effect on the
@@ -130,7 +138,7 @@ async function rearmUnlocked({ force }: { force: boolean }, epoch: number, id: s
   await AsyncStorage.setItem(GUET_CONTEXT_KEY, JSON.stringify(context));
   if (!canContinue()) { await pauseGuet(); return; }
   setPlaceNameLookup(id => places.find(p => p.id === id)?.name ?? null);
-  await armGuet(places, { hasGeolocConsent: true, spawter: { lat: fix.coords.latitude, lng: fix.coords.longitude } });
+  await armGuet(places, { hasGeolocConsent: true, spawter: { lat: fix.coords.latitude, lng: fix.coords.longitude }, ...(android ? { requestPermissions: false } : {}) });
   if (!canContinue() || !(await isGuetArmed())) { await pauseGuet(); return; }
   if (!canContinue()) { await pauseGuet(); return; }
   lastArmAt = Date.now();
@@ -139,6 +147,7 @@ export const handleGeofenceEvent = (type: "enter" | "exit", place: { id: string;
 export async function handleNotifResponse(_action: "confirm" | "snooze" | "default", payload: GuetPromptPayload): Promise<void> {
   const current = useSpawterStore.getState().spawter;
   if (!current || payload.owner_id !== current.id) return;
+  if (Platform.OS === "android" && await readGuetChoice(current.id) !== "accepted") return;
   const { data } = await supabase.auth.getSession();
   if (data.session?.user.id !== current.id || useSpawterStore.getState().spawter?.id !== current.id) return;
   if (payload.kind === "review") {
@@ -155,9 +164,34 @@ export async function handleNotifResponse(_action: "confirm" | "snooze" | "defau
 }
 export async function finalizeStalePending(): Promise<void> { await AsyncStorage.removeItem("spawt:guet:pending"); }
 export async function isGuetOptedOut(): Promise<boolean> {
+  if (Platform.OS === "android") {
+    const id = useSpawterStore.getState().spawter?.id;
+    return !id || await readGuetChoice(id) !== "accepted";
+  }
   try { return (await AsyncStorage.getItem(OPTOUT)) === "1"; } catch { return true; }
 }
+export async function setAndroidGuetChoice(id: string, activate: boolean): Promise<void> {
+  const current = useSpawterStore.getState().spawter;
+  if (Platform.OS !== "android" || current?.id !== id) return;
+  if (activate && (!current.geoloc_consent_at || !isEnabledFor(id))) return;
+  if (!activate) {
+    const persisted = writeGuetChoice(id, "declined");
+    await Promise.all([persisted, shutdownGuet()]);
+    return;
+  }
+  await writeGuetChoice(id, "accepted");
+  if (useSpawterStore.getState().spawter?.id !== id) return;
+  if (owner === id) await rearmGuet({ force: true, requestPermissions: true });
+  else await bootGuet(true);
+}
+
 export async function setGuetOptOut(value: boolean): Promise<void> {
+  if (Platform.OS === "android") {
+    // Only the affirmative button of the disclosure can enable the Guet.
+    const id = useSpawterStore.getState().spawter?.id;
+    if (value && id) await setAndroidGuetChoice(id, false);
+    return;
+  }
   if (value) { await AsyncStorage.setItem(OPTOUT, "1"); await shutdownGuet(); }
   else { await AsyncStorage.removeItem(OPTOUT); await shutdownGuet(); await bootGuet(); }
 }

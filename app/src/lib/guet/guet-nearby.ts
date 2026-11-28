@@ -1,5 +1,7 @@
 // Background entrypoint: no React mount, hydrated store, or created visit required.
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
+import { readGuetChoice } from "./guet-disclosure";
 import * as Crypto from "expo-crypto";
 import { supabase } from "../supabase";
 import { scheduleGuetPrompt, cancelGuetPrompt } from "./guet-notifications";
@@ -21,6 +23,7 @@ export async function readGuetContext(): Promise<GuetContext | null> {
   const raw = await AsyncStorage.getItem(GUET_CONTEXT_KEY); if (!raw) return null;
   const context = JSON.parse(raw) as GuetContext;
   if (!context.owner || !Array.isArray(context.places) || !(context.expiresAt > Date.now())) return null;
+  if (Platform.OS === "android" && await readGuetChoice(context.owner) !== "accepted") return null;
   const { data, error } = await supabase.auth.getSession();
   return !error && data.session?.user.id === context.owner ? context : null;
 }

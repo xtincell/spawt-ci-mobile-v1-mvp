@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 import * as Location from "expo-location";
 
 jest.mock("expo-location", () => ({
@@ -7,6 +7,7 @@ jest.mock("expo-location", () => ({
   getForegroundPermissionsAsync: jest.fn(),
   requestForegroundPermissionsAsync: jest.fn(),
   getBackgroundPermissionsAsync: jest.fn(),
+  requestBackgroundPermissionsAsync: jest.fn(),
   getLastKnownPositionAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
 }));
@@ -56,9 +57,10 @@ jest.mock("../geofence", () => ({
 import { useSpawterStore } from "../../../store/spawter-store";
 import { useFeatureFlagsStore } from "../../../store/feature-flags";
 import { useGuetActive } from "../../../store/guet-active";
-import { GUET_CONTEXT_KEY, serialGuet } from "../guet-nearby";
-import { bootGuet, rearmGuet, setGuetOptOut, shutdownGuet, _resetOrchestratorForTest } from "../guet-orchestrator";
+import { GUET_CONTEXT_KEY, readGuetContext, serialGuet } from "../guet-nearby";
+import { bootGuet, rearmGuet, setAndroidGuetChoice, setGuetOptOut, shutdownGuet, _resetOrchestratorForTest } from "../guet-orchestrator";
 
+const originalOS = Platform.OS;
 const granted = { status: "granted", canAskAgain: true };
 const denied = { status: "denied", canAskAgain: false };
 const place = { id: "p", name: "Lieu", lat: 5.35, lng: -3.97 };
@@ -105,6 +107,7 @@ beforeEach(async () => {
   (Location.getForegroundPermissionsAsync as jest.Mock).mockResolvedValue(granted);
   (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(granted);
   (Location.getBackgroundPermissionsAsync as jest.Mock).mockResolvedValue(granted);
+  (Location.requestBackgroundPermissionsAsync as jest.Mock).mockResolvedValue(granted);
   (Location.getLastKnownPositionAsync as jest.Mock).mockResolvedValue({ coords: { latitude: 5.35, longitude: -3.97 } });
   mockReadPlaces.mockResolvedValue({ data: [place], error: null });
   mockOutings.mockResolvedValue({ snapshot: { dishes: [] } });
@@ -116,6 +119,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await shutdownGuet();
+  Platform.OS = originalOS;
   jest.restoreAllMocks();
 });
 
@@ -283,4 +287,57 @@ it("keeps an opt-out across flag refreshes, then resumes through the existing se
   await setGuetOptOut(false);
   expect(mockArm).toHaveBeenCalledTimes(2);
   expect(await context()).toMatchObject({ owner: "a" });
+});
+
+
+it("Android ignores legacy native grants and a legacy background context until this account accepts the disclosure", async () => {
+  Platform.OS = "android";
+  setAccount("upgrade-user");
+  await AsyncStorage.setItem(GUET_CONTEXT_KEY, JSON.stringify({ owner: "upgrade-user", expiresAt: Date.now() + 60_000, places: [place] }));
+  expect(await readGuetContext()).toBeNull();
+  await bootGuet();
+  await useFeatureFlagsStore.getState().hydrate("upgrade-user");
+  await setGuetOptOut(false); // Legacy setting cannot accept disclosure.
+  await foreground();
+  expect(Location.getForegroundPermissionsAsync).not.toHaveBeenCalled();
+  expect(Location.getBackgroundPermissionsAsync).not.toHaveBeenCalled();
+  expect(mockArm).not.toHaveBeenCalled();
+  expect(mockDisarm).toHaveBeenCalled();
+});
+
+it("Android asks native permissions only after the acceptance, then respects OS denial and device opt-out", async () => {
+  Platform.OS = "android";
+  setAccount("disclosure-user");
+  await useFeatureFlagsStore.getState().hydrate("disclosure-user");
+  const canAsk = { status: "denied", canAskAgain: true };
+  (Location.getForegroundPermissionsAsync as jest.Mock).mockResolvedValue(canAsk);
+  (Location.getBackgroundPermissionsAsync as jest.Mock).mockResolvedValue(canAsk);
+  (Location.requestBackgroundPermissionsAsync as jest.Mock).mockResolvedValueOnce(denied);
+  await bootGuet();
+  expect(mockNotificationPermission).not.toHaveBeenCalled();
+
+  await setAndroidGuetChoice("other-user", true);
+  expect(Location.requestBackgroundPermissionsAsync).not.toHaveBeenCalled();
+  await setAndroidGuetChoice("disclosure-user", true);
+  expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
+  expect(Location.requestBackgroundPermissionsAsync).toHaveBeenCalledTimes(1);
+  expect(mockArm).not.toHaveBeenCalled();
+
+  (Location.getForegroundPermissionsAsync as jest.Mock).mockResolvedValue(granted);
+  await foreground();
+  expect(Location.requestBackgroundPermissionsAsync).toHaveBeenCalledTimes(1);
+  (Location.getBackgroundPermissionsAsync as jest.Mock).mockResolvedValue(granted);
+  await foreground();
+  expect(mockArm).toHaveBeenCalledTimes(1);
+  expect(await readGuetContext()).toMatchObject({ owner: "disclosure-user" });
+
+  await setAndroidGuetChoice("disclosure-user", false);
+  expect(mockArmed).toBe(false);
+  expect(await readGuetContext()).toBeNull();
+  await bootGuet();
+  expect(mockArm).toHaveBeenCalledTimes(1);
+
+  setAccount("different-profile");
+  await bootGuet();
+  expect(mockArm).toHaveBeenCalledTimes(1);
 });

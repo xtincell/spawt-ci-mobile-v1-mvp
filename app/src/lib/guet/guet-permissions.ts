@@ -1,7 +1,6 @@
 // Story 4.2 — Permission `expo-notifications` runtime.
 // Gating : pas demandée avant que `geoloc_consent_at` soit posé (ARTCI Story 2.2 set-once).
-// Refus utilisateur : non-bloquant — Le Guet continue d'arming, le spawt sera
-// enregistré `passive` à la fenêtre +30min (AC #1 Story 4.2).
+// Refus : le Guet reste en pause ; le spawt manuel reste disponible.
 
 import * as Notifications from "expo-notifications";
 
@@ -13,6 +12,7 @@ import { ensureGuetChannel } from "./guet-notifications";
  */
 export async function ensureNotifPermissionPostOTP(
   hasGeolocConsent: boolean,
+  mayAsk = true,
 ): Promise<"granted" | "denied" | "skipped"> {
   if (!hasGeolocConsent) {
     if (__DEV__) {
@@ -30,7 +30,7 @@ export async function ensureNotifPermissionPostOTP(
       canAskAgain?: boolean;
     };
     if (existing.granted) return "granted";
-    if (existing.canAskAgain === false) return "denied";
+    if (!mayAsk || existing.canAskAgain === false) return "denied";
     const result = (await Notifications.requestPermissionsAsync()) as unknown as {
       granted?: boolean;
     };

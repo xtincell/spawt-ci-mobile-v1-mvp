@@ -1,3 +1,4 @@
+import { AndroidGuetDisclosure } from "../../src/components/AndroidGuetDisclosure";
 import { Announcements } from "../../src/components/Announcements";
 import { EditorialDiscovery, OutingDiscovery } from "../../src/components/OutingDiscovery";
 import { useOutings } from "../../src/store/outings-store";
@@ -299,6 +300,7 @@ export default function HomeD() {
                       : theme.colors.surface.subtle,
                 }}
               >
+                {mode === "suggestions" && selectedMode === "suggestions" ? <AndroidGuetDisclosure placement="home" /> : null}
                 {mode !== "rapide" ? (
                   <View
                     style={{

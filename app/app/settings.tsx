@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTheme, type Theme } from "../src/theme/ThemeProvider";
 import { useSpawterStore } from "../src/store/spawter-store";
+import { AndroidGuetDisclosure } from "../src/components/AndroidGuetDisclosure";
 import { isGuetOptedOut, setGuetOptOut } from "../src/lib/guet";
 import { unregisterPushToken } from "../src/lib/push-token";
 import { requestAccountDeletion, isSupabaseConfigured } from "../src/lib/data-source";
@@ -23,7 +24,7 @@ import { useFlag } from "../src/store/feature-flags";
 // URLs légales — vides tant que le juriste n'a pas livré (HUMAN_TODO.md).
 // Une URL vide masque la ligne ; le code est prêt.
 const CGU_URL = "";
-const PRIVACY_URL = "";
+const PRIVACY_URL = "https://spawt.online/legal/confidentialite";
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -116,7 +117,7 @@ export default function SettingsScreen() {
 
         {/* Le Guet */}
         <SectionTitle theme={theme} label={t("settings.section_guet")} />
-        <Row theme={theme}>
+        {Platform.OS === "android" ? <AndroidGuetDisclosure placement="settings" /> : <Row theme={theme}>
           <View style={{ flex: 1, paddingRight: theme.spacing.base }}>
             <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.primary }}>
               {t("settings.guet_optout_label")}
@@ -131,7 +132,7 @@ export default function SettingsScreen() {
             onValueChange={onToggleGuet}
             trackColor={{ true: theme.colors.brand.primary, false: undefined }}
           />
-        </Row>
+        </Row>}
         <LinkRow
           theme={theme}
           label={t("settings.system_settings")}
