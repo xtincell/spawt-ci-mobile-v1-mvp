@@ -1,3 +1,4 @@
+import { isGuetAvailableForBuild } from "../src/lib/guet/guet-availability";
 // Phase 2 — Écran Paramètres (exigence Play Store + ARTCI).
 // Suppression de compte in-app (obligatoire : app avec comptes + localisation
 // background), opt-out du Guet sur l'appareil, accès réglages système,
@@ -116,7 +117,7 @@ export default function SettingsScreen() {
         </Text>
 
         {/* Le Guet */}
-        <SectionTitle theme={theme} label={t("settings.section_guet")} />
+        {isGuetAvailableForBuild() ? <SectionTitle theme={theme} label={t("settings.section_guet")} /> : null}
         {Platform.OS === "android" ? <AndroidGuetDisclosure placement="settings" /> : <Row theme={theme}>
           <View style={{ flex: 1, paddingRight: theme.spacing.base }}>
             <Text style={{ ...theme.typography.preset.body, color: theme.colors.text.primary }}>

@@ -17,6 +17,7 @@ import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { ChatBubble } from "../../src/components/ChatBubble";
 import { Ico } from "../../src/components/primitives/Ico";
+import { isGuetAvailableForBuild } from "../../src/lib/guet/guet-availability";
 import { track } from "../../src/lib/analytics";
 import { useOnboardingDraft } from "../../src/store/onboarding-draft";
 import { useSpawterStore } from "../../src/store/spawter-store";
@@ -119,7 +120,7 @@ export default function ConsentScreen() {
         checked={geoloc}
         onToggle={() => setGeoloc((v) => !v)}
         label={t("consent.geoloc_label")}
-        body={t("consent.geoloc_body")}
+        body={t(isGuetAvailableForBuild() ? "consent.geoloc_body" : "consent.geoloc_body_foreground")}
         testID="consent-geoloc"
       />
 

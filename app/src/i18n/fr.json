@@ -484,6 +484,7 @@
     "intro": "Parlons de tes données personnelles.",
     "cgv_label": "J'accepte les Conditions Générales d'Utilisation et de Vente",
     "cgv_body": "En tapant Accepter, tu rejoins la bande. Tu utilises SPAWT pour découvrir des lieux, spawter quand tu y vas, et partager tes avis. SPAWT t'engage à respecter les autres, ne pas inventer d'avis, et garder un ton qui ne blesse pas. Aucun usage commercial sans accord. Le détail complet — version juriste — arrive bientôt.",
+    "geoloc_body_foreground": "Tes infos (nom, quartier, date de naissance) aident SPAWT à te recommander des lieux. Ta position peut servir à afficher les lieux proches et à valider un spawt quand tu es sur place. Sur cette version Android, SPAWT ne demande pas ta localisation en arrière-plan.",
     "geoloc_label": "J'accepte la collecte de mes données et de ma géolocalisation",
     "geoloc_body": "Tes infos (nom, quartier, date de naissance) aident SPAWT à te recommander des lieux. Ta position peut servir à afficher les lieux proches et à valider un spawt quand tu es sur place. Le Guet peut utiliser la localisation en arrière-plan. Sur Android, il a sa propre autorisation : SPAWT t’explique cet usage avant de te la demander. Tu pourras le désactiver dans les paramètres.",
     "policy_link": "Politique de confidentialité",

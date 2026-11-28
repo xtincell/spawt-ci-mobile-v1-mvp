@@ -1,3 +1,4 @@
+import { isGuetAvailableForBuild } from "../lib/guet/guet-availability";
 import { useCallback, useRef, useState } from "react";
 import { Alert, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -9,7 +10,7 @@ import { readGuetChoice, type GuetChoice } from "../lib/guet/guet-disclosure";
 import { setAndroidGuetChoice } from "../lib/guet/guet-orchestrator";
 
 export function AndroidGuetDisclosure({ placement }: { placement: "home" | "settings" }) {
-  if (Platform.OS !== "android") return null;
+  if (Platform.OS !== "android" || !isGuetAvailableForBuild()) return null;
   return <AndroidGuetControls placement={placement} />;
 }
 

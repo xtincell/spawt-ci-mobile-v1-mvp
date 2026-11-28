@@ -1,3 +1,4 @@
+import { isGuetAvailableForBuild } from "./guet-availability";
 import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
@@ -34,7 +35,7 @@ function isEnabledFor(id: string): boolean {
 
 export async function bootGuet(requestPermissions = false): Promise<void> {
   const current = useSpawterStore.getState().spawter;
-  if (!current || Platform.OS === "web" || dataSourceMode !== "supabase") { await shutdownGuet(); return; }
+  if (!current || !isGuetAvailableForBuild() || Platform.OS === "web" || dataSourceMode !== "supabase") { await shutdownGuet(); return; }
   if (owner === current.id) return;
   // Claim this boot before awaiting native cleanup. A logout or another boot
   // invalidates it immediately, including when the previous arm is still pending.
@@ -86,6 +87,7 @@ export function rearmGuet(options: { force: boolean; requestPermissions?: boolea
   const epoch = generation; const id = owner;
   return serialGuet(async () => {
     if (!id || !isCurrent(epoch, id)) return;
+    if (!isGuetAvailableForBuild()) { await pauseGuet(); return; }
     try { await rearmUnlocked(options, epoch, id); }
     catch (error) { await pauseGuet(); throw error; }
   });
@@ -146,7 +148,7 @@ async function rearmUnlocked({ force, requestPermissions = false }: { force: boo
 export const handleGeofenceEvent = (type: "enter" | "exit", place: { id: string; name: string }): Promise<void> => handleNearbyEvent(type, place.id);
 export async function handleNotifResponse(_action: "confirm" | "snooze" | "default", payload: GuetPromptPayload): Promise<void> {
   const current = useSpawterStore.getState().spawter;
-  if (!current || payload.owner_id !== current.id) return;
+  if (!current || !isGuetAvailableForBuild() || payload.owner_id !== current.id) return;
   if (Platform.OS === "android" && await readGuetChoice(current.id) !== "accepted") return;
   const { data } = await supabase.auth.getSession();
   if (data.session?.user.id !== current.id || useSpawterStore.getState().spawter?.id !== current.id) return;
@@ -172,7 +174,7 @@ export async function isGuetOptedOut(): Promise<boolean> {
 }
 export async function setAndroidGuetChoice(id: string, activate: boolean): Promise<void> {
   const current = useSpawterStore.getState().spawter;
-  if (Platform.OS !== "android" || current?.id !== id) return;
+  if (!isGuetAvailableForBuild() || Platform.OS !== "android" || current?.id !== id) return;
   if (activate && (!current.geoloc_consent_at || !isEnabledFor(id))) return;
   if (!activate) {
     const persisted = writeGuetChoice(id, "declined");

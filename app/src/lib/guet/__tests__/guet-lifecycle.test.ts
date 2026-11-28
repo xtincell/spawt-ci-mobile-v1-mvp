@@ -11,6 +11,11 @@ jest.mock("expo-location", () => ({
   getLastKnownPositionAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
 }));
+let mockAndroidGuetBuildEnabled = true;
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: { get expoConfig() { return { extra: { androidBackgroundGuetEnabled: mockAndroidGuetBuildEnabled } }; } },
+}));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 jest.mock("expo-crypto", () => ({ randomUUID: jest.fn() }));
 const mockListFlags = jest.fn();
@@ -101,7 +106,7 @@ beforeEach(async () => {
     activeListeners.add(listener);
     return { remove: () => { activeListeners.delete(listener); } };
   });
-  enabled = true; mockArmed = false;
+  enabled = true; mockArmed = false; mockAndroidGuetBuildEnabled = true;
   mockListFlags.mockImplementation(async () => [{ flag_code: "guet-proximity-v2", enabled, scope: "prod", spawter_id: null }]);
   mockNotificationPermission.mockResolvedValue("granted");
   (Location.getForegroundPermissionsAsync as jest.Mock).mockResolvedValue(granted);
@@ -338,6 +343,27 @@ it("Android asks native permissions only after the acceptance, then respects OS 
   expect(mockArm).toHaveBeenCalledTimes(1);
 
   setAccount("different-profile");
+  await bootGuet();
+  expect(mockArm).toHaveBeenCalledTimes(1);
+});
+
+
+it("never offers permissions or arms Android Guet in the no-background build, even with the backend flag", async () => {
+  Platform.OS = "android";
+  mockAndroidGuetBuildEnabled = false;
+  await useFeatureFlagsStore.getState().hydrate("a");
+  await bootGuet(true);
+  await setAndroidGuetChoice("a", true);
+  await rearmGuet({ force: true, requestPermissions: true });
+  expect(mockNotificationPermission).not.toHaveBeenCalled();
+  expect(Location.requestBackgroundPermissionsAsync).not.toHaveBeenCalled();
+  expect(mockArm).not.toHaveBeenCalled();
+  expect(await context()).toBeNull();
+});
+
+it("keeps the existing iOS Guet behavior with the Android-only build flag off", async () => {
+  Platform.OS = "ios";
+  mockAndroidGuetBuildEnabled = false;
   await bootGuet();
   expect(mockArm).toHaveBeenCalledTimes(1);
 });

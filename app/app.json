@@ -44,7 +44,7 @@
         "policy": "fingerprint"
       },
       "googleServicesFile": "./google-services.json",
-      "versionCode": 53,
+      "versionCode": 54,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -96,7 +96,8 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "plugins": [
@@ -108,7 +109,7 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Pour te proposer les lieux proches, même quand SPAWT est fermé. Une proximité ne crée jamais de visite.",
-          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": false,
           "isIosBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": false
         }
@@ -152,6 +153,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "androidBackgroundGuetEnabled": false,
       "router": {
         "origin": false
       },

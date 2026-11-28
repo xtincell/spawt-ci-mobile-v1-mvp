@@ -1,3 +1,4 @@
+import { isGuetAvailableForBuild } from "./guet-availability";
 // Story 4.1 — TaskManager.defineTask top-level pour le geofencing.
 //
 // CRITICAL — l'invocation `TaskManager.defineTask` DOIT être au niveau module
@@ -57,6 +58,7 @@ interface TaskData {
 // (project-context §Anti-patterns techniques).
 if (typeof TaskManager.defineTask === "function") {
   TaskManager.defineTask(GUET_TASK, async ({ data, error }) => {
+    if (!isGuetAvailableForBuild()) return;
     if (error) {
       if (__DEV__) console.warn("[guet-task] error", error);
       return;
