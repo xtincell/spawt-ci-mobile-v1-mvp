@@ -1,4 +1,4 @@
-name: SPAWT 53 accelerated Android smoke
+name: SPAWT 53 accelerated Android onboarding
 on:
   push:
     branches: ["codex/spawt-53-android-smoke"]
@@ -56,14 +56,47 @@ jobs:
           "$adb" install "$RUNNER_TEMP/universal.apk"
           "$adb" shell dumpsys package com.upgraders.spawt > "$RUNNER_TEMP/package.txt"
           grep -F 'versionCode=53 ' "$RUNNER_TEMP/package.txt"
+          "$adb" shell cmd connectivity airplane-mode enable
+          "$adb" shell svc wifi disable
+          "$adb" shell svc data disable
+          test "$("$adb" shell settings get global airplane_mode_on | tr -d '\r')" = 1
+          "$adb" shell wm size 1080x2200
+          "$adb" shell wm density 340
           "$adb" shell am start -W -n com.upgraders.spawt/.MainActivity
-          for _ in $(seq 1 12); do
-            if timeout 10 "$adb" shell uiautomator dump /sdcard/qa.xml >/dev/null 2>&1 &&
-               "$adb" shell cat /sdcard/qa.xml | grep -qiE 'Rejoindre la bande|SPAWT.*[Aa]bidjan|[Aa]bidjan.*SPAWT'; then
-              echo "SPAWT onboarding visible on Android 34 with Google Play Services."
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "SPAWT onboarding was not observed; login and Guet were not tested."
-          exit 1
+          export QA_ADB="$adb"
+          python3 - <<'PYTEST'
+          import os,re,subprocess,time,xml.etree.ElementTree as ET
+          adb=os.environ['QA_ADB']
+          def call(*args,timeout=12):
+              return subprocess.check_output([adb,'shell',*args],timeout=timeout).decode('utf-8',errors='replace').strip()
+          def snapshot():
+              call('uiautomator','dump','/sdcard/qa.xml')
+              return list(ET.fromstring(call('cat','/sdcard/qa.xml')).iter('node'))
+          def locate(identifier,scroll=False):
+              for idx in range(16):
+                  try:
+                      available=[n for n in snapshot() if n.get('package')=='com.upgraders.spawt']
+                      for n in available:
+                          rid=n.get('resource-id','').split('/')[-1]
+                          if rid==identifier:
+                              bounds=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
+                              if len(bounds)==4 and bounds[0]<bounds[2] and bounds[1]<bounds[3]:
+                                  return n, bounds
+                      if scroll and idx in (2,5,8,11):
+                          call('input','swipe','540','1780','540','640','350')
+                  except (ET.ParseError, subprocess.SubprocessError):
+                      pass
+                  time.sleep(1)
+              raise AssertionError('Required visible test ID missing: '+identifier)
+          def tap(identifier,scroll=False):
+              n,(x,y,xx,yy)=locate(identifier,scroll)
+              assert n.get('enabled')!='false', identifier+' unexpectedly disabled'
+              call('input','tap',str((x+xx)//2),str((y+yy)//2))
+          tap('splash-start')
+          tap('consent-cgv')
+          tap('consent-geoloc',True)
+          tap('consent-continue',True)
+          locate('phone-input')
+          print('Observed on accelerated Android: welcome, both local consent controls, and the phone entry screen.')
+          print('Offline synthesized taps only. No number, OTP, SMS, login or Guet notification tested.')
+          PYTEST
