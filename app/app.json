@@ -44,7 +44,7 @@
         "policy": "fingerprint"
       },
       "googleServicesFile": "./google-services.json",
-      "versionCode": 51,
+      "versionCode": 53,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
