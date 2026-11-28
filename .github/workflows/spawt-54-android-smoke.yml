@@ -1,0 +1,107 @@
+name: SPAWT 54 accelerated Android onboarding
+on:
+  push:
+    branches: ["codex/spawt-53-android-smoke"]
+    paths: [".github/workflows/spawt-54-android-smoke.yml"]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Verify the pinned release candidate and make a local-only QA APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/artifacts/15273548431/zip" > spawt54.zip
+          echo "4e05ec7ebf7571a49605cb4ecab9d246bcf265fff7f99c64151e337f539e8681  spawt54.zip" | sha256sum -c
+          unzip -q spawt54.zip spawt-1.1.8-build54.aab source-commit.txt
+          test "$(cat source-commit.txt)" = 9779b89a8c87e22cfa5b7f925acf826080bd6db3
+          echo "16e3b901a27556722b3d28d9a1dcc2110742035260c7b32590988d72c3bcdade  spawt-1.1.8-build54.aab" | sha256sum -c
+          curl -fLsS --retry 2 'https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar' -o bundletool.jar
+          keytool -genkeypair -storetype PKCS12 -keystore qa.p12 -storepass qa-local-only -keypass qa-local-only -alias qa -keyalg RSA -keysize 2048 -dname 'CN=Ephemeral smoke only' -validity 1
+          java -jar bundletool.jar build-apks --bundle=spawt-1.1.8-build54.aab --output=spawt54.apks --mode=universal --ks=qa.p12 --ks-pass=pass:qa-local-only --ks-key-alias=qa --key-pass=pass:qa-local-only
+          unzip -q spawt54.apks universal.apk
+      - name: Check startup on an accelerated Android 34 image
+        run: |
+          set -euo pipefail
+          test -c /dev/kvm
+          if ! [[ -r /dev/kvm && -w /dev/kvm ]]; then
+            sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          fi
+          sdk="$ANDROID_HOME"
+          adb="$sdk/platform-tools/adb"
+          sdkman="$sdk/cmdline-tools/latest/bin/sdkmanager"
+          image='system-images;android-34;google_apis;x86_64'
+          yes | "$sdkman" --licenses >/dev/null || true
+          "$sdkman" --install emulator platform-tools "$image" >/dev/null
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/qa-avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | "$sdk/cmdline-tools/latest/bin/avdmanager" create avd --force --name spawt54-smoke --package "$image"
+          "$sdk/emulator/emulator" -avd spawt54-smoke -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -cores 2 -memory 2048 > "$RUNNER_TEMP/emulator.log" 2>&1 &
+          ep=$!
+          trap 'kill "$ep" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 100); do
+            [[ "$(timeout 3 "$adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != 1 ]] || break
+            kill -0 "$ep" || { tail -35 "$RUNNER_TEMP/emulator.log"; exit 1; }
+            sleep 3
+          done
+          test "$(timeout 10 "$adb" shell getprop sys.boot_completed | tr -d '\r')" = 1
+          "$adb" shell pm path com.google.android.gms | grep -q '^package:'
+          "$adb" shell input keyevent 82
+          "$adb" install "$RUNNER_TEMP/universal.apk"
+          "$adb" shell dumpsys package com.upgraders.spawt > "$RUNNER_TEMP/package.txt"
+          grep -F 'versionCode=54 ' "$RUNNER_TEMP/package.txt"
+          grep -qF 'android.permission.ACCESS_FINE_LOCATION' "$RUNNER_TEMP/package.txt"
+          if grep -qF 'android.permission.ACCESS_BACKGROUND_LOCATION' "$RUNNER_TEMP/package.txt"; then
+            echo 'Unexpected background location permission on installed Android package.' >&2
+            exit 1
+          fi
+          "$adb" shell cmd connectivity airplane-mode enable
+          "$adb" shell svc wifi disable
+          "$adb" shell svc data disable
+          test "$("$adb" shell settings get global airplane_mode_on | tr -d '\r')" = 1
+          "$adb" shell wm size 1080x2200
+          "$adb" shell wm density 340
+          "$adb" shell am start -W -n com.upgraders.spawt/.MainActivity
+          export QA_ADB="$adb"
+          python3 - <<'PYTEST'
+          import os,re,subprocess,time,xml.etree.ElementTree as ET
+          adb=os.environ['QA_ADB']
+          def call(*args,timeout=12):
+              return subprocess.check_output([adb,'shell',*args],timeout=timeout).decode('utf-8',errors='replace').strip()
+          def snapshot():
+              call('uiautomator','dump','/sdcard/qa.xml')
+              return list(ET.fromstring(call('cat','/sdcard/qa.xml')).iter('node'))
+          def locate(identifier,scroll=False):
+              for idx in range(16):
+                  try:
+                      available=[n for n in snapshot() if n.get('package')=='com.upgraders.spawt']
+                      for n in available:
+                          rid=n.get('resource-id','').split('/')[-1]
+                          if rid==identifier:
+                              bounds=list(map(int,re.findall(r'\d+',n.get('bounds',''))))
+                              if len(bounds)==4 and bounds[0]<bounds[2] and bounds[1]<bounds[3]:
+                                  return n, bounds
+                      if scroll and idx in (2,5,8,11):
+                          call('input','swipe','540','1780','540','640','350')
+                  except (ET.ParseError, subprocess.SubprocessError):
+                      pass
+                  time.sleep(1)
+              raise AssertionError('Required visible test ID missing: '+identifier)
+          def tap(identifier,scroll=False):
+              n,(x,y,xx,yy)=locate(identifier,scroll)
+              assert n.get('enabled')!='false', identifier+' unexpectedly disabled'
+              call('input','tap',str((x+xx)//2),str((y+yy)//2))
+          tap('splash-start')
+          tap('consent-cgv')
+          tap('consent-geoloc',True)
+          tap('consent-continue',True)
+          locate('phone-input')
+          print('Observed on accelerated Android: welcome, both local consent controls, and the phone entry screen.')
+          print('Offline synthesized taps only. No number, OTP, SMS, login or Guet notification tested.')
+          PYTEST
