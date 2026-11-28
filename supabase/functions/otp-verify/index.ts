@@ -35,10 +35,10 @@
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-import { isReservedStoreReviewerPhone, isReviewerLogin as isReviewerLoginShared, reviewerIdentity, storeReviewerRuntimeEnv } from "../_shared/reviewer.ts";
+import { isReservedStoreReviewerPhone, isReviewerLogin as isReviewerLoginShared, reviewerIdentity } from "../_shared/reviewer.ts";
 
 // @ts-expect-error — Deno global
-declare const Deno: { env: { get(name: string): string | undefined }; readTextFileSync(path: string): string; serve: (h: (req: Request) => Promise<Response> | Response) => void };
+declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Promise<Response> | Response) => void };
 
 interface VerifyPayload {
   phone_e164: string;
@@ -67,7 +67,7 @@ function isMockMode(): boolean {
 
 // Reviewer config is shared with otp-send. The reviewer is pre-provisioned and pinned by UUID.
 export function isReviewerLogin(phoneE164: string, otpCode: string): boolean {
-  return isReviewerLoginShared(phoneE164, otpCode, storeReviewerRuntimeEnv(phoneE164, Deno.env, path => Deno.readTextFileSync(path)));
+  return isReviewerLoginShared(phoneE164, otpCode, Deno.env);
 }
 
 // P-11 — CORS restreint : la liste blanche est lue depuis `ALLOWED_ORIGINS`
@@ -208,30 +208,35 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
   const admin = createClient(supabaseUrl, serviceRole);
 
-  const config = storeReviewerRuntimeEnv(payload.phone_e164, Deno.env, path => Deno.readTextFileSync(path));
-  const reviewer = reviewerIdentity(config);
-  const reviewerLogin = reviewer !== null && reviewer.phone === payload.phone_e164;
-  if (isReservedStoreReviewerPhone(payload.phone_e164) && !reviewerLogin) {
-    return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
-  }
+  const reviewer = reviewerIdentity(Deno.env);
+  const isReservedDemo = isReservedStoreReviewerPhone(payload.phone_e164);
+  const reviewerLogin = isReservedDemo || (reviewer !== null && reviewer.phone === payload.phone_e164);
   let reviewerUser: { id: string; email: string } | null = null;
-  if (reviewerLogin && reviewer) {
-    // Count trials before checking the secret, even across Edge replicas.
+  if (reviewerLogin) {
     const { data: reserved, error: budgetError } = await admin.rpc("reserve_store_reviewer_verify", {
-      p_phone: reviewer.phone,
+      p_phone: payload.phone_e164,
     });
     if (budgetError) return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
     if (reserved !== true) return json({ error: "rate_limited", retry_after_seconds: 300 }, req, 429);
-    if (!isReviewerLoginShared(payload.phone_e164, payload.otp_code, config)) {
-      return json({ error: "invalid_otp" }, req, 401);
+    let reviewerUserId: string;
+    if (isReservedDemo) {
+      const { data, error } = await admin.rpc("lookup_store_reviewer", { p_code: payload.otp_code });
+      if (error || data?.ready !== true) return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
+      if (typeof data.userId !== "string") return json({ error: "invalid_otp" }, req, 401);
+      reviewerUserId = data.userId;
+    } else {
+      if (!reviewer || !isReviewerLogin(payload.phone_e164, payload.otp_code)) {
+        return json({ error: "invalid_otp" }, req, 401);
+      }
+      reviewerUserId = reviewer.userId;
     }
     // Never create or look up a real account from the demo number alone.
-    const { data: identity, error: identityError } = await admin.auth.admin.getUserById(reviewer.userId);
+    const { data: identity, error: identityError } = await admin.auth.admin.getUserById(reviewerUserId);
     const user = identity?.user;
-    const expectedEmail = synthEmailForUser(reviewer.userId);
-    if (identityError || !user || user.id !== reviewer.userId || user.email !== expectedEmail ||
+    const expectedEmail = synthEmailForUser(reviewerUserId);
+    if (identityError || !user || user.id !== reviewerUserId || user.email !== expectedEmail ||
         user.app_metadata?.store_reviewer !== true ||
-        user.phone?.replace(/\D/g, "") !== reviewer.phone.replace(/\D/g, "")) {
+        user.phone?.replace(/\D/g, "") !== payload.phone_e164.replace(/\D/g, "")) {
       return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
     }
     // Respect the normal account-ban guard for reviewer logins as well.
