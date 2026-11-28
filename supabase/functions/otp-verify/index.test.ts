@@ -177,8 +177,7 @@ Deno.test("claimMeuteHeritage: succès → relaye le jsonb {claimed, archetype, 
 });
 
 // ── Review stores — chemin reviewer whitelisté ─────────────────────────────
-// isReviewerLogin : actif seulement si REVIEWER_PHONE_E164 ET
-// REVIEWER_OTP_CODE (6-8 chiffres) sont posés ; sinon comportement inchangé.
+// Le numéro, le code et l’UUID dédié sont requis.
 
 import { isReviewerLogin } from "./index.ts";
 
@@ -187,6 +186,8 @@ function resetReviewerEnv() {
   Deno.env.delete("REVIEWER_PHONE_E164");
   // @ts-expect-error — Deno global
   Deno.env.delete("REVIEWER_OTP_CODE");
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_USER_ID");
 }
 
 Deno.test("isReviewerLogin: envs absentes → false", () => {
@@ -194,22 +195,26 @@ Deno.test("isReviewerLogin: envs absentes → false", () => {
   assertEquals(isReviewerLogin("+2250700000001", "424242"), false);
 });
 
-Deno.test("isReviewerLogin: numéro + code exacts → true (CSV, espaces tolérés)", () => {
+Deno.test("isReviewerLogin: numéro + code exacts → true (espaces tolérés)", () => {
   resetReviewerEnv();
   // @ts-expect-error — Deno global
-  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001, +2250700000002");
+  Deno.env.set("REVIEWER_PHONE_E164", " +2250700000002 ");
   // @ts-expect-error — Deno global
   Deno.env.set("REVIEWER_OTP_CODE", "424242");
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_USER_ID", "cf28de11-2766-4ec4-8948-73047aaa086f");
   assertEquals(isReviewerLogin("+2250700000002", "424242"), true);
   resetReviewerEnv();
 });
 
-Deno.test("isReviewerLogin: mauvais code ou numéro hors liste → false (retombe sur flux normal)", () => {
+Deno.test("isReviewerLogin: mauvais code ou numéro hors liste → false", () => {
   resetReviewerEnv();
   // @ts-expect-error — Deno global
   Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001");
   // @ts-expect-error — Deno global
   Deno.env.set("REVIEWER_OTP_CODE", "424242");
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_USER_ID", "cf28de11-2766-4ec4-8948-73047aaa086f");
   assertEquals(isReviewerLogin("+2250700000001", "999999"), false);
   assertEquals(isReviewerLogin("+2250799999999", "424242"), false);
   resetReviewerEnv();

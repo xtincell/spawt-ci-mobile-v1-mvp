@@ -35,7 +35,7 @@
 // @ts-expect-error — résolu en Deno runtime (URL imports)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-import { isReviewerLogin as isReviewerLoginShared } from "../_shared/reviewer.ts";
+import { isReviewerLogin as isReviewerLoginShared, reviewerIdentity } from "../_shared/reviewer.ts";
 
 // @ts-expect-error — Deno global
 declare const Deno: { env: { get(name: string): string | undefined }; serve: (h: (req: Request) => Promise<Response> | Response) => void };
@@ -65,18 +65,7 @@ function isMockMode(): boolean {
   return Deno.env.get("MOCK_TERMII") === "true";
 }
 
-// Review stores (Apple/Google) — un numéro whitelisté + code fixe, actif même
-// en SMS réel (MOCK_TERMII=false) : le reviewer n'a personne pour lui relayer
-// un vrai SMS. Envs : REVIEWER_PHONE_E164 (CSV de numéros E.164) et
-// REVIEWER_OTP_CODE (6-8 chiffres, ≠ 123456 recommandé, à retirer/roter après
-// la review — cf. documentation/RUNBOOK_SOUMISSION_STORES.md). Les DEUX envs
-// doivent être posées pour activer le chemin ; sinon comportement inchangé.
-// Un mauvais code sur un numéro whitelisté retombe sur le flux normal (le
-// numéro reste utilisable en SMS réel).
-//
-// finding P2#11 — source UNIQUE `_shared/reviewer.ts`, partagée avec le
-// skip-SMS d'otp-send : le prédicat « numéro reviewer actif » est identique des
-// deux côtés. Wrapper Deno.env pour garder la signature testée.
+// Reviewer config is shared with otp-send. The reviewer is pre-provisioned and pinned by UUID.
 export function isReviewerLogin(phoneE164: string, otpCode: string): boolean {
   return isReviewerLoginShared(phoneE164, otpCode, Deno.env);
 }
@@ -219,10 +208,38 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
   const admin = createClient(supabaseUrl, serviceRole);
 
-  // Review stores — chemin whitelisté : pas de pin en attente exigé, pas de
-  // vérif Termii, pas de burn (rien à rejouer). Le provisioning et l'émission
-  // de session restent STRICTEMENT identiques au flux normal.
-  const reviewerLogin = isReviewerLogin(payload.phone_e164, payload.otp_code);
+  const reviewer = reviewerIdentity(Deno.env);
+  const reviewerLogin = reviewer !== null && reviewer.phone === payload.phone_e164;
+  let reviewerUser: { id: string; email: string } | null = null;
+  if (reviewerLogin && reviewer) {
+    // Count trials before checking the secret, even across Edge replicas.
+    const { data: reserved, error: budgetError } = await admin.rpc("reserve_store_reviewer_verify", {
+      p_phone: reviewer.phone,
+    });
+    if (budgetError) return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
+    if (reserved !== true) return json({ error: "rate_limited", retry_after_seconds: 300 }, req, 429);
+    if (!isReviewerLogin(payload.phone_e164, payload.otp_code)) {
+      return json({ error: "invalid_otp" }, req, 401);
+    }
+    // Never create or look up a real account from the demo number alone.
+    const { data: identity, error: identityError } = await admin.auth.admin.getUserById(reviewer.userId);
+    const user = identity?.user;
+    const expectedEmail = `phone-${reviewer.phone.replace(/\D/g, "")}@phone.spawt.local`;
+    if (identityError || !user || user.id !== reviewer.userId || user.email !== expectedEmail ||
+        user.app_metadata?.store_reviewer !== true ||
+        user.phone?.replace(/\D/g, "") !== reviewer.phone.replace(/\D/g, "")) {
+      return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
+    }
+    // Respect the normal account-ban guard for reviewer logins as well.
+    const [profile, staff] = await Promise.all([
+      admin.from("spawters").select("is_banned,deletion_requested_at").eq("id", user.id).maybeSingle(),
+      admin.from("spawt_staff").select("id").eq("id", user.id).maybeSingle(),
+    ]);
+    if (profile.error || staff.error || staff.data || profile.data?.is_banned || profile.data?.deletion_requested_at) {
+      return json({ error: "reviewer_temporarily_unavailable" }, req, 503);
+    }
+    reviewerUser = { id: user.id, email: expectedEmail };
+  }
   let pinId: string | null = null;
 
   // ── Le code de test est FIXE : il doit donc rester valide ────────────────
@@ -339,15 +356,15 @@ export async function handleRequest(req: Request): Promise<Response> {
   // ---------------------------------------------------------------------------
   // Provision le compte auth (création ou lookup) — Story 2.3a AC #3.
   // ---------------------------------------------------------------------------
-  let userId: string | null = null;
-  let userHasEmail = false;
+  let userId: string | null = reviewerUser?.id ?? null;
+  let userHasEmail = reviewerUser !== null;
 
   const placeholderEmail = `phone-${payload.phone_e164.replace(/[^0-9]/g, "")}@phone.spawt.local`;
 
   // P-09 — distinguer les erreurs createUser transitoires (rate limit, 5xx)
   // des erreurs "user existe déjà" (continue → listUsers OK). Une transient
   // → return 500 explicite + un-burn (P-07).
-  try {
+  if (!reviewerUser) try {
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       phone: payload.phone_e164,
       email: placeholderEmail,
@@ -448,10 +465,10 @@ export async function handleRequest(req: Request): Promise<Response> {
   // ---------------------------------------------------------------------------
   // Émission de session via generateLink magiclink + verifyOtp server-side.
   // ---------------------------------------------------------------------------
-  const linkEmail = userHasEmail
+  const linkEmail = reviewerUser?.email ?? (userHasEmail
     ? // Récupère l'email actuel (peut être synth ou réel)
       (await admin.auth.admin.getUserById(userId)).data.user?.email
-    : synthEmailForUser(userId);
+    : synthEmailForUser(userId));
 
   if (!linkEmail) {
     await unburn();
@@ -496,7 +513,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   // Chantier 13 archétypes — héritage quiz APRÈS l'émission de session
   // réussie (le login est déjà acquis à ce point). Non bloquant : null si
   // échec/absence, le client ignore alors le champ.
-  const meuteHeritage = await claimMeuteHeritage(admin, userId, payload.phone_e164);
+  const meuteHeritage = reviewerUser ? null : await claimMeuteHeritage(admin, userId, payload.phone_e164);
 
   return json({
     success: true,

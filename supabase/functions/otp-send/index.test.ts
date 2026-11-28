@@ -117,6 +117,8 @@ function clearReviewerEnv() {
   Deno.env.delete("REVIEWER_PHONE_E164");
   // @ts-expect-error — Deno global
   Deno.env.delete("REVIEWER_OTP_CODE");
+  // @ts-expect-error — Deno global
+  Deno.env.delete("REVIEWER_USER_ID");
 }
 
 Deno.test("isReviewerPhone: env absente → false", () => {
@@ -124,11 +126,13 @@ Deno.test("isReviewerPhone: env absente → false", () => {
   if (isReviewerPhone("+2250700000001") !== false) throw new Error("attendu false");
 });
 
-Deno.test("isReviewerPhone: CSV avec espaces + code posé → match exact", () => {
+Deno.test("isReviewerPhone: numéro dédié avec espaces, compte et code → match exact", () => {
   // @ts-expect-error — Deno global
-  Deno.env.set("REVIEWER_PHONE_E164", "+2250700000001 , +2250700000002");
+  Deno.env.set("REVIEWER_PHONE_E164", " +2250700000002 ");
   // @ts-expect-error — Deno global — le skip-SMS exige aussi un code bien formé.
   Deno.env.set("REVIEWER_OTP_CODE", "424242");
+  // @ts-expect-error — Deno global
+  Deno.env.set("REVIEWER_USER_ID", "cf28de11-2766-4ec4-8948-73047aaa086f");
   if (isReviewerPhone("+2250700000002") !== true) throw new Error("attendu true");
   if (isReviewerPhone("+2250700000009") !== false) throw new Error("attendu false");
   clearReviewerEnv();
