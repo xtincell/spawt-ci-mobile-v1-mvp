@@ -8,7 +8,7 @@ import { ThemeProvider } from "../../src/theme/ThemeProvider";
 jest.mock("expo-router", () => ({ useFocusEffect: (effect: () => void) => require("react").useEffect(effect, [effect]) }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) =>
-    require("../../src/i18n/fr.json").guet_disclosure[key.split(".")[1]] ?? key }),
+    require("../../src/i18n/fr.json").guet_disclosure[(key.split(".")[1] ?? "")] ?? key }),
 }));
 jest.mock("../../src/store/spawter-store", () => {
   const state = { spawter: { id: "review", geoloc_consent_at: "2026-11-01" } };
@@ -48,7 +48,7 @@ async function mount(placement: "home" | "settings") {
 
 async function press(id: string) {
   const control = tree.root.findAllByProps({ testID: id }).find((node: { props: { onPress?: unknown } }) => typeof node.props.onPress === "function");
-  expect(control).toBeDefined();
+  if (!control) throw new Error(`Missing pressable: ${id}`);
   await TestRenderer.act(async () => control.props.onPress());
 }
 
